@@ -171,8 +171,7 @@
     "title": "Query",
     "search": "Search Query",
     "suggestion": "Tag Suggestion Query",
-    "post": "Web Post Query",
-    "urlSuffix": "URL Suffix, appended to the end of query URLs"
+    "post": "Web Post Query"
   },
   "settings": {
     "title": "Settings",

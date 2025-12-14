@@ -20,7 +20,6 @@ class Server with _$Server {
     @HiveField(8, defaultValue: '') @Default('') String alias,
     @HiveField(9, defaultValue: '') @Default('') String searchParserId,
     @HiveField(10, defaultValue: '') @Default('') String suggestionParserId,
-    @HiveField(11, defaultValue: '') @Default('') String urlSuffix ,
   }) = _Server;
 
   factory Server.fromJson(Map<String, dynamic> json) => _$ServerFromJson(json);
@@ -43,7 +42,7 @@ class Server with _$Server {
     }
     tags = Uri.encodeComponent(tags.trim());
 
-    return '$homepage/$searchUrl$urlSuffix'
+    return '$homepage/$searchUrl'
         .replaceAll('{tags}', tags)
         .replaceAll('{page-id}', '$page')
         .replaceAll('{post-offset}', (page * option.limit).toString())
@@ -51,7 +50,7 @@ class Server with _$Server {
   }
 
   String suggestionUrlsOf(String query) {
-    final url = '$homepage/$tagSuggestionUrl$urlSuffix'
+    final url = '$homepage/$tagSuggestionUrl'
         .replaceAll('{post-limit}', '$tagSuggestionLimit')
         .replaceAll('{tag-limit}', '$tagSuggestionLimit');
 
