@@ -1,3 +1,12 @@
+## 1.5.2
+
+* add API credentials (user ID and API key) support for servers
+* add Rule34.xxx to default servers
+* add GIF and video overlay indicators in timeline
+* add exit button to home drawer
+* fix: improve GIF detection by checking MIME type
+* fix: handle GIF type in post viewer switch statement
+
 ## 1.5.1
 
 * Maybe fix download issue
