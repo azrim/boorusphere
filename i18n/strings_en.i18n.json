@@ -34,6 +34,8 @@
   "unsupported_media": "${file_ext} is not supported",
   "open_externally": "Open externally",
   "retry_pop_back": "Press back again to exit",
+  "exit": "Exit",
+  "exit_confirmation": "Are you sure you want to exit Boorusphere?",
   "home": "Home",
   "recently": "Recently",
   "search_hint": "Search on ${server_name}...",

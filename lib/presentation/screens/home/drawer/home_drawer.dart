@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class HomeDrawer extends StatelessWidget {
@@ -111,6 +112,11 @@ class _Footer extends ConsumerWidget {
           title: Text(context.t.settings.title),
           leading: const Icon(Icons.settings),
           onTap: () => context.router.push(const SettingsRoute()),
+        ),
+        ListTile(
+          title: Text(context.t.exit),
+          leading: const Icon(Icons.exit_to_app),
+          onTap: () => _showExitDialog(context),
         ),
         const AppVersionTile(),
       ],
@@ -289,4 +295,29 @@ class _ServerSelection extends ConsumerWidget {
       }).toList(),
     );
   }
+}
+
+void _showExitDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(context.t.exit),
+        content: Text(context.t.exitConfirmation),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(context.t.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              SystemNavigator.pop();
+            },
+            child: Text(context.t.exit),
+          ),
+        ],
+      );
+    },
+  );
 }
