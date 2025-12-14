@@ -123,6 +123,7 @@ class PostViewer extends HookConsumerWidget {
                   final Widget widget;
                   switch (post.content.type) {
                     case PostType.photo:
+                    case PostType.gif:
                       widget = PostImage(post: post);
                       break;
                     case PostType.video:
