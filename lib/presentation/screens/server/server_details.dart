@@ -53,6 +53,8 @@ class ServerDetails extends HookConsumerWidget {
     final cPostUrl = useTextEditingController(text: server.postUrl);
     final cSearchParser = useState(server.searchParserId);
     final cSuggestionParser = useState(server.suggestionParserId);
+    final cLogin = useTextEditingController(text: server.login);
+    final cApiKey = useTextEditingController(text: server.apiKey);
 
     useEffect(() {
       cName.text = server.id;
@@ -62,6 +64,8 @@ class ServerDetails extends HookConsumerWidget {
       cPostUrl.text = server.postUrl;
       cSearchParser.value = server.searchParserId;
       cSuggestionParser.value = server.suggestionParserId;
+      cLogin.text = server.login;
+      cApiKey.text = server.apiKey;
     }, [server]);
 
     openPresetPage() {
@@ -92,6 +96,8 @@ class ServerDetails extends HookConsumerWidget {
         postUrl: cPostUrl.text,
         searchParserId: cSearchParser.value,
         suggestionParserId: cSuggestionParser.value,
+        login: cLogin.text.trim(),
+        apiKey: cApiKey.text.trim(),
       );
 
       onSubmitted.call(newData);
@@ -208,6 +214,37 @@ class ServerDetails extends HookConsumerWidget {
                   decoration: InputDecoration(
                     border: const UnderlineInputBorder(),
                     labelText: context.t.serverQuery.post,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16, bottom: 8),
+                  child: Text(
+                    context.t.servers.credentials.title,
+                    style: context.theme.textTheme.titleMedium,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    context.t.servers.credentials.desc,
+                    style: context.theme.textTheme.bodySmall,
+                  ),
+                ),
+                TextFormField(
+                  controller: cLogin,
+                  enableIMEPersonalizedLearning: !imeIncognito,
+                  decoration: InputDecoration(
+                    border: const UnderlineInputBorder(),
+                    labelText: context.t.servers.credentials.login,
+                  ),
+                ),
+                TextFormField(
+                  controller: cApiKey,
+                  enableIMEPersonalizedLearning: !imeIncognito,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    border: const UnderlineInputBorder(),
+                    labelText: context.t.servers.credentials.apiKey,
                   ),
                 ),
               ],

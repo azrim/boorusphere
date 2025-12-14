@@ -20,6 +20,8 @@ class Server with _$Server {
     @HiveField(8, defaultValue: '') @Default('') String alias,
     @HiveField(9, defaultValue: '') @Default('') String searchParserId,
     @HiveField(10, defaultValue: '') @Default('') String suggestionParserId,
+    @HiveField(11, defaultValue: '') @Default('') String login,
+    @HiveField(12, defaultValue: '') @Default('') String apiKey,
   }) = _Server;
 
   factory Server.fromJson(Map<String, dynamic> json) => _$ServerFromJson(json);
@@ -42,15 +44,34 @@ class Server with _$Server {
     }
     tags = Uri.encodeComponent(tags.trim());
 
-    return '$homepage/$searchUrl'
+    var url = '$homepage/$searchUrl'
         .replaceAll('{tags}', tags)
         .replaceAll('{page-id}', '$page')
         .replaceAll('{post-offset}', (page * option.limit).toString())
         .replaceAll('{post-limit}', '${option.limit}');
+
+    return _appendCredentials(url);
+  }
+
+  /// Appends API credentials to the URL if they are configured
+  String _appendCredentials(String url) {
+    if (login.isEmpty && apiKey.isEmpty) return url;
+
+    final uri = Uri.parse(url);
+    final params = Map<String, String>.from(uri.queryParameters);
+
+    if (login.isNotEmpty) {
+      params['user_id'] = login;
+    }
+    if (apiKey.isNotEmpty) {
+      params['api_key'] = apiKey;
+    }
+
+    return uri.replace(queryParameters: params).toString();
   }
 
   String suggestionUrlsOf(String query) {
-    final url = '$homepage/$tagSuggestionUrl'
+    var url = '$homepage/$tagSuggestionUrl'
         .replaceAll('{post-limit}', '$tagSuggestionLimit')
         .replaceAll('{tag-limit}', '$tagSuggestionLimit');
 
@@ -61,11 +82,15 @@ class Server with _$Server {
 
     if (query.isEmpty) {
       if (url.contains('name_pattern=') || url.contains('?q=')) {
-        return url.replaceAll(RegExp(r'[*%]*{tag-part}[*%]*'), '');
+        url = url.replaceAll(RegExp(r'[*%]*{tag-part}[*%]*'), '');
+      } else {
+        url = url.replaceAll(RegExp(r'[*%]*{tag-part}[*%]*'), '*');
       }
-      return url.replaceAll(RegExp(r'[*%]*{tag-part}[*%]*'), '*');
+    } else {
+      url = url.replaceAll('{tag-part}', encq);
     }
-    return url.replaceAll('{tag-part}', encq);
+
+    return _appendCredentials(url);
   }
 
   String postUrlOf(int id) {
@@ -86,6 +111,9 @@ class Server with _$Server {
   String get apiAddress => apiAddr.isEmpty ? homepage : apiAddr;
 
   String get name => alias.isNotEmpty ? alias : id;
+
+  /// Returns true if API credentials (login or apiKey) are configured
+  bool get hasCredentials => login.isNotEmpty || apiKey.isNotEmpty;
 
   static const Server empty = Server();
   static const String defaultTag = '*';
