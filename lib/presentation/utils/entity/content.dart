@@ -25,15 +25,16 @@ class Content {
 extension ContentExt on String {
   Content asContent() {
     PostType type;
-    if (mimeType.startsWith('video')) {
+    final mime = mimeType;
+    final ext = fileExt.toLowerCase();
+
+    if (mime.startsWith('video')) {
       type = PostType.video;
-    } else if (mimeType.startsWith('image')) {
-      // Check if it's a GIF specifically
-      if (fileExt.toLowerCase() == 'gif') {
-        type = PostType.gif;
-      } else {
-        type = PostType.photo;
-      }
+    } else if (mime == 'image/gif' || ext == 'gif') {
+      // Check for GIF by MIME type or extension
+      type = PostType.gif;
+    } else if (mime.startsWith('image')) {
+      type = PostType.photo;
     } else {
       type = PostType.unsupported;
     }
