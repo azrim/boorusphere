@@ -181,15 +181,32 @@ class _ThumbnailImage extends ConsumerWidget {
       ),
     );
 
-    return isLong
-        ? Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              image,
-              const _LongThumbnailIndicator(),
-            ],
-          )
-        : image;
+    final content = post.originalFile.asContent();
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        isLong
+            ? Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  image,
+                  const _LongThumbnailIndicator(),
+                ],
+              )
+            : image,
+        // Add overlay icons for GIF and video
+        if (content.isGif || content.isVideo)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _MediaTypeIndicator(
+              isVideo: content.isVideo,
+              isGif: content.isGif,
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -212,6 +229,41 @@ class _LongThumbnailIndicator extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(22, 6, 22, 4),
         child: Icon(Icons.gradient, size: 16),
       ),
+    );
+  }
+}
+
+class _MediaTypeIndicator extends StatelessWidget {
+  const _MediaTypeIndicator({
+    required this.isVideo,
+    required this.isGif,
+  });
+
+  final bool isVideo;
+  final bool isGif;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: isVideo
+          ? Icon(
+              Icons.play_arrow,
+              color: Colors.white,
+              size: 16,
+            )
+          : Text(
+              'GIF',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
     );
   }
 }

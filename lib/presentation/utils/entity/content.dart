@@ -3,6 +3,7 @@ import 'package:boorusphere/utils/extensions/string.dart';
 enum PostType {
   video,
   photo,
+  gif,
   unsupported,
 }
 
@@ -17,6 +18,7 @@ class Content {
 
   bool get isPhoto => type == PostType.photo;
   bool get isVideo => type == PostType.video;
+  bool get isGif => type == PostType.gif;
   bool get isUnsupported => type == PostType.unsupported;
 }
 
@@ -26,7 +28,12 @@ extension ContentExt on String {
     if (mimeType.startsWith('video')) {
       type = PostType.video;
     } else if (mimeType.startsWith('image')) {
-      type = PostType.photo;
+      // Check if it's a GIF specifically
+      if (fileExt.toLowerCase() == 'gif') {
+        type = PostType.gif;
+      } else {
+        type = PostType.photo;
+      }
     } else {
       type = PostType.unsupported;
     }

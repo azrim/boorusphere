@@ -31,6 +31,9 @@ class DownloaderDialog extends ConsumerWidget {
     if (url.mimeType.startsWith('video')) {
       return Icons.video_library;
     } else if (url.mimeType.startsWith('image')) {
+      if (url.fileExt.toLowerCase() == 'gif') {
+        return Icons.gif_box;
+      }
       return Icons.photo;
     } else {
       return Icons.file_present;
@@ -52,7 +55,8 @@ class DownloaderDialog extends ConsumerWidget {
               ListTile(
                   title: Text(context.t.fileSample),
                   subtitle: FutureBuilder<PixelSize>(
-                    future: post.content.isPhoto && !post.sampleSize.hasPixels
+                    future: (post.content.isPhoto || post.content.isGif) &&
+                            !post.sampleSize.hasPixels
                         ? ExtendedNetworkImageProvider(
                             post.sampleFile,
                             cache: true,

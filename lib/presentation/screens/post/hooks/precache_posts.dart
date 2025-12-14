@@ -34,7 +34,8 @@ class _PrecachePostsState extends HookState<_Precacher, _PrecachePostsHook> {
   _PrecachePostsState();
 
   Future<void> _precacheImagePost(Post post, bool og) async {
-    if (!post.content.isPhoto || !context.mounted) return;
+    if (!(post.content.isPhoto || post.content.isGif) || !context.mounted)
+      return;
     final image = ExtendedNetworkImageProvider(
       og ? post.originalFile : post.content.url,
       headers: hook.ref.read(postHeadersFactoryProvider(post)),

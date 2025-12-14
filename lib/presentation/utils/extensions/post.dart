@@ -46,7 +46,8 @@ extension PostExt on Post {
   Content get content {
     final sample = sampleFile.asContent();
     final original = originalFile.asContent();
-    if (sample.isPhoto && original.isVideo || sample.isUnsupported) {
+    if (sample.isPhoto && (original.isVideo || original.isGif) ||
+        sample.isUnsupported) {
       return original;
     }
 
