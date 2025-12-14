@@ -213,7 +213,6 @@ class ServerDetails extends HookConsumerWidget {
                     labelText: context.t.serverQuery.post,
                   ),
                 ),
-                if (isEditing)
                 TextFormField(
                   minLines: 1,
                   maxLines: 3,
