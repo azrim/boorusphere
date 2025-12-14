@@ -27,6 +27,6 @@ class AppVersionRepo implements VersionRepo {
     return AppVersion.zero;
   }
 
-  static const gitUrl = 'https://github.com/Kropatz/boorusphere';
+  static const gitUrl = 'https://github.com/azrim/boorusphere';
   static const pubspecUrl = '$gitUrl/raw/main/pubspec.yaml';
 }

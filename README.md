@@ -4,22 +4,22 @@
     <div>Simple, content-focused booru viewer for Android</div>
     <br/>
     <div>
-        <a href="https://github.com/Kropatz/boorusphere/stargazers">
-            <img alt="Stargazers" src="https://img.shields.io/github/stars/Kropatz/boorusphere?style=for-the-badge&logo=apachespark&logoColor=ebebf0&color=ff89b5&labelColor=23232F"/>
+        <a href="https://github.com/azrim/boorusphere/stargazers">
+            <img alt="Stargazers" src="https://img.shields.io/github/stars/azrim/boorusphere?style=for-the-badge&logo=apachespark&logoColor=ebebf0&color=ff89b5&labelColor=23232F"/>
         </a>
-        <a href="https://github.com/Kropatz/boorusphere/releases/latest">
-            <img alt="Latest release" src="https://img.shields.io/github/v/release/Kropatz/boorusphere?style=for-the-badge&logo=pkgsrc&logoColor=ebebf0&labelColor=23232F&color=95b6ff">
+        <a href="https://github.com/azrim/boorusphere/releases/latest">
+            <img alt="Latest release" src="https://img.shields.io/github/v/release/azrim/boorusphere?style=for-the-badge&logo=pkgsrc&logoColor=ebebf0&labelColor=23232F&color=95b6ff">
         </a>
-        <a href="https://github.com/Kropatz/boorusphere/actions">
-            <img alt="Workflow status" src="https://img.shields.io/github/actions/workflow/status/Kropatz/boorusphere/ci.yml?style=for-the-badge&logo=githubactions&logoColor=ebebf0&labelColor=23232F&label=CI">
+        <a href="https://github.com/azrim/boorusphere/actions">
+            <img alt="Workflow status" src="https://img.shields.io/github/actions/workflow/status/azrim/boorusphere/ci.yml?style=for-the-badge&logo=githubactions&logoColor=ebebf0&labelColor=23232F&label=CI">
         </a>
-        <a href="https://github.com/Kropatz/boorusphere/blob/main/LICENSE.md">
-            <img alt="License" src="https://img.shields.io/github/license/Kropatz/boorusphere?style=for-the-badge&logo=gitbook&logoColor=ebebf0&color=b0a8f7&labelColor=23232F"/>
+        <a href="https://github.com/azrim/boorusphere/blob/main/LICENSE.md">
+            <img alt="License" src="https://img.shields.io/github/license/azrim/boorusphere?style=for-the-badge&logo=gitbook&logoColor=ebebf0&color=b0a8f7&labelColor=23232F"/>
         </a>
     </div>
     <br/>
     <div>
-        <a href="https://github.com/Kropatz/boorusphere/releases">
+        <a href="https://github.com/azrim/boorusphere/releases">
             <img src="assets/button-GHReleases.png" alt="GitHub release" width="160">
         </a>
         <!--
@@ -58,7 +58,7 @@
 - Fetch latest source code
 
 ```bash
-git clone https://github.com/Kropatz/boorusphere.git
+git clone https://github.com/azrim/boorusphere.git
 cd boorusphere
 ```
 
@@ -73,7 +73,7 @@ flutter pub get
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
-If that doesn't work, try 
+If that doesn't work, try
 ```bash
  flutter pub run build_runner build --delete-conflicting-outputs
  ```
