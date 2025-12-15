@@ -99,11 +99,6 @@ class _Footer extends ConsumerWidget {
           onTap: () => context.router.push(FavoritesRoute(session: session)),
         ),
         ListTile(
-          title: Text(context.t.servers.title),
-          leading: const Icon(Icons.public),
-          onTap: () => context.router.push(ServerRoute(session: session)),
-        ),
-        ListTile(
           title: Text(context.t.tagsBlocker.title),
           leading: const Icon(Icons.block),
           onTap: () => context.router.push(const TagsBlockerRoute()),
@@ -259,40 +254,152 @@ class _ServerSelection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: servers.map((it) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
-          child: ListTile(
-            title: Text(it.name),
-            leading: Favicon(
-              url: it.homepage,
-              shape: BoxShape.circle,
-              iconSize: 21,
+      children: [
+        ...servers.map((it) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
+            child: ListTile(
+              title: Text(it.name),
+              leading: Favicon(
+                url: it.homepage,
+                shape: BoxShape.circle,
+                iconSize: 21,
+              ),
+              trailing: PopupMenuButton<String>(
+                onSelected: (value) {
+                  switch (value) {
+                    case 'edit':
+                      ref.read(homeDrawerControllerProvider).close().then((_) {
+                        if (context.mounted) {
+                          context.router.push(ServerEditorRoute(server: it));
+                        }
+                      });
+                      break;
+                    case 'remove':
+                      if (servers.length == 1) {
+                        context.scaffoldMessenger.showSnackBar(
+                          SnackBar(
+                            duration: const Duration(seconds: 1),
+                            content: Text(context.t.servers.removeLastError),
+                          ),
+                        );
+                        break;
+                      }
+                      ref.read(serverStateProvider.notifier).remove(it);
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit, size: 18),
+                        const SizedBox(width: 8),
+                        Text(context.t.edit),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'remove',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, size: 18),
+                        const SizedBox(width: 8),
+                        Text(context.t.remove),
+                      ],
+                    ),
+                  ),
+                ],
+                icon: const Icon(Icons.more_vert, size: 18),
+              ),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+              ),
+              selected: it.id == serverActive.id,
+              selectedTileColor: context.colorScheme.primary
+                  .withAlpha(context.isLightThemed ? 50 : 25),
+              onTap: () {
+                ref.read(homeDrawerControllerProvider).close().then((value) {
+                  if (context.mounted) {
+                    if (it.id != serverActive.id) {
+                      context.router.push(HomeRoute(
+                          session: session.copyWith(serverId: it.id)));
+                    } else {
+                      ref
+                          .read(pageStateProvider.notifier)
+                          .update((it) => it.copyWith(clear: true));
+                    }
+                  }
+                });
+              },
             ),
+          );
+        }),
+        // Add New Server button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 8, 16, 0),
+          child: ListTile(
+            title: Text(context.t.servers.add),
+            leading: const Icon(Icons.add_circle_outline, size: 21),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
                 topRight: Radius.circular(30),
                 bottomRight: Radius.circular(30),
               ),
             ),
-            selected: it.id == serverActive.id,
-            selectedTileColor: context.colorScheme.primary
-                .withAlpha(context.isLightThemed ? 50 : 25),
             onTap: () {
-              ref.read(homeDrawerControllerProvider).close().then((value) {
-                if (it.id != serverActive.id) {
-                  context.router.push(
-                      HomeRoute(session: session.copyWith(serverId: it.id)));
-                } else {
-                  ref
-                      .read(pageStateProvider.notifier)
-                      .update((it) => it.copyWith(clear: true));
+              ref.read(homeDrawerControllerProvider).close().then((_) {
+                if (context.mounted) {
+                  context.router.push(ServerEditorRoute());
                 }
               });
             },
           ),
-        );
-      }).toList(),
+        ),
+        // Reset servers button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 4, 16, 0),
+          child: ListTile(
+            title: Text(context.t.resetToDefault),
+            leading: const Icon(Icons.restore, size: 21),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                topRight: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(context.t.resetToDefault),
+                  icon: const Icon(Icons.restore),
+                  content: Text(context.t.servers.resetWarning),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(context.t.cancel),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        ref.read(serverStateProvider.notifier).reset();
+                      },
+                      child: Text(context.t.reset),
+                    )
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -300,7 +407,7 @@ class _ServerSelection extends ConsumerWidget {
 void _showExitDialog(BuildContext context) {
   showDialog(
     context: context,
-    builder: (BuildContext context) {
+    builder: (context) {
       return AlertDialog(
         title: Text(context.t.exit),
         content: Text(context.t.exitConfirmation),
