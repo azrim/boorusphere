@@ -16,12 +16,25 @@ class E621JsonParser extends BooruParser {
   @override
   bool canParsePage(Response res) {
     final data = res.data;
-    return data is Map && data.keys.contains('posts');
+    // Handle both old format {'posts': [...]} and new format [...]
+    if (data is Map && data.keys.contains('posts')) return true;
+    if (data is List && data.isNotEmpty && data.first is Map) {
+      // Check if it looks like E621 data (has 'file' and 'tags' keys)
+      final first = data.first as Map;
+      return first.containsKey('file') && first.containsKey('tags');
+    }
+    return false;
   }
 
   @override
   List<Post> parsePage(Server server, Response res) {
-    final entries = List.from(res.data['posts']);
+    // Handle both old format {'posts': [...]} and new format [...]
+    final data = res.data;
+    final entries = switch (data) {
+      {'posts': final List posts} => posts,
+      List posts => posts,
+      _ => <dynamic>[],
+    };
     final result = <Post>[];
     for (final post in entries.whereType<Map<String, dynamic>>()) {
       final id = pick(post, 'id').asIntOrNull() ?? -1;
