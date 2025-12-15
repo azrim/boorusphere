@@ -50,8 +50,6 @@ class BooruRepo implements ImageboardRepo {
     if (parser.id.isNotEmpty) {
       _log.i(
           'getSuggestion(${server.name}): parser resolved, now using ${parser.id}_parser');
-      await serverState.edit(
-          server, server.copyWith(suggestionParserId: parser.id));
     }
 
     return parser.parseSuggestion(server, res).toSet();
@@ -76,8 +74,6 @@ class BooruRepo implements ImageboardRepo {
     if (parser.id.isNotEmpty) {
       _log.i(
           'getPage(${server.name}): parser resolved, now using ${parser.id}_parser');
-      await serverState.edit(
-          server, server.copyWith(searchParserId: parser.id));
     }
 
     return parser.parsePage(server, res).toSet();
