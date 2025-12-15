@@ -1,3 +1,10 @@
+## 1.5.3
+
+* fix: remove automatic parser persistence to prevent overwriting manual selection
+* fix(e621): handle API response format change with stricter validation
+* chore: update repository URLs to azrim/boorusphere
+* feat: add Windows batch script for release builds
+
 ## 1.5.2
 
 * add API credentials (user ID and API key) support for servers
