@@ -1,3 +1,7 @@
+## 1.5.4
+
+* integrate server management into home drawer
+
 ## 1.5.3
 
 * fix: remove automatic parser persistence to prevent overwriting manual selection
