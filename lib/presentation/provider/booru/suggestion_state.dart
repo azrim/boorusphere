@@ -18,9 +18,9 @@ class Suggestion {
 
 @riverpod
 class SuggestionState extends _$SuggestionState {
-  SuggestionState({this.session = const SearchSession()});
-
   final SearchSession session;
+
+  SuggestionState({this.session = const SearchSession()});
 
   String? _lastWord;
 
@@ -65,8 +65,8 @@ class SuggestionState extends _$SuggestionState {
           await ref.read(imageboardRepoProvider(server)).getSuggestion(word);
       final blockedTags = ref.read(tagsBlockerRepoProvider);
       final result = res
-          .where(
-              (it) => !blockedTags.get().values.map((e) => e.name).contains(it))
+          .where((it) =>
+              !blockedTags.get().values.map((e) => e.name).contains(it.name))
           .toList();
       result.sort((a, b) => b.count.compareTo(a.count));
       if (word != _lastWord) return;

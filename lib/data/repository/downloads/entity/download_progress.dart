@@ -6,8 +6,8 @@ part 'download_progress.freezed.dart';
 part 'download_progress.g.dart';
 
 @freezed
+@HiveType(typeId: 10, adapterName: 'DownloadProgressAdapter')
 class DownloadProgress with _$DownloadProgress {
-  @HiveType(typeId: 10, adapterName: 'DownloadProgressAdapter')
   const factory DownloadProgress({
     @HiveField(0, defaultValue: '') @Default('') String id,
     @HiveField(1, defaultValue: DownloadStatus.empty)

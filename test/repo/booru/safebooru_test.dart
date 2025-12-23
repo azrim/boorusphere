@@ -1,6 +1,5 @@
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
-import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
@@ -59,8 +58,7 @@ void main() async {
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getSuggestion('book'),
-      isA<Iterable>()
-          .having((x) => x.length, 'total', 10),
+      isA<Iterable>().having((x) => x.length, 'total', 10),
     );
   });
 }

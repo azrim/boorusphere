@@ -8,8 +8,8 @@ part 'server.freezed.dart';
 part 'server.g.dart';
 
 @freezed
+@HiveType(typeId: 2, adapterName: 'ServerAdapter')
 class Server with _$Server {
-  @HiveType(typeId: 2, adapterName: 'ServerAdapter')
   const factory Server({
     @HiveField(0, defaultValue: '') @Default('') String id,
     @HiveField(1, defaultValue: '') @Default('') String homepage,

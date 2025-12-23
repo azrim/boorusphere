@@ -31,8 +31,6 @@ class SlideFadeVisibility extends StatelessWidget {
         return const Offset(-1, 0);
       case HidingDirection.toEnd:
         return const Offset(1, 0);
-      default:
-        return Offset.zero;
     }
   }
 

@@ -77,7 +77,9 @@ class DownloaderDialog extends ConsumerWidget {
                             .read(downloaderProvider)
                             .download(post, url: post.sampleFile);
                       }
-                      context.navigator.pop();
+                      if (context.mounted) {
+                        context.navigator.pop();
+                      }
                     });
                   }),
             ListTile(
@@ -91,7 +93,9 @@ class DownloaderDialog extends ConsumerWidget {
                     onItemClick?.call('original');
                     ref.read(downloaderProvider).download(post);
                   }
-                  context.navigator.pop();
+                  if (context.mounted) {
+                    context.navigator.pop();
+                  }
                 });
               },
             ),

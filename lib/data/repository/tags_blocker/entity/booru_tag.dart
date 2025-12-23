@@ -5,8 +5,8 @@ part 'booru_tag.freezed.dart';
 part 'booru_tag.g.dart';
 
 @freezed
+@HiveType(typeId: 6, adapterName: 'BooruTagAdapter')
 class BooruTag with _$BooruTag {
-  @HiveType(typeId: 6, adapterName: 'BooruTagAdapter')
   const factory BooruTag({
     @HiveField(0, defaultValue: '') @Default('') String serverId,
     @HiveField(1, defaultValue: '') @Default('') String name,

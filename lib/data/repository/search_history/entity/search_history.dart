@@ -6,8 +6,8 @@ part 'search_history.freezed.dart';
 part 'search_history.g.dart';
 
 @freezed
+@HiveType(typeId: 1, adapterName: 'SearchHistoryAdapter')
 class SearchHistory with _$SearchHistory {
-  @HiveType(typeId: 1, adapterName: 'SearchHistoryAdapter')
   const factory SearchHistory({
     @HiveField(0, defaultValue: '') @Default('*') String query,
     @HiveField(1, defaultValue: '') @Default('') String server,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:flutter/widgets.dart';
@@ -110,7 +112,7 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
   }
 
   void destroyController() {
-    source.controller?.pause();
+    unawaited(source.controller?.pause());
     source.controller?.dispose();
     source = VideoPostSource();
   }

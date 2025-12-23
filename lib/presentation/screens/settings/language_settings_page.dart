@@ -28,7 +28,11 @@ class _Content extends ConsumerWidget {
       await ref.read(uiSettingStateProvider.notifier).setLocale(locale);
       Future.delayed(
         const Duration(milliseconds: 120),
-        () => context.router.maybePop(),
+        () {
+          if (context.mounted) {
+            context.router.maybePop();
+          }
+        },
       );
     }
 
