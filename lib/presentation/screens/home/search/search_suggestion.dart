@@ -15,34 +15,81 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class SearchSuggestion extends HookConsumerWidget {
-  const SearchSuggestion({super.key});
+  const SearchSuggestion({
+    super.key,
+    required this.animator,
+    required this.searchBar,
+  });
+
+  final AnimationController animator;
+  final dynamic searchBar; // SearchBarController
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final canBeDragged = useState(false);
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
       color: context.theme.scaffoldBackgroundColor,
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Swipe handle indicator with subtle animation - positioned below status bar
-            TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 1500),
-              tween: Tween(begin: 0.2, end: 0.6),
-              builder: (context, value, child) {
-                return Container(
-                  margin: const EdgeInsets.only(top: 4, bottom: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withValues(alpha: value),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                );
+            // Swipe handle with gesture detection - positioned below status bar
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragStart: (details) {
+                // Only allow dragging when search is open
+                canBeDragged.value = searchBar.isOpen;
               },
+              onVerticalDragUpdate: (details) {
+                if (!canBeDragged.value) return;
+
+                final delta = details.primaryDelta;
+                if (delta == null) return;
+
+                // Only allow downward drag (positive delta)
+                if (delta > 0) {
+                  // Update animation value based on drag distance
+                  animator.value -= delta / (screenHeight * 0.3);
+                  animator.value = animator.value.clamp(0.0, 1.0);
+                }
+              },
+              onVerticalDragEnd: (details) async {
+                if (!canBeDragged.value) return;
+
+                final velocity = details.velocity.pixelsPerSecond.dy;
+
+                if (velocity > 300 || animator.value < 0.7) {
+                  // Close search bar
+                  await animator.reverse();
+                  searchBar.close();
+                } else {
+                  // Snap back to open
+                  await animator.forward();
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 1500),
+                  tween: Tween(begin: 0.2, end: 0.6),
+                  builder: (context, value, child) {
+                    return Container(
+                      margin: const EdgeInsets.only(top: 4, bottom: 12),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: value),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
             const Expanded(
               child: CustomScrollView(
