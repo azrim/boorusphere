@@ -71,6 +71,13 @@ class PostViewer extends HookConsumerWidget {
         ref.watch(contentSettingStateProvider.select((it) => it.loadOriginal));
     final precachePosts = usePrecachePosts(ref, posts);
 
+    // Animation controller for scroll up gesture
+    final scrollAnimator = useAnimationController(
+      duration: const Duration(milliseconds: 200),
+    );
+    final canBeDragged = useState(false);
+    final screenHeight = MediaQuery.of(context).size.height;
+
     useEffect(() {
       showAppbar.value = !fullscreen;
     }, [fullscreen]);
@@ -93,105 +100,142 @@ class PostViewer extends HookConsumerWidget {
           nightMode: true,
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onVerticalDragEnd: (details) {
-              // Open info page on scroll up with sufficient velocity
-              final velocity = details.velocity.pixelsPerSecond.dy;
-              if (velocity < -300) {
-                // Negative velocity = upward
-                _openPostDetails(context, ref, post);
-              }
+            onVerticalDragStart: (details) {
+              // Allow dragging from anywhere on screen
+              canBeDragged.value = true;
+              scrollAnimator.reset();
             },
             onVerticalDragUpdate: (details) {
-              // Open info page if user drags up significantly
-              final delta = details.delta.dy;
-              if (delta < -20) {
-                // Negative delta = upward
-                _openPostDetails(context, ref, post);
+              if (!canBeDragged.value) return;
+
+              final delta = details.primaryDelta;
+              if (delta == null) return;
+
+              // Only allow upward drag (negative delta)
+              if (delta < 0) {
+                // Update animation value based on drag distance
+                scrollAnimator.value += (-delta) / (screenHeight * 0.15);
+                scrollAnimator.value = scrollAnimator.value.clamp(0.0, 1.0);
               }
             },
-            child: Stack(
-              children: [
-                ExtendedImageGesturePageView.builder(
-                  controller: pageController,
-                  onPageChanged: (index) async {
-                    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-                      if (context.mounted) {
-                        currentPage.value = index;
-                      }
-                    });
-                    timelineController.scrollTo(index);
-                    context.scaffoldMessenger.hideCurrentSnackBar();
-                    if (loadMore == null) return;
+            onVerticalDragEnd: (details) async {
+              if (!canBeDragged.value) return;
 
-                    final offset = index + 1;
-                    final threshold =
-                        posts.length / 100 * (100 - loadMoreThreshold);
-                    if (offset + threshold > posts.length - 1) {
-                      isLoadingMore.value = true;
-                      await loadMore();
-                      await Future.delayed(kThemeAnimationDuration, () {
+              final velocity = details.velocity.pixelsPerSecond.dy;
+
+              if (velocity < -400 || scrollAnimator.value > 0.3) {
+                // Open post details
+                _openPostDetails(context, ref, post);
+                scrollAnimator.reset();
+              } else {
+                // Snap back
+                await scrollAnimator.reverse();
+              }
+
+              canBeDragged.value = false;
+            },
+            child: AnimatedBuilder(
+              animation: scrollAnimator,
+              child: Stack(
+                children: [
+                  ExtendedImageGesturePageView.builder(
+                    controller: pageController,
+                    onPageChanged: (index) async {
+                      SchedulerBinding.instance
+                          .addPostFrameCallback((timeStamp) {
                         if (context.mounted) {
-                          isLoadingMore.value = false;
+                          currentPage.value = index;
                         }
                       });
-                    }
-                  },
-                  itemCount: posts.length,
-                  itemBuilder: (context, index) {
-                    precachePosts(index, loadOriginal);
+                      timelineController.scrollTo(index);
+                      context.scaffoldMessenger.hideCurrentSnackBar();
+                      if (loadMore == null) return;
 
-                    final post = posts.elementAt(index);
-                    final Widget widget;
-                    switch (post.content.type) {
-                      case PostType.photo:
-                      case PostType.gif:
-                        widget = PostImage(post: post);
-                        break;
-                      case PostType.video:
-                        widget = PostVideo(
-                          post: post,
-                          onToolboxVisibilityChange: (visible) {
-                            showAppbar.value = visible;
-                          },
-                        );
-                        break;
-                      default:
-                        widget = PostUnknown(post: post);
-                        break;
-                    }
-                    return HeroMode(
-                      enabled: index == currentPage.value,
-                      child: ClipRect(child: widget),
-                    );
-                  },
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: SlideFadeVisibility(
-                    direction: HidingDirection.toTop,
-                    visible: showAppbar.value,
-                    child: _PostAppBar(
-                      subtitle: post.describeTags,
-                      title: isLoadingMore.value
-                          ? '#${currentPage.value + 1} of (loading...)'
-                          : '#${currentPage.value + 1} of ${posts.length}',
-                    ),
+                      final offset = index + 1;
+                      final threshold =
+                          posts.length / 100 * (100 - loadMoreThreshold);
+                      if (offset + threshold > posts.length - 1) {
+                        isLoadingMore.value = true;
+                        await loadMore();
+                        await Future.delayed(kThemeAnimationDuration, () {
+                          if (context.mounted) {
+                            isLoadingMore.value = false;
+                          }
+                        });
+                      }
+                    },
+                    itemCount: posts.length,
+                    itemBuilder: (context, index) {
+                      precachePosts(index, loadOriginal);
+
+                      final post = posts.elementAt(index);
+                      final Widget widget;
+                      switch (post.content.type) {
+                        case PostType.photo:
+                        case PostType.gif:
+                          widget = PostImage(post: post);
+                          break;
+                        case PostType.video:
+                          widget = PostVideo(
+                            post: post,
+                            onToolboxVisibilityChange: (visible) {
+                              showAppbar.value = visible;
+                            },
+                          );
+                          break;
+                        default:
+                          widget = PostUnknown(post: post);
+                          break;
+                      }
+                      return HeroMode(
+                        enabled: index == currentPage.value,
+                        child: ClipRect(child: widget),
+                      );
+                    },
                   ),
-                ),
-                if (!post.content.isVideo)
                   Positioned(
-                    bottom: 0,
+                    top: 0,
                     left: 0,
                     right: 0,
                     child: SlideFadeVisibility(
-                      direction: HidingDirection.toBottom,
-                      visible: !fullscreen,
-                      child: PostToolbox(post),
+                      direction: HidingDirection.toTop,
+                      visible: showAppbar.value,
+                      child: _PostAppBar(
+                        subtitle: post.describeTags,
+                        title: isLoadingMore.value
+                            ? '#${currentPage.value + 1} of (loading...)'
+                            : '#${currentPage.value + 1} of ${posts.length}',
+                      ),
                     ),
                   ),
-              ],
+                  if (!post.content.isVideo)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: SlideFadeVisibility(
+                        direction: HidingDirection.toBottom,
+                        visible: !fullscreen,
+                        child: PostToolbox(post),
+                      ),
+                    ),
+                ],
+              ),
+              builder: (context, child) {
+                // Apply transform based on scroll gesture
+                final translateY =
+                    -scrollAnimator.value * 50; // Move up slightly
+                final opacity =
+                    1.0 - (scrollAnimator.value * 0.3); // Fade slightly
+
+                return Transform.translate(
+                  offset: Offset(0, translateY),
+                  child: Opacity(
+                    opacity: opacity,
+                    child: child,
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -201,7 +245,7 @@ class PostViewer extends HookConsumerWidget {
 
   void _openPostDetails(BuildContext context, WidgetRef ref, Post post) {
     // Create a basic search session for navigation context
-    final session = SearchSession();
+    const session = SearchSession();
     context.router.push(PostDetailsRoute(post: post, session: session));
   }
 }
