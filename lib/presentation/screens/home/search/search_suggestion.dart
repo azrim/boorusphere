@@ -21,20 +21,46 @@ class SearchSuggestion extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       color: context.theme.scaffoldBackgroundColor,
-      child: const SafeArea(
-        child: CustomScrollView(
-          physics: BouncingScrollPhysics(),
-          cacheExtent: 100, // Minimal cache for performance
-          slivers: [
-            _SearchHistoryHeader(),
-            _SearchHistory(),
-            _SuggestionHeader(),
-            _Suggestion(),
-            SliverToBoxAdapter(
-              child: SizedBox(height: kBottomNavigationBarHeight + 38),
-            )
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Swipe handle indicator with subtle animation
+          TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 1500),
+            tween: Tween(begin: 0.2, end: 0.6),
+            builder: (context, value, child) {
+              return Container(
+                margin: const EdgeInsets.only(top: 8, bottom: 4),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant
+                      .withValues(alpha: value),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              );
+            },
+          ),
+          const Expanded(
+            child: SafeArea(
+              child: CustomScrollView(
+                physics: BouncingScrollPhysics(),
+                cacheExtent: 100, // Minimal cache for performance
+                slivers: [
+                  _SearchHistoryHeader(),
+                  _SearchHistory(),
+                  _SuggestionHeader(),
+                  _Suggestion(),
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: kBottomNavigationBarHeight + 38),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

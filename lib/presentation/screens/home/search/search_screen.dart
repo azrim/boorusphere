@@ -12,8 +12,8 @@ class SearchScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isOpen =
-        ref.watch(searchBarControllerProvider.select((it) => it.isOpen));
+    final searchBar = ref.watch(searchBarControllerProvider);
+    final isOpen = searchBar.isOpen;
     final animator =
         useAnimationController(duration: const Duration(milliseconds: 300));
     final animation =
@@ -36,7 +36,28 @@ class SearchScreen extends HookConsumerWidget {
               begin: const Offset(0, 1),
               end: const Offset(0, 0),
             ).animate(animation),
-            child: const SearchSuggestion(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onVerticalDragEnd: (details) {
+                // Close search bar on swipe down with sufficient velocity
+                final velocity = details.velocity.pixelsPerSecond.dy;
+                if (velocity > 200) {
+                  searchBar.close();
+                }
+              },
+              onVerticalDragUpdate: (details) {
+                // Close search bar if user drags down significantly
+                final delta = details.delta.dy;
+                if (delta > 15) {
+                  searchBar.close();
+                }
+              },
+              onTap: () {
+                // Prevent taps from closing when interacting with suggestions
+                // This is handled by individual suggestion items
+              },
+              child: const SearchSuggestion(),
+            ),
           ),
         ),
         HomeSearchBar(scrollController: scrollController),
