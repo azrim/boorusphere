@@ -1,7 +1,10 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
+import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
 import 'package:boorusphere/presentation/screens/post/post_image.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
@@ -88,93 +91,118 @@ class PostViewer extends HookConsumerWidget {
         backgroundColor: Colors.black,
         body: StyledOverlayRegion(
           nightMode: true,
-          child: Stack(
-            children: [
-              ExtendedImageGesturePageView.builder(
-                controller: pageController,
-                onPageChanged: (index) async {
-                  SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-                    if (context.mounted) {
-                      currentPage.value = index;
-                    }
-                  });
-                  timelineController.scrollTo(index);
-                  context.scaffoldMessenger.hideCurrentSnackBar();
-                  if (loadMore == null) return;
-
-                  final offset = index + 1;
-                  final threshold =
-                      posts.length / 100 * (100 - loadMoreThreshold);
-                  if (offset + threshold > posts.length - 1) {
-                    isLoadingMore.value = true;
-                    await loadMore();
-                    await Future.delayed(kThemeAnimationDuration, () {
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onVerticalDragEnd: (details) {
+              // Open info page on scroll up with sufficient velocity
+              final velocity = details.velocity.pixelsPerSecond.dy;
+              if (velocity < -300) {
+                // Negative velocity = upward
+                _openPostDetails(context, ref, post);
+              }
+            },
+            onVerticalDragUpdate: (details) {
+              // Open info page if user drags up significantly
+              final delta = details.delta.dy;
+              if (delta < -20) {
+                // Negative delta = upward
+                _openPostDetails(context, ref, post);
+              }
+            },
+            child: Stack(
+              children: [
+                ExtendedImageGesturePageView.builder(
+                  controller: pageController,
+                  onPageChanged: (index) async {
+                    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
                       if (context.mounted) {
-                        isLoadingMore.value = false;
+                        currentPage.value = index;
                       }
                     });
-                  }
-                },
-                itemCount: posts.length,
-                itemBuilder: (context, index) {
-                  precachePosts(index, loadOriginal);
+                    timelineController.scrollTo(index);
+                    context.scaffoldMessenger.hideCurrentSnackBar();
+                    if (loadMore == null) return;
 
-                  final post = posts.elementAt(index);
-                  final Widget widget;
-                  switch (post.content.type) {
-                    case PostType.photo:
-                    case PostType.gif:
-                      widget = PostImage(post: post);
-                      break;
-                    case PostType.video:
-                      widget = PostVideo(
-                        post: post,
-                        onToolboxVisibilityChange: (visible) {
-                          showAppbar.value = visible;
-                        },
-                      );
-                      break;
-                    default:
-                      widget = PostUnknown(post: post);
-                      break;
-                  }
-                  return HeroMode(
-                    enabled: index == currentPage.value,
-                    child: ClipRect(child: widget),
-                  );
-                },
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SlideFadeVisibility(
-                  direction: HidingDirection.toTop,
-                  visible: showAppbar.value,
-                  child: _PostAppBar(
-                    subtitle: post.describeTags,
-                    title: isLoadingMore.value
-                        ? '#${currentPage.value + 1} of (loading...)'
-                        : '#${currentPage.value + 1} of ${posts.length}',
-                  ),
+                    final offset = index + 1;
+                    final threshold =
+                        posts.length / 100 * (100 - loadMoreThreshold);
+                    if (offset + threshold > posts.length - 1) {
+                      isLoadingMore.value = true;
+                      await loadMore();
+                      await Future.delayed(kThemeAnimationDuration, () {
+                        if (context.mounted) {
+                          isLoadingMore.value = false;
+                        }
+                      });
+                    }
+                  },
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    precachePosts(index, loadOriginal);
+
+                    final post = posts.elementAt(index);
+                    final Widget widget;
+                    switch (post.content.type) {
+                      case PostType.photo:
+                      case PostType.gif:
+                        widget = PostImage(post: post);
+                        break;
+                      case PostType.video:
+                        widget = PostVideo(
+                          post: post,
+                          onToolboxVisibilityChange: (visible) {
+                            showAppbar.value = visible;
+                          },
+                        );
+                        break;
+                      default:
+                        widget = PostUnknown(post: post);
+                        break;
+                    }
+                    return HeroMode(
+                      enabled: index == currentPage.value,
+                      child: ClipRect(child: widget),
+                    );
+                  },
                 ),
-              ),
-              if (!post.content.isVideo)
                 Positioned(
-                  bottom: 0,
+                  top: 0,
                   left: 0,
                   right: 0,
                   child: SlideFadeVisibility(
-                    direction: HidingDirection.toBottom,
-                    visible: !fullscreen,
-                    child: PostToolbox(post),
+                    direction: HidingDirection.toTop,
+                    visible: showAppbar.value,
+                    child: _PostAppBar(
+                      subtitle: post.describeTags,
+                      title: isLoadingMore.value
+                          ? '#${currentPage.value + 1} of (loading...)'
+                          : '#${currentPage.value + 1} of ${posts.length}',
+                    ),
                   ),
                 ),
-            ],
+                if (!post.content.isVideo)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: SlideFadeVisibility(
+                      direction: HidingDirection.toBottom,
+                      visible: !fullscreen,
+                      child: PostToolbox(post),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  void _openPostDetails(BuildContext context, WidgetRef ref, Post post) {
+    // Create a basic search session for navigation context
+    final session = SearchSession();
+    context.router.push(PostDetailsRoute(post: post, session: session));
   }
 }
 
@@ -205,9 +233,27 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 12, bottom: 4),
-              child: Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.w300),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w300),
+                    ),
+                  ),
+                  // Subtle scroll up indicator
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 2000),
+                    tween: Tween(begin: 0.3, end: 0.8),
+                    builder: (context, value, child) {
+                      return Icon(
+                        Icons.keyboard_arrow_up,
+                        size: 16,
+                        color: Colors.white.withValues(alpha: value),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             Text(
