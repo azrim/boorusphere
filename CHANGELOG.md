@@ -1,3 +1,17 @@
+## 1.6.0
+
+* Add swipe gestures for better navigation
+  - Swipe down to close search bar
+  - Swipe up on images to open post details
+  - Smooth animations that follow your finger
+* Faster and smoother search experience
+  - Search bar opens instantly without lag
+  - Search history shows immediately when typing
+  - Better performance with large suggestion lists
+* Remove confusing Home button from side menu
+* Fix search handle position on phones with notches
+* Fix various app warnings and improve stability
+
 ## 1.5.4
 
 * integrate server management into home drawer
