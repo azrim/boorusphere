@@ -20,6 +20,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:vector_math/vector_math_64.dart';
 
 @RoutePage()
 class HomePage extends HookConsumerWidget {
@@ -234,7 +235,7 @@ class _SlidableContainer extends HookConsumerWidget {
                 transform: Matrix4.identity()
                   ..setTranslationRaw(
                       (1 - tween.value) * (maxDrawerWidth / 2), 0, 0)
-                  ..translate(slide - maxDrawerWidth),
+                  ..translateByVector3(Vector3(slide - maxDrawerWidth, 0, 0)),
                 alignment: Alignment.centerLeft,
                 child: HomeDrawer(maxWidth: maxDrawerWidth),
               ),

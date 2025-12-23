@@ -135,12 +135,17 @@ class _DownloadQuality extends ConsumerWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: DownloadQuality.values
-                .map((e) => RadioListTile(
-                      value: e,
-                      groupValue: current,
+                .map((e) => ListTile(
+                      leading: Radio<DownloadQuality>(
+                        value: e,
+                        groupValue: current,
+                        onChanged: (x) {
+                          context.navigator.pop(x);
+                        },
+                      ),
                       title: Text(e.describe(context)),
-                      onChanged: (x) {
-                        context.navigator.pop(x);
+                      onTap: () {
+                        context.navigator.pop(e);
                       },
                     ))
                 .toList(),

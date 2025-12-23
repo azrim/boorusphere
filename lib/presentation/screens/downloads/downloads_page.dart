@@ -137,12 +137,17 @@ class DownloadsPage extends HookConsumerWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: DownloadFilter.values
-                .map((e) => RadioListTile(
-                      value: e,
-                      groupValue: current,
+                .map((e) => ListTile(
+                      leading: Radio<DownloadFilter>(
+                        value: e,
+                        groupValue: current,
+                        onChanged: (value) {
+                          context.navigator.pop(value);
+                        },
+                      ),
                       title: Text(e.describe(context)),
-                      onChanged: (value) {
-                        context.navigator.pop(value);
+                      onTap: () {
+                        context.navigator.pop(e);
                       },
                     ))
                 .toList(),

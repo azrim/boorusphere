@@ -214,12 +214,17 @@ class _RatingButton extends ConsumerWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: BooruRating.values
-                .map((e) => RadioListTile(
-                      value: e,
-                      groupValue: current,
+                .map((e) => ListTile(
+                      leading: Radio<BooruRating>(
+                        value: e,
+                        groupValue: current,
+                        onChanged: (x) {
+                          context.navigator.pop(x);
+                        },
+                      ),
                       title: Text(rateDesc(context, e)),
-                      onChanged: (x) {
-                        context.navigator.pop(x);
+                      onTap: () {
+                        context.navigator.pop(e);
                       },
                     ))
                 .toList(),

@@ -301,12 +301,17 @@ class ParserSelector extends HookWidget {
             child: ListView.builder(
               itemCount: parsers.length,
               shrinkWrap: true,
-              itemBuilder: (context, index) => RadioListTile(
-                value: parsers[index].id,
-                groupValue: current,
+              itemBuilder: (context, index) => ListTile(
+                leading: Radio<String>(
+                  value: parsers[index].id,
+                  groupValue: current,
+                  onChanged: (x) {
+                    context.navigator.pop(x);
+                  },
+                ),
                 title: ParserLabel(id: parsers[index].id),
-                onChanged: (x) {
-                  context.navigator.pop(x);
+                onTap: () {
+                  context.navigator.pop(parsers[index].id);
                 },
               ),
             ),

@@ -216,7 +216,7 @@ class _LongThumbnailIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: context.colorScheme.surface.withOpacity(0.8),
+      color: context.colorScheme.surface.withValues(alpha: 0.8),
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(
@@ -251,12 +251,12 @@ class _MediaTypeIndicator extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
       ),
       child: isVideo
-          ? Icon(
+          ? const Icon(
               Icons.play_arrow,
               color: Colors.white,
               size: 16,
             )
-          : Text(
+          : const Text(
               'GIF',
               style: TextStyle(
                 color: Colors.white,

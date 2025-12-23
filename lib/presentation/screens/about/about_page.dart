@@ -208,9 +208,9 @@ class _Downloader extends ConsumerWidget {
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                       colors: [
-                        context.colorScheme.primary.withOpacity(0),
-                        context.colorScheme.primary.withOpacity(0.5),
-                        context.colorScheme.primary.withOpacity(0),
+                        context.colorScheme.primary.withValues(alpha: 0),
+                        context.colorScheme.primary.withValues(alpha: 0.5),
+                        context.colorScheme.primary.withValues(alpha: 0),
                       ],
                       stops: const <double>[
                         0.35,

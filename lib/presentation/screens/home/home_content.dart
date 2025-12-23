@@ -47,7 +47,9 @@ class HomeContent extends HookConsumerWidget {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!scrollController.hasClients ||
           pageState is DataFetchResult ||
-          pageState is LoadingFetchResult) return;
+          pageState is LoadingFetchResult) {
+        return;
+      }
 
       if (scrollController.position.extentAfter < 300) {
         scrollController.animateTo(
@@ -121,8 +123,8 @@ class _EdgeShadow extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomLeft,
                 colors: [
-                  tint.withOpacity(0.8),
-                  tint.withOpacity(0),
+                  tint.withValues(alpha: 0.8),
+                  tint.withValues(alpha: 0),
                 ],
               ),
             ),

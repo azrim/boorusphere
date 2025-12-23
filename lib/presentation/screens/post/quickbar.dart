@@ -103,7 +103,7 @@ class QuickBar extends StatelessWidget {
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
                     valueColor: AlwaysStoppedAnimation(
-                      context.colorScheme.primary.withOpacity(0.75),
+                      context.colorScheme.primary.withValues(alpha: 0.75),
                     ),
                     value: progress,
                   ),

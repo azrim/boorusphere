@@ -46,7 +46,7 @@ class AppThemeDataNotifier {
     final harmonized = scheme?.harmonized() ?? defScheme;
     final colorScheme = harmonized.copyWith(
       surface: harmonized.surface.shade(isDark ? 30 : 3),
-      outlineVariant: harmonized.outlineVariant.withOpacity(0.3),
+      outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.3),
     );
     final origin = isDark ? ThemeData.dark() : ThemeData.light();
     return origin.copyWith(
@@ -57,7 +57,9 @@ class AppThemeDataNotifier {
       ),
       canvasColor: colorScheme.surface,
       scaffoldBackgroundColor: colorScheme.surface,
-      dialogBackgroundColor: colorScheme.surface,
+      dialogTheme: DialogThemeData(
+        backgroundColor: colorScheme.surface,
+      ),
       drawerTheme: origin.drawerTheme.copyWith(
         backgroundColor: colorScheme.surfaceContainerLow,
       ),
