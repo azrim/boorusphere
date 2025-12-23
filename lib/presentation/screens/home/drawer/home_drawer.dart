@@ -225,20 +225,8 @@ class AppVersionTile extends ConsumerWidget {
 class _HomeTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(searchSessionProvider);
-    return Visibility(
-      visible: session.query.isNotEmpty,
-      child: ListTile(
-        title: Text(context.t.home),
-        leading: const Icon(Icons.home_outlined),
-        onTap: () {
-          ref.read(homeDrawerControllerProvider).close();
-          context.router.pushAndPopUntil(
-              HomeRoute(session: session.copyWith(query: '')),
-              predicate: (r) => false);
-        },
-      ),
-    );
+    return const SizedBox
+        .shrink(); // Always hidden - users can clear search instead
   }
 }
 
