@@ -4,12 +4,10 @@ import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
-import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
-import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -21,39 +19,20 @@ class SearchSuggestion extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isBlurAllowed =
-        ref.watch(uiSettingStateProvider.select((ui) => ui.blur));
-
     return Container(
-      color: context.theme.scaffoldBackgroundColor.withOpacity(
-        context.isLightThemed
-            ? isBlurAllowed
-                ? 0.9
-                : 0.95
-            : isBlurAllowed
-                ? 0.9
-                : 0.98,
-      ),
-      child: BlurBackdrop(
-        sigmaX: 12,
-        sigmaY: 12,
-        blur: isBlurAllowed,
-        child: const Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            SafeArea(
-              child: CustomScrollView(
-                slivers: [
-                  _SearchHistoryHeader(),
-                  _SearchHistory(),
-                  _SuggestionHeader(),
-                  _Suggestion(),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: kBottomNavigationBarHeight + 38),
-                  )
-                ],
-              ),
-            ),
+      color: context.theme.scaffoldBackgroundColor,
+      child: const SafeArea(
+        child: CustomScrollView(
+          physics: BouncingScrollPhysics(),
+          cacheExtent: 100, // Minimal cache for performance
+          slivers: [
+            _SearchHistoryHeader(),
+            _SearchHistory(),
+            _SuggestionHeader(),
+            _Suggestion(),
+            SliverToBoxAdapter(
+              child: SizedBox(height: kBottomNavigationBarHeight + 38),
+            )
           ],
         ),
       ),
@@ -98,48 +77,38 @@ class _SearchHistory extends HookConsumerWidget {
     final searchBar = ref.watch(searchBarControllerProvider);
     final history = ref.watch(filterHistoryProvider(searchBar.value));
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final reversed = history.entries.length - 1 - index;
-          final entry = history.entries.elementAt(reversed);
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Dismissible(
-              key: Key(entry.key.toString()),
-              direction: DismissDirection.endToStart,
-              onDismissed: (direction) {
-                ref.read(searchHistoryStateProvider.notifier).delete(entry.key);
-              },
-              background: Container(
-                color: Colors.red,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(context.t.remove),
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Icon(Icons.delete, color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-              child: _SuggestionEntryTile(
-                data: _SuggestionEntry(
-                  isHistory: true,
-                  text: entry.value.query,
-                  server: entry.value.server,
-                ),
-                onTap: (str) {
-                  searchBar.submit(context, str);
-                },
-                onAdded: searchBar.appendTyped,
-              ),
+    return SliverList.builder(
+      itemCount: history.entries.length.clamp(0, 10), // Limit history items
+      itemBuilder: (context, index) {
+        final reversed = history.entries.length - 1 - index;
+        final entry = history.entries.elementAt(reversed);
+        return RepaintBoundary(
+          child: Dismissible(
+            key: Key(entry.key.toString()),
+            direction: DismissDirection.endToStart,
+            onDismissed: (direction) {
+              ref.read(searchHistoryStateProvider.notifier).delete(entry.key);
+            },
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 16),
+              child: const Icon(Icons.delete, color: Colors.white),
             ),
-          );
-        },
-        childCount: history.entries.length,
-      ),
+            child: _SuggestionEntryTile(
+              data: _SuggestionEntry(
+                isHistory: true,
+                text: entry.value.query,
+                server: entry.value.server,
+              ),
+              onTap: (str) {
+                searchBar.submit(context, str);
+              },
+              onAdded: searchBar.appendTyped,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -185,47 +154,60 @@ class _Suggestion extends HookConsumerWidget {
     final searchBar = ref.watch(searchBarControllerProvider);
     final suggestion = ref.watch(suggestionStateProvider);
 
+    // Load suggestions when user starts typing (2+ chars)
     useEffect(() {
-      Future(() {
-        if (searchBar.isOpen && suggestion is! LoadingFetchResult) {
-          ref.watch(suggestionStateProvider.notifier).get(searchBar.value);
-        }
-      });
-    }, [searchBar.isOpen]);
+      if (searchBar.value.trim().length >= 2) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (searchBar.isOpen && suggestion is! LoadingFetchResult) {
+            ref.read(suggestionStateProvider.notifier).get(searchBar.value);
+          }
+        });
+      }
+      return null;
+    }, [searchBar.value]);
 
     if (!server.canSuggestTags) {
       return const SliverToBoxAdapter();
     }
 
+    // Show suggestions when user has typed at least 2 characters
+    if (searchBar.value.trim().length < 2) {
+      return const SliverToBoxAdapter();
+    }
+
     return switch (suggestion) {
       IdleFetchResult() => const SliverToBoxAdapter(
-          child: SizedBox.shrink(),
-        ),
-      DataFetchResult(:final data) => SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: _SuggestionEntryTile(
-                  data: _SuggestionEntry(
-                    isHistory: false,
-                    text: data.elementAt(index).name,
-                    postCount: data.elementAt(index).count,
-                  ),
-                  onTap: (str) {
-                    searchBar.submit(context, str);
-                  },
-                  onAdded: searchBar.appendTyped,
-                ),
-              );
-            },
-            childCount: data.length,
+          child: SizedBox(
+            height: 48,
+            child: Center(
+              child: Text('Start typing to see suggestions...'),
+            ),
           ),
+        ),
+      DataFetchResult(:final data) => SliverList.builder(
+          itemCount: data.length.clamp(0, 20), // Show more suggestions
+          itemBuilder: (context, index) {
+            return _SuggestionEntryTile(
+              data: _SuggestionEntry(
+                isHistory: false,
+                text: data.elementAt(index).name,
+                postCount: data.elementAt(index).count,
+              ),
+              onTap: (str) => searchBar.submit(context, str),
+              onAdded: searchBar.appendTyped,
+            );
+          },
         ),
       LoadingFetchResult() => const SliverToBoxAdapter(
           child: SizedBox(
-            height: 128,
-            child: Center(child: RefreshProgressIndicator()),
+            height: 48,
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
           ),
         ),
       ErrorFetchResult(:final error) => _ErrorSuggestion(
@@ -299,26 +281,66 @@ class _SuggestionEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      horizontalTitleGap: 1,
-      leading: Icon(data.isHistory ? Icons.history : Icons.tag, size: 22),
-      title: Text(data.text),
-      subtitle: data.server.isNotEmpty
-          ? Text(context.t.suggestion.desc(serverName: data.server))
-          : null,
+    // Much lighter implementation - no ListTile overhead
+    return InkWell(
       onTap: () => onTap.call(data.text),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (data.postCount > 0) ...[
-            Text(data.postCount.toString()),
-            const SizedBox(width: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              data.isHistory ? Icons.history : Icons.tag,
+              size: 20,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    data.text,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (data.server.isNotEmpty)
+                    Text(
+                      context.t.suggestion.desc(serverName: data.server),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            if (data.postCount > 0) ...[
+              Text(
+                data.postCount.toString(),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            InkWell(
+              onTap: () => onAdded.call(data.text),
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.add,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
           ],
-          IconButton(
-            onPressed: () => onAdded.call(data.text),
-            icon: const Icon(Icons.add, size: 22),
-          ),
-        ],
+        ),
       ),
     );
   }

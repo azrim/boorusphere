@@ -42,8 +42,12 @@ class SearchBarController extends ChangeNotifier {
   _fetch() {
     if (!isOpen) return;
     if (_textTimer?.isActive ?? false) _textTimer?.cancel();
-    _textTimer = Timer(const Duration(milliseconds: 300), () {
-      ref.read(suggestionStateProvider.notifier).get(value);
+    // Increase debounce time to reduce API calls
+    _textTimer = Timer(const Duration(milliseconds: 500), () {
+      // Only fetch if there's actual content to search
+      if (value.trim().isNotEmpty) {
+        ref.read(suggestionStateProvider.notifier).get(value);
+      }
     });
   }
 
@@ -79,6 +83,7 @@ class SearchBarController extends ChangeNotifier {
 
   void open() {
     _open = true;
+    // Don't fetch suggestions immediately - let user start typing first
     notifyListeners();
   }
 

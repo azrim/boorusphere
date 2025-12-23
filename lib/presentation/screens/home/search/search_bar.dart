@@ -7,7 +7,6 @@ import 'package:boorusphere/presentation/screens/home/drawer/home_drawer_control
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -25,38 +24,43 @@ class HomeSearchBar extends HookConsumerWidget {
     final collapsed = !searchBar.isOpen && delta.value.first > 0;
     final isBlurAllowed =
         ref.watch(uiSettingStateProvider.select((ui) => ui.blur));
+
+    // Disable scroll listener when search is open for better performance
     final onScrolling = useCallback(() {
+      if (searchBar.isOpen) return; // Skip when search is open
+
       final position = scrollController.position;
       final threshold = innerHeight;
+
       if (delta.value.first > 0 &&
           position.viewportDimension > position.maxScrollExtent) {
-        // reset back to default (!collapsed) because there's nothing to scroll
         delta.value = [0, 0];
         return;
       }
 
       if (position.extentBefore < threshold ||
           position.extentAfter < threshold) {
-        // we're already at the edge of the scrollable content
-        // there's no need to change the collapsed state
         return;
       }
 
       final current = position.pixels;
       final offset = (delta.value.first + current - delta.value.last);
       final boundary = offset.clamp(-threshold, threshold);
-      delta.value = [boundary, current];
-    }, []);
+
+      if ((boundary - delta.value.first).abs() > 10) {
+        // Increased threshold
+        delta.value = [boundary, current];
+      }
+    }, [searchBar.isOpen]);
 
     useEffect(() {
       scrollController.addListener(onScrolling);
       return () {
         scrollController.removeListener(onScrolling);
       };
-    }, []);
+    }, [searchBar.isOpen]);
 
     // Reset delta when there's no scrollable widget attached.
-    // for example: on new search or while switching server.
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       if (scrollController.hasClients) return;
       if (delta.value.reduce((a, b) => a + b) != 0) {
@@ -65,73 +69,67 @@ class HomeSearchBar extends HookConsumerWidget {
     });
 
     return RepaintBoundary(
-      child: BlurBackdrop(
-        sigmaX: 8,
-        sigmaY: 8,
-        blur: isBlurAllowed,
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.theme.scaffoldBackgroundColor.withOpacity(
-              context.isLightThemed
-                  ? isBlurAllowed
-                      ? 0.7
-                      : 0.92
-                  : isBlurAllowed
-                      ? 0.85
-                      : 0.97,
-            ),
-            border: Border(
-              top: BorderSide(color: context.colorScheme.outlineVariant),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.theme.scaffoldBackgroundColor.withValues(
+            alpha: context.isLightThemed
+                ? isBlurAllowed
+                    ? 0.7
+                    : 0.92
+                : isBlurAllowed
+                    ? 0.85
+                    : 0.97,
           ),
-          child: SafeArea(
-            top: false,
-            maintainBottomViewPadding: true,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (searchBar.isOpen) const _OptionBar(),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(collapsed ? 0 : 0.2),
-                    borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  ),
-                  margin: collapsed
-                      ? const EdgeInsets.fromLTRB(32, 4, 32, 0)
-                      : const EdgeInsets.fromLTRB(16, 11, 16, 11),
-                  child: Row(
-                    children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          _LeadingButton(collapsed: collapsed),
-                          if (!searchBar.isOpen)
-                            Positioned(right: 8, child: _RatingIndicator()),
-                        ],
-                      ),
-                      const Expanded(child: _SearchField()),
-                      if (!searchBar.isOpen)
-                        _TrailingButton(
-                          collapsed: collapsed,
-                          scrollController: scrollController,
-                        ),
-                      if (searchBar.isOpen &&
-                          searchBar.value != searchBar.initial)
-                        _Button(
-                          onTap: searchBar.reset,
-                          child: const Icon(Icons.rotate_left),
-                        ),
-                      if (searchBar.isOpen)
-                        _Button(
-                          onTap: searchBar.clear,
-                          child: const Icon(Icons.close_rounded),
-                        ),
-                    ],
-                  ),
+          border: Border(
+            top: BorderSide(color: context.colorScheme.outlineVariant),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          maintainBottomViewPadding: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (searchBar.isOpen) const _OptionBar(),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: collapsed ? 0 : 0.2),
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
                 ),
-              ],
-            ),
+                margin: collapsed
+                    ? const EdgeInsets.fromLTRB(32, 4, 32, 0)
+                    : const EdgeInsets.fromLTRB(16, 11, 16, 11),
+                child: Row(
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        _LeadingButton(collapsed: collapsed),
+                        if (!searchBar.isOpen)
+                          Positioned(right: 8, child: _RatingIndicator()),
+                      ],
+                    ),
+                    const Expanded(child: _SearchField()),
+                    if (!searchBar.isOpen)
+                      _TrailingButton(
+                        collapsed: collapsed,
+                        scrollController: scrollController,
+                      ),
+                    if (searchBar.isOpen &&
+                        searchBar.value != searchBar.initial)
+                      _Button(
+                        onTap: searchBar.reset,
+                        child: const Icon(Icons.rotate_left),
+                      ),
+                    if (searchBar.isOpen)
+                      _Button(
+                        onTap: searchBar.clear,
+                        child: const Icon(Icons.close_rounded),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -152,25 +150,30 @@ class _SearchField extends HookConsumerWidget {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
 
-    return TextField(
-      autofocus: searchBar.isOpen,
-      canRequestFocus: searchBar.isOpen,
-      enableIMEPersonalizedLearning: !imeIncognito,
-      controller: searchBar.textEditingController,
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        hintText: searchBar.value.isEmpty
-            ? context.t.searchHint(serverName: server.name)
-            : searchBar.value,
-        isDense: true,
+    return RepaintBoundary(
+      child: TextField(
+        autofocus: searchBar.isOpen,
+        canRequestFocus: searchBar.isOpen,
+        enableIMEPersonalizedLearning: !imeIncognito,
+        controller: searchBar.textEditingController,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: searchBar.value.isEmpty
+              ? context.t.searchHint(serverName: server.name)
+              : searchBar.value,
+          isDense: true,
+        ),
+        textAlign: searchBar.isOpen ? TextAlign.start : TextAlign.center,
+        readOnly: !searchBar.isOpen,
+        onSubmitted: (str) {
+          searchBar.submit(context, str);
+        },
+        onTap: searchBar.isOpen ? null : searchBar.open,
+        style: DefaultTextStyle.of(context).style.copyWith(fontSize: 13),
+        // Optimize text input performance
+        maxLines: 1,
+        textInputAction: TextInputAction.search,
       ),
-      textAlign: searchBar.isOpen ? TextAlign.start : TextAlign.center,
-      readOnly: !searchBar.isOpen,
-      onSubmitted: (str) {
-        searchBar.submit(context, str);
-      },
-      onTap: searchBar.isOpen ? null : searchBar.open,
-      style: DefaultTextStyle.of(context).style.copyWith(fontSize: 13),
     );
   }
 }
@@ -274,11 +277,11 @@ class _Button extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 300),
-          scale: collapsed ? 0.75 : 1,
+        child: Transform.scale(
+          scale: collapsed ? 0.75 : 1.0,
           child: child,
         ),
       ),
@@ -306,32 +309,13 @@ class _LeadingButton extends ConsumerWidget {
           ref.read(homeDrawerControllerProvider).toggle();
         }
       },
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animator) {
-          final animation = Tween<double>(
-            begin: 0,
-            end: 1,
-          ).animate(CurvedAnimation(
-            parent: animator,
-            curve: Curves.easeInOutCubic,
-          ));
-          return RotationTransition(
-            turns: animation,
-            child: ScaleTransition(
-              scale: animation,
-              child: child,
+      child: searchBar.isOpen
+          ? const Icon(Icons.arrow_back_rounded)
+          : Favicon(
+              key: ValueKey(server.homepage),
+              url: server.homepage,
+              iconSize: 18,
             ),
-          );
-        },
-        child: searchBar.isOpen
-            ? const Icon(Icons.arrow_back_rounded)
-            : Favicon(
-                key: ValueKey(server.homepage),
-                url: server.homepage,
-                iconSize: 18,
-              ),
-      ),
     );
   }
 }
@@ -407,28 +391,9 @@ class _TrailingButton extends ConsumerWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, animator) {
-            final animation = Tween<double>(
-              begin: 0,
-              end: 1,
-            ).animate(CurvedAnimation(
-              parent: animator,
-              curve: Curves.easeInOutCubic,
-            ));
-            return RotationTransition(
-              turns: animation,
-              child: ScaleTransition(
-                scale: animation,
-                child: child,
-              ),
-            );
-          },
-          child: collapsed
-              ? const Icon(Icons.arrow_upward_rounded)
-              : Icon(key: ValueKey(grid), Icons.grid_view, size: 20),
-        ),
+        child: collapsed
+            ? const Icon(Icons.arrow_upward_rounded)
+            : Icon(key: ValueKey(grid), Icons.grid_view, size: 20),
       ),
     );
   }

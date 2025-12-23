@@ -1,8 +1,6 @@
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
-import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
-import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
@@ -44,6 +42,13 @@ class SuggestionState extends _$SuggestionState {
   Future<void> get(String query) async {
     final word = _lastWordOf(query);
     if (_lastWord == word) {
+      return;
+    }
+
+    // Don't fetch suggestions for very short queries to reduce API load
+    if (word.length < 2) {
+      state = const FetchResult.data([]);
+      _lastWord = word;
       return;
     }
 
