@@ -47,7 +47,9 @@ class _SearchHistoryHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchBar = ref.watch(searchBarControllerProvider);
     final history = ref.watch(filterHistoryProvider(searchBar.value));
-    if (history.isEmpty) {
+
+    // Show header immediately when search is open, even with empty query
+    if (!searchBar.isOpen || history.isEmpty) {
       return const SliverToBoxAdapter();
     }
 
@@ -57,7 +59,9 @@ class _SearchHistoryHeader extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('${context.t.recently}: ${searchBar.value}'),
+            Text(searchBar.value.trim().isEmpty
+                ? context.t.recently
+                : '${context.t.recently}: ${searchBar.value}'),
             TextButton(
               onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
               child: Text(context.t.clear),
@@ -75,10 +79,64 @@ class _SearchHistory extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchBar = ref.watch(searchBarControllerProvider);
-    final history = ref.watch(filterHistoryProvider(searchBar.value));
+
+    // Show all history when search is open but no query yet
+    final history = searchBar.value.trim().isEmpty
+        ? ref.watch(searchHistoryStateProvider) // Show all history
+        : ref.watch(
+            filterHistoryProvider(searchBar.value)); // Show filtered history
+
+    // Don't show history if search bar is closed
+    if (!searchBar.isOpen) {
+      return const SliverToBoxAdapter();
+    }
+
+    // Show empty state if no history
+    if (history.entries.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            children: [
+              Icon(
+                Icons.history,
+                size: 48,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                searchBar.value.trim().isEmpty
+                    ? 'No search history yet'
+                    : 'No matching history found',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                searchBar.value.trim().isEmpty
+                    ? 'Your recent searches will appear here'
+                    : 'Try a different search term',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withValues(alpha: 0.7),
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return SliverList.builder(
-      itemCount: history.entries.length.clamp(0, 10), // Limit history items
+      itemCount: history.entries.length.clamp(0, 15), // Show more history items
       itemBuilder: (context, index) {
         final reversed = history.entries.length - 1 - index;
         final entry = history.entries.elementAt(reversed);
@@ -120,25 +178,41 @@ class _SuggestionHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
+    final searchBar = ref.watch(searchBarControllerProvider);
+
+    // Only show suggestion header when user starts typing
+    if (!searchBar.isOpen || searchBar.value.trim().length < 2) {
+      return const SliverToBoxAdapter();
+    }
 
     if (!server.canSuggestTags) {
       return SliverToBoxAdapter(
-        child: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(10),
-              child: Icon(Icons.search_off),
-            ),
-            Text(context.t.suggestion.notSupported(serverName: server.name)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Icon(Icons.search_off, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                context.t.suggestion.notSupported(serverName: server.name),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       sliver: SliverToBoxAdapter(
-        child: Text(context.t.suggestion.suggested(serverName: server.name)),
+        child: Text(
+          context.t.suggestion.suggested(serverName: server.name),
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
       ),
     );
   }
