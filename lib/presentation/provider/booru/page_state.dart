@@ -42,7 +42,8 @@ class PageState extends _$PageState {
         .read(tagsBlockerStateProvider)
         .values
         .where((it) => it.serverId.isEmpty || it.serverId == _server.id)
-        .map((it) => it.name);
+        .map((it) => it.name)
+        .toSet(); // Convert to Set for O(1) lookup performance
   }
 
   Future<void> update(PageOption Function(PageOption) updater) async {

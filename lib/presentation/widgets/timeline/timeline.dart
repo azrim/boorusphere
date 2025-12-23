@@ -33,22 +33,28 @@ class Timeline extends ConsumerWidget {
     final blurExplicit =
         ref.watch(contentSettingStateProvider.select((it) => it.blurExplicit));
 
+    // Convert to list once for better performance
+    final postsList =
+        posts is List<Post> ? posts as List<Post> : posts.toList();
+
     return SliverMasonryGrid.count(
       crossAxisCount: flexibleGrid,
       key: ObjectKey(flexibleGrid),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
-      childCount: posts.length,
+      childCount: postsList.length,
       itemBuilder: (context, index) {
-        return _ThumbnailCard(
-          gridSize: flexibleGrid,
-          postdata: (index, posts.elementAt(index)),
-          controller: scrollController,
-          blurExplicit: blurExplicit,
-          onTap: () {
-            context.scaffoldMessenger.removeCurrentSnackBar();
-            PostViewer.open(context, index: index, posts: posts);
-          },
+        return RepaintBoundary(
+          child: _ThumbnailCard(
+            gridSize: flexibleGrid,
+            postdata: (index, postsList[index]),
+            controller: scrollController,
+            blurExplicit: blurExplicit,
+            onTap: () {
+              context.scaffoldMessenger.removeCurrentSnackBar();
+              PostViewer.open(context, index: index, posts: postsList);
+            },
+          ),
         );
       },
     );
@@ -131,8 +137,13 @@ class _ThumbnailImage extends ConsumerWidget {
     final isLong = post.aspectRatio < 0.5;
     final screen =
         context.mediaQuery.size * context.mediaQuery.devicePixelRatio;
-    final cacheWidth = screen.width / (gridSize * 1.3);
-    final cacheHeight = cacheWidth / post.aspectRatio;
+    final cacheWidth = (screen.width / (gridSize * 1.3)).round();
+    final cacheHeight = (cacheWidth / post.aspectRatio).round();
+
+    // Pre-calculate blur filter to avoid recreating it
+    final blurFilter = blurExplicit && post.rating.isExplicit
+        ? ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal)
+        : null;
 
     final image = AspectRatio(
       aspectRatio: isLong ? 0.5 : post.aspectRatio,
@@ -143,19 +154,16 @@ class _ThumbnailImage extends ConsumerWidget {
             : post.previewFile,
         headers: headers,
         fit: BoxFit.cover,
-        cacheWidth: cacheWidth.round(),
-        cacheHeight: cacheHeight.round(),
+        cacheWidth: cacheWidth,
+        cacheHeight: cacheHeight,
         enableLoadState: false,
-        beforePaintImage: (canvas, rect, image, paint) {
-          if (blurExplicit && post.rating.isExplicit) {
-            paint.imageFilter = ImageFilter.blur(
-              sigmaX: 5,
-              sigmaY: 5,
-              tileMode: TileMode.decal,
-            );
-          }
-          return false;
-        },
+        // Use pre-calculated filter
+        beforePaintImage: blurFilter != null
+            ? (canvas, rect, image, paint) {
+                paint.imageFilter = blurFilter;
+                return false;
+              }
+            : null,
         loadStateChanged: (state) {
           if (state.wasSynchronouslyLoaded && state.isCompleted) {
             return state.completedWidget;

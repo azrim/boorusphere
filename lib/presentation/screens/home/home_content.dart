@@ -23,14 +23,19 @@ class HomeContent extends HookConsumerWidget {
     final pageState = ref.watch(pageStateProvider);
     final session = ref.watch(searchSessionProvider);
     final servers = ref.watch(serverStateProvider);
-    final blockedTags = ref.watch(tagsBlockerStateProvider.select(
+
+    // Optimize blocked tags lookup with Set for O(1) contains check
+    final blockedTagsSet = ref.watch(tagsBlockerStateProvider.select(
       (state) => state.values
           .where((it) => it.serverId.isEmpty || it.serverId == session.serverId)
-          .map((it) => it.name),
+          .map((it) => it.name)
+          .toSet(), // Convert to Set for faster lookup
     ));
 
+    // Use more efficient filtering with Set lookup
     final filteredPosts = pageState.data.posts
-        .where((it) => !it.allTags.any(blockedTags.contains));
+        .where((it) => !it.allTags.any(blockedTagsSet.contains))
+        .toList(); // Convert to list once for better performance
 
     useEffect(() {
       if (servers.isNotEmpty) {

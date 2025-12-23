@@ -106,7 +106,7 @@ class _SearchHistory extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final searchBar = ref.watch(searchBarControllerProvider);
 
-    // Show all history when search is open but no query yet
+    // Optimize history filtering for better performance
     final history = searchBar.value.trim().isEmpty
         ? ref.watch(searchHistoryStateProvider) // Show all history
         : ref.watch(
@@ -161,11 +161,15 @@ class _SearchHistory extends HookConsumerWidget {
       );
     }
 
+    // Convert to list once and limit items for better performance
+    final historyList = history.entries.toList();
+    final itemCount = (historyList.length).clamp(0, 15);
+
     return SliverList.builder(
-      itemCount: history.entries.length.clamp(0, 15), // Show more history items
+      itemCount: itemCount,
       itemBuilder: (context, index) {
-        final reversed = history.entries.length - 1 - index;
-        final entry = history.entries.elementAt(reversed);
+        final reversed = historyList.length - 1 - index;
+        final entry = historyList[reversed];
         return RepaintBoundary(
           child: Dismissible(
             key: Key(entry.key.toString()),
@@ -287,14 +291,17 @@ class _Suggestion extends HookConsumerWidget {
       DataFetchResult(:final data) => SliverList.builder(
           itemCount: data.length.clamp(0, 20), // Show more suggestions
           itemBuilder: (context, index) {
-            return _SuggestionEntryTile(
-              data: _SuggestionEntry(
-                isHistory: false,
-                text: data.elementAt(index).name,
-                postCount: data.elementAt(index).count,
+            final suggestion = data.elementAt(index);
+            return RepaintBoundary(
+              child: _SuggestionEntryTile(
+                data: _SuggestionEntry(
+                  isHistory: false,
+                  text: suggestion.name,
+                  postCount: suggestion.count,
+                ),
+                onTap: (str) => searchBar.submit(context, str),
+                onAdded: searchBar.appendTyped,
               ),
-              onTap: (str) => searchBar.submit(context, str),
-              onAdded: searchBar.appendTyped,
             );
           },
         ),
