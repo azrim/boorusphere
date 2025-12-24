@@ -26,8 +26,15 @@ class SearchSuggestion extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final canBeDragged = useState(false);
+    final canBeDragged = useRef(false);
     final screenHeight = MediaQuery.of(context).size.height;
+    final isDragging = useRef(false);
+    final dragStartY = useRef(0.0);
+    final scrollController = useScrollController();
+
+    // Check if at top of scroll
+    bool isAtTop() =>
+        !scrollController.hasClients || scrollController.offset <= 0;
 
     return Container(
       color: context.theme.scaffoldBackgroundColor,
@@ -91,19 +98,59 @@ class SearchSuggestion extends HookConsumerWidget {
                 ),
               ),
             ),
-            const Expanded(
-              child: CustomScrollView(
-                physics: BouncingScrollPhysics(),
-                cacheExtent: 100, // Minimal cache for performance
-                slivers: [
-                  _SearchHistoryHeader(),
-                  _SearchHistory(),
-                  _SuggestionHeader(),
-                  _Suggestion(),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: kBottomNavigationBarHeight + 38),
-                  )
-                ],
+            Expanded(
+              child: Listener(
+                onPointerMove: (event) {
+                  if (!searchBar.isOpen) return;
+
+                  if (!isDragging.value && isAtTop()) {
+                    // Start drag if at top and moving down
+                    if (event.delta.dy > 2) {
+                      isDragging.value = true;
+                      dragStartY.value = event.position.dy;
+                    }
+                  }
+
+                  if (isDragging.value) {
+                    final delta = event.position.dy - dragStartY.value;
+                    if (delta > 0) {
+                      // Update animation value based on drag distance
+                      animator.value = 1.0 - (delta / (screenHeight * 0.3));
+                      animator.value = animator.value.clamp(0.0, 1.0);
+                    }
+                  }
+                },
+                onPointerUp: (_) async {
+                  if (isDragging.value) {
+                    if (animator.value < 0.7) {
+                      await animator.reverse();
+                      searchBar.close();
+                    } else {
+                      await animator.forward();
+                    }
+                    isDragging.value = false;
+                  }
+                },
+                onPointerCancel: (_) async {
+                  if (isDragging.value) {
+                    await animator.forward();
+                    isDragging.value = false;
+                  }
+                },
+                child: CustomScrollView(
+                  controller: scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  cacheExtent: 100, // Minimal cache for performance
+                  slivers: const [
+                    _SearchHistoryHeader(),
+                    _SearchHistory(),
+                    _SuggestionHeader(),
+                    _Suggestion(),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: kBottomNavigationBarHeight + 38),
+                    )
+                  ],
+                ),
               ),
             ),
           ],

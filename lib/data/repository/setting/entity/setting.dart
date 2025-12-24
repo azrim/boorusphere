@@ -1,6 +1,10 @@
 enum Setting {
   downloadsGroupByServer,
   downloadsQuality,
+  gestureSwipeMode,
+  gestureSwipeDownThreshold,
+  gestureEnableSwipeToDetails,
+  gestureEnableSwipeToDismiss,
   postBlurExplicit,
   postBlurTimelineOnly,
   postLoadOriginal,

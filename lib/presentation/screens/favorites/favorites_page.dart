@@ -27,6 +27,7 @@ class FavoritesPage extends ConsumerWidget {
     final savedServerId =
         ref.read(serverSettingStateProvider.select((it) => it.lastActiveId));
     final session = this.session ?? SearchSession(serverId: savedServerId);
+
     return ProviderScope(
       overrides: [
         searchSessionProvider.overrideWith((ref) => session),

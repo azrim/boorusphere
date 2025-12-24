@@ -3,11 +3,14 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/download_quality.dart';
+import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/settings/gesture_settings_page.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
 import 'package:extended_image/extended_image.dart' as extended_image;
 import 'package:flutter/material.dart';
@@ -36,6 +39,7 @@ class SettingsPage extends StatelessWidget {
               title: Text(context.t.settings.interface),
               children: const [
                 _Language(),
+                _GestureSettings(),
                 _MidnightMode(),
                 _UiBlur(),
               ],
@@ -301,6 +305,36 @@ class _Language extends StatelessWidget {
       ),
       onTap: () {
         context.router.push(const LanguageSettingsRoute());
+      },
+    );
+  }
+}
+
+class _GestureSettings extends ConsumerWidget {
+  const _GestureSettings();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final swipeMode = ref.watch(
+      gestureSettingStateNotifierProvider.select((it) => it.swipeMode),
+    );
+
+    return ListTile(
+      title: const Text('Gesture Settings'),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          swipeMode == SwipeMode.horizontal
+              ? 'Horizontal swipe'
+              : 'Vertical swipe',
+        ),
+      ),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const GestureSettingsPage(),
+          ),
+        );
       },
     );
   }

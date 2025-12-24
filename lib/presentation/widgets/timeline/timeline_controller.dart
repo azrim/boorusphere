@@ -3,8 +3,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 final timelineControllerProvider =
-    ChangeNotifierProvider.autoDispose<TimelineController>(
-        (ref) => throw UnimplementedError());
+    ChangeNotifierProvider.autoDispose<TimelineController>((ref) {
+  return TimelineController(
+    scrollController: AutoScrollController(),
+    onLoadMore:
+        null, // Default to null, will be overridden in specific contexts
+  );
+});
 
 class TimelineController extends ChangeNotifier {
   TimelineController({

@@ -25,15 +25,28 @@ class PostDetailsPage extends HookConsumerWidget with ClipboardMixins {
   final Post post;
   final SearchSession session;
 
+  static const double _swipeThreshold = 100.0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final headers = ref.watch(postHeadersFactoryProvider(post));
     final selectedtag = useState(<String>[]);
+    final scrollController = useScrollController();
+
+    // Use ValueNotifier for drag state to avoid rebuilds
+    final dragOffset = useMemoized(() => ValueNotifier(Offset.zero));
+    final isDragging = useRef(false);
+    final dragStartY = useRef(0.0);
+
+    // Dispose ValueNotifier
+    useEffect(() => dragOffset.dispose, []);
+
+    // Check if at top of scroll
+    bool isAtTop() =>
+        !scrollController.hasClients || scrollController.offset <= 0;
 
     onTagPressed(tag) {
       if (!selectedtag.value.contains(tag)) {
-        // update the state instead of the list to allow us listening to the
-        // length of list for FAB visibility
         selectedtag.value = [...selectedtag.value, tag];
       } else {
         selectedtag.value = selectedtag.value.where((it) => it != tag).toList();
@@ -49,178 +62,224 @@ class PostDetailsPage extends HookConsumerWidget with ClipboardMixins {
 
     final rating = post.rating.describe(context);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(context.t.details)),
-      body: StyledOverlayRegion(
-        child: SafeArea(
-          child: ListView(
-            children: [
-              if (rating.isNotEmpty)
-                ListTile(
-                  title: Text(context.t.rating.title),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(rating),
+    return Listener(
+      onPointerMove: (event) {
+        if (!isDragging.value && isAtTop()) {
+          if (event.delta.dy > 2) {
+            isDragging.value = true;
+            dragStartY.value = event.position.dy;
+          }
+        }
+
+        if (isDragging.value) {
+          final delta = event.position.dy - dragStartY.value;
+          if (delta > 0) {
+            dragOffset.value = Offset(0, delta);
+          }
+        }
+      },
+      onPointerUp: (_) {
+        if (isDragging.value) {
+          final dy = dragOffset.value.dy;
+          if (dy > _swipeThreshold) {
+            Navigator.of(context).maybePop();
+          } else {
+            dragOffset.value = Offset.zero;
+          }
+          isDragging.value = false;
+        }
+      },
+      onPointerCancel: (_) {
+        if (isDragging.value) {
+          dragOffset.value = Offset.zero;
+          isDragging.value = false;
+        }
+      },
+      child: ValueListenableBuilder<Offset>(
+        valueListenable: dragOffset,
+        builder: (context, offset, child) {
+          return Transform.translate(
+            offset: offset,
+            child: child,
+          );
+        },
+        child: Scaffold(
+          appBar: AppBar(title: Text(context.t.details)),
+          body: StyledOverlayRegion(
+            child: SafeArea(
+              child: ListView(
+                controller: scrollController,
+                physics: const ClampingScrollPhysics(),
+                children: [
+                  if (rating.isNotEmpty)
+                    ListTile(
+                      title: Text(context.t.rating.title),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(rating),
+                      ),
+                    ),
+                  ListTile(
+                    title: Text(context.t.score),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(post.score.toString()),
+                    ),
                   ),
-                ),
-              ListTile(
-                title: Text(context.t.score),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(post.score.toString()),
-                ),
-              ),
-              if (post.postUrl.contains(post.id.toString()))
-                ListTile(
-                  title: Text(context.t.location),
-                  subtitle: _LinkSubtitle(post.postUrl),
-                  trailing: _CopyButton(post.postUrl),
-                ),
-              if (post.source.isNotEmpty)
-                ListTile(
-                  title: Text(context.t.source),
-                  subtitle: _LinkSubtitle(post.source),
-                  trailing: _CopyButton(post.source),
-                ),
-              if (post.sampleFile.isNotEmpty)
-                ListTile(
-                  title: Text(context.t.fileSample),
-                  subtitle: FutureBuilder<PixelSize>(
-                    future: (post.content.isPhoto || post.content.isGif) &&
-                            !post.sampleSize.hasPixels
-                        ? ExtendedNetworkImageProvider(
+                  if (post.postUrl.contains(post.id.toString()))
+                    ListTile(
+                      title: Text(context.t.location),
+                      subtitle: _LinkSubtitle(post.postUrl),
+                      trailing: _CopyButton(post.postUrl),
+                    ),
+                  if (post.source.isNotEmpty)
+                    ListTile(
+                      title: Text(context.t.source),
+                      subtitle: _LinkSubtitle(post.source),
+                      trailing: _CopyButton(post.source),
+                    ),
+                  if (post.sampleFile.isNotEmpty)
+                    ListTile(
+                      title: Text(context.t.fileSample),
+                      subtitle: FutureBuilder<PixelSize>(
+                        future: (post.content.isPhoto || post.content.isGif) &&
+                                !post.sampleSize.hasPixels
+                            ? ExtendedNetworkImageProvider(
+                                post.sampleFile,
+                                cache: true,
+                                headers: headers,
+                              ).resolvePixelSize()
+                            : Future.value(post.sampleSize),
+                        builder: (context, snapshot) {
+                          final size = snapshot.data ?? post.sampleSize;
+                          return _LinkSubtitle(
                             post.sampleFile,
-                            cache: true,
-                            headers: headers,
-                          ).resolvePixelSize()
-                        : Future.value(post.sampleSize),
-                    builder: (context, snapshot) {
-                      final size = snapshot.data ?? post.sampleSize;
-                      return _LinkSubtitle(
-                        post.sampleFile,
-                        label: '$size, ${post.sampleFile.fileExt}',
-                      );
-                    },
+                            label: '$size, ${post.sampleFile.fileExt}',
+                          );
+                        },
+                      ),
+                      trailing: _CopyButton(post.sampleFile),
+                    ),
+                  ListTile(
+                    title: Text(context.t.fileOg),
+                    subtitle: _LinkSubtitle(
+                      post.originalFile,
+                      label:
+                          '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
+                    ),
+                    trailing: _CopyButton(post.originalFile),
                   ),
-                  trailing: _CopyButton(post.sampleFile),
-                ),
-              ListTile(
-                title: Text(context.t.fileOg),
-                subtitle: _LinkSubtitle(
-                  post.originalFile,
-                  label:
-                      '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
-                ),
-                trailing: _CopyButton(post.originalFile),
+                  ListTile(
+                    title: Text(context.t.tags),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 72),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (!post.hasCategorizedTags)
+                            _TagsView(
+                              tags: post.tags,
+                              isSelected: selectedtag.value.contains,
+                              onSelected: onTagPressed,
+                            )
+                          else ...[
+                            if (post.tagsMeta.isNotEmpty)
+                              _TagsView(
+                                label: context.t.meta,
+                                tags: post.tagsMeta,
+                                isSelected: selectedtag.value.contains,
+                                onSelected: onTagPressed,
+                              ),
+                            if (post.tagsArtist.isNotEmpty)
+                              _TagsView(
+                                label: context.t.artist,
+                                tags: post.tagsArtist,
+                                isSelected: selectedtag.value.contains,
+                                onSelected: onTagPressed,
+                              ),
+                            if (post.tagsCharacter.isNotEmpty)
+                              _TagsView(
+                                label: context.t.character,
+                                tags: post.tagsCharacter,
+                                isSelected: selectedtag.value.contains,
+                                onSelected: onTagPressed,
+                              ),
+                            if (post.tagsCopyright.isNotEmpty)
+                              _TagsView(
+                                label: context.t.copyright,
+                                tags: post.tagsCopyright,
+                                isSelected: selectedtag.value.contains,
+                                onSelected: onTagPressed,
+                              ),
+                            if (post.tagsGeneral.isNotEmpty)
+                              _TagsView(
+                                label: context.t.general,
+                                tags: post.tagsGeneral,
+                                isSelected: selectedtag.value.contains,
+                                onSelected: onTagPressed,
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              ListTile(
-                title: Text(context.t.tags),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 72),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (!post.hasCategorizedTags)
-                        _TagsView(
-                          tags: post.tags,
-                          isSelected: selectedtag.value.contains,
-                          onSelected: onTagPressed,
-                        )
-                      else ...[
-                        if (post.tagsMeta.isNotEmpty)
-                          _TagsView(
-                            label: context.t.meta,
-                            tags: post.tagsMeta,
-                            isSelected: selectedtag.value.contains,
-                            onSelected: onTagPressed,
-                          ),
-                        if (post.tagsArtist.isNotEmpty)
-                          _TagsView(
-                            label: context.t.artist,
-                            tags: post.tagsArtist,
-                            isSelected: selectedtag.value.contains,
-                            onSelected: onTagPressed,
-                          ),
-                        if (post.tagsCharacter.isNotEmpty)
-                          _TagsView(
-                            label: context.t.character,
-                            tags: post.tagsCharacter,
-                            isSelected: selectedtag.value.contains,
-                            onSelected: onTagPressed,
-                          ),
-                        if (post.tagsCopyright.isNotEmpty)
-                          _TagsView(
-                            label: context.t.copyright,
-                            tags: post.tagsCopyright,
-                            isSelected: selectedtag.value.contains,
-                            onSelected: onTagPressed,
-                          ),
-                        if (post.tagsGeneral.isNotEmpty)
-                          _TagsView(
-                            label: context.t.general,
-                            tags: post.tagsGeneral,
-                            isSelected: selectedtag.value.contains,
-                            onSelected: onTagPressed,
-                          ),
-                      ],
-                    ],
-                  ),
-                ),
+            ),
+          ),
+          floatingActionButton: SpeedDial(
+            icon: Icons.tag,
+            backgroundColor: context.colorScheme.tertiary,
+            foregroundColor: context.colorScheme.onTertiary,
+            visible: selectedtag.value.isNotEmpty,
+            children: [
+              SpeedDialChild(
+                child: const Icon(Icons.copy),
+                label: context.t.actionTag.copy,
+                onTap: () {
+                  final tags = selectedtag.value.join(' ');
+                  if (tags.isNotEmpty) {
+                    clip(context, tags);
+                  }
+                },
+              ),
+              SpeedDialChild(
+                child: const Icon(Icons.block),
+                label: context.t.actionTag.block,
+                onTap: () {
+                  final selectedTags = selectedtag.value;
+                  if (selectedTags.isNotEmpty) {
+                    ref
+                        .read(tagsBlockerStateProvider.notifier)
+                        .pushAll(tags: selectedTags);
+                    context.scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(context.t.actionTag.blocked),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  }
+                },
+              ),
+              SpeedDialChild(
+                child: const Icon(Icons.search),
+                label: context.t.actionTag.append,
+                onTap: () {
+                  if (selectedtag.value.isEmpty) return;
+                  updateSearch(
+                      [...session.query.toWordList(), ...selectedtag.value]);
+                },
+              ),
+              SpeedDialChild(
+                child: const Icon(Icons.search),
+                label: context.t.actionTag.search,
+                onTap: () {
+                  updateSearch(selectedtag.value);
+                },
               ),
             ],
           ),
         ),
-      ),
-      floatingActionButton: SpeedDial(
-        icon: Icons.tag,
-        backgroundColor: context.colorScheme.tertiary,
-        foregroundColor: context.colorScheme.onTertiary,
-        visible: selectedtag.value.isNotEmpty,
-        children: [
-          SpeedDialChild(
-              child: const Icon(Icons.copy),
-              label: context.t.actionTag.copy,
-              onTap: () {
-                final tags = selectedtag.value.join(' ');
-                if (tags.isNotEmpty) {
-                  clip(context, tags);
-                }
-              }),
-          SpeedDialChild(
-            child: const Icon(Icons.block),
-            label: context.t.actionTag.block,
-            onTap: () {
-              final selectedTags = selectedtag.value;
-              if (selectedTags.isNotEmpty) {
-                ref
-                    .read(tagsBlockerStateProvider.notifier)
-                    .pushAll(tags: selectedTags);
-                context.scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(context.t.actionTag.blocked),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-              }
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.search),
-            label: context.t.actionTag.append,
-            onTap: () {
-              if (selectedtag.value.isEmpty) return;
-              updateSearch(
-                  [...session.query.toWordList(), ...selectedtag.value]);
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.search),
-            label: context.t.actionTag.search,
-            onTap: () {
-              updateSearch(selectedtag.value);
-            },
-          ),
-        ],
       ),
     );
   }

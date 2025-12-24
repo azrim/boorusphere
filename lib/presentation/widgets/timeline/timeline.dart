@@ -3,8 +3,9 @@ import 'dart:ui';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
-import 'package:boorusphere/presentation/screens/post/post_viewer.dart';
+import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
@@ -52,7 +53,19 @@ class Timeline extends ConsumerWidget {
             blurExplicit: blurExplicit,
             onTap: () {
               context.scaffoldMessenger.removeCurrentSnackBar();
-              PostViewer.open(context, index: index, posts: postsList);
+
+              // Use enhanced post viewer with configurable swipe mode
+              final gestureSettings =
+                  ref.read(gestureSettingStateNotifierProvider);
+              EnhancedPostViewer.open(
+                context,
+                index: index,
+                posts: postsList,
+                swipeMode: gestureSettings.swipeMode,
+                swipeThreshold: gestureSettings.swipeDownThreshold,
+                enableSwipeToDetails: gestureSettings.enableSwipeToDetails,
+                enableSwipeToDismiss: gestureSettings.enableSwipeToDismiss,
+              );
             },
           ),
         );
