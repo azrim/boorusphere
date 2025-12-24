@@ -40,7 +40,6 @@ class PostDetailsSheet extends StatefulWidget {
 class _PostDetailsSheetState extends State<PostDetailsSheet> {
   final _contentScrollController = ScrollController();
   bool _isAtTop = true;
-  bool _isScrollingToTop = false;
   final Set<String> _selectedTags = {};
 
   @override
@@ -63,23 +62,6 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
         _isAtTop = atTop;
       });
     }
-  }
-
-  void _scrollToTopFirst() {
-    if (_isScrollingToTop) return;
-
-    _isScrollingToTop = true;
-    _contentScrollController
-        .animateTo(
-          0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-        )
-        .then(_onScrollToTopComplete);
-  }
-
-  void _onScrollToTopComplete(_) {
-    _isScrollingToTop = false;
   }
 
   void _closeSheet() {
@@ -106,77 +88,74 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        // Handle user scroll on the content ListView (depth 1)
-        if (notification is UserScrollNotification && notification.depth == 1) {
-          // Track when user starts/stops scrolling
-          return false;
-        }
-
-        // Handle scroll updates on the content ListView
-        if (notification is ScrollUpdateNotification &&
-            notification.depth == 1) {
-          // If at top and trying to scroll up more, close the sheet
-          if (_isAtTop &&
-              notification.scrollDelta != null &&
-              notification.scrollDelta! < -5) {
-            _closeSheet();
-            return true;
-          }
-        }
-
-        // Handle scroll updates on the DraggableScrollableSheet (depth 0)
-        if (notification is ScrollUpdateNotification &&
-            notification.depth == 0) {
-          // If user is dragging the sheet down but content is not at top
-          if (notification.scrollDelta != null &&
-              notification.scrollDelta! < 0 &&
-              !_isAtTop) {
-            // Scroll content to top first
-            _scrollToTopFirst();
-            return true; // Consume the notification
-          }
-        }
-
-        return false;
-      },
-      child: DraggableScrollableSheet(
-        controller: widget.sheetController,
-        initialChildSize: _kMinSheetSize,
-        minChildSize: _kMinSheetSize,
-        maxChildSize: _kMaxSheetSize,
-        snapSizes: const [_kMinSheetSize, _kSnapSheetSize, _kMaxSheetSize],
-        snap: true,
-        snapAnimationDuration: const Duration(milliseconds: 200),
-        builder: (context, scrollController) {
-          return Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Drag handle
-                _DragHandle(scrollController: scrollController),
-                // Tag action bar when tags are selected
-                if (_selectedTags.isNotEmpty)
-                  _TagActionBar(
-                    selectedTags: _selectedTags,
-                    session: widget.session,
-                    onClearSelection: _clearSelection,
+    return DraggableScrollableSheet(
+      controller: widget.sheetController,
+      initialChildSize: _kMinSheetSize,
+      minChildSize: _kMinSheetSize,
+      maxChildSize: _kMaxSheetSize,
+      snapSizes: const [_kMinSheetSize, _kSnapSheetSize, _kMaxSheetSize],
+      snap: true,
+      snapAnimationDuration: const Duration(milliseconds: 200),
+      builder: (context, scrollController) {
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Drag handle - uses the sheet's scroll controller
+              GestureDetector(
+                onVerticalDragUpdate: (details) {
+                  // Dragging down on handle closes the sheet
+                  if (details.delta.dy > 0) {
+                    _closeSheet();
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
-                // Content
-                Expanded(
+                ),
+              ),
+              // Tag action bar when tags are selected
+              if (_selectedTags.isNotEmpty)
+                _TagActionBar(
+                  selectedTags: _selectedTags,
+                  session: widget.session,
+                  onClearSelection: _clearSelection,
+                ),
+              // Content - scrollable with overscroll to dismiss
+              Expanded(
+                child: NotificationListener<OverscrollNotification>(
+                  onNotification: (notification) {
+                    // When overscrolling at the top (negative overscroll), close sheet
+                    if (notification.overscroll < 0 && _isAtTop) {
+                      _closeSheet();
+                      return true;
+                    }
+                    return false;
+                  },
                   child: _SheetContent(
                     post: widget.post,
                     contentScrollController: _contentScrollController,
@@ -184,44 +163,11 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
                     onTagPressed: _onTagPressed,
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _DragHandle extends StatelessWidget {
-  const _DragHandle({required this.scrollController});
-
-  final ScrollController scrollController;
-
-  @override
-  Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
-      onNotification: (_) => true, // Prevent bubbling
-      child: SingleChildScrollView(
-        controller: scrollController,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant
-                    .withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
               ),
-            ),
+            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -342,7 +288,9 @@ class _SheetContent extends ConsumerWidget {
 
     return ListView(
       controller: contentScrollController,
-      physics: const ClampingScrollPhysics(),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         if (rating.isNotEmpty)
