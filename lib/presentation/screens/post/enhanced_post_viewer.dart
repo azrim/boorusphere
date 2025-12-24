@@ -1,11 +1,10 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
-import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
+import 'package:boorusphere/presentation/screens/post/post_details_page.dart';
 import 'package:boorusphere/presentation/screens/post/post_image.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/post_unknown.dart';
@@ -133,7 +132,13 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
     void openPostDetails(Post post) {
       const session = SearchSession();
-      context.router.push(PostDetailsRoute(post: post, session: session));
+      // Use slide-up transition for better UX when swiping up to details
+      context.navigator.push(
+        SlidePageRoute(
+          type: SlidePageType.slideUp,
+          builder: (context) => PostDetailsPage(post: post, session: session),
+        ),
+      );
     }
 
     return PopScope(

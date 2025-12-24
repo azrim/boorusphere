@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum SlidePageType { open, close, both }
+enum SlidePageType { open, close, both, slideUp }
 
 class SlidePageRoute<T> extends PageRoute<T> {
   SlidePageRoute({
@@ -47,7 +47,8 @@ class SlidePageRoute<T> extends PageRoute<T> {
   ) {
     final nextAnimation = CurvedAnimation(
       parent: animation,
-      curve: Curves.easeInOutCubic,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
     );
     final prevAnimation = CurvedAnimation(
       parent: secondaryAnimation,
@@ -82,11 +83,23 @@ class SlidePageRoute<T> extends PageRoute<T> {
       );
     }
 
+    Widget slideUp(Widget child) {
+      return SlideTransition(
+        position: Tween(
+          begin: const Offset(0, 1),
+          end: Offset.zero,
+        ).animate(nextAnimation),
+        child: child,
+      );
+    }
+
     switch (type) {
       case SlidePageType.open:
         return open(fade);
       case SlidePageType.close:
         return close(fade);
+      case SlidePageType.slideUp:
+        return slideUp(child);
       default:
         return open(close(fade));
     }
