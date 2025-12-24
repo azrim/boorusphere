@@ -76,6 +76,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final timelineController = ref.watch(timelineControllerProvider);
+    final session = ref.watch(searchSessionProvider);
     const loadMoreThreshold = 90;
     final postsList = posts.toList();
 
@@ -396,7 +397,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
                   final post = postsList.isNotEmpty
                       ? postsList[currentPageIndex]
                       : Post.empty;
-                  final session = ref.watch(searchSessionProvider);
 
                   return PostDetailsSheet(
                     post: post,
