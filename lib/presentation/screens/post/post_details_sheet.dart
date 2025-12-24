@@ -38,39 +38,7 @@ class PostDetailsSheet extends StatefulWidget {
 }
 
 class _PostDetailsSheetState extends State<PostDetailsSheet> {
-  final _contentScrollController = ScrollController();
-  bool _isAtTop = true;
   final Set<String> _selectedTags = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _contentScrollController.addListener(_onContentScroll);
-  }
-
-  @override
-  void dispose() {
-    _contentScrollController.removeListener(_onContentScroll);
-    _contentScrollController.dispose();
-    super.dispose();
-  }
-
-  void _onContentScroll() {
-    final atTop = _contentScrollController.offset <= 0;
-    if (atTop != _isAtTop) {
-      setState(() {
-        _isAtTop = atTop;
-      });
-    }
-  }
-
-  void _closeSheet() {
-    widget.sheetController.animateTo(
-      _kMinSheetSize,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-    );
-  }
 
   void _onTagPressed(String tag) {
     setState(() {
@@ -110,16 +78,11 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               ),
             ],
           ),
-          child: Column(
-            children: [
-              // Drag handle - uses the sheet's scroll controller
-              GestureDetector(
-                onVerticalDragUpdate: (details) {
-                  // Dragging down on handle closes the sheet
-                  if (details.delta.dy > 0) {
-                    _closeSheet();
-                  }
-                },
+          child: CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              // Drag handle
+              SliverToBoxAdapter(
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -140,28 +103,19 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               ),
               // Tag action bar when tags are selected
               if (_selectedTags.isNotEmpty)
-                _TagActionBar(
-                  selectedTags: _selectedTags,
-                  session: widget.session,
-                  onClearSelection: _clearSelection,
-                ),
-              // Content - scrollable with overscroll to dismiss
-              Expanded(
-                child: NotificationListener<OverscrollNotification>(
-                  onNotification: (notification) {
-                    // When overscrolling at the top (negative overscroll), close sheet
-                    if (notification.overscroll < 0 && _isAtTop) {
-                      _closeSheet();
-                      return true;
-                    }
-                    return false;
-                  },
-                  child: _SheetContent(
-                    post: widget.post,
-                    contentScrollController: _contentScrollController,
+                SliverToBoxAdapter(
+                  child: _TagActionBar(
                     selectedTags: _selectedTags,
-                    onTagPressed: _onTagPressed,
+                    session: widget.session,
+                    onClearSelection: _clearSelection,
                   ),
+                ),
+              // Content
+              SliverToBoxAdapter(
+                child: _SheetContent(
+                  post: widget.post,
+                  selectedTags: _selectedTags,
+                  onTagPressed: _onTagPressed,
                 ),
               ),
             ],
@@ -271,13 +225,11 @@ class _TagActionBar extends ConsumerWidget {
 class _SheetContent extends ConsumerWidget {
   const _SheetContent({
     required this.post,
-    required this.contentScrollController,
     required this.selectedTags,
     required this.onTagPressed,
   });
 
   final Post post;
-  final ScrollController contentScrollController;
   final Set<String> selectedTags;
   final void Function(String) onTagPressed;
 
@@ -286,116 +238,115 @@ class _SheetContent extends ConsumerWidget {
     final headers = ref.watch(postHeadersFactoryProvider(post));
     final rating = post.rating.describe(context);
 
-    return ListView(
-      controller: contentScrollController,
-      physics: const BouncingScrollPhysics(
-        parent: AlwaysScrollableScrollPhysics(),
-      ),
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        if (rating.isNotEmpty)
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (rating.isNotEmpty)
+            _InfoTile(
+              title: context.t.rating.title,
+              content: Text(rating),
+            ),
           _InfoTile(
-            title: context.t.rating.title,
-            content: Text(rating),
+            title: context.t.score,
+            content: Text(post.score.toString()),
           ),
-        _InfoTile(
-          title: context.t.score,
-          content: Text(post.score.toString()),
-        ),
-        if (post.postUrl.contains(post.id.toString()))
+          if (post.postUrl.contains(post.id.toString()))
+            _InfoTile(
+              title: context.t.location,
+              content: _LinkText(post.postUrl),
+              trailing: _CopyButton(post.postUrl),
+            ),
+          if (post.source.isNotEmpty)
+            _InfoTile(
+              title: context.t.source,
+              content: _LinkText(post.source),
+              trailing: _CopyButton(post.source),
+            ),
+          if (post.sampleFile.isNotEmpty)
+            _InfoTile(
+              title: context.t.fileSample,
+              content: FutureBuilder<PixelSize>(
+                future: (post.content.isPhoto || post.content.isGif) &&
+                        !post.sampleSize.hasPixels
+                    ? ExtendedNetworkImageProvider(
+                        post.sampleFile,
+                        cache: true,
+                        headers: headers,
+                      ).resolvePixelSize()
+                    : Future.value(post.sampleSize),
+                builder: (context, snapshot) {
+                  final size = snapshot.data ?? post.sampleSize;
+                  return _LinkText(
+                    post.sampleFile,
+                    label: '$size, ${post.sampleFile.fileExt}',
+                  );
+                },
+              ),
+              trailing: _CopyButton(post.sampleFile),
+            ),
           _InfoTile(
-            title: context.t.location,
-            content: _LinkText(post.postUrl),
-            trailing: _CopyButton(post.postUrl),
+            title: context.t.fileOg,
+            content: _LinkText(
+              post.originalFile,
+              label:
+                  '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
+            ),
+            trailing: _CopyButton(post.originalFile),
           ),
-        if (post.source.isNotEmpty)
-          _InfoTile(
-            title: context.t.source,
-            content: _LinkText(post.source),
-            trailing: _CopyButton(post.source),
+          const SizedBox(height: 8),
+          Text(
+            context.t.tags,
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-        if (post.sampleFile.isNotEmpty)
-          _InfoTile(
-            title: context.t.fileSample,
-            content: FutureBuilder<PixelSize>(
-              future: (post.content.isPhoto || post.content.isGif) &&
-                      !post.sampleSize.hasPixels
-                  ? ExtendedNetworkImageProvider(
-                      post.sampleFile,
-                      cache: true,
-                      headers: headers,
-                    ).resolvePixelSize()
-                  : Future.value(post.sampleSize),
-              builder: (context, snapshot) {
-                final size = snapshot.data ?? post.sampleSize;
-                return _LinkText(
-                  post.sampleFile,
-                  label: '$size, ${post.sampleFile.fileExt}',
-                );
-              },
-            ),
-            trailing: _CopyButton(post.sampleFile),
-          ),
-        _InfoTile(
-          title: context.t.fileOg,
-          content: _LinkText(
-            post.originalFile,
-            label:
-                '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
-          ),
-          trailing: _CopyButton(post.originalFile),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          context.t.tags,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        if (!post.hasCategorizedTags)
-          _TagsWrap(
-            tags: post.tags,
-            selectedTags: selectedTags,
-            onTagPressed: onTagPressed,
-          )
-        else ...[
-          if (post.tagsMeta.isNotEmpty)
-            _TagsSection(
-              label: context.t.meta,
-              tags: post.tagsMeta,
+          const SizedBox(height: 8),
+          if (!post.hasCategorizedTags)
+            _TagsWrap(
+              tags: post.tags,
               selectedTags: selectedTags,
               onTagPressed: onTagPressed,
-            ),
-          if (post.tagsArtist.isNotEmpty)
-            _TagsSection(
-              label: context.t.artist,
-              tags: post.tagsArtist,
-              selectedTags: selectedTags,
-              onTagPressed: onTagPressed,
-            ),
-          if (post.tagsCharacter.isNotEmpty)
-            _TagsSection(
-              label: context.t.character,
-              tags: post.tagsCharacter,
-              selectedTags: selectedTags,
-              onTagPressed: onTagPressed,
-            ),
-          if (post.tagsCopyright.isNotEmpty)
-            _TagsSection(
-              label: context.t.copyright,
-              tags: post.tagsCopyright,
-              selectedTags: selectedTags,
-              onTagPressed: onTagPressed,
-            ),
-          if (post.tagsGeneral.isNotEmpty)
-            _TagsSection(
-              label: context.t.general,
-              tags: post.tagsGeneral,
-              selectedTags: selectedTags,
-              onTagPressed: onTagPressed,
-            ),
+            )
+          else ...[
+            if (post.tagsMeta.isNotEmpty)
+              _TagsSection(
+                label: context.t.meta,
+                tags: post.tagsMeta,
+                selectedTags: selectedTags,
+                onTagPressed: onTagPressed,
+              ),
+            if (post.tagsArtist.isNotEmpty)
+              _TagsSection(
+                label: context.t.artist,
+                tags: post.tagsArtist,
+                selectedTags: selectedTags,
+                onTagPressed: onTagPressed,
+              ),
+            if (post.tagsCharacter.isNotEmpty)
+              _TagsSection(
+                label: context.t.character,
+                tags: post.tagsCharacter,
+                selectedTags: selectedTags,
+                onTagPressed: onTagPressed,
+              ),
+            if (post.tagsCopyright.isNotEmpty)
+              _TagsSection(
+                label: context.t.copyright,
+                tags: post.tagsCopyright,
+                selectedTags: selectedTags,
+                onTagPressed: onTagPressed,
+              ),
+            if (post.tagsGeneral.isNotEmpty)
+              _TagsSection(
+                label: context.t.general,
+                tags: post.tagsGeneral,
+                selectedTags: selectedTags,
+                onTagPressed: onTagPressed,
+              ),
+          ],
+          const SizedBox(height: 100),
         ],
-        const SizedBox(height: 100),
-      ],
+      ),
     );
   }
 }
