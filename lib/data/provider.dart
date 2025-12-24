@@ -6,6 +6,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -13,7 +14,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'provider.g.dart';
 
 @Riverpod(keepAlive: true)
-CookieJar cookieJar(CookieJarRef ref) {
+CookieJar cookieJar(Ref ref) {
   return CookieJar();
 }
 
@@ -25,7 +26,7 @@ Future<CookieJar> provideCookieJar() async {
 }
 
 @Riverpod(keepAlive: true)
-Map<String, Server> defaultServers(DefaultServersRef ref) {
+Map<String, Server> defaultServers(Ref ref) {
   return {};
 }
 
@@ -39,7 +40,7 @@ Future<Map<String, Server>> provideDefaultServers() async {
 }
 
 @riverpod
-Dio dio(DioRef ref) {
+Dio dio(Ref ref) {
   final cookieJar = ref.watch(cookieJarProvider);
   final envRepo = ref.watch(envRepoProvider);
   return AppDio(cookieJar: cookieJar, envRepo: envRepo);

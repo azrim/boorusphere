@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
@@ -9,7 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'shared_storage_handle.g.dart';
 
 @Riverpod(keepAlive: true)
-SharedStorageHandle sharedStorageHandle(SharedStorageHandleRef ref) {
+SharedStorageHandle sharedStorageHandle(Ref ref) {
   throw UnimplementedError();
 }
 

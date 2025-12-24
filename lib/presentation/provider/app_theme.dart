@@ -1,12 +1,13 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tinycolor2/tinycolor2.dart';
 
 part 'app_theme.g.dart';
 
 @riverpod
-AppThemeDataNotifier appThemeData(AppThemeDataRef ref) {
+AppThemeDataNotifier appThemeData(Ref ref) {
   return AppThemeDataNotifier();
 }
 

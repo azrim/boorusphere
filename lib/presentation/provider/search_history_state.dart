@@ -2,12 +2,13 @@ import 'package:boorusphere/data/repository/search_history/entity/search_history
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'search_history_state.g.dart';
 
 @riverpod
-Map<int, SearchHistory> filterHistory(FilterHistoryRef ref, String query) {
+Map<int, SearchHistory> filterHistory(Ref ref, String query) {
   final history = ref.watch(searchHistoryStateProvider);
   if (query.endsWith(' ') || query.isEmpty) {
     return history;

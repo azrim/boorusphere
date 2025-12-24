@@ -16,12 +16,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'app_updater.g.dart';
 
 @riverpod
-AppUpdater appUpdater(AppUpdaterRef ref) {
+AppUpdater appUpdater(Ref ref) {
   return AppUpdater(ref);
 }
 
 @riverpod
-DownloadProgress appUpdateProgress(AppUpdateProgressRef ref) {
+DownloadProgress appUpdateProgress(Ref ref) {
   final id = ref.watch(appUpdaterProvider.select((it) => it.id));
   return ref.watch(downloadProgressStateProvider).getById(id);
 }

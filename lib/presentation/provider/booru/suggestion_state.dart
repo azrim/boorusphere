@@ -10,17 +10,17 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'suggestion_state.g.dart';
 
 class Suggestion {
+  const Suggestion(this.name, this.count);
+
   final String name;
   final int count;
-
-  const Suggestion(this.name, this.count);
 }
 
 @riverpod
 class SuggestionState extends _$SuggestionState {
-  final SearchSession session;
-
   SuggestionState({this.session = const SearchSession()});
+
+  final SearchSession session;
 
   String? _lastWord;
 

@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'search_session.freezed.dart';
@@ -14,6 +15,6 @@ class SearchSession with _$SearchSession {
 }
 
 @riverpod
-SearchSession searchSession(SearchSessionRef ref) {
+SearchSession searchSession(Ref ref) {
   return const SearchSession();
 }

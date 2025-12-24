@@ -43,12 +43,13 @@ class AutocompleteJsonParser extends BooruParser {
     } catch (e) {
       return false;
     }
-
   }
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = res.data is List ? List.from(res.data) : List.from(jsonDecode(res.data));
+    final entries = res.data is List
+        ? List.from(res.data)
+        : List.from(jsonDecode(res.data));
     final result = <Suggestion>{};
     for (final Map<String, dynamic> entry in entries) {
       final label = pick(entry, 'label').asStringOrNull() ?? '';

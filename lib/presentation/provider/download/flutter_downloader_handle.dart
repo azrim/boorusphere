@@ -4,12 +4,13 @@ import 'dart:ui';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'flutter_downloader_handle.g.dart';
 
 @Riverpod(keepAlive: true)
-FlutterDownloaderHandle downloaderHandle(DownloaderHandleRef ref) {
+FlutterDownloaderHandle downloaderHandle(Ref ref) {
   final handle = FlutterDownloaderHandle();
   ref.onDispose(handle.dispose);
   return handle;

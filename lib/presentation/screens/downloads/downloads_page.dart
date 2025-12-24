@@ -134,23 +134,25 @@ class DownloadsPage extends HookConsumerWidget {
           title: Text(context.t.downloads.filterByStatus),
           icon: const Icon(Icons.file_download),
           contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: DownloadFilter.values
-                .map((e) => ListTile(
-                      leading: Radio<DownloadFilter>(
-                        value: e,
-                        groupValue: current,
-                        onChanged: (value) {
-                          context.navigator.pop(value);
+          content: RadioGroup<DownloadFilter>(
+            groupValue: current,
+            onChanged: (value) {
+              context.navigator.pop(value);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: DownloadFilter.values
+                  .map((e) => ListTile(
+                        leading: Radio<DownloadFilter>(
+                          value: e,
+                        ),
+                        title: Text(e.describe(context)),
+                        onTap: () {
+                          context.navigator.pop(e);
                         },
-                      ),
-                      title: Text(e.describe(context)),
-                      onTap: () {
-                        context.navigator.pop(e);
-                      },
-                    ))
-                .toList(),
+                      ))
+                  .toList(),
+            ),
           ),
         );
       },

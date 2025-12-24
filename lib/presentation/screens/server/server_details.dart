@@ -298,21 +298,23 @@ class ParserSelector extends HookWidget {
           contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
           content: SizedBox(
             width: double.maxFinite,
-            child: ListView.builder(
-              itemCount: parsers.length,
-              shrinkWrap: true,
-              itemBuilder: (context, index) => ListTile(
-                leading: Radio<String>(
-                  value: parsers[index].id,
-                  groupValue: current,
-                  onChanged: (x) {
-                    context.navigator.pop(x);
+            child: RadioGroup<String>(
+              groupValue: current,
+              onChanged: (x) {
+                context.navigator.pop(x);
+              },
+              child: ListView.builder(
+                itemCount: parsers.length,
+                shrinkWrap: true,
+                itemBuilder: (context, index) => ListTile(
+                  leading: Radio<String>(
+                    value: parsers[index].id,
+                  ),
+                  title: ParserLabel(id: parsers[index].id),
+                  onTap: () {
+                    context.navigator.pop(parsers[index].id);
                   },
                 ),
-                title: ParserLabel(id: parsers[index].id),
-                onTap: () {
-                  context.navigator.pop(parsers[index].id);
-                },
               ),
             ),
           ),

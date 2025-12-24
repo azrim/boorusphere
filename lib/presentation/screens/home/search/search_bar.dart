@@ -211,23 +211,25 @@ class _RatingButton extends ConsumerWidget {
           title: Text(context.t.rating.title),
           icon: const Icon(Icons.star),
           contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: BooruRating.values
-                .map((e) => ListTile(
-                      leading: Radio<BooruRating>(
-                        value: e,
-                        groupValue: current,
-                        onChanged: (x) {
-                          context.navigator.pop(x);
+          content: RadioGroup<BooruRating>(
+            groupValue: current,
+            onChanged: (x) {
+              context.navigator.pop(x);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: BooruRating.values
+                  .map((e) => ListTile(
+                        leading: Radio<BooruRating>(
+                          value: e,
+                        ),
+                        title: Text(rateDesc(context, e)),
+                        onTap: () {
+                          context.navigator.pop(e);
                         },
-                      ),
-                      title: Text(rateDesc(context, e)),
-                      onTap: () {
-                        context.navigator.pop(e);
-                      },
-                    ))
-                .toList(),
+                      ))
+                  .toList(),
+            ),
           ),
         );
       },

@@ -11,8 +11,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'licenses_page.g.dart';
 
 @Riverpod(keepAlive: true)
-FutureOr<Map<String, Iterable<LicenseEntry>>> licenseRegistry(
-    LicenseRegistryRef ref) async {
+FutureOr<Map<String, Iterable<LicenseEntry>>> licenseRegistry(Ref ref) async {
   final data = await LicenseRegistry.licenses.fold<LicenseData>(
     LicenseData(),
     (prev, license) => prev..add(license),

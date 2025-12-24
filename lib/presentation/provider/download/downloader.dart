@@ -13,7 +13,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'downloader.g.dart';
 
 @riverpod
-Downloader downloader(DownloaderRef ref) {
+Downloader downloader(Ref ref) {
   return Downloader(ref);
 }
 

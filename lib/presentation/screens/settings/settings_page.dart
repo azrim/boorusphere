@@ -136,23 +136,25 @@ class _DownloadQuality extends ConsumerWidget {
           title: Text(context.t.downloads.quality),
           icon: const Icon(Icons.file_download),
           contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: DownloadQuality.values
-                .map((e) => ListTile(
-                      leading: Radio<DownloadQuality>(
-                        value: e,
-                        groupValue: current,
-                        onChanged: (x) {
-                          context.navigator.pop(x);
+          content: RadioGroup<DownloadQuality>(
+            groupValue: current,
+            onChanged: (x) {
+              context.navigator.pop(x);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: DownloadQuality.values
+                  .map((e) => ListTile(
+                        leading: Radio<DownloadQuality>(
+                          value: e,
+                        ),
+                        title: Text(e.describe(context)),
+                        onTap: () {
+                          context.navigator.pop(e);
                         },
-                      ),
-                      title: Text(e.describe(context)),
-                      onTap: () {
-                        context.navigator.pop(e);
-                      },
-                    ))
-                .toList(),
+                      ))
+                  .toList(),
+            ),
           ),
         );
       },
