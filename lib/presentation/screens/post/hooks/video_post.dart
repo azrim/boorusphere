@@ -98,8 +98,8 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
 
     final uri = Uri.parse(hook.post.content.url);
     final controller = VideoPlayerController.networkUrl(uri,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))
-      ..setLooping(true);
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
+    unawaited(controller.setLooping(true));
     final prog = DownloadProgress(hook.post.content.url, 1, 1);
 
     setState(() {

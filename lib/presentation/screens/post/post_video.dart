@@ -257,7 +257,6 @@ class _ToolboxOverlay extends ConsumerWidget {
                 isMuted ? Icons.volume_mute : Icons.volume_up,
               ),
             ),
-            PostDetailsButton(post: post),
             IconButton(
               color: Colors.white,
               icon: Icon(
