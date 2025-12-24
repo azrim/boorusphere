@@ -123,9 +123,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
     final pointerCount = useRef(0);
     final interacting = useState(false);
     final dragStartY = useRef(0.0);
-    final dragOffset = useMemoized(() => ValueNotifier(Offset.zero));
-
-    useEffect(() => dragOffset.dispose, []);
+    final dragDelta = useRef(0.0);
 
     final isVerticalMode = swipeMode == SwipeMode.vertical;
     final isLargeScreen = MediaQuery.of(context).size.width > 600;
@@ -220,26 +218,24 @@ class EnhancedPostViewer extends HookConsumerWidget {
                         onVerticalDragStart: !isVerticalMode
                             ? (details) {
                                 dragStartY.value = details.globalPosition.dy;
-                                dragOffset.value = Offset.zero;
+                                dragDelta.value = 0;
                               }
                             : null,
                         onVerticalDragUpdate: !isVerticalMode
                             ? (details) {
-                                final delta = details.globalPosition.dy -
+                                dragDelta.value = details.globalPosition.dy -
                                     dragStartY.value;
-                                dragOffset.value = Offset(0, delta);
                               }
                             : null,
                         onVerticalDragEnd: !isVerticalMode
                             ? (details) {
-                                final dy = dragOffset.value.dy;
+                                final dy = dragDelta.value;
                                 final velocity =
                                     details.velocity.pixelsPerSecond.dy;
 
                                 // Swipe up - expand sheet
                                 if (enableSwipeToDetails &&
                                     (dy < -swipeThreshold || velocity < -500)) {
-                                  dragOffset.value = Offset.zero;
                                   expandSheet();
                                   return;
                                 }
@@ -249,91 +245,78 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                   Navigator.of(context).maybePop();
                                   return;
                                 }
-
-                                // Reset
-                                dragOffset.value = Offset.zero;
                               }
                             : null,
-                        child: ValueListenableBuilder<Offset>(
-                          valueListenable: dragOffset,
-                          builder: (context, offset, child) {
-                            return Transform.translate(
-                              offset: offset,
-                              child: child,
-                            );
-                          },
-                          child: PageView.builder(
-                            controller: controller.pageController,
-                            scrollDirection: isVerticalMode
-                                ? Axis.vertical
-                                : Axis.horizontal,
-                            physics: canSwipe
-                                ? const PageScrollPhysics()
-                                : const NeverScrollableScrollPhysics(),
-                            onPageChanged: (index) async {
-                              SchedulerBinding.instance
-                                  .addPostFrameCallback((timeStamp) {
+                        child: PageView.builder(
+                          controller: controller.pageController,
+                          scrollDirection:
+                              isVerticalMode ? Axis.vertical : Axis.horizontal,
+                          physics: canSwipe
+                              ? const PageScrollPhysics()
+                              : const NeverScrollableScrollPhysics(),
+                          onPageChanged: (index) async {
+                            SchedulerBinding.instance
+                                .addPostFrameCallback((timeStamp) {
+                              if (context.mounted) {
+                                controller.updateCurrentPage(index);
+                              }
+                            });
+
+                            context.scaffoldMessenger.hideCurrentSnackBar();
+
+                            if (loadMore == null) return;
+
+                            final offset = index + 1;
+                            final threshold = postsList.length /
+                                100 *
+                                (100 - loadMoreThreshold);
+                            if (offset + threshold > postsList.length - 1) {
+                              isLoadingMore.value = true;
+                              unawaited(loadMore());
+                              await Future.delayed(
+                                  const Duration(milliseconds: 300), () {
                                 if (context.mounted) {
-                                  controller.updateCurrentPage(index);
+                                  isLoadingMore.value = false;
                                 }
                               });
+                            }
+                          },
+                          itemCount: postsList.length,
+                          itemBuilder: (context, index) {
+                            precachePosts(index, loadOriginal);
 
-                              context.scaffoldMessenger.hideCurrentSnackBar();
+                            final post = postsList[index];
+                            final Widget widget;
 
-                              if (loadMore == null) return;
+                            switch (post.content.type) {
+                              case PostType.photo:
+                              case PostType.gif:
+                                widget = PostImage(post: post);
+                                break;
+                              case PostType.video:
+                                widget = PostVideo(
+                                  post: post,
+                                  onToolboxVisibilityChange: (visible) {},
+                                );
+                                break;
+                              default:
+                                widget = PostUnknown(post: post);
+                                break;
+                            }
 
-                              final offset = index + 1;
-                              final threshold = postsList.length /
-                                  100 *
-                                  (100 - loadMoreThreshold);
-                              if (offset + threshold > postsList.length - 1) {
-                                isLoadingMore.value = true;
-                                unawaited(loadMore());
-                                await Future.delayed(
-                                    const Duration(milliseconds: 300), () {
-                                  if (context.mounted) {
-                                    isLoadingMore.value = false;
-                                  }
-                                });
-                              }
-                            },
-                            itemCount: postsList.length,
-                            itemBuilder: (context, index) {
-                              precachePosts(index, loadOriginal);
-
-                              final post = postsList[index];
-                              final Widget widget;
-
-                              switch (post.content.type) {
-                                case PostType.photo:
-                                case PostType.gif:
-                                  widget = PostImage(post: post);
-                                  break;
-                                case PostType.video:
-                                  widget = PostVideo(
-                                    post: post,
-                                    onToolboxVisibilityChange: (visible) {},
-                                  );
-                                  break;
-                                default:
-                                  widget = PostUnknown(post: post);
-                                  break;
-                              }
-
-                              return HeroMode(
-                                enabled: index == controller.page,
-                                child: ClipRect(
-                                  child: _PointerCountDetector(
-                                    onCountChanged: (count) {
-                                      pointerCount.value = count;
-                                      interacting.value = count > 1;
-                                    },
-                                    child: widget,
-                                  ),
+                            return HeroMode(
+                              enabled: index == controller.page,
+                              child: ClipRect(
+                                child: _PointerCountDetector(
+                                  onCountChanged: (count) {
+                                    pointerCount.value = count;
+                                    interacting.value = count > 1;
+                                  },
+                                  child: widget,
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
