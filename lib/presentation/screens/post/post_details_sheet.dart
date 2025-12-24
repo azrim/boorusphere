@@ -35,6 +35,7 @@ class PostDetailsSheet extends StatefulWidget {
 class _PostDetailsSheetState extends State<PostDetailsSheet> {
   final _contentScrollController = ScrollController();
   bool _isAtTop = true;
+  bool _isScrollingToTop = false;
 
   @override
   void initState() {
@@ -52,23 +53,26 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
   void _onContentScroll() {
     final atTop = _contentScrollController.offset <= 0;
     if (atTop != _isAtTop) {
-      _isAtTop = atTop;
+      setState(() {
+        _isAtTop = atTop;
+      });
     }
   }
 
-  void _closeSheet() {
-    // First scroll content to top if not already there
-    if (_contentScrollController.hasClients &&
-        _contentScrollController.offset > 0) {
-      _contentScrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-      );
-      return;
-    }
+  void _scrollToTopFirst() {
+    if (_isScrollingToTop) return;
 
-    // Then close the sheet
+    _isScrollingToTop = true;
+    _contentScrollController
+        .animateTo(
+          0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+        )
+        .then((_) => _isScrollingToTop = false);
+  }
+
+  void _closeSheet() {
     widget.sheetController.animateTo(
       _kMinSheetSize,
       duration: const Duration(milliseconds: 200),
@@ -80,14 +84,30 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
   Widget build(BuildContext context) {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
-        if (notification is OverscrollNotification) {
-          // Only close sheet on overscroll at top when content is at top
-          if (notification.overscroll < -6 &&
-              notification.depth == 0 &&
-              _isAtTop) {
+        // Handle overscroll on the content ListView
+        if (notification is OverscrollNotification &&
+            notification.depth == 1 &&
+            notification.overscroll < 0) {
+          // User is trying to scroll up past the top of content
+          if (_isAtTop) {
             _closeSheet();
           }
+          return true;
         }
+
+        // Handle scroll updates on the DraggableScrollableSheet
+        if (notification is ScrollUpdateNotification &&
+            notification.depth == 0) {
+          // If user is dragging the sheet down but content is not at top
+          if (notification.scrollDelta != null &&
+              notification.scrollDelta! < 0 &&
+              !_isAtTop) {
+            // Scroll content to top first
+            _scrollToTopFirst();
+            return true; // Consume the notification
+          }
+        }
+
         return false;
       },
       child: DraggableScrollableSheet(
