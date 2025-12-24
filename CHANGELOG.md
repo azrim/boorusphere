@@ -1,3 +1,19 @@
+## 1.7.0
+
+* New post details experience
+  - Swipe up on any post to see details, tags, and source info
+  - Details slide up smoothly from the bottom of the screen
+  - Select multiple tags at once to copy, block, or search them together
+  - Swipe down or drag the handle to close details
+* Improved gesture controls
+  - New gesture settings page to customize swipe behavior
+  - Choose between horizontal or vertical swipe to browse posts
+  - Smoother animations throughout the app
+* Better app performance
+  - Fixed various memory and rendering issues
+  - Reduced lag when scrolling through posts
+  - Updated to latest Flutter libraries
+
 ## 1.6.0
 
 * Add swipe gestures for better navigation
