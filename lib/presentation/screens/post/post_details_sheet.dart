@@ -108,18 +108,25 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
   Widget build(BuildContext context) {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
-        // Handle overscroll on the content ListView
-        if (notification is OverscrollNotification &&
-            notification.depth == 1 &&
-            notification.overscroll < 0) {
-          // User is trying to scroll up past the top of content
-          if (_isAtTop) {
-            _closeSheet();
-          }
-          return true;
+        // Handle user scroll on the content ListView (depth 1)
+        if (notification is UserScrollNotification && notification.depth == 1) {
+          // Track when user starts/stops scrolling
+          return false;
         }
 
-        // Handle scroll updates on the DraggableScrollableSheet
+        // Handle scroll updates on the content ListView
+        if (notification is ScrollUpdateNotification &&
+            notification.depth == 1) {
+          // If at top and trying to scroll up more, close the sheet
+          if (_isAtTop &&
+              notification.scrollDelta != null &&
+              notification.scrollDelta! < -5) {
+            _closeSheet();
+            return true;
+          }
+        }
+
+        // Handle scroll updates on the DraggableScrollableSheet (depth 0)
         if (notification is ScrollUpdateNotification &&
             notification.depth == 0) {
           // If user is dragging the sheet down but content is not at top
