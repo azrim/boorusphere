@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
-import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
-import 'package:boorusphere/presentation/screens/post/post_details_page.dart';
+import 'package:boorusphere/presentation/screens/post/post_details_sheet.dart';
 import 'package:boorusphere/presentation/screens/post/post_image.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/post_unknown.dart';
@@ -89,6 +90,27 @@ class EnhancedPostViewer extends HookConsumerWidget {
       [initial, postsList.length, swipeMode],
     );
 
+    // Sheet controller for details
+    final sheetController = useMemoized(DraggableScrollableController.new);
+    final sheetExpanded = useState(false);
+
+    useEffect(() {
+      void listener() {
+        final size = sheetController.size;
+        sheetExpanded.value = size > 0.1;
+
+        // Hide overlay when sheet is expanded
+        if (size > 0.1) {
+          controller.forceHideOverlay.value = true;
+        } else {
+          controller.forceHideOverlay.value = false;
+        }
+      }
+
+      sheetController.addListener(listener);
+      return () => sheetController.removeListener(listener);
+    }, [sheetController]);
+
     final fullscreen = ref.watch(fullscreenStateProvider);
     final showAppbar = useState(true);
     final isLoadingMore = useState(false);
@@ -97,11 +119,13 @@ class EnhancedPostViewer extends HookConsumerWidget {
         ref.watch(contentSettingStateProvider.select((it) => it.loadOriginal));
     final precachePosts = usePrecachePosts(ref, posts);
 
-    // Gesture state
-    final pointerCount = useState(0);
+    // Gesture state - use useRef to avoid rebuilds
+    final pointerCount = useRef(0);
     final interacting = useState(false);
-    final dragStartOffset = useState(Offset.zero);
-    final dragOffset = useState(Offset.zero);
+    final dragStartY = useRef(0.0);
+    final dragOffset = useMemoized(() => ValueNotifier(Offset.zero));
+
+    useEffect(() => dragOffset.dispose, []);
 
     final isVerticalMode = swipeMode == SwipeMode.vertical;
     final isLargeScreen = MediaQuery.of(context).size.width > 600;
@@ -119,6 +143,15 @@ class EnhancedPostViewer extends HookConsumerWidget {
         if (pageNum != null && pageNum != controller.page) {
           controller.updateCurrentPage(pageNum);
           timelineController.scrollTo(pageNum);
+
+          // Reset sheet when page changes
+          if (sheetController.isAttached && sheetController.size > 0) {
+            sheetController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+            );
+          }
         }
       });
 
@@ -130,20 +163,28 @@ class EnhancedPostViewer extends HookConsumerWidget {
       };
     }, []);
 
-    void openPostDetails(Post post) {
-      const session = SearchSession();
-      // Use slide-up transition for better UX when swiping up to details
-      context.navigator.push(
-        SlidePageRoute(
-          type: SlidePageType.slideUp,
-          builder: (context) => PostDetailsPage(post: post, session: session),
-        ),
-      );
+    void expandSheet() {
+      if (sheetController.isAttached) {
+        sheetController.animateTo(
+          0.5,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
     }
 
     return PopScope(
-      canPop: true,
+      canPop: !sheetExpanded.value,
       onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop && sheetExpanded.value) {
+          // Close sheet instead of popping
+          await sheetController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+          );
+          return;
+        }
         ref.watch(fullscreenStateProvider.notifier).reset();
         context.scaffoldMessenger.removeCurrentSnackBar();
       },
@@ -153,156 +194,150 @@ class EnhancedPostViewer extends HookConsumerWidget {
           nightMode: true,
           child: Stack(
             children: [
+              // Main content
               Positioned.fill(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: ValueListenableBuilder(
-                        valueListenable: controller.swipeEnabled,
-                        builder: (context, swipeEnabled, child) =>
-                            ValueListenableBuilder(
-                          valueListenable: controller.animating,
-                          builder: (context, animating, child) {
-                            final canSwipe = swipeEnabled &&
-                                !animating &&
-                                !interacting.value;
+                child: ValueListenableBuilder(
+                  valueListenable: controller.swipeEnabled,
+                  builder: (context, swipeEnabled, child) =>
+                      ValueListenableBuilder(
+                    valueListenable: controller.animating,
+                    builder: (context, animating, child) {
+                      final canSwipe =
+                          swipeEnabled && !animating && !interacting.value;
 
-                            return GestureDetector(
-                              onTap: controller.toggleOverlay,
-                              onVerticalDragStart: !isVerticalMode
-                                  ? (details) {
-                                      dragStartOffset.value =
-                                          details.globalPosition;
-                                      dragOffset.value = Offset.zero;
-                                    }
-                                  : null,
-                              onVerticalDragUpdate: !isVerticalMode
-                                  ? (details) {
-                                      final delta = details.globalPosition.dy -
-                                          dragStartOffset.value.dy;
-                                      dragOffset.value = Offset(0, delta);
-                                    }
-                                  : null,
-                              onVerticalDragEnd: !isVerticalMode
-                                  ? (details) {
-                                      final dy = dragOffset.value.dy;
-                                      final velocity =
-                                          details.velocity.pixelsPerSecond.dy;
+                      return GestureDetector(
+                        onTap: () {
+                          if (sheetExpanded.value) {
+                            sheetController.animateTo(
+                              0,
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOutCubic,
+                            );
+                          } else {
+                            controller.toggleOverlay();
+                          }
+                        },
+                        onVerticalDragStart: !isVerticalMode
+                            ? (details) {
+                                dragStartY.value = details.globalPosition.dy;
+                                dragOffset.value = Offset.zero;
+                              }
+                            : null,
+                        onVerticalDragUpdate: !isVerticalMode
+                            ? (details) {
+                                final delta = details.globalPosition.dy -
+                                    dragStartY.value;
+                                dragOffset.value = Offset(0, delta);
+                              }
+                            : null,
+                        onVerticalDragEnd: !isVerticalMode
+                            ? (details) {
+                                final dy = dragOffset.value.dy;
+                                final velocity =
+                                    details.velocity.pixelsPerSecond.dy;
 
-                                      // Swipe up - open details (negative dy or negative velocity)
-                                      if (enableSwipeToDetails &&
-                                          (dy < -swipeThreshold ||
-                                              velocity < -500)) {
-                                        final currentPost =
-                                            postsList[controller.page];
-                                        dragOffset.value = Offset.zero;
-                                        openPostDetails(currentPost);
-                                        return;
-                                      }
-                                      // Swipe down - dismiss (positive dy or positive velocity)
-                                      else if (enableSwipeToDismiss &&
-                                          (dy > swipeThreshold ||
-                                              velocity > 500)) {
-                                        Navigator.of(context).maybePop();
-                                        return;
-                                      }
+                                // Swipe up - expand sheet
+                                if (enableSwipeToDetails &&
+                                    (dy < -swipeThreshold || velocity < -500)) {
+                                  dragOffset.value = Offset.zero;
+                                  expandSheet();
+                                  return;
+                                }
+                                // Swipe down - dismiss
+                                else if (enableSwipeToDismiss &&
+                                    (dy > swipeThreshold || velocity > 500)) {
+                                  Navigator.of(context).maybePop();
+                                  return;
+                                }
 
-                                      // Reset
-                                      dragOffset.value = Offset.zero;
-                                    }
-                                  : null,
-                              child: ValueListenableBuilder<Offset>(
-                                valueListenable: dragOffset,
-                                builder: (context, offset, child) {
-                                  return Transform.translate(
-                                    offset: offset,
-                                    child: child,
-                                  );
-                                },
-                                child: PageView.builder(
-                                  controller: controller.pageController,
-                                  scrollDirection: isVerticalMode
-                                      ? Axis.vertical
-                                      : Axis.horizontal,
-                                  physics: canSwipe
-                                      ? const PageScrollPhysics()
-                                      : const NeverScrollableScrollPhysics(),
-                                  onPageChanged: (index) async {
-                                    SchedulerBinding.instance
-                                        .addPostFrameCallback((timeStamp) {
-                                      if (context.mounted) {
-                                        controller.updateCurrentPage(index);
-                                      }
-                                    });
-
-                                    context.scaffoldMessenger
-                                        .hideCurrentSnackBar();
-
-                                    if (loadMore == null) return;
-
-                                    final offset = index + 1;
-                                    final threshold = postsList.length /
-                                        100 *
-                                        (100 - loadMoreThreshold);
-                                    if (offset + threshold >
-                                        postsList.length - 1) {
-                                      isLoadingMore.value = true;
-                                      await loadMore();
-                                      await Future.delayed(
-                                          const Duration(milliseconds: 300),
-                                          () {
-                                        if (context.mounted) {
-                                          isLoadingMore.value = false;
-                                        }
-                                      });
-                                    }
-                                  },
-                                  itemCount: postsList.length,
-                                  itemBuilder: (context, index) {
-                                    precachePosts(index, loadOriginal);
-
-                                    final post = postsList[index];
-                                    final Widget widget;
-
-                                    switch (post.content.type) {
-                                      case PostType.photo:
-                                      case PostType.gif:
-                                        widget = PostImage(post: post);
-                                        break;
-                                      case PostType.video:
-                                        widget = PostVideo(
-                                          post: post,
-                                          onToolboxVisibilityChange: (visible) {
-                                            // Handle video-specific UI changes
-                                          },
-                                        );
-                                        break;
-                                      default:
-                                        widget = PostUnknown(post: post);
-                                        break;
-                                    }
-
-                                    return HeroMode(
-                                      enabled: index == controller.page,
-                                      child: ClipRect(
-                                        child: _PointerCountDetector(
-                                          onCountChanged: (count) {
-                                            pointerCount.value = count;
-                                            interacting.value = count > 1;
-                                          },
-                                          child: widget,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
+                                // Reset
+                                dragOffset.value = Offset.zero;
+                              }
+                            : null,
+                        child: ValueListenableBuilder<Offset>(
+                          valueListenable: dragOffset,
+                          builder: (context, offset, child) {
+                            return Transform.translate(
+                              offset: offset,
+                              child: child,
                             );
                           },
+                          child: PageView.builder(
+                            controller: controller.pageController,
+                            scrollDirection: isVerticalMode
+                                ? Axis.vertical
+                                : Axis.horizontal,
+                            physics: canSwipe
+                                ? const PageScrollPhysics()
+                                : const NeverScrollableScrollPhysics(),
+                            onPageChanged: (index) async {
+                              SchedulerBinding.instance
+                                  .addPostFrameCallback((timeStamp) {
+                                if (context.mounted) {
+                                  controller.updateCurrentPage(index);
+                                }
+                              });
+
+                              context.scaffoldMessenger.hideCurrentSnackBar();
+
+                              if (loadMore == null) return;
+
+                              final offset = index + 1;
+                              final threshold = postsList.length /
+                                  100 *
+                                  (100 - loadMoreThreshold);
+                              if (offset + threshold > postsList.length - 1) {
+                                isLoadingMore.value = true;
+                                unawaited(loadMore());
+                                await Future.delayed(
+                                    const Duration(milliseconds: 300), () {
+                                  if (context.mounted) {
+                                    isLoadingMore.value = false;
+                                  }
+                                });
+                              }
+                            },
+                            itemCount: postsList.length,
+                            itemBuilder: (context, index) {
+                              precachePosts(index, loadOriginal);
+
+                              final post = postsList[index];
+                              final Widget widget;
+
+                              switch (post.content.type) {
+                                case PostType.photo:
+                                case PostType.gif:
+                                  widget = PostImage(post: post);
+                                  break;
+                                case PostType.video:
+                                  widget = PostVideo(
+                                    post: post,
+                                    onToolboxVisibilityChange: (visible) {},
+                                  );
+                                  break;
+                                default:
+                                  widget = PostUnknown(post: post);
+                                  break;
+                              }
+
+                              return HeroMode(
+                                enabled: index == controller.page,
+                                child: ClipRect(
+                                  child: _PointerCountDetector(
+                                    onCountChanged: (count) {
+                                      pointerCount.value = count;
+                                      interacting.value = count > 1;
+                                    },
+                                    child: widget,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
               ),
               // Overlay UI
@@ -370,6 +405,20 @@ class EnhancedPostViewer extends HookConsumerWidget {
                   );
                 },
               ),
+              // Details sheet
+              ValueListenableBuilder(
+                valueListenable: controller.currentPage,
+                builder: (context, currentPageIndex, child) {
+                  final post = postsList.isNotEmpty
+                      ? postsList[currentPageIndex]
+                      : Post.empty;
+
+                  return PostDetailsSheet(
+                    post: post,
+                    sheetController: sheetController,
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -380,7 +429,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
   List<Widget> _buildNavigationButtons(
       PostViewerController controller, bool isVerticalMode) {
     return [
-      // Next button
       ValueListenableBuilder(
         valueListenable: controller.currentPage,
         builder: (context, page, child) => Positioned(
@@ -403,7 +451,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
           ),
         ),
       ),
-      // Previous button
       ValueListenableBuilder(
         valueListenable: controller.currentPage,
         builder: (context, page, child) => Positioned(
@@ -467,7 +514,6 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
                       style: const TextStyle(fontWeight: FontWeight.w300),
                     ),
                   ),
-                  // Swipe mode indicator
                   Icon(
                     swipeMode == SwipeMode.vertical
                         ? Icons.swap_vert
