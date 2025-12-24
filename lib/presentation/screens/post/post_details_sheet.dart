@@ -119,40 +119,33 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
         snap: true,
         snapAnimationDuration: const Duration(milliseconds: 200),
         builder: (context, scrollController) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              // Don't render content when sheet is essentially closed
-              if (constraints.maxHeight < 50) {
-                return const SizedBox.shrink();
-              }
-              return Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(16)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
+          return Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
                 ),
-                child: Column(
-                  children: [
-                    // Drag handle
-                    _DragHandle(scrollController: scrollController),
-                    // Content
-                    Expanded(
-                      child: _SheetContent(
-                        post: widget.post,
-                        contentScrollController: _contentScrollController,
-                      ),
-                    ),
-                  ],
+              ],
+            ),
+            child: Column(
+              children: [
+                // Drag handle
+                _DragHandle(scrollController: scrollController),
+                // Content
+                Expanded(
+                  child: _SheetContent(
+                    post: widget.post,
+                    contentScrollController: _contentScrollController,
+                  ),
                 ),
-              );
-            },
+              ],
+            ),
           );
         },
       ),
