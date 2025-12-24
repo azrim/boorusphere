@@ -1,9 +1,6 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
-import 'package:boorusphere/presentation/routes/app_router.gr.dart';
-import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -42,29 +39,8 @@ class PostToolbox extends HookConsumerWidget {
           PostFavoriteButton(post: post),
           PostDownloadButton(post: post),
           PostOpenLinkButton(post: post),
-          PostDetailsButton(post: post),
         ],
       ),
-    );
-  }
-}
-
-class PostDetailsButton extends ConsumerWidget {
-  const PostDetailsButton({
-    super.key,
-    required this.post,
-  });
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return IconButton(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      icon: const Icon(Icons.info),
-      onPressed: () => context.router.push(PostDetailsRoute(
-          post: post, session: ref.read(searchSessionProvider))),
     );
   }
 }

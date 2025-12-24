@@ -36,10 +36,6 @@ class AppRouter extends RootStackRouter {
       customRouteBuilder: _homeRouteBuilder,
     ),
     CustomRoute(
-      page: PostDetailsRoute.page,
-      customRouteBuilder: _routeBuilder,
-    ),
-    CustomRoute(
       page: DownloadsRoute.page,
       customRouteBuilder: _routeBuilder,
     ),

@@ -1,4 +1,3 @@
-import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
@@ -9,8 +8,6 @@ import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
-import 'package:boorusphere/presentation/routes/app_router.gr.dart';
-import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -233,12 +230,6 @@ class _EntryPopupMenu extends ConsumerWidget {
           case 'clear':
             downloader.clear(id: entry.id);
             break;
-          case 'show-detail':
-            context.router.push(PostDetailsRoute(
-              post: entry.post,
-              session: ref.read(searchSessionProvider),
-            ));
-            break;
           default:
             break;
         }
@@ -260,10 +251,6 @@ class _EntryPopupMenu extends ConsumerWidget {
               value: 'cancel',
               child: Text(context.t.cancel),
             ),
-          PopupMenuItem(
-            value: 'show-detail',
-            child: Text(context.t.downloads.detail),
-          ),
           PopupMenuItem(
             value: 'clear',
             child: Text(context.t.clear),
