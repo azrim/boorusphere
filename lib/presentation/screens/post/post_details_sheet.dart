@@ -34,14 +34,41 @@ class PostDetailsSheet extends StatefulWidget {
 
 class _PostDetailsSheetState extends State<PostDetailsSheet> {
   final _contentScrollController = ScrollController();
+  bool _isAtTop = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _contentScrollController.addListener(_onContentScroll);
+  }
 
   @override
   void dispose() {
+    _contentScrollController.removeListener(_onContentScroll);
     _contentScrollController.dispose();
     super.dispose();
   }
 
+  void _onContentScroll() {
+    final atTop = _contentScrollController.offset <= 0;
+    if (atTop != _isAtTop) {
+      _isAtTop = atTop;
+    }
+  }
+
   void _closeSheet() {
+    // First scroll content to top if not already there
+    if (_contentScrollController.hasClients &&
+        _contentScrollController.offset > 0) {
+      _contentScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+
+    // Then close the sheet
     widget.sheetController.animateTo(
       _kMinSheetSize,
       duration: const Duration(milliseconds: 200),
@@ -54,8 +81,10 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is OverscrollNotification) {
-          // Close sheet on overscroll at top
-          if (notification.overscroll < -6 && notification.depth == 0) {
+          // Only close sheet on overscroll at top when content is at top
+          if (notification.overscroll < -6 &&
+              notification.depth == 0 &&
+              _isAtTop) {
             _closeSheet();
           }
         }
@@ -152,6 +181,7 @@ class _SheetContent extends ConsumerWidget {
 
     return ListView(
       controller: contentScrollController,
+      physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         if (rating.isNotEmpty)
