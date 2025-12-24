@@ -4,6 +4,7 @@ import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
+import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
 import 'package:boorusphere/presentation/screens/post/post_details_sheet.dart';
 import 'package:boorusphere/presentation/screens/post/post_image.dart';
@@ -395,10 +396,12 @@ class EnhancedPostViewer extends HookConsumerWidget {
                   final post = postsList.isNotEmpty
                       ? postsList[currentPageIndex]
                       : Post.empty;
+                  final session = ref.watch(searchSessionProvider);
 
                   return PostDetailsSheet(
                     post: post,
                     sheetController: sheetController,
+                    session: session,
                   );
                 },
               ),

@@ -1,7 +1,10 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -21,11 +24,13 @@ class PostDetailsSheet extends StatefulWidget {
     super.key,
     required this.post,
     required this.sheetController,
+    required this.session,
     this.onSheetChanged,
   });
 
   final Post post;
   final DraggableScrollableController sheetController;
+  final SearchSession session;
   final ValueChanged<double>? onSheetChanged;
 
   @override
@@ -36,6 +41,7 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
   final _contentScrollController = ScrollController();
   bool _isAtTop = true;
   bool _isScrollingToTop = false;
+  final Set<String> _selectedTags = {};
 
   @override
   void initState() {
@@ -69,7 +75,11 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
         )
-        .then((_) => _isScrollingToTop = false);
+        .then(_onScrollToTopComplete);
+  }
+
+  void _onScrollToTopComplete(_) {
+    _isScrollingToTop = false;
   }
 
   void _closeSheet() {
@@ -78,6 +88,20 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,
     );
+  }
+
+  void _onTagPressed(String tag) {
+    setState(() {
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+      } else {
+        _selectedTags.add(tag);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(_selectedTags.clear);
   }
 
   @override
@@ -137,11 +161,20 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               children: [
                 // Drag handle
                 _DragHandle(scrollController: scrollController),
+                // Tag action bar when tags are selected
+                if (_selectedTags.isNotEmpty)
+                  _TagActionBar(
+                    selectedTags: _selectedTags,
+                    session: widget.session,
+                    onClearSelection: _clearSelection,
+                  ),
                 // Content
                 Expanded(
                   child: _SheetContent(
                     post: widget.post,
                     contentScrollController: _contentScrollController,
+                    selectedTags: _selectedTags,
+                    onTagPressed: _onTagPressed,
                   ),
                 ),
               ],
@@ -186,14 +219,114 @@ class _DragHandle extends StatelessWidget {
   }
 }
 
+class _TagActionBar extends ConsumerWidget {
+  const _TagActionBar({
+    required this.selectedTags,
+    required this.session,
+    required this.onClearSelection,
+  });
+
+  final Set<String> selectedTags;
+  final SearchSession session;
+  final VoidCallback onClearSelection;
+
+  void _copyTags(BuildContext context) {
+    final tags = selectedTags.join(' ');
+    Clipboard.setData(ClipboardData(text: tags));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.t.copySuccess),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+    onClearSelection();
+  }
+
+  void _blockTags(BuildContext context, WidgetRef ref) {
+    ref
+        .read(tagsBlockerStateProvider.notifier)
+        .pushAll(tags: selectedTags.toList());
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.t.actionTag.blocked),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+    onClearSelection();
+  }
+
+  void _searchTags(BuildContext context) {
+    final newQuery = selectedTags.join(' ');
+    if (newQuery.isEmpty) return;
+    context.router.push(HomeRoute(session: session.copyWith(query: newQuery)));
+    onClearSelection();
+  }
+
+  void _appendTags(BuildContext context) {
+    final existingTags = session.query.toWordList();
+    final newQuery = {...existingTags, ...selectedTags}.join(' ');
+    if (newQuery.isEmpty) return;
+    context.router.push(HomeRoute(session: session.copyWith(query: newQuery)));
+    onClearSelection();
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      child: Row(
+        children: [
+          Text(
+            '${selectedTags.length} selected',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.copy, size: 20),
+            tooltip: context.t.actionTag.copy,
+            onPressed: () => _copyTags(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.block, size: 20),
+            tooltip: context.t.actionTag.block,
+            onPressed: () => _blockTags(context, ref),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            tooltip: context.t.actionTag.append,
+            onPressed: () => _appendTags(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.search, size: 20),
+            tooltip: context.t.actionTag.search,
+            onPressed: () => _searchTags(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            tooltip: context.t.clear,
+            onPressed: onClearSelection,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SheetContent extends ConsumerWidget {
   const _SheetContent({
     required this.post,
     required this.contentScrollController,
+    required this.selectedTags,
+    required this.onTagPressed,
   });
 
   final Post post;
   final ScrollController contentScrollController;
+  final Set<String> selectedTags;
+  final void Function(String) onTagPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -264,22 +397,47 @@ class _SheetContent extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         if (!post.hasCategorizedTags)
-          _TagsWrap(tags: post.tags, ref: ref)
+          _TagsWrap(
+            tags: post.tags,
+            selectedTags: selectedTags,
+            onTagPressed: onTagPressed,
+          )
         else ...[
           if (post.tagsMeta.isNotEmpty)
-            _TagsSection(label: context.t.meta, tags: post.tagsMeta, ref: ref),
+            _TagsSection(
+              label: context.t.meta,
+              tags: post.tagsMeta,
+              selectedTags: selectedTags,
+              onTagPressed: onTagPressed,
+            ),
           if (post.tagsArtist.isNotEmpty)
             _TagsSection(
-                label: context.t.artist, tags: post.tagsArtist, ref: ref),
+              label: context.t.artist,
+              tags: post.tagsArtist,
+              selectedTags: selectedTags,
+              onTagPressed: onTagPressed,
+            ),
           if (post.tagsCharacter.isNotEmpty)
             _TagsSection(
-                label: context.t.character, tags: post.tagsCharacter, ref: ref),
+              label: context.t.character,
+              tags: post.tagsCharacter,
+              selectedTags: selectedTags,
+              onTagPressed: onTagPressed,
+            ),
           if (post.tagsCopyright.isNotEmpty)
             _TagsSection(
-                label: context.t.copyright, tags: post.tagsCopyright, ref: ref),
+              label: context.t.copyright,
+              tags: post.tagsCopyright,
+              selectedTags: selectedTags,
+              onTagPressed: onTagPressed,
+            ),
           if (post.tagsGeneral.isNotEmpty)
             _TagsSection(
-                label: context.t.general, tags: post.tagsGeneral, ref: ref),
+              label: context.t.general,
+              tags: post.tagsGeneral,
+              selectedTags: selectedTags,
+              onTagPressed: onTagPressed,
+            ),
         ],
         const SizedBox(height: 100),
       ],
@@ -386,12 +544,14 @@ class _TagsSection extends StatelessWidget {
   const _TagsSection({
     required this.label,
     required this.tags,
-    required this.ref,
+    required this.selectedTags,
+    required this.onTagPressed,
   });
 
   final String label;
   final List<String> tags;
-  final WidgetRef ref;
+  final Set<String> selectedTags;
+  final void Function(String) onTagPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -407,17 +567,26 @@ class _TagsSection extends StatelessWidget {
                 ),
           ),
         ),
-        _TagsWrap(tags: tags, ref: ref),
+        _TagsWrap(
+          tags: tags,
+          selectedTags: selectedTags,
+          onTagPressed: onTagPressed,
+        ),
       ],
     );
   }
 }
 
 class _TagsWrap extends StatelessWidget {
-  const _TagsWrap({required this.tags, required this.ref});
+  const _TagsWrap({
+    required this.tags,
+    required this.selectedTags,
+    required this.onTagPressed,
+  });
 
   final List<String> tags;
-  final WidgetRef ref;
+  final Set<String> selectedTags;
+  final void Function(String) onTagPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -425,28 +594,14 @@ class _TagsWrap extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: tags.map((tag) {
-        return ActionChip(
+        final isSelected = selectedTags.contains(tag);
+        return FilterChip(
           label: Text(tag),
           labelPadding: EdgeInsets.zero,
           visualDensity: VisualDensity.compact,
-          onPressed: () {
-            // Copy tag to clipboard
-            Clipboard.setData(ClipboardData(text: tag));
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Copied: $tag'),
-                duration: const Duration(seconds: 1),
-                action: SnackBarAction(
-                  label: context.t.actionTag.block,
-                  onPressed: () {
-                    ref
-                        .read(tagsBlockerStateProvider.notifier)
-                        .pushAll(tags: [tag]);
-                  },
-                ),
-              ),
-            );
-          },
+          selected: isSelected,
+          showCheckmark: false,
+          onSelected: (_) => onTagPressed(tag),
         );
       }).toList(),
     );
