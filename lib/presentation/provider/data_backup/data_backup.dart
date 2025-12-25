@@ -131,6 +131,18 @@ class DataBackupState extends _$DataBackupState {
     if (!option.isValid()) return;
 
     state = const BackupResult.loading(DataBackupType.backup);
+    final zipFile = await _createBackupFile(option);
+    if (zipFile != null) {
+      state = BackupResult.exported(zipFile.path);
+    } else {
+      state = const BackupResult.error();
+    }
+  }
+
+  /// Creates a backup file and returns it. Used for both local and Telegram backups.
+  Future<File?> _createBackupFile(BackupOption option) async {
+    if (!option.isValid()) return null;
+
     final server = ref.read(serverRepoProvider).export();
     final blockedTags = ref.read(tagsBlockerRepoProvider).export();
     final favoritePost = ref.read(favoritePostRepoProvider).export();
@@ -172,7 +184,12 @@ class DataBackupState extends _$DataBackupState {
     await File(encoder.zipPath).copy(zip.path);
     temp.deleteSync(recursive: true);
     await ref.read(sharedStorageHandleProvider).rescan();
-    state = BackupResult.exported(zip.path);
+    return zip;
+  }
+
+  /// Creates a backup and returns the file path for external use (e.g., Telegram)
+  Future<File?> createBackupForTelegram() async {
+    return _createBackupFile(const BackupOption());
   }
 
   static const appId = 'boorusphere';

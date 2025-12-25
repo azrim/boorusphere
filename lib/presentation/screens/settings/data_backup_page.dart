@@ -155,6 +155,7 @@ class _Content extends HookConsumerWidget {
                 state: periodicState, notifier: periodicNotifier),
             _OpenTelegramBotTile(),
             _TestConnectionTile(),
+            _BackupNowTile(),
           ],
         ],
       ],
@@ -515,6 +516,75 @@ class _TestConnectionTile extends HookConsumerWidget {
               context.scaffoldMessenger.showSnackBar(
                 SnackBar(content: Text(message)),
               );
+            },
+    );
+  }
+}
+
+class _BackupNowTile extends HookConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLoading = useState(false);
+    final settings = ref.watch(periodicBackupSettingStateProvider);
+    final isConfigured = settings.telegramChatId.isNotEmpty &&
+        settings.telegramBotToken.isNotEmpty;
+
+    return ListTile(
+      title: Text(context.t.periodicBackup.telegram.backupNow),
+      subtitle: Text(context.t.periodicBackup.telegram.backupNowDesc),
+      trailing: isLoading.value
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.cloud_upload),
+      onTap: !isConfigured || isLoading.value
+          ? null
+          : () async {
+              isLoading.value = true;
+
+              // Create backup file
+              final backupFile = await ref
+                  .read(dataBackupStateProvider.notifier)
+                  .createBackupForTelegram();
+
+              if (backupFile == null) {
+                isLoading.value = false;
+                if (context.mounted) {
+                  context.scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content:
+                          Text(context.t.periodicBackup.telegram.backupFailed),
+                    ),
+                  );
+                }
+                return;
+              }
+
+              // Send to Telegram
+              final result = await ref
+                  .read(telegramBackupServiceProvider.notifier)
+                  .sendBackupFile(backupFile);
+
+              isLoading.value = false;
+
+              if (!context.mounted) return;
+
+              final message = result == TelegramResult.success
+                  ? context.t.periodicBackup.telegram.backupSent
+                  : context.t.periodicBackup.telegram.backupFailed;
+
+              context.scaffoldMessenger.showSnackBar(
+                SnackBar(content: Text(message)),
+              );
+
+              // Update last backup time on success
+              if (result == TelegramResult.success) {
+                await ref
+                    .read(periodicBackupSettingStateProvider.notifier)
+                    .setLastBackupTime(DateTime.now());
+              }
             },
     );
   }

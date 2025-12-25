@@ -283,7 +283,11 @@
       "invalidToken": "Invalid bot token",
       "invalidChatId": "Invalid chat ID",
       "networkError": "Network error",
-      "unknownError": "Unknown error"
+      "unknownError": "Unknown error",
+      "backupNow": "Backup now",
+      "backupNowDesc": "Create and send backup to Telegram immediately",
+      "backupSent": "Backup sent to Telegram",
+      "backupFailed": "Failed to send backup"
     }
   }
 }
