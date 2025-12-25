@@ -36,7 +36,7 @@ class AppVersion with _$AppVersion {
   }
 
   String get apkUrl {
-    return '${AppVersionRepo.gitUrl}/releases/download/$this/boorusphere-$this-$kAppArch.apk';
+    return '${AppVersionRepo.gitUrl}/releases/download/v$this/boorusphere-$this-$kAppArch.apk';
   }
 
   static const zero = AppVersion();

@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:boorusphere/constant/app.dart';
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/dio/headers_factory.dart';
+import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
-import 'package:boorusphere/data/repository/version/app_version_repo.dart';
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
+import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
-import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -32,12 +32,11 @@ class AppUpdater {
   final Ref ref;
 
   String id = '';
+  String _savedDir = '';
 
   String _fileNameOf(AppVersion version) {
     return 'boorusphere-$version-$kAppArch.apk';
   }
-
-  final updateDir = 'app-update';
 
   Future<void> clear() async {
     final tasks = await FlutterDownloader.loadTasksWithRawQuery(
@@ -56,33 +55,52 @@ class AppUpdater {
   Future<void> start(AppVersion version) async {
     await clear();
     final fileName = _fileNameOf(version);
-    final url = '${AppVersionRepo.gitUrl}/releases/download/$version/$fileName';
+    final url = version.apkUrl;
 
-    final tmp = await getTemporaryDirectory();
-    if (!tmp.existsSync()) {
+    // Use external cache directory for APK downloads
+    final cacheDir = await getExternalCacheDirectories();
+    final saveDir = cacheDir?.firstOrNull ?? await getTemporaryDirectory();
+    _savedDir = saveDir.path;
+
+    // Create directory if it doesn't exist
+    if (!saveDir.existsSync()) {
       try {
-        tmp.createSync();
-        // ignore: empty_catches
-      } catch (e) {}
+        saveDir.createSync(recursive: true);
+      } catch (_) {}
     }
 
-    final apk = File(path.join(tmp.absolute.path, fileName));
+    // Delete existing APK if present
+    final apk = File(path.join(_savedDir, fileName));
     if (apk.existsSync()) {
       try {
         apk.deleteSync();
-        // ignore: empty_catches
-      } catch (e) {}
+      } catch (_) {}
     }
 
-    final newId =
-        await ref.read(downloaderProvider).download(Post.appReserved, url: url);
+    final versionRepo = ref.read(versionRepoProvider);
+    final taskId = await FlutterDownloader.enqueue(
+      url: url,
+      fileName: fileName,
+      savedDir: _savedDir,
+      showNotification: true,
+      openFileFromNotification: true,
+      headers:
+          HeadersFactory.builder().setUserAgent(versionRepo.current).build(),
+    );
 
-    if (newId != null) {
-      id = newId;
+    if (taskId != null) {
+      id = taskId;
+      // Track the download entry
+      final entry = DownloadEntry(
+        id: taskId,
+        dest: fileName,
+      );
+      await ref.read(downloadEntryStateProvider.notifier).add(entry);
     }
   }
 
   Future<void> install(AppVersion version) async {
-    ref.read(downloaderProvider).openFile(id: id);
+    if (id.isEmpty) return;
+    await FlutterDownloader.open(taskId: id);
   }
 }
