@@ -163,6 +163,8 @@ class Downloader {
     await sharedStorageHandle.init();
 
     final versionRepo = ref.read(versionRepoProvider);
+    // Use post URL for referer (like image viewer does), not file URL
+    final refererUrl = post.postUrl.isEmpty ? fileUrl : post.postUrl;
     final taskId = await FlutterDownloader.enqueue(
       url: fileUrl,
       fileName: fileName,
@@ -171,7 +173,7 @@ class Downloader {
       openFileFromNotification: true,
       headers: HeadersFactory.builder()
           .setUserAgent(versionRepo.current)
-          .setReferer(createReferer(fileUrl))
+          .setReferer(createReferer(refererUrl))
           .build(),
     );
 
