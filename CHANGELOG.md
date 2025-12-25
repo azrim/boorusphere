@@ -1,3 +1,8 @@
+## 1.8.1
+
+* Fix download failing when cached quality differs from download quality
+* Fix download button showing wrong state on different posts
+
 ## 1.8.0
 
 * Add Telegram backup integration
