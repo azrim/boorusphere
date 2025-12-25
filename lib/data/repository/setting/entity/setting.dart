@@ -18,5 +18,15 @@ enum Setting {
   uiLanguage,
   videoPlayerMuted,
   imeIncognito,
-  searchRating;
+  searchRating,
+  // Periodic backup settings
+  periodicBackupEnabled,
+  periodicBackupFrequency,
+  periodicBackupDeleteOld,
+  periodicBackupMaxCount,
+  periodicBackupLastTime,
+  // Telegram backup settings
+  telegramBackupEnabled,
+  telegramChatId,
+  telegramBotToken,
 }

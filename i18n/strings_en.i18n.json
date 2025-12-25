@@ -245,5 +245,45 @@
       "warning": "Warning! this action will overwrite any existing data.\nAre you sure you want to continue ?",
       "loading": "Restoring data..."
     }
+  },
+  "periodicBackup": {
+    "title": "Periodic Backups",
+    "enable": "Enable periodic backups",
+    "frequency": "Backup frequency",
+    "deleteOld": "Delete old backups",
+    "deleteOldDesc": "Automatically delete old backup files to save storage space",
+    "maxBackups": "Max number of backups",
+    "lastBackup": "Last successful backup",
+    "never": "Never",
+    "justNow": "Just now",
+    "minutesAgo": {
+      "one": "${n} minute ago",
+      "other": "${n} minutes ago"
+    },
+    "hoursAgo": {
+      "one": "${n} hour ago",
+      "other": "${n} hours ago"
+    },
+    "daysAgo": {
+      "one": "${n} day ago",
+      "other": "${n} days ago"
+    },
+    "telegram": {
+      "title": "Telegram integration",
+      "enable": "Send backups to Telegram",
+      "chatId": "Telegram chat ID",
+      "chatIdHint": "e.g. -1001234567890",
+      "botToken": "Bot token",
+      "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+      "notSet": "Not set",
+      "openBot": "Create a Telegram bot",
+      "openBotDesc": "Open BotFather to create your backup bot",
+      "testConnection": "Test connection",
+      "testSuccess": "Connection successful!",
+      "invalidToken": "Invalid bot token",
+      "invalidChatId": "Invalid chat ID",
+      "networkError": "Network error",
+      "unknownError": "Unknown error"
+    }
   }
 }
