@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:extended_image/extended_image.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path/path.dart' as p;
@@ -28,6 +29,38 @@ class Downloader {
   Downloader(this.ref);
 
   final Ref ref;
+
+  static final _notifications = FlutterLocalNotificationsPlugin();
+  static bool _notificationsInitialized = false;
+
+  static Future<void> _ensureNotificationsInitialized() async {
+    if (_notificationsInitialized) return;
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    await _notifications.initialize(
+      const InitializationSettings(android: androidSettings),
+    );
+    _notificationsInitialized = true;
+  }
+
+  Future<void> _showDownloadCompleteNotification(String fileName) async {
+    await _ensureNotificationsInitialized();
+    await _notifications.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'Download complete',
+      fileName,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'download_complete',
+          'Download Complete',
+          channelDescription: 'Notifications for completed downloads',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          autoCancel: true,
+        ),
+      ),
+    );
+  }
 
   /// Try to get file from extended_image cache
   Future<File?> _getCachedFile(String url) async {
@@ -63,6 +96,9 @@ class Downloader {
 
       // Trigger media scan so it appears in gallery
       await MediaScanner.loadMedia(path: destPath);
+
+      // Show notification for cached download
+      await _showDownloadCompleteNotification(fileName);
 
       // Create a fake task ID for tracking
       final taskId = 'cache_${DateTime.now().millisecondsSinceEpoch}';
