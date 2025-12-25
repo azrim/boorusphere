@@ -1,3 +1,16 @@
+## 1.8.0
+
+* Add Telegram backup integration
+  - Automatically backup your data to Telegram on a schedule (daily, weekly, or monthly)
+  - Manual "Backup now" button to send backup instantly
+  - Test connection to verify your bot token and chat ID
+* Faster downloads using cached content
+  - Downloads now use already-loaded images instead of re-downloading
+  - Shows notification when download completes from cache
+* Fix app updater not downloading updates correctly
+* App now restarts after importing backup to apply changes
+* Various bug fixes and improvements
+
 ## 1.7.0
 
 * New post details experience
