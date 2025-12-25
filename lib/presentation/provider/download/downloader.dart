@@ -10,8 +10,7 @@ import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dar
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'
-    hide DownloadProgress;
+import 'package:extended_image/extended_image.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_scanner/media_scanner.dart';
@@ -30,12 +29,12 @@ class Downloader {
 
   final Ref ref;
 
-  /// Try to get file from cache, returns the cached file if available
+  /// Try to get file from extended_image cache
   Future<File?> _getCachedFile(String url) async {
     try {
-      final fileInfo = await DefaultCacheManager().getFileFromCache(url);
-      if (fileInfo != null && await fileInfo.file.exists()) {
-        return fileInfo.file;
+      final file = await getCachedImageFile(url);
+      if (file != null && file.existsSync()) {
+        return file;
       }
     } catch (_) {}
     return null;
@@ -55,6 +54,12 @@ class Downloader {
     try {
       // Copy the cached file to downloads
       await cachedFile.copy(destPath);
+
+      // Verify the file was copied
+      final destFile = File(destPath);
+      if (!destFile.existsSync()) {
+        return null;
+      }
 
       // Trigger media scan so it appears in gallery
       await MediaScanner.loadMedia(path: destPath);
