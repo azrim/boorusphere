@@ -128,36 +128,55 @@ class _Content extends HookConsumerWidget {
           value: periodicState.enabled,
           onChanged: periodicNotifier.setEnabled,
         ),
-        if (periodicState.enabled) ...[
-          _FrequencyTile(state: periodicState, notifier: periodicNotifier),
-          SwitchListTile(
-            title: Text(context.t.periodicBackup.deleteOld),
-            subtitle: Text(context.t.periodicBackup.deleteOldDesc),
-            value: periodicState.deleteOldBackups,
-            onChanged: periodicNotifier.setDeleteOldBackups,
-          ),
-          if (periodicState.deleteOldBackups)
-            _MaxBackupSlider(state: periodicState, notifier: periodicNotifier),
-          _LastBackupInfo(lastBackupTime: periodicState.lastBackupTime),
-          const Divider(height: 32),
+        _FrequencyTile(
+          state: periodicState,
+          notifier: periodicNotifier,
+          enabled: periodicState.enabled,
+        ),
+        SwitchListTile(
+          title: Text(context.t.periodicBackup.deleteOld),
+          subtitle: Text(context.t.periodicBackup.deleteOldDesc),
+          value: periodicState.deleteOldBackups,
+          onChanged: periodicState.enabled
+              ? periodicNotifier.setDeleteOldBackups
+              : null,
+        ),
+        _MaxBackupSlider(
+          state: periodicState,
+          notifier: periodicNotifier,
+          enabled: periodicState.enabled && periodicState.deleteOldBackups,
+        ),
+        _LastBackupInfo(lastBackupTime: periodicState.lastBackupTime),
+        const Divider(height: 32),
 
-          // Telegram Section
-          _SectionHeader(title: context.t.periodicBackup.telegram.title),
-          SwitchListTile(
-            title: Text(context.t.periodicBackup.telegram.enable),
-            value: periodicState.telegramEnabled,
-            onChanged: periodicNotifier.setTelegramEnabled,
-          ),
-          if (periodicState.telegramEnabled) ...[
-            _TelegramChatIdTile(
-                state: periodicState, notifier: periodicNotifier),
-            _TelegramBotTokenTile(
-                state: periodicState, notifier: periodicNotifier),
-            _OpenTelegramBotTile(),
-            _TestConnectionTile(),
-            _BackupNowTile(),
-          ],
-        ],
+        // Telegram Section
+        _SectionHeader(title: context.t.periodicBackup.telegram.title),
+        SwitchListTile(
+          title: Text(context.t.periodicBackup.telegram.enable),
+          value: periodicState.telegramEnabled,
+          onChanged: periodicState.enabled
+              ? periodicNotifier.setTelegramEnabled
+              : null,
+        ),
+        _TelegramChatIdTile(
+          state: periodicState,
+          notifier: periodicNotifier,
+          enabled: periodicState.enabled && periodicState.telegramEnabled,
+        ),
+        _TelegramBotTokenTile(
+          state: periodicState,
+          notifier: periodicNotifier,
+          enabled: periodicState.enabled && periodicState.telegramEnabled,
+        ),
+        _OpenTelegramBotTile(
+          enabled: periodicState.enabled && periodicState.telegramEnabled,
+        ),
+        _TestConnectionTile(
+          enabled: periodicState.enabled && periodicState.telegramEnabled,
+        ),
+        _BackupNowTile(
+          enabled: periodicState.enabled && periodicState.telegramEnabled,
+        ),
       ],
     );
   }
@@ -271,53 +290,67 @@ class _BackupSelectionDialog extends HookWidget {
 }
 
 class _FrequencyTile extends StatelessWidget {
-  const _FrequencyTile({required this.state, required this.notifier});
+  const _FrequencyTile({
+    required this.state,
+    required this.notifier,
+    this.enabled = true,
+  });
 
   final PeriodicBackupState state;
   final PeriodicBackupSettingState notifier;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      enabled: enabled,
       title: Text(context.t.periodicBackup.frequency),
       subtitle: Text(state.frequency.label),
-      onTap: () async {
-        final result = await showDialog<BackupFrequency>(
-          context: context,
-          builder: (dialogContext) => SimpleDialog(
-            title: Text(context.t.periodicBackup.frequency),
-            children: BackupFrequency.values.map((freq) {
-              return RadioGroup<BackupFrequency>(
-                groupValue: state.frequency,
-                onChanged: (value) => Navigator.pop(dialogContext, value),
-                child: ListTile(
-                  leading: Radio<BackupFrequency>(value: freq),
-                  title: Text(freq.label),
-                  onTap: () => Navigator.pop(dialogContext, freq),
+      onTap: enabled
+          ? () async {
+              final result = await showDialog<BackupFrequency>(
+                context: context,
+                builder: (dialogContext) => SimpleDialog(
+                  title: Text(context.t.periodicBackup.frequency),
+                  children: BackupFrequency.values.map((freq) {
+                    return RadioGroup<BackupFrequency>(
+                      groupValue: state.frequency,
+                      onChanged: (value) => Navigator.pop(dialogContext, value),
+                      child: ListTile(
+                        leading: Radio<BackupFrequency>(value: freq),
+                        title: Text(freq.label),
+                        onTap: () => Navigator.pop(dialogContext, freq),
+                      ),
+                    );
+                  }).toList(),
                 ),
               );
-            }).toList(),
-          ),
-        );
-        if (result != null) {
-          await notifier.setFrequency(result);
-        }
-      },
+              if (result != null) {
+                await notifier.setFrequency(result);
+              }
+            }
+          : null,
     );
   }
 }
 
 class _MaxBackupSlider extends HookWidget {
-  const _MaxBackupSlider({required this.state, required this.notifier});
+  const _MaxBackupSlider({
+    required this.state,
+    required this.notifier,
+    this.enabled = true,
+  });
 
   final PeriodicBackupState state;
   final PeriodicBackupSettingState notifier;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final sliderValue = useState(state.maxBackupCount.toDouble());
 
     return ListTile(
+      enabled: enabled,
       title: Text(context.t.periodicBackup.maxBackups),
       subtitle: Slider(
         value: sliderValue.value,
@@ -325,8 +358,10 @@ class _MaxBackupSlider extends HookWidget {
         max: 10,
         divisions: 9,
         label: sliderValue.value.round().toString(),
-        onChanged: (value) => sliderValue.value = value,
-        onChangeEnd: (value) => notifier.setMaxBackupCount(value.round()),
+        onChanged: enabled ? (value) => sliderValue.value = value : null,
+        onChangeEnd: enabled
+            ? (value) => notifier.setMaxBackupCount(value.round())
+            : null,
       ),
       trailing: Text('${sliderValue.value.round()}'),
     );
@@ -362,126 +397,158 @@ class _LastBackupInfo extends StatelessWidget {
 }
 
 class _TelegramChatIdTile extends HookWidget {
-  const _TelegramChatIdTile({required this.state, required this.notifier});
+  const _TelegramChatIdTile({
+    required this.state,
+    required this.notifier,
+    this.enabled = true,
+  });
 
   final PeriodicBackupState state;
   final PeriodicBackupSettingState notifier;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.chatId),
       subtitle: Text(
         state.telegramChatId.isEmpty
             ? context.t.periodicBackup.telegram.notSet
             : state.telegramChatId,
       ),
-      onTap: () async {
-        final controller = TextEditingController(text: state.telegramChatId);
-        final result = await showDialog<String>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(context.t.periodicBackup.telegram.chatId),
-            content: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: context.t.periodicBackup.telegram.chatIdHint,
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(context.t.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(dialogContext, controller.text),
-                child: Text(context.t.save),
-              ),
-            ],
-          ),
-        );
-        if (result != null) {
-          await notifier.setTelegramChatId(result);
-        }
-      },
+      onTap: enabled
+          ? () async {
+              final controller =
+                  TextEditingController(text: state.telegramChatId);
+              final result = await showDialog<String>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: Text(context.t.periodicBackup.telegram.chatId),
+                  content: TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      hintText: context.t.periodicBackup.telegram.chatIdHint,
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: Text(context.t.cancel),
+                    ),
+                    ElevatedButton(
+                      onPressed: () =>
+                          Navigator.pop(dialogContext, controller.text),
+                      child: Text(context.t.save),
+                    ),
+                  ],
+                ),
+              );
+              if (result != null) {
+                await notifier.setTelegramChatId(result);
+              }
+            }
+          : null,
     );
   }
 }
 
 class _TelegramBotTokenTile extends HookWidget {
-  const _TelegramBotTokenTile({required this.state, required this.notifier});
+  const _TelegramBotTokenTile({
+    required this.state,
+    required this.notifier,
+    this.enabled = true,
+  });
 
   final PeriodicBackupState state;
   final PeriodicBackupSettingState notifier;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.botToken),
       subtitle: Text(
         state.telegramBotToken.isEmpty
             ? context.t.periodicBackup.telegram.notSet
             : '••••••••${state.telegramBotToken.substring(state.telegramBotToken.length > 8 ? state.telegramBotToken.length - 8 : 0)}',
       ),
-      onTap: () async {
-        final controller = TextEditingController(text: state.telegramBotToken);
-        final result = await showDialog<String>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(context.t.periodicBackup.telegram.botToken),
-            content: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: context.t.periodicBackup.telegram.botTokenHint,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(context.t.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(dialogContext, controller.text),
-                child: Text(context.t.save),
-              ),
-            ],
-          ),
-        );
-        if (result != null) {
-          await notifier.setTelegramBotToken(result);
-        }
-      },
+      onTap: enabled
+          ? () async {
+              final controller =
+                  TextEditingController(text: state.telegramBotToken);
+              final result = await showDialog<String>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: Text(context.t.periodicBackup.telegram.botToken),
+                  content: TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      hintText: context.t.periodicBackup.telegram.botTokenHint,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: Text(context.t.cancel),
+                    ),
+                    ElevatedButton(
+                      onPressed: () =>
+                          Navigator.pop(dialogContext, controller.text),
+                      child: Text(context.t.save),
+                    ),
+                  ],
+                ),
+              );
+              if (result != null) {
+                await notifier.setTelegramBotToken(result);
+              }
+            }
+          : null,
     );
   }
 }
 
 class _OpenTelegramBotTile extends StatelessWidget {
+  const _OpenTelegramBotTile({this.enabled = true});
+
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.openBot),
       subtitle: Text(context.t.periodicBackup.telegram.openBotDesc),
       trailing: const Icon(Icons.open_in_new),
-      onTap: () async {
-        final uri = Uri.parse('https://t.me/BotFather');
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
+      onTap: enabled
+          ? () async {
+              final uri = Uri.parse('https://t.me/BotFather');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            }
+          : null,
     );
   }
 }
 
 class _TestConnectionTile extends HookConsumerWidget {
+  const _TestConnectionTile({this.enabled = true});
+
+  final bool enabled;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = useState(false);
 
     return ListTile(
+      enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.testConnection),
       trailing: isLoading.value
           ? const SizedBox(
@@ -490,7 +557,7 @@ class _TestConnectionTile extends HookConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.send),
-      onTap: isLoading.value
+      onTap: !enabled || isLoading.value
           ? null
           : () async {
               isLoading.value = true;
@@ -522,6 +589,10 @@ class _TestConnectionTile extends HookConsumerWidget {
 }
 
 class _BackupNowTile extends HookConsumerWidget {
+  const _BackupNowTile({this.enabled = true});
+
+  final bool enabled;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = useState(false);
@@ -530,6 +601,7 @@ class _BackupNowTile extends HookConsumerWidget {
         settings.telegramBotToken.isNotEmpty;
 
     return ListTile(
+      enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.backupNow),
       subtitle: Text(context.t.periodicBackup.telegram.backupNowDesc),
       trailing: isLoading.value
@@ -539,7 +611,7 @@ class _BackupNowTile extends HookConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.cloud_upload),
-      onTap: !isConfigured || isLoading.value
+      onTap: !enabled || !isConfigured || isLoading.value
           ? null
           : () async {
               isLoading.value = true;
