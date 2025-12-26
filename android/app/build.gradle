@@ -39,7 +39,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "io.chaldeaprjkt.boorusphere"
-    compileSdkVersion flutter.compileSdkVersion
+    compileSdk 36
     ndkVersion flutter.ndkVersion
 
     compileOptions {
