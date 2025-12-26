@@ -1,3 +1,9 @@
+## 1.8.2
+
+* Show all backup settings even when disabled
+* Fix cache downloads not showing on downloads page
+* Update dependencies
+
 ## 1.8.1
 
 * Fix download failing when cached quality differs from download quality
