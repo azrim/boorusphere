@@ -11,9 +11,9 @@ part 'download_state.g.dart';
 @Riverpod(keepAlive: true)
 class DownloadEntryState extends _$DownloadEntryState {
   @override
-  Iterable<DownloadEntry> build() {
+  List<DownloadEntry> build() {
     final repo = ref.read(downloadsRepoProvider);
-    return repo.getEntries();
+    return repo.getEntries().toList();
   }
 
   Future<void> add(DownloadEntry entry) async {
@@ -53,9 +53,9 @@ class DownloadEntryState extends _$DownloadEntryState {
 @Riverpod(keepAlive: true)
 class DownloadProgressState extends _$DownloadProgressState {
   @override
-  Iterable<DownloadProgress> build() {
+  List<DownloadProgress> build() {
     final repo = ref.read(downloadsRepoProvider);
-    return repo.getProgresses();
+    return repo.getProgresses().toList();
   }
 
   Future<void> update(DownloadProgress progress) async {
