@@ -36,8 +36,14 @@ class PostToolbox extends HookConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PostFavoriteButton(post: post),
-          PostDownloadButton(post: post),
+          PostFavoriteButton(
+            key: ValueKey('fav_${post.id}_${post.serverId}'),
+            post: post,
+          ),
+          PostDownloadButton(
+            key: ValueKey('dl_${post.id}_${post.serverId}'),
+            post: post,
+          ),
           PostOpenLinkButton(post: post),
         ],
       ),
@@ -110,7 +116,6 @@ class PostDownloadButton extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = ref.watch(downloadEntryStateProvider).getByPost(post);
     final progress = ref.watch(downloadProgressStateProvider).getById(entry.id);
-
     final pending = useState(false);
 
     return Stack(

@@ -13,14 +13,14 @@ class ExpandableGroupListView<T, E> extends StatelessWidget {
     this.ungroup = false,
   });
 
-  final Iterable<T> items;
+  final List<T> items;
   final E Function(T entry) groupedBy;
   final Widget Function(E key) groupTitle;
   final Widget Function(T entry) itemBuilder;
   final bool ungroup;
   final bool expanded;
 
-  Map<E, Iterable<T>> get grouped {
+  Map<E, List<T>> get grouped {
     return groupBy(items, groupedBy);
   }
 

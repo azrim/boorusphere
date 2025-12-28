@@ -36,14 +36,16 @@ class _PostVideoState extends State<PostVideo> {
   @override
   Widget build(BuildContext context) {
     return VisibilityDetector(
-      key: ValueKey(widget.post.id),
+      key: ValueKey('video_${widget.post.id}_${widget.post.serverId}'),
       onVisibilityChanged: (info) {
+        if (!mounted) return;
         setState(() {
           _visible = info.visibleFraction > 0;
         });
       },
       child: _PostVideoContent(
-        key: widget.key,
+        key:
+            ValueKey('video_content_${widget.post.id}_${widget.post.serverId}'),
         post: widget.post,
         onToolboxVisibilityChange: widget.onToolboxVisibilityChange,
         isVisible: _visible,
@@ -242,8 +244,14 @@ class _ToolboxOverlay extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            PostFavoriteButton(post: post),
-            PostDownloadButton(post: post),
+            PostFavoriteButton(
+              key: ValueKey('fav_${post.id}_${post.serverId}'),
+              post: post,
+            ),
+            PostDownloadButton(
+              key: ValueKey('dl_${post.id}_${post.serverId}'),
+              post: post,
+            ),
             IconButton(
               padding: const EdgeInsets.all(16),
               color: Colors.white,

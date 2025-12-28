@@ -126,7 +126,7 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
   @override
   void didUpdateHook(_VideoPostHook oldHook) {
     super.didUpdateHook(oldHook);
-    if (oldHook.active != hook.active) {
+    if (oldHook.active != hook.active || oldHook.post.id != hook.post.id) {
       destroyController();
       createController();
     }

@@ -27,16 +27,18 @@ class DownloadsPage extends HookConsumerWidget {
     final session = this.session ?? SearchSession(serverId: savedServerId);
     final servers = ref.watch(serverStateProvider);
     final downloadEntries =
-        ref.watch(downloadEntryStateProvider).whereNotReserved();
+        ref.watch(downloadEntryStateProvider).whereNotReserved().toList();
     final downloadProgressState = ref.watch(downloadProgressStateProvider);
     final groupByServer = ref
         .watch(downloadSettingStateProvider.select((it) => it.groupByServer));
     final filter = useState(DownloadFilter.none);
-    var filteredEntries = downloadEntries;
+    List<DownloadEntry> filteredEntries = downloadEntries;
     if (filter.value != DownloadFilter.none) {
-      filteredEntries = downloadEntries.where((it) =>
-          downloadProgressState.getById(it.id).status ==
-          filter.value.toStatus());
+      filteredEntries = downloadEntries
+          .where((it) =>
+              downloadProgressState.getById(it.id).status ==
+              filter.value.toStatus())
+          .toList();
     }
 
     return ProviderScope(

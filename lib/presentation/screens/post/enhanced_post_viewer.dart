@@ -96,6 +96,13 @@ class EnhancedPostViewer extends HookConsumerWidget {
     final sheetController = useMemoized(DraggableScrollableController.new);
     final sheetExpanded = useState(false);
 
+    // Post notifier for details sheet
+    final currentPostNotifier = useMemoized(
+      () => ValueNotifier<Post>(
+          postsList.isNotEmpty ? postsList[initial] : Post.empty),
+      [postsList],
+    );
+
     useEffect(() {
       void listener() {
         final size = sheetController.size;
@@ -160,6 +167,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
       return () {
         WakelockPlus.disable();
         controller.dispose();
+        currentPostNotifier.dispose();
       };
     }, []);
 
@@ -261,6 +269,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                 .addPostFrameCallback((timeStamp) {
                               if (context.mounted) {
                                 controller.updateCurrentPage(index);
+                                // Update post notifier
+                                if (postsList.isNotEmpty &&
+                                    index < postsList.length) {
+                                  currentPostNotifier.value = postsList[index];
+                                }
                               }
                             });
 
@@ -293,20 +306,31 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             switch (post.content.type) {
                               case PostType.photo:
                               case PostType.gif:
-                                widget = PostImage(post: post);
+                                widget = PostImage(
+                                  key: ValueKey(
+                                      'image_${post.id}_${post.serverId}'),
+                                  post: post,
+                                );
                                 break;
                               case PostType.video:
                                 widget = PostVideo(
+                                  key: ValueKey(
+                                      'video_${post.id}_${post.serverId}'),
                                   post: post,
                                   onToolboxVisibilityChange: (visible) {},
                                 );
                                 break;
                               default:
-                                widget = PostUnknown(post: post);
+                                widget = PostUnknown(
+                                  key: ValueKey(
+                                      'unknown_${post.id}_${post.serverId}'),
+                                  post: post,
+                                );
                                 break;
                             }
 
                             return HeroMode(
+                              key: ValueKey('hero_${post.id}_${post.serverId}'),
                               enabled: index == controller.page,
                               child: ClipRect(
                                 child: _PointerCountDetector(
@@ -378,7 +402,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                 direction: HidingDirection.toBottom,
                                 visible:
                                     overlayVisible && !forceHide && !fullscreen,
-                                child: PostToolbox(post),
+                                child: PostToolbox(
+                                  key: ValueKey(
+                                      'toolbox_${post.id}_${post.serverId}'),
+                                  post,
+                                ),
                               ),
                             ),
                           ),
@@ -391,19 +419,10 @@ class EnhancedPostViewer extends HookConsumerWidget {
                 },
               ),
               // Details sheet
-              ValueListenableBuilder(
-                valueListenable: controller.currentPage,
-                builder: (context, currentPageIndex, child) {
-                  final post = postsList.isNotEmpty
-                      ? postsList[currentPageIndex]
-                      : Post.empty;
-
-                  return PostDetailsSheet(
-                    post: post,
-                    sheetController: sheetController,
-                    session: session,
-                  );
-                },
+              PostDetailsSheet(
+                postNotifier: currentPostNotifier,
+                sheetController: sheetController,
+                session: session,
               ),
             ],
           ),
