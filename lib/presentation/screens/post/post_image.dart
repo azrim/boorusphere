@@ -53,106 +53,108 @@ class PostImage extends HookConsumerWidget {
       onTap: () {
         ref.read(fullscreenStateProvider.notifier).toggle();
       },
-      child: Stack(
-        alignment: Alignment.center,
-        fit: StackFit.passthrough,
-        children: [
-          Hero(
-            tag: post.viewId,
-            child: ExtendedImage.network(
-              contentSetting.loadOriginal
-                  ? post.originalFile
-                  : post.content.url,
-              headers: headers,
-              fit: BoxFit.contain,
-              mode: isBlur.value
-                  ? ExtendedImageMode.none
-                  : ExtendedImageMode.gesture,
-              initGestureConfigHandler: (state) {
-                return GestureConfig(
-                  maxScale: scaleRatio * 5,
-                  inPageView: true,
-                );
-              },
-              handleLoadingProgress: true,
-              beforePaintImage: (canvas, rect, image, paint) {
-                if (isBlur.value) {
-                  paint.imageFilter = ImageFilter.blur(
-                    sigmaX: 5,
-                    sigmaY: 5,
-                    tileMode: TileMode.decal,
+      child: RepaintBoundary(
+        child: Stack(
+          alignment: Alignment.center,
+          fit: StackFit.passthrough,
+          children: [
+            Hero(
+              tag: post.viewId,
+              child: ExtendedImage.network(
+                contentSetting.loadOriginal
+                    ? post.originalFile
+                    : post.content.url,
+                headers: headers,
+                fit: BoxFit.contain,
+                mode: isBlur.value
+                    ? ExtendedImageMode.none
+                    : ExtendedImageMode.gesture,
+                initGestureConfigHandler: (state) {
+                  return GestureConfig(
+                    maxScale: scaleRatio * 5,
+                    inPageView: true,
                   );
-                }
-                return false;
-              },
-              loadStateChanged: (state) {
-                imageLoadState.add(state);
-
-                return state.isCompleted
-                    ? state.completedWidget
-                    : PostPlaceholderImage(
-                        post: post,
-                        shouldBlur: isBlur.value,
-                        headers: headers,
-                      );
-              },
-              onDoubleTap: (state) async {
-                if (zoomAnimator.isAnimating) {
-                  // It should be impossible for human to do quadruple-tap
-                  // at 150 ms. Still, better than no guards at all
-                  return;
-                }
-
-                final downOffset = state.pointerDownPosition;
-                final begin = state.gestureDetails?.totalScale ?? 1;
-                final animation = zoomAnimator.drive(
-                  Tween<double>(
-                    begin: begin,
-                    end: begin == 1 ? max(2, scaleRatio) : 1.0,
-                  ),
-                );
-
-                void onAnimating() {
-                  state.handleDoubleTap(
-                      scale: animation.value, doubleTapPosition: downOffset);
-                }
-
-                if (zoomAnimator.isCompleted) {
-                  zoomAnimator.reset();
-                }
-                animation.addListener(onAnimating);
-                await zoomAnimator.forward();
-                animation.removeListener(onAnimating);
-              },
-            ),
-          ),
-          if (!isBlur.value)
-            Positioned(
-              bottom: QuickBar.preferredBottomPosition(context),
-              child: StreamBuilder(
-                stream: imageLoadState.stream,
-                builder: (context, snapshot) {
-                  final data = snapshot.data;
-                  if (data is ExtendedImageState) {
-                    return _PostImageStatus(state: data);
-                  } else {
-                    return const SizedBox.shrink();
+                },
+                handleLoadingProgress: true,
+                beforePaintImage: (canvas, rect, image, paint) {
+                  if (isBlur.value) {
+                    paint.imageFilter = ImageFilter.blur(
+                      sigmaX: 5,
+                      sigmaY: 5,
+                      tileMode: TileMode.decal,
+                    );
                   }
+                  return false;
+                },
+                loadStateChanged: (state) {
+                  imageLoadState.add(state);
+
+                  return state.isCompleted
+                      ? state.completedWidget
+                      : PostPlaceholderImage(
+                          post: post,
+                          shouldBlur: isBlur.value,
+                          headers: headers,
+                        );
+                },
+                onDoubleTap: (state) async {
+                  if (zoomAnimator.isAnimating) {
+                    // It should be impossible for human to do quadruple-tap
+                    // at 150 ms. Still, better than no guards at all
+                    return;
+                  }
+
+                  final downOffset = state.pointerDownPosition;
+                  final begin = state.gestureDetails?.totalScale ?? 1;
+                  final animation = zoomAnimator.drive(
+                    Tween<double>(
+                      begin: begin,
+                      end: begin == 1 ? max(2, scaleRatio) : 1.0,
+                    ),
+                  );
+
+                  void onAnimating() {
+                    state.handleDoubleTap(
+                        scale: animation.value, doubleTapPosition: downOffset);
+                  }
+
+                  if (zoomAnimator.isCompleted) {
+                    zoomAnimator.reset();
+                  }
+                  animation.addListener(onAnimating);
+                  await zoomAnimator.forward();
+                  animation.removeListener(onAnimating);
                 },
               ),
             ),
-          if (isBlur.value)
-            Positioned(
-              bottom: QuickBar.preferredBottomPosition(context),
-              child: QuickBar.action(
-                title: Text(context.t.unsafeContent),
-                actionTitle: Text(context.t.unblur),
-                onPressed: () {
-                  isBlur.value = false;
-                },
+            if (!isBlur.value)
+              Positioned(
+                bottom: QuickBar.preferredBottomPosition(context),
+                child: StreamBuilder(
+                  stream: imageLoadState.stream,
+                  builder: (context, snapshot) {
+                    final data = snapshot.data;
+                    if (data is ExtendedImageState) {
+                      return _PostImageStatus(state: data);
+                    } else {
+                      return const SizedBox.shrink();
+                    }
+                  },
+                ),
               ),
-            ),
-        ],
+            if (isBlur.value)
+              Positioned(
+                bottom: QuickBar.preferredBottomPosition(context),
+                child: QuickBar.action(
+                  title: Text(context.t.unsafeContent),
+                  actionTitle: Text(context.t.unblur),
+                  onPressed: () {
+                    isBlur.value = false;
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -128,90 +128,93 @@ class _PostVideoContent extends HookConsumerWidget {
       });
     }, [controller]);
 
-    return Stack(
-      alignment: Alignment.center,
-      fit: StackFit.passthrough,
-      children: [
-        Hero(
-          key: ValueKey(post.viewId),
-          tag: post.viewId,
-          child: Center(
-            child: AspectRatio(
-              aspectRatio: post.aspectRatio,
-              child: Stack(
-                fit: StackFit.passthrough,
-                children: [
-                  PostPlaceholderImage(
-                    post: post,
-                    headers: headers,
-                    shouldBlur: isBlur.value,
-                  ),
-                  if (controller != null) VideoPlayer(controller),
-                ],
-              ),
-            ),
-          ),
-        ),
-        GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () {
-            onVisibilityChange.call(!showOverlay.value);
-          },
-          child: Container(
-            color: showPauseOverlay.value ? Colors.black38 : Colors.transparent,
-            child: Visibility(
-              visible: showOverlay.value,
-              replacement: const SizedBox.expand(),
-              child: SafeArea(
+    return RepaintBoundary(
+      child: Stack(
+        alignment: Alignment.center,
+        fit: StackFit.passthrough,
+        children: [
+          Hero(
+            key: ValueKey(post.viewId),
+            tag: post.viewId,
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: post.aspectRatio,
                 child: Stack(
-                  alignment: Alignment.center,
+                  fit: StackFit.passthrough,
                   children: [
-                    Visibility(
-                      visible: showPauseOverlay.value,
-                      child: _PlayPauseOverlay(
-                        isPlaying: isPlaying.value,
-                        onPressed: () {
-                          if (controller != null) {
-                            isPlaying.value = !controller.value.isPlaying;
-                            controller.value.isPlaying
-                                ? controller.pause()
-                                : controller.play();
-                            scheduleHide();
-                          } else {
-                            isPlaying.value = !isPlaying.value;
-                          }
-                        },
-                      ),
-                    ),
-                    _ToolboxOverlay(
-                      isPlaying: isPlaying.value,
-                      source: source,
+                    PostPlaceholderImage(
                       post: post,
-                      isMuted: contentSettings.videoMuted,
-                      isFullscreen: fullscreen,
-                      onAutoHideRequest: scheduleHide,
-                      onPlayChange: (value) {
-                        isPlaying.value = value;
-                      },
+                      headers: headers,
+                      shouldBlur: isBlur.value,
                     ),
+                    if (controller != null) VideoPlayer(controller),
                   ],
                 ),
               ),
             ),
           ),
-        ),
-        if (isBlur.value)
-          Positioned(
-            bottom: QuickBar.preferredBottomPosition(context) + 24,
-            child: QuickBar.action(
-              title: Text(context.t.unsafeContent),
-              actionTitle: Text(context.t.unblur),
-              onPressed: () {
-                isBlur.value = false;
-              },
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              onVisibilityChange.call(!showOverlay.value);
+            },
+            child: Container(
+              color:
+                  showPauseOverlay.value ? Colors.black38 : Colors.transparent,
+              child: Visibility(
+                visible: showOverlay.value,
+                replacement: const SizedBox.expand(),
+                child: SafeArea(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Visibility(
+                        visible: showPauseOverlay.value,
+                        child: _PlayPauseOverlay(
+                          isPlaying: isPlaying.value,
+                          onPressed: () {
+                            if (controller != null) {
+                              isPlaying.value = !controller.value.isPlaying;
+                              controller.value.isPlaying
+                                  ? controller.pause()
+                                  : controller.play();
+                              scheduleHide();
+                            } else {
+                              isPlaying.value = !isPlaying.value;
+                            }
+                          },
+                        ),
+                      ),
+                      _ToolboxOverlay(
+                        isPlaying: isPlaying.value,
+                        source: source,
+                        post: post,
+                        isMuted: contentSettings.videoMuted,
+                        isFullscreen: fullscreen,
+                        onAutoHideRequest: scheduleHide,
+                        onPlayChange: (value) {
+                          isPlaying.value = value;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-      ],
+          if (isBlur.value)
+            Positioned(
+              bottom: QuickBar.preferredBottomPosition(context) + 24,
+              child: QuickBar.action(
+                title: Text(context.t.unsafeContent),
+                actionTitle: Text(context.t.unblur),
+                onPressed: () {
+                  isBlur.value = false;
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
