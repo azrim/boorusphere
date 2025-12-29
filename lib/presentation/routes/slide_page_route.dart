@@ -55,12 +55,14 @@ class SlidePageRoute<T> extends PageRoute<T> {
       curve: Curves.easeInOutCubic,
     );
 
-    final fade = FadeTransition(
-      opacity: Tween(
-        begin: 0.0,
-        end: 1.0,
-      ).animate(nextAnimation),
-      child: child,
+    final fade = RepaintBoundary(
+      child: FadeTransition(
+        opacity: Tween(
+          begin: 0.0,
+          end: 1.0,
+        ).animate(nextAnimation),
+        child: child,
+      ),
     );
 
     Widget open(Widget child) {

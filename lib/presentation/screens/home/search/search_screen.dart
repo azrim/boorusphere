@@ -26,19 +26,21 @@ class SearchScreen extends HookConsumerWidget {
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
-        FadeTransition(
-          opacity: Tween<double>(
-            begin: 0.5,
-            end: 1,
-          ).animate(animation),
-          child: SlideTransition(
-            position: Tween(
-              begin: const Offset(0, 1),
-              end: const Offset(0, 0),
+        RepaintBoundary(
+          child: FadeTransition(
+            opacity: Tween<double>(
+              begin: 0.5,
+              end: 1,
             ).animate(animation),
-            child: SearchSuggestion(
-              animator: animator,
-              searchBar: searchBar,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 1),
+                end: const Offset(0, 0),
+              ).animate(animation),
+              child: SearchSuggestion(
+                animator: animator,
+                searchBar: searchBar,
+              ),
             ),
           ),
         ),

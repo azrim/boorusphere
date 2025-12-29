@@ -36,14 +36,19 @@ class SlideFadeVisibility extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSlide(
-      curve: Curves.easeInCubic,
-      duration: duration,
-      offset: visible ? Offset.zero : endOffset,
-      child: AnimatedOpacity(
+    return RepaintBoundary(
+      child: AnimatedSlide(
+        curve: Curves.easeInCubic,
         duration: duration,
-        opacity: visible ? 1 : 0,
-        child: child,
+        offset: visible ? Offset.zero : endOffset,
+        child: AnimatedOpacity(
+          duration: duration,
+          opacity: visible ? 1 : 0,
+          child: IgnorePointer(
+            ignoring: !visible,
+            child: child,
+          ),
+        ),
       ),
     );
   }
