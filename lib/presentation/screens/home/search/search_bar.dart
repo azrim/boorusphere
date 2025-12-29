@@ -32,6 +32,14 @@ class HomeSearchBar extends HookConsumerWidget {
       final position = scrollController.position;
       final threshold = innerHeight;
 
+      // Reset when scrolled to top
+      if (position.pixels <= 0) {
+        if (delta.value.first != 0 || delta.value.last != 0) {
+          delta.value = [0, 0];
+        }
+        return;
+      }
+
       if (delta.value.first > 0 &&
           position.viewportDimension > position.maxScrollExtent) {
         delta.value = [0, 0];
