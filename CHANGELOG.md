@@ -1,3 +1,14 @@
+## 1.8.2
+
+* Fix post viewer showing wrong content when swiping
+* Fix video player not playing on non-first posts
+* Fix download button showing wrong state after downloading
+* Fix grid size icon not reappearing after scrolling to top
+* Fix cache downloads not showing on downloads page
+* Improve post viewer and timeline performance
+* Show all backup settings even when disabled
+* Update dependencies
+
 ## 1.8.1
 
 * Fix download failing when cached quality differs from download quality

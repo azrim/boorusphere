@@ -16,6 +16,10 @@ class PostPlaceholderImage extends StatelessWidget {
   final bool shouldBlur;
   final Map<String, String>? headers;
 
+  // Pre-computed blur filter to avoid recreating it
+  static final _blurFilter =
+      ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+
   @override
   Widget build(BuildContext context) {
     return ExtendedImage.network(
@@ -23,16 +27,12 @@ class PostPlaceholderImage extends StatelessWidget {
       headers: headers,
       fit: BoxFit.contain,
       enableLoadState: false,
-      beforePaintImage: (canvas, rect, image, paint) {
-        if (shouldBlur) {
-          paint.imageFilter = ImageFilter.blur(
-            sigmaX: 5,
-            sigmaY: 5,
-            tileMode: TileMode.decal,
-          );
-        }
-        return false;
-      },
+      beforePaintImage: shouldBlur
+          ? (canvas, rect, image, paint) {
+              paint.imageFilter = _blurFilter;
+              return false;
+            }
+          : null,
     );
   }
 }

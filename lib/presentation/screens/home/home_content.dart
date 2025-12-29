@@ -115,22 +115,25 @@ class _EdgeShadow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint = context.theme.scaffoldBackgroundColor;
+    final paddingTop = context.mediaQuery.padding.top;
     return Positioned(
       top: 0,
       left: 0,
       right: 0,
       child: IgnorePointer(
-        child: SizedBox(
-          height: context.mediaQuery.padding.top * 1.8,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomLeft,
-                colors: [
-                  tint.withValues(alpha: 0.8),
-                  tint.withValues(alpha: 0),
-                ],
+        child: RepaintBoundary(
+          child: SizedBox(
+            height: paddingTop * 1.8,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomLeft,
+                  colors: [
+                    tint.withValues(alpha: 0.8),
+                    tint.withValues(alpha: 0),
+                  ],
+                ),
               ),
             ),
           ),

@@ -236,17 +236,17 @@ class _LongThumbnailIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: context.colorScheme.surface.withValues(alpha: 0.8),
+    return const Card(
+      color: Color(0xCC000000), // Pre-computed color
       elevation: 0,
       margin: EdgeInsets.zero,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(10),
           topRight: Radius.circular(10),
         ),
       ),
-      child: const Padding(
+      child: Padding(
         padding: EdgeInsets.fromLTRB(22, 6, 22, 4),
         child: Icon(Icons.gradient, size: 16),
       ),
@@ -263,14 +263,16 @@ class _MediaTypeIndicator extends StatelessWidget {
   final bool isVideo;
   final bool isGif;
 
+  static const _decoration = BoxDecoration(
+    color: Color(0xB3000000), // Pre-computed 0.7 alpha black
+    borderRadius: BorderRadius.all(Radius.circular(4)),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(4),
-      ),
+      decoration: _decoration,
       child: isVideo
           ? const Icon(
               Icons.play_arrow,
