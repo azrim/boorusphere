@@ -14,7 +14,8 @@ class PostViewerController {
     required this.totalPages,
     this.viewMode = ViewMode.horizontal,
     this.swipeMode = SwipeMode.horizontal,
-  }) : _pageController = PageController(initialPage: initialPage);
+  })  : _pageController = PageController(initialPage: initialPage),
+        _currentPage = ValueNotifier(initialPage);
 
   final int initialPage;
   final int totalPages;
@@ -25,7 +26,7 @@ class PostViewerController {
   PageController get pageController => _pageController;
 
   // Current page tracking
-  final ValueNotifier<int> _currentPage = ValueNotifier(0);
+  final ValueNotifier<int> _currentPage;
   ValueNotifier<int> get currentPage => _currentPage;
 
   // Precise page for smooth animations
