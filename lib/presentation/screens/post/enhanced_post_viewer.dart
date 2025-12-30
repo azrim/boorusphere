@@ -52,13 +52,15 @@ class EnhancedPostViewer extends HookConsumerWidget {
     bool enableSwipeToDetails = true,
     bool enableSwipeToDismiss = true,
   }) {
+    // Capture the container before pushing the route
+    final container = ProviderScope.containerOf(context);
     context.navigator.push(
       SlidePageRoute(
         opaque: false,
         type: SlidePageType.close,
         builder: (context) {
           return UncontrolledProviderScope(
-            container: ProviderScope.containerOf(context),
+            container: container,
             child: EnhancedPostViewer(
               initial: index,
               posts: posts,
