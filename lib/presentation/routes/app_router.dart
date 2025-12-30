@@ -44,6 +44,10 @@ class AppRouter extends RootStackRouter {
       customRouteBuilder: _routeBuilder,
     ),
     CustomRoute(
+      page: ServerAddRoute.page,
+      customRouteBuilder: _routeBuilder,
+    ),
+    CustomRoute(
       page: ServerRoute.page,
       customRouteBuilder: _routeBuilder,
     ),

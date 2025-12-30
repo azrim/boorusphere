@@ -342,7 +342,7 @@ class _ServerSelection extends ConsumerWidget {
             onTap: () {
               ref.read(homeDrawerControllerProvider).close().then((_) {
                 if (context.mounted) {
-                  context.router.push(ServerEditorRoute());
+                  context.router.push(const ServerAddRoute());
                 }
               });
             },
