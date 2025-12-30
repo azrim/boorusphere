@@ -101,18 +101,16 @@ class HomeSearchBar extends HookConsumerWidget {
               if (searchBar.isOpen) const _OptionBar(),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: collapsed ? 0 : 0.2),
+                  color: Colors.grey.withValues(alpha: 0.2),
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
                 ),
-                margin: collapsed
-                    ? const EdgeInsets.fromLTRB(32, 4, 32, 0)
-                    : const EdgeInsets.fromLTRB(16, 11, 16, 11),
+                margin: const EdgeInsets.fromLTRB(16, 11, 16, 11),
                 child: Row(
                   children: [
                     Stack(
                       alignment: Alignment.center,
                       children: [
-                        _LeadingButton(collapsed: collapsed),
+                        const _LeadingButton(),
                         if (!searchBar.isOpen)
                           Positioned(right: 8, child: _RatingIndicator()),
                       ],
@@ -279,12 +277,10 @@ class _RatingButton extends ConsumerWidget {
 
 class _Button extends StatelessWidget {
   const _Button({
-    this.collapsed = false,
     required this.onTap,
     this.child,
   });
 
-  final bool collapsed;
   final void Function() onTap;
   final Widget? child;
 
@@ -295,19 +291,14 @@ class _Button extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
-        child: Transform.scale(
-          scale: collapsed ? 0.75 : 1.0,
-          child: child,
-        ),
+        child: child,
       ),
     );
   }
 }
 
 class _LeadingButton extends ConsumerWidget {
-  const _LeadingButton({this.collapsed = false});
-
-  final bool collapsed;
+  const _LeadingButton();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -316,7 +307,6 @@ class _LeadingButton extends ConsumerWidget {
     final searchBar = ref.watch(searchBarControllerProvider);
 
     return _Button(
-      collapsed: collapsed,
       onTap: () {
         if (searchBar.isOpen) {
           searchBar.close();
@@ -402,7 +392,6 @@ class _TrailingButton extends ConsumerWidget {
       onTap: collapsed
           ? backToTop
           : ref.read(uiSettingStateProvider.notifier).cycleGrid,
-      collapsed: collapsed,
       child: SizedBox(
         width: size,
         height: size,
