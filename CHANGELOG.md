@@ -1,3 +1,12 @@
+## 1.9.0
+
+* Add new server add page with booru engine selector
+* Replace scanner with engine selector in server editor
+* Fix Gelbooru tag suggestions using autocomplete2 endpoint
+* Fix server migrations running after backup restore
+* Improve post viewer and details sheet performance
+* Add blur and transparency effects to UI elements
+
 ## 1.8.2
 
 * Fix post viewer showing wrong content when swiping
