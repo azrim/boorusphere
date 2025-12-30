@@ -1,3 +1,10 @@
+## 1.9.1
+
+* Add server switch from search bar icon
+* Keep search bar UI stable when scrolling
+* Fix tag append action not working correctly
+* Make only server list scrollable in drawer
+
 ## 1.9.0
 
 * Add new server add page with booru engine selector
