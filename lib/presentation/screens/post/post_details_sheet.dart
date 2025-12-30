@@ -84,56 +84,65 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
               }
               _lastPostId = post.id;
 
+              final content = Container(
+                decoration: BoxDecoration(
+                  color: enableBlur
+                      ? backgroundColor.withValues(alpha: 0.85)
+                      : backgroundColor,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: Stack(
+                  children: [
+                    CustomScrollView(
+                      controller: scrollController,
+                      slivers: [
+                        // Drag handle
+                        const SliverToBoxAdapter(child: _DragHandle()),
+                        // Content
+                        SliverToBoxAdapter(
+                          child: _SheetContent(
+                            key:
+                                ValueKey('content_${post.id}_${post.serverId}'),
+                            post: post,
+                            selectedTags: _selectedTags,
+                            onTagPressed: _onTagPressed,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Fixed bottom action bar
+                    if (_selectedTags.isNotEmpty)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _TagActionBar(
+                          selectedTags: _selectedTags,
+                          session: widget.session,
+                          onClearSelection: _clearSelection,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+
+              // Only apply blur when enabled
+              if (enableBlur) {
+                return ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: content,
+                  ),
+                );
+              }
+
               return ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(16)),
-                child: BackdropFilter(
-                  filter: enableBlur
-                      ? ImageFilter.blur(sigmaX: 20, sigmaY: 20)
-                      : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: enableBlur
-                          ? backgroundColor.withValues(alpha: 0.85)
-                          : backgroundColor,
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Stack(
-                      children: [
-                        CustomScrollView(
-                          controller: scrollController,
-                          slivers: [
-                            // Drag handle
-                            const SliverToBoxAdapter(child: _DragHandle()),
-                            // Content
-                            SliverToBoxAdapter(
-                              child: _SheetContent(
-                                key: ValueKey(
-                                    'content_${post.id}_${post.serverId}'),
-                                post: post,
-                                selectedTags: _selectedTags,
-                                onTagPressed: _onTagPressed,
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Fixed bottom action bar
-                        if (_selectedTags.isNotEmpty)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: _TagActionBar(
-                              selectedTags: _selectedTags,
-                              session: widget.session,
-                              onClearSelection: _clearSelection,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: content,
               );
             },
           ),
