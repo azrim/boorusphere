@@ -1,9 +1,12 @@
+import 'dart:async';
+
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
-import 'package:boorusphere/presentation/screens/home/drawer/home_drawer_controller.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -300,6 +303,51 @@ class _Button extends StatelessWidget {
 class _LeadingButton extends ConsumerWidget {
   const _LeadingButton();
 
+  Future<void> _showServerSelector(
+      BuildContext context, WidgetRef ref, String currentServerId) async {
+    final servers = ref.read(serverStateProvider).toList();
+    final session = ref.read(searchSessionProvider);
+
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(context.t.servers.select),
+          contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: servers.length,
+              itemBuilder: (context, index) {
+                final server = servers[index];
+                final isSelected = server.id == currentServerId;
+                return ListTile(
+                  leading: Favicon(
+                    url: server.homepage,
+                    shape: BoxShape.circle,
+                    iconSize: 21,
+                  ),
+                  title: Text(server.name),
+                  selected: isSelected,
+                  selectedTileColor: context.colorScheme.primary
+                      .withAlpha(context.isLightThemed ? 50 : 25),
+                  onTap: () => Navigator.of(context).pop(server.id),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null && selected != currentServerId && context.mounted) {
+      unawaited(context.router.push(HomeRoute(
+        session: session.copyWith(serverId: selected),
+      )));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
@@ -311,7 +359,7 @@ class _LeadingButton extends ConsumerWidget {
         if (searchBar.isOpen) {
           searchBar.close();
         } else {
-          ref.read(homeDrawerControllerProvider).toggle();
+          _showServerSelector(context, ref, session.serverId);
         }
       },
       child: searchBar.isOpen
