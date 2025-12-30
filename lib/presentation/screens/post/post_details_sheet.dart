@@ -99,30 +99,37 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(16)),
                     ),
-                    child: CustomScrollView(
-                      controller: scrollController,
-                      slivers: [
-                        // Drag handle
-                        const SliverToBoxAdapter(child: _DragHandle()),
-                        // Tag action bar when tags are selected
+                    child: Stack(
+                      children: [
+                        CustomScrollView(
+                          controller: scrollController,
+                          slivers: [
+                            // Drag handle
+                            const SliverToBoxAdapter(child: _DragHandle()),
+                            // Content
+                            SliverToBoxAdapter(
+                              child: _SheetContent(
+                                key: ValueKey(
+                                    'content_${post.id}_${post.serverId}'),
+                                post: post,
+                                selectedTags: _selectedTags,
+                                onTagPressed: _onTagPressed,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Fixed bottom action bar
                         if (_selectedTags.isNotEmpty)
-                          SliverToBoxAdapter(
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
                             child: _TagActionBar(
                               selectedTags: _selectedTags,
                               session: widget.session,
                               onClearSelection: _clearSelection,
                             ),
                           ),
-                        // Content
-                        SliverToBoxAdapter(
-                          child: _SheetContent(
-                            key:
-                                ValueKey('content_${post.id}_${post.serverId}'),
-                            post: post,
-                            selectedTags: _selectedTags,
-                            onTagPressed: _onTagPressed,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -215,43 +222,55 @@ class _TagActionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-      child: Row(
-        children: [
-          Text(
-            '${selectedTags.length} selected',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.copy, size: 20),
-            tooltip: context.t.actionTag.copy,
-            onPressed: () => _copyTags(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.block, size: 20),
-            tooltip: context.t.actionTag.block,
-            onPressed: () => _blockTags(context, ref),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, size: 20),
-            tooltip: context.t.actionTag.append,
-            onPressed: () => _appendTags(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.search, size: 20),
-            tooltip: context.t.actionTag.search,
-            onPressed: () => _searchTags(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 20),
-            tooltip: context.t.clear,
-            onPressed: onClearSelection,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
           ),
         ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            children: [
+              Text(
+                '${selectedTags.length} selected',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.copy, size: 20),
+                tooltip: context.t.actionTag.copy,
+                onPressed: () => _copyTags(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.block, size: 20),
+                tooltip: context.t.actionTag.block,
+                onPressed: () => _blockTags(context, ref),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, size: 20),
+                tooltip: context.t.actionTag.append,
+                onPressed: () => _appendTags(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.search, size: 20),
+                tooltip: context.t.actionTag.search,
+                onPressed: () => _searchTags(context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                tooltip: context.t.clear,
+                onPressed: onClearSelection,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
