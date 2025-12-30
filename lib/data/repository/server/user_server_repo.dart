@@ -110,6 +110,8 @@ class UserServerRepo implements ServerRepo {
         await add(server);
       }
     }
+    // Run migrations after import to fix any outdated server configs
+    await _migrateGelbooruSuggestionUrl();
   }
 
   @override
