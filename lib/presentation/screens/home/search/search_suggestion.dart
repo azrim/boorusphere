@@ -1,9 +1,12 @@
+import 'dart:ui';
+
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -31,129 +34,141 @@ class SearchSuggestion extends HookConsumerWidget {
     final isDragging = useRef(false);
     final dragStartY = useRef(0.0);
     final scrollController = useScrollController();
+    final enableBlur = ref.watch(uiSettingStateProvider.select((s) => s.blur));
+    final backgroundColor = context.theme.scaffoldBackgroundColor;
 
     // Check if at top of scroll
     bool isAtTop() =>
         !scrollController.hasClients || scrollController.offset <= 0;
 
-    return Container(
-      color: context.theme.scaffoldBackgroundColor,
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Swipe handle with gesture detection - positioned below status bar
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragStart: (details) {
-                // Only allow dragging when search is open
-                canBeDragged.value = searchBar.isOpen;
-              },
-              onVerticalDragUpdate: (details) {
-                if (!canBeDragged.value) return;
-
-                final delta = details.primaryDelta;
-                if (delta == null) return;
-
-                // Only allow downward drag (positive delta)
-                if (delta > 0) {
-                  // Update animation value based on drag distance
-                  animator.value -= delta / (screenHeight * 0.3);
-                  animator.value = animator.value.clamp(0.0, 1.0);
-                }
-              },
-              onVerticalDragEnd: (details) async {
-                if (!canBeDragged.value) return;
-
-                final velocity = details.velocity.pixelsPerSecond.dy;
-
-                if (velocity > 300 || animator.value < 0.7) {
-                  // Close search bar
-                  await animator.reverse();
-                  searchBar.close();
-                } else {
-                  // Snap back to open
-                  await animator.forward();
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 1500),
-                  tween: Tween(begin: 0.2, end: 0.6),
-                  builder: (context, value, child) {
-                    return Container(
-                      margin: const EdgeInsets.only(top: 4, bottom: 12),
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant
-                            .withValues(alpha: value),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    );
+    return ClipRect(
+      child: BackdropFilter(
+        filter: enableBlur
+            ? ImageFilter.blur(sigmaX: 20, sigmaY: 20)
+            : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+        child: Container(
+          color: enableBlur
+              ? backgroundColor.withValues(alpha: 0.85)
+              : backgroundColor,
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Swipe handle with gesture detection - positioned below status bar
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragStart: (details) {
+                    // Only allow dragging when search is open
+                    canBeDragged.value = searchBar.isOpen;
                   },
-                ),
-              ),
-            ),
-            Expanded(
-              child: Listener(
-                onPointerMove: (event) {
-                  if (!searchBar.isOpen) return;
+                  onVerticalDragUpdate: (details) {
+                    if (!canBeDragged.value) return;
 
-                  if (!isDragging.value && isAtTop()) {
-                    // Start drag if at top and moving down
-                    if (event.delta.dy > 2) {
-                      isDragging.value = true;
-                      dragStartY.value = event.position.dy;
-                    }
-                  }
+                    final delta = details.primaryDelta;
+                    if (delta == null) return;
 
-                  if (isDragging.value) {
-                    final delta = event.position.dy - dragStartY.value;
+                    // Only allow downward drag (positive delta)
                     if (delta > 0) {
                       // Update animation value based on drag distance
-                      animator.value = 1.0 - (delta / (screenHeight * 0.3));
+                      animator.value -= delta / (screenHeight * 0.3);
                       animator.value = animator.value.clamp(0.0, 1.0);
                     }
-                  }
-                },
-                onPointerUp: (_) async {
-                  if (isDragging.value) {
-                    if (animator.value < 0.7) {
+                  },
+                  onVerticalDragEnd: (details) async {
+                    if (!canBeDragged.value) return;
+
+                    final velocity = details.velocity.pixelsPerSecond.dy;
+
+                    if (velocity > 300 || animator.value < 0.7) {
+                      // Close search bar
                       await animator.reverse();
                       searchBar.close();
                     } else {
+                      // Snap back to open
                       await animator.forward();
                     }
-                    isDragging.value = false;
-                  }
-                },
-                onPointerCancel: (_) async {
-                  if (isDragging.value) {
-                    await animator.forward();
-                    isDragging.value = false;
-                  }
-                },
-                child: CustomScrollView(
-                  controller: scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  cacheExtent: 100, // Minimal cache for performance
-                  slivers: const [
-                    _SearchHistoryHeader(),
-                    _SearchHistory(),
-                    _SuggestionHeader(),
-                    _Suggestion(),
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: kBottomNavigationBarHeight + 38),
-                    )
-                  ],
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 1500),
+                      tween: Tween(begin: 0.2, end: 0.6),
+                      builder: (context, value, child) {
+                        return Container(
+                          margin: const EdgeInsets.only(top: 4, bottom: 12),
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: value),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
+                Expanded(
+                  child: Listener(
+                    onPointerMove: (event) {
+                      if (!searchBar.isOpen) return;
+
+                      if (!isDragging.value && isAtTop()) {
+                        // Start drag if at top and moving down
+                        if (event.delta.dy > 2) {
+                          isDragging.value = true;
+                          dragStartY.value = event.position.dy;
+                        }
+                      }
+
+                      if (isDragging.value) {
+                        final delta = event.position.dy - dragStartY.value;
+                        if (delta > 0) {
+                          // Update animation value based on drag distance
+                          animator.value = 1.0 - (delta / (screenHeight * 0.3));
+                          animator.value = animator.value.clamp(0.0, 1.0);
+                        }
+                      }
+                    },
+                    onPointerUp: (_) async {
+                      if (isDragging.value) {
+                        if (animator.value < 0.7) {
+                          await animator.reverse();
+                          searchBar.close();
+                        } else {
+                          await animator.forward();
+                        }
+                        isDragging.value = false;
+                      }
+                    },
+                    onPointerCancel: (_) async {
+                      if (isDragging.value) {
+                        await animator.forward();
+                        isDragging.value = false;
+                      }
+                    },
+                    child: CustomScrollView(
+                      controller: scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      cacheExtent: 100, // Minimal cache for performance
+                      slivers: const [
+                        _SearchHistoryHeader(),
+                        _SearchHistory(),
+                        _SuggestionHeader(),
+                        _Suggestion(),
+                        SliverToBoxAdapter(
+                          child:
+                              SizedBox(height: kBottomNavigationBarHeight + 38),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

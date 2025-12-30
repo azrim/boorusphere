@@ -1,7 +1,10 @@
+import 'dart:ui';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
+import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
@@ -19,7 +22,7 @@ const _kMinSheetSize = 0.0;
 const _kSnapSheetSize = 0.5;
 const _kMaxSheetSize = 0.9;
 
-class PostDetailsSheet extends StatefulWidget {
+class PostDetailsSheet extends ConsumerStatefulWidget {
   const PostDetailsSheet({
     super.key,
     required this.postNotifier,
@@ -32,10 +35,10 @@ class PostDetailsSheet extends StatefulWidget {
   final SearchSession session;
 
   @override
-  State<PostDetailsSheet> createState() => _PostDetailsSheetState();
+  ConsumerState<PostDetailsSheet> createState() => _PostDetailsSheetState();
 }
 
-class _PostDetailsSheetState extends State<PostDetailsSheet> {
+class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
   final Set<String> _selectedTags = {};
   int? _lastPostId;
 
@@ -55,6 +58,9 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final enableBlur = ref.watch(uiSettingStateProvider.select((s) => s.blur));
+    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
     return DraggableScrollableSheet(
       controller: widget.sheetController,
       initialChildSize: _kMinSheetSize,
@@ -78,40 +84,47 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
               }
               _lastPostId = post.id;
 
-              return Container(
-                clipBehavior: Clip.hardEdge,
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: Material(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(16)),
-                  elevation: 8,
-                  child: CustomScrollView(
-                    controller: scrollController,
-                    slivers: [
-                      // Drag handle
-                      const SliverToBoxAdapter(child: _DragHandle()),
-                      // Tag action bar when tags are selected
-                      if (_selectedTags.isNotEmpty)
+              return ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
+                child: BackdropFilter(
+                  filter: enableBlur
+                      ? ImageFilter.blur(sigmaX: 20, sigmaY: 20)
+                      : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: enableBlur
+                          ? backgroundColor.withValues(alpha: 0.85)
+                          : backgroundColor,
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: CustomScrollView(
+                      controller: scrollController,
+                      slivers: [
+                        // Drag handle
+                        const SliverToBoxAdapter(child: _DragHandle()),
+                        // Tag action bar when tags are selected
+                        if (_selectedTags.isNotEmpty)
+                          SliverToBoxAdapter(
+                            child: _TagActionBar(
+                              selectedTags: _selectedTags,
+                              session: widget.session,
+                              onClearSelection: _clearSelection,
+                            ),
+                          ),
+                        // Content
                         SliverToBoxAdapter(
-                          child: _TagActionBar(
+                          child: _SheetContent(
+                            key:
+                                ValueKey('content_${post.id}_${post.serverId}'),
+                            post: post,
                             selectedTags: _selectedTags,
-                            session: widget.session,
-                            onClearSelection: _clearSelection,
+                            onTagPressed: _onTagPressed,
                           ),
                         ),
-                      // Content
-                      SliverToBoxAdapter(
-                        child: _SheetContent(
-                          key: ValueKey('content_${post.id}_${post.serverId}'),
-                          post: post,
-                          selectedTags: _selectedTags,
-                          onTagPressed: _onTagPressed,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
