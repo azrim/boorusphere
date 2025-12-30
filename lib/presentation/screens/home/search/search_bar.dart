@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -307,35 +308,91 @@ class _LeadingButton extends ConsumerWidget {
       BuildContext context, WidgetRef ref, String currentServerId) async {
     final servers = ref.read(serverStateProvider).toList();
     final session = ref.read(searchSessionProvider);
+    final enableBlur = ref.read(uiSettingStateProvider.select((s) => s.blur));
 
-    final selected = await showDialog<String>(
+    final selected = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return AlertDialog(
-          title: Text(context.t.servers.select),
-          contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: servers.length,
-              itemBuilder: (context, index) {
-                final server = servers[index];
-                final isSelected = server.id == currentServerId;
-                return ListTile(
-                  leading: Favicon(
-                    url: server.homepage,
-                    shape: BoxShape.circle,
-                    iconSize: 21,
+        final backgroundColor = context.theme.scaffoldBackgroundColor;
+        final content = Container(
+          decoration: BoxDecoration(
+            color: enableBlur
+                ? backgroundColor.withValues(alpha: 0.85)
+                : backgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  title: Text(server.name),
-                  selected: isSelected,
-                  selectedTileColor: context.colorScheme.primary
-                      .withAlpha(context.isLightThemed ? 50 : 25),
-                  onTap: () => Navigator.of(context).pop(server.id),
-                );
-              },
+                ),
+                // Title
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: Text(
+                    context.t.servers.select,
+                    style: context.theme.textTheme.titleMedium,
+                  ),
+                ),
+                // Server list
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.only(bottom: 16),
+                    itemCount: servers.length,
+                    itemBuilder: (context, index) {
+                      final server = servers[index];
+                      final isSelected = server.id == currentServerId;
+                      return ListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 20),
+                        leading: Favicon(
+                          url: server.homepage,
+                          shape: BoxShape.circle,
+                          iconSize: 24,
+                        ),
+                        title: Text(server.name),
+                        trailing: isSelected
+                            ? Icon(Icons.check_circle,
+                                color: context.colorScheme.primary)
+                            : null,
+                        selected: isSelected,
+                        selectedTileColor: context.colorScheme.primary
+                            .withAlpha(context.isLightThemed ? 30 : 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        onTap: () => Navigator.of(context).pop(server.id),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
+          ),
+        );
+
+        if (!enableBlur) return content;
+
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: content,
           ),
         );
       },
