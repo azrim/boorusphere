@@ -64,80 +64,86 @@ class _PostDetailsSheetState extends State<PostDetailsSheet> {
       snap: true,
       snapAnimationDuration: const Duration(milliseconds: 200),
       builder: (context, scrollController) {
-        return ValueListenableBuilder<Post>(
-          valueListenable: widget.postNotifier,
-          builder: (context, post, child) {
-            // Clear tags when post changes
-            if (_lastPostId != null && _lastPostId != post.id) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(_selectedTags.clear);
-                }
-              });
-            }
-            _lastPostId = post.id;
+        return RepaintBoundary(
+          child: ValueListenableBuilder<Post>(
+            valueListenable: widget.postNotifier,
+            builder: (context, post, child) {
+              // Clear tags when post changes
+              if (_lastPostId != null && _lastPostId != post.id) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(_selectedTags.clear);
+                  }
+                });
+              }
+              _lastPostId = post.id;
 
-            return Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: CustomScrollView(
-                controller: scrollController,
-                slivers: [
-                  // Drag handle
-                  SliverToBoxAdapter(
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(2),
+              return Container(
+                clipBehavior: Clip.hardEdge,
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: Material(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
+                  elevation: 8,
+                  child: CustomScrollView(
+                    controller: scrollController,
+                    slivers: [
+                      // Drag handle
+                      const SliverToBoxAdapter(child: _DragHandle()),
+                      // Tag action bar when tags are selected
+                      if (_selectedTags.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: _TagActionBar(
+                            selectedTags: _selectedTags,
+                            session: widget.session,
+                            onClearSelection: _clearSelection,
                           ),
                         ),
+                      // Content
+                      SliverToBoxAdapter(
+                        child: _SheetContent(
+                          key: ValueKey('content_${post.id}_${post.serverId}'),
+                          post: post,
+                          selectedTags: _selectedTags,
+                          onTagPressed: _onTagPressed,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  // Tag action bar when tags are selected
-                  if (_selectedTags.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _TagActionBar(
-                        selectedTags: _selectedTags,
-                        session: widget.session,
-                        onClearSelection: _clearSelection,
-                      ),
-                    ),
-                  // Content
-                  SliverToBoxAdapter(
-                    child: _SheetContent(
-                      key: ValueKey('content_${post.id}_${post.serverId}'),
-                      post: post,
-                      selectedTags: _selectedTags,
-                      onTagPressed: _onTagPressed,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         );
       },
+    );
+  }
+}
+
+class _DragHandle extends StatelessWidget {
+  const _DragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: Container(
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Theme.of(context)
+                .colorScheme
+                .onSurfaceVariant
+                .withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ),
     );
   }
 }
