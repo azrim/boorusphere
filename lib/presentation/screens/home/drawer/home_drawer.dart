@@ -339,13 +339,7 @@ class _ServerSelection extends ConsumerWidget {
                 bottomRight: Radius.circular(30),
               ),
             ),
-            onTap: () {
-              ref.read(homeDrawerControllerProvider).close().then((_) {
-                if (context.mounted) {
-                  context.router.push(const ServerAddRoute());
-                }
-              });
-            },
+            onTap: () => context.router.push(const ServerAddRoute()),
           ),
         ),
         // Reset servers button
