@@ -332,14 +332,12 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             key: ValueKey('hero_${post.id}_${post.serverId}'),
                             enabled: index == controller.page,
                             child: RepaintBoundary(
-                              child: ClipRect(
-                                child: _PointerCountDetector(
-                                  onCountChanged: (count) {
-                                    pointerCount.value = count;
-                                    interacting.value = count > 1;
-                                  },
-                                  child: widget,
-                                ),
+                              child: _PointerCountDetector(
+                                onCountChanged: (count) {
+                                  pointerCount.value = count;
+                                  interacting.value = count > 1;
+                                },
+                                child: widget,
                               ),
                             ),
                           );
