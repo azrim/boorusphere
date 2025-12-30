@@ -27,50 +27,23 @@ class HomeDrawer extends StatelessWidget {
         topRight: Radius.circular(25),
         bottomRight: Radius.circular(25),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.vertical,
-            child: ConstrainedBox(
-              constraints: constraints.copyWith(
-                minHeight: constraints.maxHeight,
-                maxHeight: double.infinity,
-                maxWidth: maxWidth,
-              ),
-              child: IntrinsicHeight(
-                child: SafeArea(
-                  child: ListTileTheme(
-                    data: context.theme.listTileTheme.copyWith(
-                      dense: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 24),
-                    ),
-                    child: const Column(
-                      children: [
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _Header(),
-                              _ServerSelection(),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.bottomLeft,
-                            child: _Footer(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SafeArea(
+          child: ListTileTheme(
+            data: context.theme.listTileTheme.copyWith(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
             ),
-          );
-        },
+            child: const Column(
+              children: [
+                _Header(),
+                Expanded(child: _ServerSelection()),
+                _Footer(),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -239,9 +212,8 @@ class _ServerSelection extends ConsumerWidget {
     final session = ref.watch(searchSessionProvider);
     final serverActive = servers.getById(session.serverId);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
         ...servers.map((it) {
           return Padding(
