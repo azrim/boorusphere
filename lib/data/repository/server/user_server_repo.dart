@@ -32,6 +32,32 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
+  /// Migrate Gelbooru-engine servers to use autocomplete2 endpoint for suggestions
+  /// instead of the DAPI tag endpoint which has UTF-8 encoding issues.
+  Future<void> _migrateGelbooruSuggestionUrl() async {
+    const oldDapiUrl =
+        'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%&orderby=count&limit={post-limit}&json=1';
+    const oldAutocompleteUrl = 'autocomplete.php?q={tag-part}';
+    const newAutocompleteUrl =
+        'index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}';
+
+    final mapped = Map<String, Server>.from(box.toMap());
+    for (final entry in mapped.entries) {
+      final server = entry.value;
+      if (server.tagSuggestionUrl == oldDapiUrl ||
+          server.tagSuggestionUrl == oldAutocompleteUrl) {
+        await box.put(
+          entry.key,
+          server.copyWith(
+            tagSuggestionUrl: newAutocompleteUrl,
+            suggestionParserId: '', // Reset to auto-detect
+          ),
+        );
+      }
+    }
+    await box.flush();
+  }
+
   @override
   Future<void> populate() async {
     if (_defaults.isEmpty) return;
@@ -40,6 +66,7 @@ class UserServerRepo implements ServerRepo {
       await box.putAll(_defaults);
     } else {
       await _migrateKeys();
+      await _migrateGelbooruSuggestionUrl();
     }
   }
 

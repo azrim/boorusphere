@@ -54,11 +54,23 @@ class AutocompleteJsonParser extends BooruParser {
     for (final Map<String, dynamic> entry in entries) {
       final label = pick(entry, 'label').asStringOrNull() ?? '';
       final tag = pick(entry, 'value').asStringOrNull() ?? '';
-      // post count is in label at the end of the string "<tag> (post count)"
-      final postCount = int.tryParse(
-              label.split(' ').last.replaceAll('(', '').replaceAll(')', '')) ??
-          0;
-      if (postCount > 0 && tag.isNotEmpty) {
+
+      // Try to get post_count from dedicated field first (Gelbooru autocomplete2 format)
+      int postCount = 0;
+      final postCountField = pick(entry, 'post_count').asStringOrNull();
+      if (postCountField != null) {
+        postCount = int.tryParse(postCountField) ?? 0;
+      } else {
+        // Fallback: post count is in label at the end of the string "<tag> (post count)"
+        postCount = int.tryParse(label
+                .split(' ')
+                .last
+                .replaceAll('(', '')
+                .replaceAll(')', '')) ??
+            0;
+      }
+
+      if (tag.isNotEmpty) {
         result.add(Suggestion(BooruUtil.decodeTag(tag), postCount));
       }
     }

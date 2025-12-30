@@ -5,6 +5,7 @@ import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.da
 import 'package:boorusphere/data/repository/booru/parser/danbooruv113_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooruv113_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/gelbooru_autocomplete_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/moebooru_json_parser.dart';
@@ -25,6 +26,7 @@ List<BooruParser> booruParsers(Ref ref) {
     DanbooruV113JsonParser(),
     DanbooruV113XmlParser(),
     E621JsonParser(),
+    GelbooruAutocompleteParser(),
     GelbooruJsonParser(),
     GelbooruXmlParser(),
     MoebooruJsonParser(),
