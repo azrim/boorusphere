@@ -1,0 +1,123 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "fastlane/**"
+      - "**.md"
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      send_to_telegram:
+        description: "Send the resulting APKs to Telegram"
+        type: boolean
+        required: false
+        default: true
+
+jobs:
+  build:
+    name: Build split-per-abi APKs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install grinder
+        run: dart pub global activate grinder
+
+      - name: Get dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Run code generators
+        run: grind gencode genlang
+
+      - name: Build release APKs
+        run: grind apkrelease
+
+      - name: Collect APK metadata
+        id: meta
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p dist
+          mv build/app/outputs/flutter-apk/boorusphere-*.apk dist/ 2>/dev/null || true
+          cd dist
+          ls -lh
+          version=$(grep -E '^version:' ../pubspec.yaml | head -1 | awk '{print $2}')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          {
+            echo "files<<EOF"
+            ls boorusphere-*.apk 2>/dev/null || true
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload APKs as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boorusphere-${{ steps.meta.outputs.version }}-apks
+          path: dist/boorusphere-*.apk
+          if-no-files-found: error
+
+      - name: Send APKs to Telegram
+        if: |
+          (github.event_name != 'workflow_dispatch' ||
+            inputs.send_to_telegram == true) &&
+          env.TELEGRAM_BOT_TOKEN != '' &&
+          env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          short_sha="${COMMIT_SHA:0:7}"
+          first_line="${COMMIT_MSG%%$'\n'*}"
+          # Telegram captions are capped at 1024 characters; truncate to be safe.
+          caption=$(printf 'boorusphere %s\nref: %s @ %s\n%s' \
+            "$VERSION" "$REF_NAME" "$short_sha" "$first_line" | head -c 1000)
+
+          for apk in dist/boorusphere-*.apk; do
+            [ -e "$apk" ] || continue
+            echo "Sending $apk to Telegram..."
+            curl -fsSL --retry 3 --retry-delay 5 \
+              -F "chat_id=${TELEGRAM_CHAT_ID}" \
+              -F "document=@${apk}" \
+              -F "caption=${caption}" \
+              -F "disable_notification=false" \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+              -o /tmp/tg-response.json
+            if ! grep -q '"ok":true' /tmp/tg-response.json; then
+              echo "Telegram delivery failed for $apk:" >&2
+              cat /tmp/tg-response.json >&2
+              exit 1
+            fi
+          done
+
+      - name: Attach APKs to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/boorusphere-*.apk
+          fail_on_unmatched_files: true

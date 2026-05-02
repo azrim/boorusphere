@@ -9,6 +9,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'suggestion_state.g.dart';
 
+/// Boorus typically use `_` as the word separator in tag names (e.g.
+/// `hololive_girl`); we also accept literal spaces to defend against feeds
+/// that emit pre-decoded labels.
+final RegExp _kTagSeparator = RegExp(r'[ _]+');
+
 class Suggestion {
   const Suggestion(this.name, this.count);
 
@@ -68,7 +73,21 @@ class SuggestionState extends _$SuggestionState {
           .where((it) =>
               !blockedTags.get().values.map((e) => e.name).contains(it.name))
           .toList();
-      result.sort((a, b) => b.count.compareTo(a.count));
+      // Sort single-word tags before multi-word tags (booru tags use `_` as
+      // the word separator, but treat literal spaces the same way for
+      // robustness). Within the same word count, fall back to post count
+      // descending so the most popular variant surfaces first.
+      int wordCount(String s) {
+        final t = s.trim();
+        if (t.isEmpty) return 0;
+        return t.split(_kTagSeparator).where((w) => w.isNotEmpty).length;
+      }
+
+      result.sort((a, b) {
+        final byWords = wordCount(a.name).compareTo(wordCount(b.name));
+        if (byWords != 0) return byWords;
+        return b.count.compareTo(a.count);
+      });
       if (word != _lastWord) return;
 
       if (result.isEmpty && word.isNotEmpty) {

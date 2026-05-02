@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
@@ -11,6 +9,7 @@ import 'package:boorusphere/presentation/screens/home/search/search_bar_controll
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
+import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +29,7 @@ class SearchSuggestion extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final canBeDragged = useRef(false);
-    final screenHeight = MediaQuery.of(context).size.height;
+    final screenHeight = MediaQuery.sizeOf(context).height;
     final isDragging = useRef(false);
     final dragStartY = useRef(0.0);
     final scrollController = useScrollController();
@@ -41,133 +40,131 @@ class SearchSuggestion extends HookConsumerWidget {
     bool isAtTop() =>
         !scrollController.hasClients || scrollController.offset <= 0;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: enableBlur
-            ? ImageFilter.blur(sigmaX: 20, sigmaY: 20)
-            : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-        child: Container(
-          color: enableBlur
-              ? backgroundColor.withValues(alpha: 0.85)
-              : backgroundColor,
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Swipe handle with gesture detection - positioned below status bar
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onVerticalDragStart: (details) {
-                    // Only allow dragging when search is open
-                    canBeDragged.value = searchBar.isOpen;
-                  },
-                  onVerticalDragUpdate: (details) {
-                    if (!canBeDragged.value) return;
+    return BlurBackdrop(
+      blur: enableBlur,
+      sigmaX: 20,
+      sigmaY: 20,
+      child: ColoredBox(
+        color: enableBlur
+            ? backgroundColor.withValues(alpha: 0.85)
+            : backgroundColor,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Swipe handle with gesture detection - positioned below status bar
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragStart: (details) {
+                  // Only allow dragging when search is open
+                  canBeDragged.value = searchBar.isOpen;
+                },
+                onVerticalDragUpdate: (details) {
+                  if (!canBeDragged.value) return;
 
-                    final delta = details.primaryDelta;
-                    if (delta == null) return;
+                  final delta = details.primaryDelta;
+                  if (delta == null) return;
 
-                    // Only allow downward drag (positive delta)
-                    if (delta > 0) {
-                      // Update animation value based on drag distance
-                      animator.value -= delta / (screenHeight * 0.3);
-                      animator.value = animator.value.clamp(0.0, 1.0);
-                    }
-                  },
-                  onVerticalDragEnd: (details) async {
-                    if (!canBeDragged.value) return;
+                  // Only allow downward drag (positive delta)
+                  if (delta > 0) {
+                    // Update animation value based on drag distance
+                    animator.value -= delta / (screenHeight * 0.3);
+                    animator.value = animator.value.clamp(0.0, 1.0);
+                  }
+                },
+                onVerticalDragEnd: (details) async {
+                  if (!canBeDragged.value) return;
 
-                    final velocity = details.velocity.pixelsPerSecond.dy;
+                  final velocity = details.velocity.pixelsPerSecond.dy;
 
-                    if (velocity > 300 || animator.value < 0.7) {
-                      // Close search bar
-                      await animator.reverse();
-                      searchBar.close();
-                    } else {
-                      // Snap back to open
-                      await animator.forward();
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: TweenAnimationBuilder<double>(
-                      duration: const Duration(milliseconds: 1500),
-                      tween: Tween(begin: 0.2, end: 0.6),
-                      builder: (context, value, child) {
-                        return Container(
-                          margin: const EdgeInsets.only(top: 4, bottom: 12),
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: value),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        );
-                      },
-                    ),
+                  if (velocity > 300 || animator.value < 0.7) {
+                    // Close search bar
+                    await animator.reverse();
+                    searchBar.close();
+                  } else {
+                    // Snap back to open
+                    await animator.forward();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 1500),
+                    tween: Tween(begin: 0.2, end: 0.6),
+                    builder: (context, value, child) {
+                      return Container(
+                        margin: const EdgeInsets.only(top: 4, bottom: 12),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withValues(alpha: value),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      );
+                    },
                   ),
                 ),
-                Expanded(
-                  child: Listener(
-                    onPointerMove: (event) {
-                      if (!searchBar.isOpen) return;
+              ),
+              Expanded(
+                child: Listener(
+                  onPointerMove: (event) {
+                    if (!searchBar.isOpen) return;
 
-                      if (!isDragging.value && isAtTop()) {
-                        // Start drag if at top and moving down
-                        if (event.delta.dy > 2) {
-                          isDragging.value = true;
-                          dragStartY.value = event.position.dy;
-                        }
+                    if (!isDragging.value && isAtTop()) {
+                      // Start drag if at top and moving down
+                      if (event.delta.dy > 2) {
+                        isDragging.value = true;
+                        dragStartY.value = event.position.dy;
                       }
+                    }
 
-                      if (isDragging.value) {
-                        final delta = event.position.dy - dragStartY.value;
-                        if (delta > 0) {
-                          // Update animation value based on drag distance
-                          animator.value = 1.0 - (delta / (screenHeight * 0.3));
-                          animator.value = animator.value.clamp(0.0, 1.0);
-                        }
+                    if (isDragging.value) {
+                      final delta = event.position.dy - dragStartY.value;
+                      if (delta > 0) {
+                        // Update animation value based on drag distance
+                        animator.value = 1.0 - (delta / (screenHeight * 0.3));
+                        animator.value = animator.value.clamp(0.0, 1.0);
                       }
-                    },
-                    onPointerUp: (_) async {
-                      if (isDragging.value) {
-                        if (animator.value < 0.7) {
-                          await animator.reverse();
-                          searchBar.close();
-                        } else {
-                          await animator.forward();
-                        }
-                        isDragging.value = false;
-                      }
-                    },
-                    onPointerCancel: (_) async {
-                      if (isDragging.value) {
+                    }
+                  },
+                  onPointerUp: (_) async {
+                    if (isDragging.value) {
+                      if (animator.value < 0.7) {
+                        await animator.reverse();
+                        searchBar.close();
+                      } else {
                         await animator.forward();
-                        isDragging.value = false;
                       }
-                    },
-                    child: CustomScrollView(
-                      controller: scrollController,
-                      physics: const BouncingScrollPhysics(),
-                      cacheExtent: 100, // Minimal cache for performance
-                      slivers: const [
-                        _SearchHistoryHeader(),
-                        _SearchHistory(),
-                        _SuggestionHeader(),
-                        _Suggestion(),
-                        SliverToBoxAdapter(
-                          child:
-                              SizedBox(height: kBottomNavigationBarHeight + 38),
-                        )
-                      ],
-                    ),
+                      isDragging.value = false;
+                    }
+                  },
+                  onPointerCancel: (_) async {
+                    if (isDragging.value) {
+                      await animator.forward();
+                      isDragging.value = false;
+                    }
+                  },
+                  child: CustomScrollView(
+                    controller: scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    cacheExtent: 100, // Minimal cache for performance
+                    slivers: const [
+                      _SearchHistoryHeader(),
+                      _SearchHistory(),
+                      _SuggestionHeader(),
+                      _Suggestion(),
+                      SliverToBoxAdapter(
+                        child:
+                            SizedBox(height: kBottomNavigationBarHeight + 38),
+                      )
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -175,13 +172,17 @@ class SearchSuggestion extends HookConsumerWidget {
   }
 }
 
-class _SearchHistoryHeader extends ConsumerWidget {
+class _SearchHistoryHeader extends HookConsumerWidget {
   const _SearchHistoryHeader();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchBar = ref.watch(searchBarControllerProvider);
-    final history = ref.watch(filterHistoryProvider(searchBar.value));
+    final query = useListenableSelector(
+      searchBar.textEditingController,
+      () => searchBar.textEditingController.text,
+    );
+    final history = ref.watch(filterHistoryProvider(query));
 
     // Show header immediately when search is open, even with empty query
     if (!searchBar.isOpen || history.isEmpty) {
@@ -194,9 +195,9 @@ class _SearchHistoryHeader extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(searchBar.value.trim().isEmpty
+            Text(query.trim().isEmpty
                 ? context.t.recently
-                : '${context.t.recently}: ${searchBar.value}'),
+                : '${context.t.recently}: $query'),
             TextButton(
               onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
               child: Text(context.t.clear),
@@ -214,12 +215,15 @@ class _SearchHistory extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchBar = ref.watch(searchBarControllerProvider);
+    final query = useListenableSelector(
+      searchBar.textEditingController,
+      () => searchBar.textEditingController.text,
+    );
 
     // Optimize history filtering for better performance
-    final history = searchBar.value.trim().isEmpty
+    final history = query.trim().isEmpty
         ? ref.watch(searchHistoryStateProvider) // Show all history
-        : ref.watch(
-            filterHistoryProvider(searchBar.value)); // Show filtered history
+        : ref.watch(filterHistoryProvider(query)); // Show filtered history
 
     // Don't show history if search bar is closed
     if (!searchBar.isOpen) {
@@ -243,7 +247,7 @@ class _SearchHistory extends HookConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                searchBar.value.trim().isEmpty
+                query.trim().isEmpty
                     ? 'No search history yet'
                     : 'No matching history found',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -253,7 +257,7 @@ class _SearchHistory extends HookConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                searchBar.value.trim().isEmpty
+                query.trim().isEmpty
                     ? 'Your recent searches will appear here'
                     : 'Try a different search term',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -310,7 +314,7 @@ class _SearchHistory extends HookConsumerWidget {
   }
 }
 
-class _SuggestionHeader extends ConsumerWidget {
+class _SuggestionHeader extends HookConsumerWidget {
   const _SuggestionHeader();
 
   @override
@@ -318,9 +322,13 @@ class _SuggestionHeader extends ConsumerWidget {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
     final searchBar = ref.watch(searchBarControllerProvider);
+    final query = useListenableSelector(
+      searchBar.textEditingController,
+      () => searchBar.textEditingController.text,
+    );
 
     // Only show suggestion header when user starts typing
-    if (!searchBar.isOpen || searchBar.value.trim().length < 2) {
+    if (!searchBar.isOpen || query.trim().length < 2) {
       return const SliverToBoxAdapter();
     }
 
@@ -366,25 +374,29 @@ class _Suggestion extends HookConsumerWidget {
     final server = ref.watch(serverStateProvider).getById(session.serverId);
     final searchBar = ref.watch(searchBarControllerProvider);
     final suggestion = ref.watch(suggestionStateProvider);
+    final query = useListenableSelector(
+      searchBar.textEditingController,
+      () => searchBar.textEditingController.text,
+    );
 
     // Load suggestions when user starts typing (2+ chars)
     useEffect(() {
-      if (searchBar.value.trim().length >= 2) {
+      if (query.trim().length >= 2) {
         Future.delayed(const Duration(milliseconds: 300), () {
           if (searchBar.isOpen && suggestion is! LoadingFetchResult) {
-            ref.read(suggestionStateProvider.notifier).get(searchBar.value);
+            ref.read(suggestionStateProvider.notifier).get(query);
           }
         });
       }
       return null;
-    }, [searchBar.value]);
+    }, [query]);
 
     if (!server.canSuggestTags) {
       return const SliverToBoxAdapter();
     }
 
     // Show suggestions when user has typed at least 2 characters
-    if (searchBar.value.trim().length < 2) {
+    if (query.trim().length < 2) {
       return const SliverToBoxAdapter();
     }
 
@@ -428,7 +440,7 @@ class _Suggestion extends HookConsumerWidget {
         ),
       ErrorFetchResult(:final error) => _ErrorSuggestion(
           error: error,
-          query: searchBar.value,
+          query: query,
           serverName: server.name,
         ),
     };

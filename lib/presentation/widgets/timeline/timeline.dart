@@ -19,6 +19,12 @@ import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:tinycolor2/tinycolor2.dart';
 
+/// Reused as the explicit-content blur on thumbnails. Hoisted out of the
+/// per-item builder so we don't allocate one [ImageFilter] per visible
+/// thumbnail per build.
+final ImageFilter _kExplicitBlur =
+    ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+
 class Timeline extends ConsumerWidget {
   const Timeline({super.key, required this.posts});
 
@@ -27,7 +33,10 @@ class Timeline extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
-    final screenWidth = context.mediaQuery.size.width;
+    // Aspect-scoped subscriptions: invalidate this build only on changes to
+    // size or DPR, not on keyboard insets, brightness, etc.
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final dpr = MediaQuery.devicePixelRatioOf(context);
     final flexibleGrid = (screenWidth / 200).round() + grid;
     final scrollController = ref
         .watch(timelineControllerProvider.select((it) => it.scrollController));
@@ -38,9 +47,16 @@ class Timeline extends ConsumerWidget {
     final postsList =
         posts is List<Post> ? posts as List<Post> : posts.toList();
 
+    // Hoist DPR-scaled width out of the per-item closure so it isn't
+    // recomputed for every visible thumbnail. The cache height is
+    // post-specific (uses aspect ratio) and stays in `_ThumbnailImage`.
+    final cacheBaseWidth = (screenWidth * dpr / (flexibleGrid * 1.3)).round();
+
     return SliverMasonryGrid.count(
+      // No `key: ObjectKey(flexibleGrid)` here — the previous incarnation
+      // disposed every thumbnail when the grid count changed (e.g. on
+      // rotation), forcing a full re-decode of every visible image.
       crossAxisCount: flexibleGrid,
-      key: ObjectKey(flexibleGrid),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
       childCount: postsList.length,
@@ -48,6 +64,7 @@ class Timeline extends ConsumerWidget {
         return RepaintBoundary(
           child: _ThumbnailCard(
             gridSize: flexibleGrid,
+            cacheBaseWidth: cacheBaseWidth,
             postdata: (index, postsList[index]),
             controller: scrollController,
             blurExplicit: blurExplicit,
@@ -81,6 +98,7 @@ class _ThumbnailCard extends HookConsumerWidget {
     required this.blurExplicit,
     this.onTap,
     required this.gridSize,
+    required this.cacheBaseWidth,
   });
 
   final (int, Post) postdata;
@@ -88,6 +106,7 @@ class _ThumbnailCard extends HookConsumerWidget {
   final bool blurExplicit;
   final void Function()? onTap;
   final int gridSize;
+  final int cacheBaseWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -124,7 +143,11 @@ class _ThumbnailCard extends HookConsumerWidget {
               );
             },
             child: _ThumbnailImage(
-                post: post, blurExplicit: blurExplicit, gridSize: gridSize),
+              post: post,
+              blurExplicit: blurExplicit,
+              gridSize: gridSize,
+              cacheBaseWidth: cacheBaseWidth,
+            ),
           ),
         ),
       ),
@@ -137,26 +160,25 @@ class _ThumbnailImage extends ConsumerWidget {
     required this.post,
     this.blurExplicit = false,
     required this.gridSize,
+    required this.cacheBaseWidth,
   });
 
   final Post post;
   final bool blurExplicit;
   final int gridSize;
+  final int cacheBaseWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final headers = ref.watch(postHeadersFactoryProvider(post));
     // limit timeline thumbnail to 18:9
     final isLong = post.aspectRatio < 0.5;
-    final screen =
-        context.mediaQuery.size * context.mediaQuery.devicePixelRatio;
-    final cacheWidth = (screen.width / (gridSize * 1.3)).round();
+    final cacheWidth = cacheBaseWidth;
     final cacheHeight = (cacheWidth / post.aspectRatio).round();
 
-    // Pre-calculate blur filter to avoid recreating it
-    final blurFilter = blurExplicit && post.rating.isExplicit
-        ? ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal)
-        : null;
+    // Reuse the pre-computed blur filter; allocating a new ImageFilter per
+    // paint forced the engine to thrash the rasterizer cache.
+    final shouldBlur = blurExplicit && post.rating.isExplicit;
 
     final image = AspectRatio(
       aspectRatio: isLong ? 0.5 : post.aspectRatio,
@@ -170,10 +192,9 @@ class _ThumbnailImage extends ConsumerWidget {
         cacheWidth: cacheWidth,
         cacheHeight: cacheHeight,
         enableLoadState: false,
-        // Use pre-calculated filter
-        beforePaintImage: blurFilter != null
+        beforePaintImage: shouldBlur
             ? (canvas, rect, image, paint) {
-                paint.imageFilter = blurFilter;
+                paint.imageFilter = _kExplicitBlur;
                 return false;
               }
             : null,

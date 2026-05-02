@@ -269,6 +269,12 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             : const NeverScrollableScrollPhysics(),
                         allowImplicitScrolling: true,
                         onPageChanged: (index) async {
+                          // The new page starts at scale 1, so swipe should
+                          // be available again. Re-enabling here covers the
+                          // edge case where the previous page disabled it
+                          // and was unmounted before its
+                          // gestureDetailsIsChanged could fire the reset.
+                          controller.enableSwipe();
                           SchedulerBinding.instance
                               .addPostFrameCallback((timeStamp) {
                             if (context.mounted) {
@@ -314,6 +320,17 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                 key: ValueKey(
                                     'image_${post.id}_${post.serverId}'),
                                 post: post,
+                                onZoomChanged: (isZoomed) {
+                                  // Disable PageView swipe while the image
+                                  // is zoomed in so panning the zoomed
+                                  // image cannot accidentally page to the
+                                  // next post.
+                                  if (isZoomed) {
+                                    controller.disableSwipe();
+                                  } else {
+                                    controller.enableSwipe();
+                                  }
+                                },
                               );
                             case PostType.video:
                               widget = PostVideo(

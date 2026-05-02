@@ -73,12 +73,20 @@ class HomeSearchBar extends HookConsumerWidget {
     }, [searchBar.isOpen]);
 
     // Reset delta when there's no scrollable widget attached.
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      if (scrollController.hasClients) return;
-      if (delta.value.reduce((a, b) => a + b) != 0) {
-        delta.value = [0, 0];
-      }
-    });
+    // Scheduling work from `build` itself produces a callback per rebuild,
+    // which previously fired every keystroke. The post-frame check now lives
+    // in a `useEffect` keyed on `delta` so it only schedules when the value
+    // could plausibly need resetting.
+    useEffect(() {
+      if (delta.value.first == 0 && delta.value.last == 0) return null;
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        if (scrollController.hasClients) return;
+        if (delta.value.reduce((a, b) => a + b) != 0) {
+          delta.value = [0, 0];
+        }
+      });
+      return null;
+    }, [delta.value]);
 
     return RepaintBoundary(
       child: Container(

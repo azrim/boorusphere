@@ -44,26 +44,36 @@ class HomeContent extends HookConsumerWidget {
               (option) => option.copyWith(query: session.query, clear: true));
         });
       }
+      return null;
     }, [servers.isNotEmpty]);
 
     final timelineController = ref.watch(timelineControllerProvider);
     final scrollController = timelineController.scrollController;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!scrollController.hasClients ||
-          pageState is DataFetchResult ||
-          pageState is LoadingFetchResult) {
-        return;
-      }
+    // Auto-stretch the scroll past the bottom edge after a fetch settles.
+    // The previous implementation enqueued a post-frame callback from inside
+    // `build` itself, which fires after every rebuild (every keystroke,
+    // every drawer animation tick, etc.). Scoping it to a `useEffect` keyed
+    // on `pageState` so it only re-runs when the fetch result actually
+    // changes.
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!scrollController.hasClients ||
+            pageState is DataFetchResult ||
+            pageState is LoadingFetchResult) {
+          return;
+        }
 
-      if (scrollController.position.extentAfter < 300) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.fastOutSlowIn,
-        );
-      }
-    });
+        if (scrollController.position.extentAfter < 300) {
+          scrollController.animateTo(
+            scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.fastOutSlowIn,
+          );
+        }
+      });
+      return null;
+    }, [pageState, scrollController]);
 
     final isNewSearch =
         pageState is! DataFetchResult && pageState.data.option.clear;
@@ -93,7 +103,7 @@ class HomeContent extends HookConsumerWidget {
               if (!isNewSearch)
                 SliverPadding(
                   padding: EdgeInsets.only(
-                    bottom: context.mediaQuery.viewPadding.bottom * 1.8 + 92,
+                    bottom: MediaQuery.viewPaddingOf(context).bottom * 1.8 + 92,
                   ),
                   sliver: const SliverToBoxAdapter(child: HomeStatus()),
                 )
@@ -115,7 +125,7 @@ class _EdgeShadow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint = context.theme.scaffoldBackgroundColor;
-    final paddingTop = context.mediaQuery.padding.top;
+    final paddingTop = MediaQuery.paddingOf(context).top;
     return Positioned(
       top: 0,
       left: 0,

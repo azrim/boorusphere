@@ -9,7 +9,6 @@ import 'package:boorusphere/presentation/provider/settings/content_setting_state
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/screens/post/post_placeholder_image.dart';
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
-import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -18,13 +17,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+/// Hoisted out of `build` so we don't allocate one [ImageFilter] per
+/// repaint while the user is zooming or scrolling. Reused by [PostImage]
+/// and the placeholder render path.
+final ImageFilter _kExplicitBlur =
+    ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+
 class PostImage extends HookConsumerWidget {
   const PostImage({
     super.key,
     required this.post,
+    this.onZoomChanged,
   });
 
   final Post post;
+
+  /// Called whenever the rendered image transitions between resting (scale
+  /// == 1) and zoomed-in (scale > 1) states. Used by the post viewer to
+  /// disable page-swipe gestures while a zoom is active so panning a
+  /// zoomed image does not accidentally swipe to the next post.
+  final void Function(bool isZoomed)? onZoomChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,14 +48,19 @@ class PostImage extends HookConsumerWidget {
     final zoomAnimator =
         useAnimationController(duration: const Duration(milliseconds: 150));
     final imageLoadState = useStreamController<ExtendedImageState>();
+    // Tracks whether we have already notified the parent that the image is
+    // zoomed in. We only fire when the boolean transitions, not on every
+    // gesture detail tick.
+    final wasZoomed = useRef(false);
 
     useEffect(() {
       if (post.rating != BooruRating.explicit || !shouldBlurExplicit) {
-        return;
+        return null;
       }
-    }, []);
+      return null;
+    }, const []);
 
-    final deviceRatio = context.mediaQuery.size.aspectRatio;
+    final deviceRatio = MediaQuery.sizeOf(context).aspectRatio;
     final imageRatio = post.aspectRatio;
     final scaleRatio = deviceRatio < imageRatio
         ? imageRatio / deviceRatio
@@ -73,16 +90,23 @@ class PostImage extends HookConsumerWidget {
                   return GestureConfig(
                     maxScale: scaleRatio * 5,
                     inPageView: true,
+                    gestureDetailsIsChanged: (details) {
+                      // Treat anything strictly above the resting scale as
+                      // "zoomed". A small epsilon avoids flapping on the
+                      // double-tap animation overshoot.
+                      final scale = details?.totalScale ?? 1;
+                      final zoomed = scale > 1.01;
+                      if (zoomed != wasZoomed.value) {
+                        wasZoomed.value = zoomed;
+                        onZoomChanged?.call(zoomed);
+                      }
+                    },
                   );
                 },
                 handleLoadingProgress: true,
                 beforePaintImage: (canvas, rect, image, paint) {
                   if (isBlur.value) {
-                    paint.imageFilter = ImageFilter.blur(
-                      sigmaX: 5,
-                      sigmaY: 5,
-                      tileMode: TileMode.decal,
-                    );
+                    paint.imageFilter = _kExplicitBlur;
                   }
                   return false;
                 },
