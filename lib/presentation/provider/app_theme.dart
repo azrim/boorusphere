@@ -7,8 +7,8 @@ import 'package:tinycolor2/tinycolor2.dart';
 part 'app_theme.g.dart';
 
 @riverpod
-AppThemeDataNotifier appThemeData(Ref ref) {
-  return AppThemeDataNotifier();
+AppThemeFactory appThemeData(Ref ref) {
+  return const AppThemeFactory();
 }
 
 class AppThemeData {
@@ -23,17 +23,17 @@ class AppThemeData {
   final ThemeData midnight;
 }
 
-class AppThemeDataNotifier {
-  late AppThemeData _data = _createAppThemeData();
-
-  AppThemeData get data => _data;
+/// Stateless factory that produces a fresh `AppThemeData` from the
+/// (optional) dynamic-color schemes the OS provides.
+///
+/// Used to be a stateful `AppThemeDataNotifier` that mutated a `_data`
+/// field and returned it from `fillWith`, which violated Riverpod's
+/// immutability contract — the provider re-emitted the same notifier
+/// instance with mutated state, so dependents never saw a state change.
+class AppThemeFactory {
+  const AppThemeFactory();
 
   AppThemeData fillWith({ColorScheme? light, ColorScheme? dark}) {
-    _data = _createAppThemeData(light: light, dark: dark);
-    return _data;
-  }
-
-  AppThemeData _createAppThemeData({ColorScheme? light, ColorScheme? dark}) {
     return AppThemeData(
       day: _createThemeData(light, Brightness.light),
       night: _createThemeData(dark, Brightness.dark),
@@ -58,9 +58,7 @@ class AppThemeDataNotifier {
       ),
       canvasColor: colorScheme.surface,
       scaffoldBackgroundColor: colorScheme.surface,
-      dialogTheme: DialogThemeData(
-        backgroundColor: colorScheme.surface,
-      ),
+      dialogTheme: DialogThemeData(backgroundColor: colorScheme.surface),
       drawerTheme: origin.drawerTheme.copyWith(
         backgroundColor: colorScheme.surfaceContainerLow,
       ),
@@ -91,9 +89,7 @@ class AppThemeDataNotifier {
       primaryColor: Colors.black,
       canvasColor: Colors.black,
       scaffoldBackgroundColor: Colors.black,
-      drawerTheme: origin.drawerTheme.copyWith(
-        backgroundColor: Colors.black,
-      ),
+      drawerTheme: origin.drawerTheme.copyWith(backgroundColor: Colors.black),
       colorScheme: origin.colorScheme.copyWith(
         brightness: Brightness.dark,
         surface: origin.colorScheme.surface,
