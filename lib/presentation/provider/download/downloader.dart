@@ -10,7 +10,8 @@ import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dar
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart'
+    hide DownloadProgress;
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -62,10 +63,11 @@ class Downloader {
     );
   }
 
-  /// Try to get file from extended_image cache
+  /// Try to get file from the cached_network_image disk cache
   Future<File?> _getCachedFile(String url) async {
     try {
-      final file = await getCachedImageFile(url);
+      final info = await DefaultCacheManager().getFileFromCache(url);
+      final file = info?.file;
       if (file != null && file.existsSync()) {
         return file;
       }

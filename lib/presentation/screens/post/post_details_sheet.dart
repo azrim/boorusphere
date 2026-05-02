@@ -12,7 +12,7 @@ import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -362,9 +362,8 @@ class _SheetContent extends ConsumerWidget {
               content: FutureBuilder<PixelSize>(
                 future: (post.content.isPhoto || post.content.isGif) &&
                         !post.sampleSize.hasPixels
-                    ? ExtendedNetworkImageProvider(
+                    ? CachedNetworkImageProvider(
                         post.sampleFile,
-                        cache: true,
                         headers: headers,
                       ).resolvePixelSize()
                     : Future.value(post.sampleSize),
