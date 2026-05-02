@@ -33,20 +33,23 @@ class Timeline extends ConsumerWidget {
     final dpr = context.devicePixelRatio;
     final screenWidth = screenSize.width;
     final flexibleGrid = (screenWidth / 200).round() + grid;
-    final scrollController = ref
-        .watch(timelineControllerProvider.select((it) => it.scrollController));
-    final blurExplicit =
-        ref.watch(contentSettingStateProvider.select((it) => it.blurExplicit));
+    final scrollController = ref.watch(
+      timelineControllerProvider.select((it) => it.scrollController),
+    );
+    final blurExplicit = ref.watch(
+      contentSettingStateProvider.select((it) => it.blurExplicit),
+    );
 
     // Convert to list once for better performance
-    final postsList =
-        posts is List<Post> ? posts as List<Post> : posts.toList();
+    final postsList = posts is List<Post>
+        ? posts as List<Post>
+        : posts.toList();
 
     // Hoist constants used by every thumbnail to compute the decode cache
     // size. Computing once here means each `_ThumbnailImage` build is cheap
     // and avoids subscribing to MediaQuery per card.
-    final thumbCacheWidth =
-        (screenSize.width * dpr / (flexibleGrid * 1.3)).round();
+    final thumbCacheWidth = (screenSize.width * dpr / (flexibleGrid * 1.3))
+        .round();
 
     return SliverMasonryGrid.count(
       crossAxisCount: flexibleGrid,
@@ -64,8 +67,9 @@ class Timeline extends ConsumerWidget {
               context.scaffoldMessenger.removeCurrentSnackBar();
 
               // Use enhanced post viewer with configurable swipe mode
-              final gestureSettings =
-                  ref.read(gestureSettingStateNotifierProvider);
+              final gestureSettings = ref.read(
+                gestureSettingStateNotifierProvider,
+              );
               EnhancedPostViewer.open(
                 context,
                 index: index,
@@ -116,9 +120,10 @@ class _ThumbnailCard extends HookConsumerWidget {
             tag: post.viewId,
             flightShuttleBuilder: _heroFlightShuttle,
             child: _ThumbnailImage(
-                post: post,
-                blurExplicit: blurExplicit,
-                cacheWidth: thumbCacheWidth),
+              post: post,
+              blurExplicit: blurExplicit,
+              cacheWidth: thumbCacheWidth,
+            ),
           ),
         ),
       ),
@@ -156,8 +161,11 @@ class _ThumbnailCard extends HookConsumerWidget {
 // SkImageFilter object every time it is constructed. Hoisting it as a
 // const-ish static avoids per-card per-build allocation when explicit
 // thumbnails are visible.
-final _kExplicitBlurFilter =
-    ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+final _kExplicitBlurFilter = ImageFilter.blur(
+  sigmaX: 5,
+  sigmaY: 5,
+  tileMode: TileMode.decal,
+);
 
 class _ThumbnailImage extends ConsumerWidget {
   const _ThumbnailImage({
@@ -177,8 +185,9 @@ class _ThumbnailImage extends ConsumerWidget {
     final isLong = post.aspectRatio < 0.5;
     final cacheHeight = (cacheWidth / post.aspectRatio).round();
 
-    final blurFilter =
-        blurExplicit && post.rating.isExplicit ? _kExplicitBlurFilter : null;
+    final blurFilter = blurExplicit && post.rating.isExplicit
+        ? _kExplicitBlurFilter
+        : null;
 
     final image = AspectRatio(
       aspectRatio: isLong ? 0.5 : post.aspectRatio,
@@ -232,10 +241,7 @@ class _ThumbnailImage extends ConsumerWidget {
         isLong
             ? Stack(
                 alignment: Alignment.bottomCenter,
-                children: [
-                  image,
-                  const _LongThumbnailIndicator(),
-                ],
+                children: [image, const _LongThumbnailIndicator()],
               )
             : image,
         // Add overlay icons for GIF and video
@@ -277,10 +283,7 @@ class _LongThumbnailIndicator extends StatelessWidget {
 }
 
 class _MediaTypeIndicator extends StatelessWidget {
-  const _MediaTypeIndicator({
-    required this.isVideo,
-    required this.isGif,
-  });
+  const _MediaTypeIndicator({required this.isVideo, required this.isGif});
 
   final bool isVideo;
   final bool isGif;
@@ -296,11 +299,7 @@ class _MediaTypeIndicator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: _decoration,
       child: isVideo
-          ? const Icon(
-              Icons.play_arrow,
-              color: Colors.white,
-              size: 16,
-            )
+          ? const Icon(Icons.play_arrow, color: Colors.white, size: 16)
           : const Text(
               'GIF',
               style: TextStyle(
@@ -314,9 +313,7 @@ class _MediaTypeIndicator extends StatelessWidget {
 }
 
 class _Placeholder extends StatelessWidget {
-  const _Placeholder({
-    this.isFailed = false,
-  });
+  const _Placeholder({this.isFailed = false});
 
   final bool isFailed;
 
@@ -342,15 +339,12 @@ class _Placeholder extends StatelessWidget {
           baseColor,
           highlightColor,
           baseColor,
-          baseColor
+          baseColor,
         ],
         stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
       ),
       period: const Duration(milliseconds: 700),
-      child: Container(
-        color: Colors.black,
-        child: const SizedBox.expand(),
-      ),
+      child: Container(color: Colors.black, child: const SizedBox.expand()),
     );
   }
 }

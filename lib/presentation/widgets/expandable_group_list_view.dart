@@ -20,30 +20,35 @@ class ExpandableGroupListView<T, E> extends StatelessWidget {
   final bool ungroup;
   final bool expanded;
 
-  Map<E, List<T>> get grouped {
-    return groupBy(items, groupedBy);
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (ungroup) {
+      return ListView.builder(
+        padding: const EdgeInsets.only(bottom: 48),
+        itemCount: items.length,
+        itemBuilder: (context, index) => itemBuilder(items.atReverse(index)),
+      );
+    }
+
+    // Group once per build instead of per-item-tile (the previous getter
+    // was invoked from both `itemCount` and `itemBuilder`, doing the work
+    // 1 + N times each rebuild) and reverse the entries up-front so we
+    // index a List directly.
+    final groups = groupBy(items, groupedBy).entries.toList().reversed.toList();
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 48),
-      itemCount: ungroup ? items.length : grouped.length,
+      itemCount: groups.length,
       itemBuilder: (context, index) {
-        if (!ungroup) {
-          final group = grouped.entries.atReverse(index);
-          return Theme(
-            data: context.theme.copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              title: groupTitle(group.key),
-              initiallyExpanded: expanded,
-              textColor: context.colorScheme.onSurface,
-              children: group.value.map(itemBuilder).toList(),
-            ),
-          );
-        }
-
-        return itemBuilder(items.atReverse(index));
+        final group = groups[index];
+        return Theme(
+          data: context.theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            title: groupTitle(group.key),
+            initiallyExpanded: expanded,
+            textColor: context.colorScheme.onSurface,
+            children: group.value.map(itemBuilder).toList(growable: false),
+          ),
+        );
       },
     );
   }

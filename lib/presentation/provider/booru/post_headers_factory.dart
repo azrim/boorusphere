@@ -21,7 +21,10 @@ Map<String, String> postHeadersFactory(
   Post post, {
   List<Cookie> cookies = const [],
 }) {
-  final versionRepo = ref.watch(versionRepoProvider);
+  // versionRepoProvider is initialized once at startup and never emits, so
+  // the family family-of-headers does not need to subscribe to it.
+  // `ref.read` avoids creating a dependency edge per post.
+  final versionRepo = ref.read(versionRepoProvider);
   final url = post.postUrl.isEmpty ? post.content.url : post.postUrl;
   final referer = createReferer(url);
 

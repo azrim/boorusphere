@@ -116,8 +116,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                   color: enableBlur
                       ? backgroundColor.withValues(alpha: 0.85)
                       : backgroundColor,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
                 ),
                 child: Stack(
                   children: [
@@ -129,8 +130,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                         // Content
                         SliverToBoxAdapter(
                           child: _SheetContent(
-                            key:
-                                ValueKey('content_${post.id}_${post.serverId}'),
+                            key: ValueKey(
+                              'content_${post.id}_${post.serverId}',
+                            ),
                             post: post,
                             selectedTags: _selectedTags,
                             onTagPressed: _onTagPressed,
@@ -157,8 +159,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
               // Only apply blur when enabled
               if (enableBlur) {
                 return ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                     child: content,
@@ -167,8 +170,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
               }
 
               return ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: content,
               );
             },
@@ -192,10 +196,9 @@ class _DragHandle extends StatelessWidget {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .onSurfaceVariant
-                .withValues(alpha: 0.4),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -335,10 +338,7 @@ class _SheetContent extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (rating.isNotEmpty)
-            _InfoTile(
-              title: context.t.rating.title,
-              content: Text(rating),
-            ),
+            _InfoTile(title: context.t.rating.title, content: Text(rating)),
           _InfoTile(
             title: context.t.score,
             content: Text(post.score.toString()),
@@ -359,7 +359,8 @@ class _SheetContent extends ConsumerWidget {
             _InfoTile(
               title: context.t.fileSample,
               content: FutureBuilder<PixelSize>(
-                future: (post.content.isPhoto || post.content.isGif) &&
+                future:
+                    (post.content.isPhoto || post.content.isGif) &&
                         !post.sampleSize.hasPixels
                     ? ExtendedNetworkImageProvider(
                         post.sampleFile,
@@ -387,10 +388,7 @@ class _SheetContent extends ConsumerWidget {
             trailing: _CopyButton(post.originalFile),
           ),
           const SizedBox(height: 8),
-          Text(
-            context.t.tags,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text(context.t.tags, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           if (!post.hasCategorizedTags)
             _TagsWrap(
@@ -443,11 +441,7 @@ class _SheetContent extends ConsumerWidget {
 }
 
 class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.title,
-    required this.content,
-    this.trailing,
-  });
+  const _InfoTile({required this.title, required this.content, this.trailing});
 
   final String title;
   final Widget content;
@@ -467,8 +461,8 @@ class _InfoTile extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 content,
@@ -496,15 +490,12 @@ class _LinkText extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (label != null)
-            Text(
-              label!,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(label!, style: Theme.of(context).textTheme.bodyMedium),
           Text(
             url,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -560,8 +551,8 @@ class _TagsSection extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         _TagsWrap(

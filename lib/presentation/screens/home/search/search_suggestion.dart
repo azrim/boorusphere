@@ -42,129 +42,127 @@ class SearchSuggestion extends HookConsumerWidget {
         !scrollController.hasClients || scrollController.offset <= 0;
 
     final body = Container(
-          color: enableBlur
-              ? backgroundColor.withValues(alpha: 0.85)
-              : backgroundColor,
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Swipe handle with gesture detection - positioned below status bar
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onVerticalDragStart: (details) {
-                    // Only allow dragging when search is open
-                    canBeDragged.value = searchBar.isOpen;
+      color: enableBlur
+          ? backgroundColor.withValues(alpha: 0.85)
+          : backgroundColor,
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Swipe handle with gesture detection - positioned below status bar
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragStart: (details) {
+                // Only allow dragging when search is open
+                canBeDragged.value = searchBar.isOpen;
+              },
+              onVerticalDragUpdate: (details) {
+                if (!canBeDragged.value) return;
+
+                final delta = details.primaryDelta;
+                if (delta == null) return;
+
+                // Only allow downward drag (positive delta)
+                if (delta > 0) {
+                  // Update animation value based on drag distance
+                  animator.value -= delta / (screenHeight * 0.3);
+                  animator.value = animator.value.clamp(0.0, 1.0);
+                }
+              },
+              onVerticalDragEnd: (details) async {
+                if (!canBeDragged.value) return;
+
+                final velocity = details.velocity.pixelsPerSecond.dy;
+
+                if (velocity > 300 || animator.value < 0.7) {
+                  // Close search bar
+                  await animator.reverse();
+                  searchBar.close();
+                } else {
+                  // Snap back to open
+                  await animator.forward();
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 1500),
+                  tween: Tween(begin: 0.2, end: 0.6),
+                  builder: (context, value, child) {
+                    return Container(
+                      margin: const EdgeInsets.only(top: 4, bottom: 12),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: value),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    );
                   },
-                  onVerticalDragUpdate: (details) {
-                    if (!canBeDragged.value) return;
+                ),
+              ),
+            ),
+            Expanded(
+              child: Listener(
+                onPointerMove: (event) {
+                  if (!searchBar.isOpen) return;
 
-                    final delta = details.primaryDelta;
-                    if (delta == null) return;
+                  if (!isDragging.value && isAtTop()) {
+                    // Start drag if at top and moving down
+                    if (event.delta.dy > 2) {
+                      isDragging.value = true;
+                      dragStartY.value = event.position.dy;
+                    }
+                  }
 
-                    // Only allow downward drag (positive delta)
+                  if (isDragging.value) {
+                    final delta = event.position.dy - dragStartY.value;
                     if (delta > 0) {
                       // Update animation value based on drag distance
-                      animator.value -= delta / (screenHeight * 0.3);
+                      animator.value = 1.0 - (delta / (screenHeight * 0.3));
                       animator.value = animator.value.clamp(0.0, 1.0);
                     }
-                  },
-                  onVerticalDragEnd: (details) async {
-                    if (!canBeDragged.value) return;
-
-                    final velocity = details.velocity.pixelsPerSecond.dy;
-
-                    if (velocity > 300 || animator.value < 0.7) {
-                      // Close search bar
+                  }
+                },
+                onPointerUp: (_) async {
+                  if (isDragging.value) {
+                    if (animator.value < 0.7) {
                       await animator.reverse();
                       searchBar.close();
                     } else {
-                      // Snap back to open
                       await animator.forward();
                     }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: TweenAnimationBuilder<double>(
-                      duration: const Duration(milliseconds: 1500),
-                      tween: Tween(begin: 0.2, end: 0.6),
-                      builder: (context, value, child) {
-                        return Container(
-                          margin: const EdgeInsets.only(top: 4, bottom: 12),
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: value),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        );
-                      },
+                    isDragging.value = false;
+                  }
+                },
+                onPointerCancel: (_) async {
+                  if (isDragging.value) {
+                    await animator.forward();
+                    isDragging.value = false;
+                  }
+                },
+                child: CustomScrollView(
+                  controller: scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  cacheExtent: 100, // Minimal cache for performance
+                  slivers: const [
+                    _SearchHistoryHeader(),
+                    _SearchHistory(),
+                    _SuggestionHeader(),
+                    _Suggestion(),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: kBottomNavigationBarHeight + 38),
                     ),
-                  ),
+                  ],
                 ),
-                Expanded(
-                  child: Listener(
-                    onPointerMove: (event) {
-                      if (!searchBar.isOpen) return;
-
-                      if (!isDragging.value && isAtTop()) {
-                        // Start drag if at top and moving down
-                        if (event.delta.dy > 2) {
-                          isDragging.value = true;
-                          dragStartY.value = event.position.dy;
-                        }
-                      }
-
-                      if (isDragging.value) {
-                        final delta = event.position.dy - dragStartY.value;
-                        if (delta > 0) {
-                          // Update animation value based on drag distance
-                          animator.value = 1.0 - (delta / (screenHeight * 0.3));
-                          animator.value = animator.value.clamp(0.0, 1.0);
-                        }
-                      }
-                    },
-                    onPointerUp: (_) async {
-                      if (isDragging.value) {
-                        if (animator.value < 0.7) {
-                          await animator.reverse();
-                          searchBar.close();
-                        } else {
-                          await animator.forward();
-                        }
-                        isDragging.value = false;
-                      }
-                    },
-                    onPointerCancel: (_) async {
-                      if (isDragging.value) {
-                        await animator.forward();
-                        isDragging.value = false;
-                      }
-                    },
-                    child: CustomScrollView(
-                      controller: scrollController,
-                      physics: const BouncingScrollPhysics(),
-                      cacheExtent: 100, // Minimal cache for performance
-                      slivers: const [
-                        _SearchHistoryHeader(),
-                        _SearchHistory(),
-                        _SuggestionHeader(),
-                        _Suggestion(),
-                        SliverToBoxAdapter(
-                          child:
-                              SizedBox(height: kBottomNavigationBarHeight + 38),
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        );
+          ],
+        ),
+      ),
+    );
 
     // Only construct the BackdropFilter when blur is enabled. The previous
     // implementation always wrapped the suggestion screen in a BackdropFilter
@@ -172,10 +170,7 @@ class SearchSuggestion extends HookConsumerWidget {
     // saveLayer for the entire area on every paint pass.
     return ClipRect(
       child: enableBlur
-          ? BackdropFilter(
-              filter: _kSuggestionBlurFilter,
-              child: body,
-            )
+          ? BackdropFilter(filter: _kSuggestionBlurFilter, child: body)
           : body,
     );
   }
@@ -203,9 +198,11 @@ class _SearchHistoryHeader extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(searchBar.value.trim().isEmpty
-                ? context.t.recently
-                : '${context.t.recently}: ${searchBar.value}'),
+            Text(
+              searchBar.value.trim().isEmpty
+                  ? context.t.recently
+                  : '${context.t.recently}: ${searchBar.value}',
+            ),
             TextButton(
               onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
               child: Text(context.t.clear),
@@ -228,7 +225,8 @@ class _SearchHistory extends HookConsumerWidget {
     final history = searchBar.value.trim().isEmpty
         ? ref.watch(searchHistoryStateProvider) // Show all history
         : ref.watch(
-            filterHistoryProvider(searchBar.value)); // Show filtered history
+            filterHistoryProvider(searchBar.value),
+          ); // Show filtered history
 
     // Don't show history if search bar is closed
     if (!searchBar.isOpen) {
@@ -245,10 +243,9 @@ class _SearchHistory extends HookConsumerWidget {
               Icon(
                 Icons.history,
                 size: 48,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant
-                    .withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               Text(
@@ -256,8 +253,8 @@ class _SearchHistory extends HookConsumerWidget {
                     ? 'No search history yet'
                     : 'No matching history found',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -266,11 +263,10 @@ class _SearchHistory extends HookConsumerWidget {
                     ? 'Your recent searches will appear here'
                     : 'Try a different search term',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant
-                          .withValues(alpha: 0.7),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -358,8 +354,8 @@ class _SuggestionHeader extends ConsumerWidget {
         child: Text(
           context.t.suggestion.suggested(serverName: server.name),
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -399,47 +395,45 @@ class _Suggestion extends HookConsumerWidget {
 
     return switch (suggestion) {
       IdleFetchResult() => const SliverToBoxAdapter(
-          child: SizedBox(
-            height: 48,
-            child: Center(
-              child: Text('Start typing to see suggestions...'),
-            ),
-          ),
+        child: SizedBox(
+          height: 48,
+          child: Center(child: Text('Start typing to see suggestions...')),
         ),
+      ),
       DataFetchResult(:final data) => SliverList.builder(
-          itemCount: data.length.clamp(0, 20), // Show more suggestions
-          itemBuilder: (context, index) {
-            final suggestion = data.elementAt(index);
-            return RepaintBoundary(
-              child: _SuggestionEntryTile(
-                data: _SuggestionEntry(
-                  isHistory: false,
-                  text: suggestion.name,
-                  postCount: suggestion.count,
-                ),
-                onTap: (str) => searchBar.submit(context, str),
-                onAdded: searchBar.appendTyped,
+        itemCount: data.length.clamp(0, 20), // Show more suggestions
+        itemBuilder: (context, index) {
+          final suggestion = data.elementAt(index);
+          return RepaintBoundary(
+            child: _SuggestionEntryTile(
+              data: _SuggestionEntry(
+                isHistory: false,
+                text: suggestion.name,
+                postCount: suggestion.count,
               ),
-            );
-          },
-        ),
+              onTap: (str) => searchBar.submit(context, str),
+              onAdded: searchBar.appendTyped,
+            ),
+          );
+        },
+      ),
       LoadingFetchResult() => const SliverToBoxAdapter(
-          child: SizedBox(
-            height: 48,
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+        child: SizedBox(
+          height: 48,
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
         ),
+      ),
       ErrorFetchResult(:final error) => _ErrorSuggestion(
-          error: error,
-          query: searchBar.value,
-          serverName: server.name,
-        ),
+        error: error,
+        query: searchBar.value,
+        serverName: server.name,
+      ),
     };
   }
 }
@@ -472,9 +466,7 @@ class _ErrorSuggestion extends StatelessWidget {
 
     return SliverPadding(
       padding: const EdgeInsets.all(16),
-      sliver: SliverToBoxAdapter(
-        child: ErrorInfo(error: msg),
-      ),
+      sliver: SliverToBoxAdapter(child: ErrorInfo(error: msg)),
     );
   }
 }
@@ -534,9 +526,8 @@ class _SuggestionEntryTile extends StatelessWidget {
                     Text(
                       context.t.suggestion.desc(serverName: data.server),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -547,8 +538,8 @@ class _SuggestionEntryTile extends StatelessWidget {
               Text(
                 data.postCount.toString(),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(width: 8),
             ],
