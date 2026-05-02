@@ -66,12 +66,6 @@ class HomePage extends HookConsumerWidget {
             suggestionStateProvider.overrideWith(
               () => SuggestionState(session: session),
             ),
-            searchBarControllerProvider.overrideWith(
-              (ref) => SearchBarController(ref, session: session),
-            ),
-            homeDrawerControllerProvider.overrideWith(
-              (ref) => HomeDrawerController(),
-            ),
             timelineControllerProvider.overrideWith(
               (ref) => TimelineController(
                 scrollController: AutoScrollController(
@@ -92,7 +86,8 @@ class HomePage extends HookConsumerWidget {
 class _Home extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final session = ref.watch(searchSessionProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     // Pin the drawer controller without subscribing to its (now-silent)
     // ChangeNotifier; subscribe instead to the discrete open/closed bit so
     // we don't rebuild `_Home` on every animation frame.

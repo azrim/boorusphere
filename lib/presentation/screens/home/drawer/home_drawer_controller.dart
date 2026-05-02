@@ -4,7 +4,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 final homeDrawerControllerProvider =
     ChangeNotifierProvider.autoDispose<HomeDrawerController>(
-        (ref) => throw UnimplementedError());
+  (ref) => HomeDrawerController(),
+);
 
 /// Controller for the home shell drawer.
 ///

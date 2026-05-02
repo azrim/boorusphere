@@ -8,9 +8,10 @@ import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-final searchBarControllerProvider =
-    ChangeNotifierProvider.autoDispose<SearchBarController>(
-        (ref) => throw UnimplementedError());
+final searchBarControllerProvider = ChangeNotifierProvider.autoDispose
+    .family<SearchBarController, SearchSession>(
+  (ref, session) => SearchBarController(ref, session: session),
+);
 
 /// Controller for the search bar.
 ///

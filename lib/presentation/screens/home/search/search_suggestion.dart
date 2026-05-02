@@ -177,7 +177,8 @@ class _SearchHistoryHeader extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final session = ref.watch(searchSessionProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     final query = useListenableSelector(
       searchBar.textEditingController,
       () => searchBar.textEditingController.text,
@@ -214,7 +215,8 @@ class _SearchHistory extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final session = ref.watch(searchSessionProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     final query = useListenableSelector(
       searchBar.textEditingController,
       () => searchBar.textEditingController.text,
@@ -321,7 +323,7 @@ class _SuggestionHeader extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     final query = useListenableSelector(
       searchBar.textEditingController,
       () => searchBar.textEditingController.text,
@@ -372,7 +374,7 @@ class _Suggestion extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     final suggestion = ref.watch(suggestionStateProvider);
     final query = useListenableSelector(
       searchBar.textEditingController,
