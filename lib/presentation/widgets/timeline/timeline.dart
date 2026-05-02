@@ -8,10 +8,9 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -180,46 +179,34 @@ class _ThumbnailImage extends ConsumerWidget {
     // paint forced the engine to thrash the rasterizer cache.
     final shouldBlur = blurExplicit && post.rating.isExplicit;
 
+    final url = post.aspectRatio < 0.26 && post.sampleFile.asContent().isPhoto
+        ? post.sampleFile
+        : post.previewFile;
+
     final image = AspectRatio(
       aspectRatio: isLong ? 0.5 : post.aspectRatio,
-      child: ExtendedImage.network(
-        // load sample photo when it's above 35:9
-        post.aspectRatio < 0.26 && post.sampleFile.asContent().isPhoto
-            ? post.sampleFile
-            : post.previewFile,
-        headers: headers,
+      child: CachedNetworkImage(
+        imageUrl: url,
+        httpHeaders: headers,
         fit: BoxFit.cover,
-        cacheWidth: cacheWidth,
-        cacheHeight: cacheHeight,
-        enableLoadState: false,
-        beforePaintImage: shouldBlur
-            ? (canvas, rect, image, paint) {
-                paint.imageFilter = _kExplicitBlur;
-                return false;
-              }
+        memCacheWidth: cacheWidth,
+        memCacheHeight: cacheHeight,
+        maxWidthDiskCache: cacheWidth,
+        maxHeightDiskCache: cacheHeight,
+        fadeInDuration: const Duration(milliseconds: 150),
+        placeholder: (context, _) => const _Placeholder(),
+        errorWidget: (context, _, __) => const _Placeholder(isFailed: true),
+        imageBuilder: shouldBlur
+            ? (context, provider) => ImageFiltered(
+                  imageFilter: _kExplicitBlur,
+                  child: Image(
+                    image: provider,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                )
             : null,
-        loadStateChanged: (state) {
-          if (state.wasSynchronouslyLoaded && state.isCompleted) {
-            return state.completedWidget;
-          }
-
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 150),
-            child: state.isCompleted
-                ? state.completedWidget
-                : _Placeholder(isFailed: state.isFailed),
-            layoutBuilder: (currentChild, previousChildren) {
-              return Stack(
-                alignment: Alignment.center,
-                fit: StackFit.passthrough,
-                children: [
-                  ...previousChildren,
-                  if (currentChild != null) currentChild,
-                ],
-              );
-            },
-          );
-        },
       ),
     );
 

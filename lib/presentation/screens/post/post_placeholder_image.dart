@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class PostPlaceholderImage extends StatelessWidget {
@@ -16,23 +16,28 @@ class PostPlaceholderImage extends StatelessWidget {
   final bool shouldBlur;
   final Map<String, String>? headers;
 
-  // Pre-computed blur filter to avoid recreating it
   static final _blurFilter =
       ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
 
   @override
   Widget build(BuildContext context) {
-    return ExtendedImage.network(
-      post.previewFile,
-      headers: headers,
+    return CachedNetworkImage(
+      imageUrl: post.previewFile,
+      httpHeaders: headers,
       fit: BoxFit.contain,
-      enableLoadState: false,
-      beforePaintImage: shouldBlur
-          ? (canvas, rect, image, paint) {
-              paint.imageFilter = _blurFilter;
-              return false;
-            }
+      imageBuilder: shouldBlur
+          ? (context, provider) => ImageFiltered(
+                imageFilter: _blurFilter,
+                child: Image(
+                  image: provider,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              )
           : null,
+      placeholder: (context, _) => const SizedBox.shrink(),
+      errorWidget: (context, _, __) => const SizedBox.shrink(),
     );
   }
 }
