@@ -1,6 +1,7 @@
 import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_suggestion.dart';
+import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,7 +13,8 @@ class SearchScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final session = ref.watch(searchSessionProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     final isOpen = searchBar.isOpen;
     final animator =
         useAnimationController(duration: const Duration(milliseconds: 300));

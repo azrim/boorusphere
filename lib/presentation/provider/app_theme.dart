@@ -1,15 +1,6 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:tinycolor2/tinycolor2.dart';
-
-part 'app_theme.g.dart';
-
-@riverpod
-AppThemeDataNotifier appThemeData(Ref ref) {
-  return AppThemeDataNotifier();
-}
 
 class AppThemeData {
   const AppThemeData({
@@ -18,22 +9,7 @@ class AppThemeData {
     required this.midnight,
   });
 
-  final ThemeData day;
-  final ThemeData night;
-  final ThemeData midnight;
-}
-
-class AppThemeDataNotifier {
-  late AppThemeData _data = _createAppThemeData();
-
-  AppThemeData get data => _data;
-
-  AppThemeData fillWith({ColorScheme? light, ColorScheme? dark}) {
-    _data = _createAppThemeData(light: light, dark: dark);
-    return _data;
-  }
-
-  AppThemeData _createAppThemeData({ColorScheme? light, ColorScheme? dark}) {
+  factory AppThemeData.from({ColorScheme? light, ColorScheme? dark}) {
     return AppThemeData(
       day: _createThemeData(light, Brightness.light),
       night: _createThemeData(dark, Brightness.dark),
@@ -41,65 +17,9 @@ class AppThemeDataNotifier {
     );
   }
 
-  ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-    final defScheme = isDark ? defDarkScheme : defLightScheme;
-    final harmonized = scheme?.harmonized() ?? defScheme;
-    final colorScheme = harmonized.copyWith(
-      surface: harmonized.surface.shade(isDark ? 30 : 3),
-      outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.3),
-    );
-    final origin = isDark ? ThemeData.dark() : ThemeData.light();
-    return origin.copyWith(
-      colorScheme: colorScheme,
-      appBarTheme: AppBarTheme(
-        backgroundColor: colorScheme.surface,
-        foregroundColor: colorScheme.onSurface,
-      ),
-      canvasColor: colorScheme.surface,
-      scaffoldBackgroundColor: colorScheme.surface,
-      dialogTheme: DialogThemeData(
-        backgroundColor: colorScheme.surface,
-      ),
-      drawerTheme: origin.drawerTheme.copyWith(
-        backgroundColor: colorScheme.surfaceContainerLow,
-      ),
-      snackBarTheme: origin.snackBarTheme.copyWith(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(11),
-            topRight: Radius.circular(11),
-          ),
-        ),
-        backgroundColor: colorScheme.primaryContainer,
-        contentTextStyle: TextStyle(color: colorScheme.onPrimaryContainer),
-      ),
-      listTileTheme: origin.listTileTheme.copyWith(
-        minVerticalPadding: 12,
-        iconColor: colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-
-  ThemeData _createThemeDataMidnight(ColorScheme? scheme) {
-    final origin = _createThemeData(scheme, Brightness.dark);
-    return origin.copyWith(
-      appBarTheme: AppBarTheme(
-        backgroundColor: Colors.black,
-        foregroundColor: origin.colorScheme.onSurface,
-      ),
-      primaryColor: Colors.black,
-      canvasColor: Colors.black,
-      scaffoldBackgroundColor: Colors.black,
-      drawerTheme: origin.drawerTheme.copyWith(
-        backgroundColor: Colors.black,
-      ),
-      colorScheme: origin.colorScheme.copyWith(
-        brightness: Brightness.dark,
-        surface: origin.colorScheme.surface,
-      ),
-    );
-  }
+  final ThemeData day;
+  final ThemeData night;
+  final ThemeData midnight;
 
   static const defaultAccent = Color.fromARGB(255, 149, 30, 229);
 
@@ -111,5 +31,66 @@ class AppThemeDataNotifier {
   static final defDarkScheme = ColorScheme.fromSeed(
     seedColor: defaultAccent,
     brightness: Brightness.dark,
+  );
+}
+
+ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  final defScheme =
+      isDark ? AppThemeData.defDarkScheme : AppThemeData.defLightScheme;
+  final harmonized = scheme?.harmonized() ?? defScheme;
+  final colorScheme = harmonized.copyWith(
+    surface: harmonized.surface.shade(isDark ? 30 : 3),
+    outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.3),
+  );
+  final origin = isDark ? ThemeData.dark() : ThemeData.light();
+  return origin.copyWith(
+    colorScheme: colorScheme,
+    appBarTheme: AppBarTheme(
+      backgroundColor: colorScheme.surface,
+      foregroundColor: colorScheme.onSurface,
+    ),
+    canvasColor: colorScheme.surface,
+    scaffoldBackgroundColor: colorScheme.surface,
+    dialogTheme: DialogThemeData(
+      backgroundColor: colorScheme.surface,
+    ),
+    drawerTheme: origin.drawerTheme.copyWith(
+      backgroundColor: colorScheme.surfaceContainerLow,
+    ),
+    snackBarTheme: origin.snackBarTheme.copyWith(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(11),
+          topRight: Radius.circular(11),
+        ),
+      ),
+      backgroundColor: colorScheme.primaryContainer,
+      contentTextStyle: TextStyle(color: colorScheme.onPrimaryContainer),
+    ),
+    listTileTheme: origin.listTileTheme.copyWith(
+      minVerticalPadding: 12,
+      iconColor: colorScheme.onSurfaceVariant,
+    ),
+  );
+}
+
+ThemeData _createThemeDataMidnight(ColorScheme? scheme) {
+  final origin = _createThemeData(scheme, Brightness.dark);
+  return origin.copyWith(
+    appBarTheme: AppBarTheme(
+      backgroundColor: Colors.black,
+      foregroundColor: origin.colorScheme.onSurface,
+    ),
+    primaryColor: Colors.black,
+    canvasColor: Colors.black,
+    scaffoldBackgroundColor: Colors.black,
+    drawerTheme: origin.drawerTheme.copyWith(
+      backgroundColor: Colors.black,
+    ),
+    colorScheme: origin.colorScheme.copyWith(
+      brightness: Brightness.dark,
+      surface: origin.colorScheme.surface,
+    ),
   );
 }

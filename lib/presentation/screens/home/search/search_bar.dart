@@ -23,7 +23,8 @@ class HomeSearchBar extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final session = ref.watch(searchSessionProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     final delta = useState([0.0, 0.0]);
     final collapsed = !searchBar.isOpen && delta.value.first > 0;
     final isBlurAllowed =
@@ -162,10 +163,10 @@ class _SearchField extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchBar = ref.watch(searchBarControllerProvider);
     final imeIncognito =
         ref.watch(uiSettingStateProvider.select((it) => it.imeIncognito));
     final session = ref.watch(searchSessionProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
     final server = ref.watch(serverStateProvider).getById(session.serverId);
 
     return RepaintBoundary(
@@ -417,7 +418,7 @@ class _LeadingButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
-    final searchBar = ref.watch(searchBarControllerProvider);
+    final searchBar = ref.watch(searchBarControllerProvider(session));
 
     return _Button(
       onTap: () {
