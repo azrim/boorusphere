@@ -49,16 +49,18 @@ class Boorusphere extends HookConsumerWidget {
     final cookieJar = ref.watch(cookieJarProvider);
     final router = useMemoized(AppRouter.new);
     final initialized = useState(false);
+    final sdkVersion = envRepo.sdkVersion;
+
+    // All hooks must run unconditionally on every build (`flutter_hooks`
+    // requires a stable hook count). Don't reorder these or insert hooks below
+    // the early `if (!initialized.value) return` guard.
 
     useEffect(() {
       initializeAsyncStates(ref, () {
         initialized.value = true;
       });
-    }, []);
-
-    if (!initialized.value) {
-      return const SizedBox.shrink();
-    }
+      return null;
+    }, const []);
 
     useEffect(() {
       HttpOverrides.global = CustomHttpOverrides(cookieJar: cookieJar);
@@ -69,9 +71,13 @@ class Boorusphere extends HookConsumerWidget {
 
     useEffect(() {
       LocaleHelper.update(locale);
+      return null;
     }, [locale]);
 
     useEffect(() {
+      // `FlutterDownloaderHandle.listen` returns void and the underlying
+      // ReceivePort is torn down via `ref.onDispose(handle.dispose)` in the
+      // provider, so there's nothing to clean up here.
       ref.read(downloaderHandleProvider).listen((progress) async {
         if (progress.status.isDownloaded) {
           await ref.read(sharedStorageHandleProvider).rescan();
@@ -79,10 +85,18 @@ class Boorusphere extends HookConsumerWidget {
 
         await ref.read(downloadProgressStateProvider.notifier).update(progress);
       });
-    }, []);
+      return null;
+    }, const []);
 
-    if (envRepo.sdkVersion > 28) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    useEffect(() {
+      if (sdkVersion > 28) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
+      return null;
+    }, [sdkVersion]);
+
+    if (!initialized.value) {
+      return const SizedBox.shrink();
     }
 
     return AppThemeBuilder(

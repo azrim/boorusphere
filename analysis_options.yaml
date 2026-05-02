@@ -12,6 +12,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - lib/**/*.g.dart
+    - lib/*.g.dart
 
   errors:
     public_member_api_docs: ignore

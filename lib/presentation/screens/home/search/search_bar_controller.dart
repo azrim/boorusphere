@@ -12,11 +12,18 @@ final searchBarControllerProvider =
     ChangeNotifierProvider.autoDispose<SearchBarController>(
         (ref) => throw UnimplementedError());
 
+/// Controller for the search bar.
+///
+/// [notifyListeners] is only called for transitions that change the *shape*
+/// of the search UI (open/close/reset/clear). Per-keystroke text changes do
+/// **not** notify; consumers that need the live text should listen to
+/// [textEditingController] directly via [ValueListenableBuilder] or
+/// `useValueListenable`. Notifying on every keystroke would force the entire
+/// home shell, search bar, and surrounding consumers to rebuild on each
+/// character typed.
 class SearchBarController extends ChangeNotifier {
   SearchBarController(this.ref, {required this.session}) {
-    textEditingController
-      ..addListener(_fetch)
-      ..addListener(notifyListeners);
+    textEditingController.addListener(_fetch);
   }
 
   final Ref ref;
@@ -106,9 +113,8 @@ class SearchBarController extends ChangeNotifier {
   @override
   void dispose() {
     _textTimer?.cancel();
-    textEditingController
-      ..removeListener(notifyListeners)
-      ..removeListener(_fetch);
+    textEditingController.removeListener(_fetch);
+    textEditingController.dispose();
     super.dispose();
   }
 }

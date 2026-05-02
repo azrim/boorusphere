@@ -30,7 +30,7 @@ class HomePage extends HookConsumerWidget {
 
   Rect _timelineBoundary(BuildContext context) {
     final bottom =
-        context.mediaQuery.padding.bottom + HomeSearchBar.innerHeight;
+        MediaQuery.paddingOf(context).bottom + HomeSearchBar.innerHeight;
     return Rect.fromLTRB(0, 0, 0, bottom);
   }
 
@@ -51,7 +51,8 @@ class HomePage extends HookConsumerWidget {
           }
         }
       });
-    }, []);
+      return null;
+    }, const []);
 
     return Scaffold(
       extendBody: true,
@@ -92,8 +93,12 @@ class _Home extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchBar = ref.watch(searchBarControllerProvider);
+    // Pin the drawer controller without subscribing to its (now-silent)
+    // ChangeNotifier; subscribe instead to the discrete open/closed bit so
+    // we don't rebuild `_Home` on every animation frame.
     final drawer = ref.watch(homeDrawerControllerProvider);
-    final atHomeScreen = !drawer.isOpen && !searchBar.isOpen;
+    final isDrawerOpen = useValueListenable(drawer.isOpenListenable);
+    final atHomeScreen = !isDrawerOpen && !searchBar.isOpen;
     final allowPop = useState(false);
     const maybePopTimeout = Duration(seconds: 1);
     final maybePopTimer = useMemoized(
@@ -108,7 +113,7 @@ class _Home extends HookConsumerWidget {
 
     return PopScope(
       canPop: (allowPop.value || context.router.canPop()) &&
-          !drawer.isOpen &&
+          !isDrawerOpen &&
           !searchBar.isOpen,
       onPopInvokedWithResult: (didPop, _) async {
         if (drawer.isOpen || searchBar.isOpen) {
@@ -133,7 +138,7 @@ class _Home extends HookConsumerWidget {
         }
       },
       child: _SlidableContainer(
-        edgeDragWidth: atHomeScreen ? context.mediaQuery.size.width : 0,
+        edgeDragWidth: atHomeScreen ? MediaQuery.sizeOf(context).width : 0,
         onSlideStatus: (status) {
           if (status != AnimationStatus.dismissed) {
             clearMaybePop();
@@ -163,30 +168,28 @@ class _SlidableContainer extends HookConsumerWidget {
         useAnimationController(duration: const Duration(milliseconds: 300));
     final tween = CurveTween(curve: Curves.easeInOutSine).animate(animator);
     final maxDrawerWidth =
-        (context.mediaQuery.size.width).clamp(0.0, 410.0) - 84;
+        MediaQuery.sizeOf(context).width.clamp(0.0, 410.0) - 84;
     final canBeDragged = useState(true);
 
-    final animationListener = useCallback(() {
+    final animationListener = useCallback((status) {
       if (animator.isAnimating) return;
-
-      onSlideStatus?.call(animator.status);
-    }, []);
+      onSlideStatus?.call(status);
+    }, const []);
 
     useEffect(() {
-      animator.addListener(animationListener);
-      return () {
-        animator.removeListener(animationListener);
-      };
-    }, []);
+      animator.addStatusListener(animationListener);
+      return () => animator.removeStatusListener(animationListener);
+    }, const []);
 
     final drawer = ref.watch(homeDrawerControllerProvider);
     useEffect(() {
       drawer.setAnimator(animator);
+      return null;
     }, [drawer]);
 
     return GestureDetector(
       onHorizontalDragStart: (details) {
-        final dragWidth = edgeDragWidth ?? context.mediaQuery.size.width / 2;
+        final dragWidth = edgeDragWidth ?? MediaQuery.sizeOf(context).width / 2;
         final dx = details.globalPosition.dx;
         final isOpen = animator.isDismissed && dx < dragWidth;
         final isClose = animator.isCompleted && dx > dragWidth;
@@ -212,7 +215,7 @@ class _SlidableContainer extends HookConsumerWidget {
 
         if (details.velocity.pixelsPerSecond.dx.abs() >= 365) {
           final visualVelocity = details.velocity.pixelsPerSecond.dx /
-              context.mediaQuery.size.width;
+              MediaQuery.sizeOf(context).width;
 
           await animator.fling(velocity: visualVelocity);
         } else if (animator.value < 0.5) {

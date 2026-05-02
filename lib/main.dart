@@ -23,13 +23,29 @@ import 'package:boorusphere/presentation/provider/settings/entity/download_quali
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/utils/device_workarounds.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 void main() async {
   setupLogger();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Opt into the highest available refresh rate on Android. By default Flutter
+  // apps run at 60 Hz even on 90/120 Hz displays; this single call delivers a
+  // large perceived smoothness uplift on modern Pixel/Samsung devices and is
+  // the highest-ROI fix in the UI audit. Failures are non-fatal because some
+  // OEM Androids report unusable display modes.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    try {
+      await FlutterDisplayMode.setHighRefreshRate();
+    } catch (_) {
+      // Ignored: not all OEMs honor the API; we fall back to the default mode.
+    }
+  }
+
   await Hive.initFlutter();
 
   Hive.registerAdapter(ServerAdapter());

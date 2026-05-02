@@ -42,6 +42,39 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
   final Set<String> _selectedTags = {};
   int? _lastPostId;
 
+  @override
+  void initState() {
+    super.initState();
+    _lastPostId = widget.postNotifier.value.id;
+    widget.postNotifier.addListener(_onPostChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant PostDetailsSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.postNotifier, widget.postNotifier)) {
+      oldWidget.postNotifier.removeListener(_onPostChanged);
+      widget.postNotifier.addListener(_onPostChanged);
+      _lastPostId = widget.postNotifier.value.id;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.postNotifier.removeListener(_onPostChanged);
+    super.dispose();
+  }
+
+  void _onPostChanged() {
+    final newId = widget.postNotifier.value.id;
+    if (_lastPostId != newId) {
+      _lastPostId = newId;
+      if (_selectedTags.isNotEmpty && mounted) {
+        setState(_selectedTags.clear);
+      }
+    }
+  }
+
   void _onTagPressed(String tag) {
     setState(() {
       if (_selectedTags.contains(tag)) {
@@ -74,16 +107,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
           child: ValueListenableBuilder<Post>(
             valueListenable: widget.postNotifier,
             builder: (context, post, child) {
-              // Clear tags when post changes
-              if (_lastPostId != null && _lastPostId != post.id) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(_selectedTags.clear);
-                  }
-                });
-              }
-              _lastPostId = post.id;
-
+              // `_selectedTags` clearing on post change is handled by the
+              // `_onPostChanged` listener attached in initState; doing it
+              // from inside this builder via `addPostFrameCallback` would
+              // schedule work on every rebuild (e.g. tag toggles), not
+              // only on actual post-id transitions.
               final content = Container(
                 decoration: BoxDecoration(
                   color: enableBlur
