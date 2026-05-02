@@ -44,7 +44,7 @@ void main() async {
       expect(versions?.latest, AppVersion.fromString(edgeVersion));
       expect(
         versions?.latest.apkUrl,
-        contains('download/$edgeVersion/boorusphere-$edgeVersion'),
+        contains('download/v$edgeVersion/boorusphere-$edgeVersion'),
       );
     });
 
