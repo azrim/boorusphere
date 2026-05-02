@@ -18,6 +18,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+// Reused across every PostImage that has explicit blur enabled.
+// `ImageFilter.blur` allocates a native handle on every construction; the
+// previous implementation built a fresh filter inside `beforePaintImage`,
+// which is invoked on every paint pass.
+final _kPostBlurFilter =
+    ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+
 class PostImage extends HookConsumerWidget {
   const PostImage({
     super.key,
@@ -37,13 +44,7 @@ class PostImage extends HookConsumerWidget {
         useAnimationController(duration: const Duration(milliseconds: 150));
     final imageLoadState = useStreamController<ExtendedImageState>();
 
-    useEffect(() {
-      if (post.rating != BooruRating.explicit || !shouldBlurExplicit) {
-        return;
-      }
-    }, []);
-
-    final deviceRatio = context.mediaQuery.size.aspectRatio;
+    final deviceRatio = context.screenSize.aspectRatio;
     final imageRatio = post.aspectRatio;
     final scaleRatio = deviceRatio < imageRatio
         ? imageRatio / deviceRatio
@@ -78,11 +79,7 @@ class PostImage extends HookConsumerWidget {
                 handleLoadingProgress: true,
                 beforePaintImage: (canvas, rect, image, paint) {
                   if (isBlur.value) {
-                    paint.imageFilter = ImageFilter.blur(
-                      sigmaX: 5,
-                      sigmaY: 5,
-                      tileMode: TileMode.decal,
-                    );
+                    paint.imageFilter = _kPostBlurFilter;
                   }
                   return false;
                 },

@@ -49,21 +49,27 @@ class HomeContent extends HookConsumerWidget {
     final timelineController = ref.watch(timelineControllerProvider);
     final scrollController = timelineController.scrollController;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!scrollController.hasClients ||
-          pageState is DataFetchResult ||
-          pageState is LoadingFetchResult) {
-        return;
-      }
+    // Run after pageState transitions, not on every rebuild. Previously this
+    // post-frame callback was enqueued from inside `build`, so it fired
+    // continuously while any animation drove a parent rebuild.
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!scrollController.hasClients ||
+            pageState is DataFetchResult ||
+            pageState is LoadingFetchResult) {
+          return;
+        }
 
-      if (scrollController.position.extentAfter < 300) {
-        scrollController.animateTo(
-          scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.fastOutSlowIn,
-        );
-      }
-    });
+        if (scrollController.position.extentAfter < 300) {
+          scrollController.animateTo(
+            scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.fastOutSlowIn,
+          );
+        }
+      });
+      return null;
+    }, [pageState]);
 
     final isNewSearch =
         pageState is! DataFetchResult && pageState.data.option.clear;

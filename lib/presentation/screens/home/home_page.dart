@@ -91,9 +91,17 @@ class HomePage extends HookConsumerWidget {
 class _Home extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchBar = ref.watch(searchBarControllerProvider);
-    final drawer = ref.watch(homeDrawerControllerProvider);
-    final atHomeScreen = !drawer.isOpen && !searchBar.isOpen;
+    // Watch booleans via select so this widget only rebuilds when isOpen
+    // actually transitions, not on every keystroke (search bar) or
+    // animation tick (drawer).
+    final isSearchOpen = ref.watch(
+        searchBarControllerProvider.select((c) => c.isOpen));
+    final isDrawerOpen = ref.watch(
+        homeDrawerControllerProvider.select((c) => c.isOpen));
+    // Read the controller instances without subscribing for action callbacks.
+    final searchBar = ref.read(searchBarControllerProvider);
+    final drawer = ref.read(homeDrawerControllerProvider);
+    final atHomeScreen = !isDrawerOpen && !isSearchOpen;
     final allowPop = useState(false);
     const maybePopTimeout = Duration(seconds: 1);
     final maybePopTimer = useMemoized(
@@ -108,15 +116,15 @@ class _Home extends HookConsumerWidget {
 
     return PopScope(
       canPop: (allowPop.value || context.router.canPop()) &&
-          !drawer.isOpen &&
-          !searchBar.isOpen,
+          !isDrawerOpen &&
+          !isSearchOpen,
       onPopInvokedWithResult: (didPop, _) async {
-        if (drawer.isOpen || searchBar.isOpen) {
+        if (isDrawerOpen || isSearchOpen) {
           maybePopTimer.cancel();
           context.scaffoldMessenger.hideCurrentSnackBar();
-          if (drawer.isOpen) {
+          if (isDrawerOpen) {
             await drawer.close();
-          } else if (searchBar.isOpen) {
+          } else if (isSearchOpen) {
             searchBar.close();
           }
           return;
@@ -179,10 +187,15 @@ class _SlidableContainer extends HookConsumerWidget {
       };
     }, []);
 
-    final drawer = ref.watch(homeDrawerControllerProvider);
+    // Read once: the controller instance is stable for the lifetime of the
+    // ProviderScope override. Avoid `ref.watch` here so this widget does not
+    // rebuild on drawer state changes — the AnimatedBuilder below already
+    // observes the AnimationController directly.
+    final drawer = ref.read(homeDrawerControllerProvider);
     useEffect(() {
       drawer.setAnimator(animator);
-    }, [drawer]);
+      return null;
+    }, const []);
 
     return GestureDetector(
       onHorizontalDragStart: (details) {

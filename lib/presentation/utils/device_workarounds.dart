@@ -38,10 +38,27 @@ class DeviceWorkarounds {
 
   // ignore: avoid_void_async
   static void apply() async {
+    if (!Platform.isAndroid) return;
+
+    // Opt every Android device into the highest available display mode.
+    // Without this call, phones that natively support 90/120 Hz panels run
+    // the Flutter engine at 60 Hz, halving perceived smoothness.
+    try {
+      await FlutterDisplayMode.setHighRefreshRate();
+    } catch (e, s) {
+      mainLog.w('Failed to set high refresh rate', e, s);
+    }
+
     final props = await buildProps;
     if (isOppo(props)) {
-      mainLog.i('Forcing highest refresh rate on OPPO Devices');
-      await FlutterDisplayMode.setHighRefreshRate();
+      // OPPO/OnePlus/Realme/OPlus skins regress to 60 Hz after navigation
+      // events. Re-apply once props are known so the workaround sticks.
+      mainLog.i('Re-applying highest refresh rate on OPPO-family device');
+      try {
+        await FlutterDisplayMode.setHighRefreshRate();
+      } catch (e, s) {
+        mainLog.w('Failed to re-apply high refresh rate', e, s);
+      }
     }
   }
 }

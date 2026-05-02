@@ -13,7 +13,15 @@ class HomeDrawerController extends ChangeNotifier {
   void setAnimator(AnimationController controller) {
     if (_animator != null) return;
     _animator = controller;
-    _animator?.addListener(notifyListeners);
+    // Listen to status transitions only (dismissed/forward/completed/reverse)
+    // rather than every animation tick. The previous `addListener` variant
+    // fired notifyListeners 60-120 times per second while the drawer was
+    // animating, rebuilding every consumer up the tree.
+    _animator?.addStatusListener(_onStatusChanged);
+  }
+
+  void _onStatusChanged(AnimationStatus _) {
+    notifyListeners();
   }
 
   void open() {
@@ -33,7 +41,7 @@ class HomeDrawerController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _animator?.removeListener(notifyListeners);
+    _animator?.removeStatusListener(_onStatusChanged);
     _animator = null;
     super.dispose();
   }

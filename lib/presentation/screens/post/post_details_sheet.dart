@@ -42,6 +42,38 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
   final Set<String> _selectedTags = {};
   int? _lastPostId;
 
+  @override
+  void initState() {
+    super.initState();
+    _lastPostId = widget.postNotifier.value.id;
+    widget.postNotifier.addListener(_onPostChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant PostDetailsSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.postNotifier != widget.postNotifier) {
+      oldWidget.postNotifier.removeListener(_onPostChanged);
+      _lastPostId = widget.postNotifier.value.id;
+      widget.postNotifier.addListener(_onPostChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.postNotifier.removeListener(_onPostChanged);
+    super.dispose();
+  }
+
+  void _onPostChanged() {
+    final id = widget.postNotifier.value.id;
+    if (_lastPostId == id) return;
+    _lastPostId = id;
+    if (_selectedTags.isNotEmpty) {
+      setState(_selectedTags.clear);
+    }
+  }
+
   void _onTagPressed(String tag) {
     setState(() {
       if (_selectedTags.contains(tag)) {
@@ -74,16 +106,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
           child: ValueListenableBuilder<Post>(
             valueListenable: widget.postNotifier,
             builder: (context, post, child) {
-              // Clear tags when post changes
-              if (_lastPostId != null && _lastPostId != post.id) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(_selectedTags.clear);
-                  }
-                });
-              }
-              _lastPostId = post.id;
-
+              // Tag clearing is handled in `_onPostChanged` (a listener on the
+              // postNotifier installed in initState) instead of being scheduled
+              // from inside this builder. The previous implementation queued a
+              // post-frame callback every time the builder ran, even when the
+              // post id was unchanged.
               final content = Container(
                 decoration: BoxDecoration(
                   color: enableBlur

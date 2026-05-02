@@ -27,7 +27,11 @@ class Timeline extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
-    final screenWidth = context.mediaQuery.size.width;
+    // Use scoped accessors so the timeline only rebuilds on size or DPR
+    // changes, not when the keyboard opens or system bars resize.
+    final screenSize = context.screenSize;
+    final dpr = context.devicePixelRatio;
+    final screenWidth = screenSize.width;
     final flexibleGrid = (screenWidth / 200).round() + grid;
     final scrollController = ref
         .watch(timelineControllerProvider.select((it) => it.scrollController));
@@ -38,16 +42,21 @@ class Timeline extends ConsumerWidget {
     final postsList =
         posts is List<Post> ? posts as List<Post> : posts.toList();
 
+    // Hoist constants used by every thumbnail to compute the decode cache
+    // size. Computing once here means each `_ThumbnailImage` build is cheap
+    // and avoids subscribing to MediaQuery per card.
+    final thumbCacheWidth =
+        (screenSize.width * dpr / (flexibleGrid * 1.3)).round();
+
     return SliverMasonryGrid.count(
       crossAxisCount: flexibleGrid,
-      key: ObjectKey(flexibleGrid),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
       childCount: postsList.length,
       itemBuilder: (context, index) {
         return RepaintBoundary(
           child: _ThumbnailCard(
-            gridSize: flexibleGrid,
+            thumbCacheWidth: thumbCacheWidth,
             postdata: (index, postsList[index]),
             controller: scrollController,
             blurExplicit: blurExplicit,
@@ -80,14 +89,14 @@ class _ThumbnailCard extends HookConsumerWidget {
     required this.controller,
     required this.blurExplicit,
     this.onTap,
-    required this.gridSize,
+    required this.thumbCacheWidth,
   });
 
   final (int, Post) postdata;
   final AutoScrollController controller;
   final bool blurExplicit;
   final void Function()? onTap;
-  final int gridSize;
+  final int thumbCacheWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -105,58 +114,71 @@ class _ThumbnailCard extends HookConsumerWidget {
           onTap: onTap,
           child: Hero(
             tag: post.viewId,
-            flightShuttleBuilder: (flightContext, animation, flightDirection,
-                fromHeroContext, toHeroContext) {
-              final Hero toHero = toHeroContext.widget as Hero;
-              final isLong = post.aspectRatio < 0.5;
-              final isPop = flightDirection == HeroFlightDirection.pop;
-
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  AspectRatio(
-                    aspectRatio: isPop && isLong ? 0.5 : post.aspectRatio,
-                    // clip incoming child to avoid overflow that might be
-                    // caused by blurExplicit enabled
-                    child: isPop ? ClipRect(child: toHero.child) : toHero.child,
-                  ),
-                ],
-              );
-            },
+            flightShuttleBuilder: _heroFlightShuttle,
             child: _ThumbnailImage(
-                post: post, blurExplicit: blurExplicit, gridSize: gridSize),
+                post: post,
+                blurExplicit: blurExplicit,
+                cacheWidth: thumbCacheWidth),
           ),
         ),
       ),
     );
   }
+
+  // Hoisted out of `build` so the closure isn't allocated per card per build.
+  Widget _heroFlightShuttle(
+    BuildContext flightContext,
+    Animation<double> animation,
+    HeroFlightDirection flightDirection,
+    BuildContext fromHeroContext,
+    BuildContext toHeroContext,
+  ) {
+    final Hero toHero = toHeroContext.widget as Hero;
+    final post = postdata.$2;
+    final isLong = post.aspectRatio < 0.5;
+    final isPop = flightDirection == HeroFlightDirection.pop;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        AspectRatio(
+          aspectRatio: isPop && isLong ? 0.5 : post.aspectRatio,
+          // clip incoming child to avoid overflow that might be
+          // caused by blurExplicit enabled
+          child: isPop ? ClipRect(child: toHero.child) : toHero.child,
+        ),
+      ],
+    );
+  }
 }
+
+// Reusable static blur filter — `ImageFilter.blur` allocates a native
+// SkImageFilter object every time it is constructed. Hoisting it as a
+// const-ish static avoids per-card per-build allocation when explicit
+// thumbnails are visible.
+final _kExplicitBlurFilter =
+    ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
 
 class _ThumbnailImage extends ConsumerWidget {
   const _ThumbnailImage({
     required this.post,
     this.blurExplicit = false,
-    required this.gridSize,
+    required this.cacheWidth,
   });
 
   final Post post;
   final bool blurExplicit;
-  final int gridSize;
+  final int cacheWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final headers = ref.watch(postHeadersFactoryProvider(post));
     // limit timeline thumbnail to 18:9
     final isLong = post.aspectRatio < 0.5;
-    final screen =
-        context.mediaQuery.size * context.mediaQuery.devicePixelRatio;
-    final cacheWidth = (screen.width / (gridSize * 1.3)).round();
     final cacheHeight = (cacheWidth / post.aspectRatio).round();
 
-    // Pre-calculate blur filter to avoid recreating it
-    final blurFilter = blurExplicit && post.rating.isExplicit
-        ? ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal)
-        : null;
+    final blurFilter =
+        blurExplicit && post.rating.isExplicit ? _kExplicitBlurFilter : null;
 
     final image = AspectRatio(
       aspectRatio: isLong ? 0.5 : post.aspectRatio,

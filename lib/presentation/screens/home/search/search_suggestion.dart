@@ -41,12 +41,7 @@ class SearchSuggestion extends HookConsumerWidget {
     bool isAtTop() =>
         !scrollController.hasClients || scrollController.offset <= 0;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: enableBlur
-            ? ImageFilter.blur(sigmaX: 20, sigmaY: 20)
-            : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-        child: Container(
+    final body = Container(
           color: enableBlur
               ? backgroundColor.withValues(alpha: 0.85)
               : backgroundColor,
@@ -169,11 +164,25 @@ class SearchSuggestion extends HookConsumerWidget {
               ],
             ),
           ),
-        ),
-      ),
+        );
+
+    // Only construct the BackdropFilter when blur is enabled. The previous
+    // implementation always wrapped the suggestion screen in a BackdropFilter
+    // (with sigma 0/0 when disabled), which still forces the engine to do a
+    // saveLayer for the entire area on every paint pass.
+    return ClipRect(
+      child: enableBlur
+          ? BackdropFilter(
+              filter: _kSuggestionBlurFilter,
+              child: body,
+            )
+          : body,
     );
   }
 }
+
+// Hoisted to module scope so we don't allocate a fresh filter on every build.
+final _kSuggestionBlurFilter = ImageFilter.blur(sigmaX: 20, sigmaY: 20);
 
 class _SearchHistoryHeader extends ConsumerWidget {
   const _SearchHistoryHeader();

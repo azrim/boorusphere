@@ -50,15 +50,15 @@ class Boorusphere extends HookConsumerWidget {
     final router = useMemoized(AppRouter.new);
     final initialized = useState(false);
 
+    // All hooks must run on every build, regardless of `initialized.value`.
+    // Calling them after an early return violates the flutter_hooks contract
+    // and corrupts hook state.
     useEffect(() {
       initializeAsyncStates(ref, () {
         initialized.value = true;
       });
-    }, []);
-
-    if (!initialized.value) {
-      return const SizedBox.shrink();
-    }
+      return null;
+    }, const []);
 
     useEffect(() {
       HttpOverrides.global = CustomHttpOverrides(cookieJar: cookieJar);
@@ -69,6 +69,7 @@ class Boorusphere extends HookConsumerWidget {
 
     useEffect(() {
       LocaleHelper.update(locale);
+      return null;
     }, [locale]);
 
     useEffect(() {
@@ -79,10 +80,20 @@ class Boorusphere extends HookConsumerWidget {
 
         await ref.read(downloadProgressStateProvider.notifier).update(progress);
       });
-    }, []);
+      return null;
+    }, const []);
 
-    if (envRepo.sdkVersion > 28) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // Set system UI mode once, not on every rebuild. The platform channel
+    // call is otherwise invoked dozens of times per second during animations.
+    useEffect(() {
+      if (envRepo.sdkVersion > 28) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
+      return null;
+    }, [envRepo.sdkVersion]);
+
+    if (!initialized.value) {
+      return const SizedBox.shrink();
     }
 
     return AppThemeBuilder(
