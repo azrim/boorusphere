@@ -12,7 +12,6 @@ import 'package:boorusphere/presentation/screens/settings/gesture_settings_page.
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
-import 'package:extended_image/extended_image.dart' as extended_image;
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -438,8 +437,8 @@ class _ClearCache extends ConsumerWidget {
         ));
 
         await DefaultCacheManager().emptyCache();
-        await extended_image.clearDiskCachedImages();
-        extended_image.clearMemoryImageCache();
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
 
         if (context.mounted) {
           context.scaffoldMessenger.showSnackBar(
