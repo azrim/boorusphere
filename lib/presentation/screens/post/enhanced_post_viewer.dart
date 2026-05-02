@@ -112,9 +112,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
         // Hide overlay when sheet is expanded
         if (size > 0.1) {
-          controller.forceHideOverlay.value = true;
+          controller.forceHideUI();
         } else {
-          controller.forceHideOverlay.value = false;
+          controller.restoreUI();
         }
       }
 
@@ -146,7 +146,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
     useEffect(() {
       controller.pageController.addListener(() {
         final page = controller.pageController.page;
-        controller.updatePrecisePage(page);
 
         final pageNum = page?.round();
         if (pageNum != null && pageNum != controller.page) {
@@ -208,12 +207,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
               Positioned.fill(
                 child: ListenableBuilder(
                   listenable: Listenable.merge([
-                    controller.swipeEnabled,
-                    controller.animating,
+                    controller.canSwipeListenable,
+                    interacting,
                   ]),
                   builder: (context, child) {
-                    final canSwipe = controller.swipeEnabled.value &&
-                        !controller.animating.value &&
+                    final canSwipe = controller.canSwipeListenable.value &&
                         !interacting.value;
 
                     return GestureDetector(
@@ -367,8 +365,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
                 ),
               ),
               // Overlay UI
-              ValueListenableBuilder(
-                valueListenable: controller.currentPage,
+              ValueListenableBuilder<int>(
+                valueListenable: controller.pageListenable,
                 builder: (context, currentPageIndex, child) {
                   final post = postsList.isNotEmpty
                       ? postsList[currentPageIndex]
@@ -382,14 +380,10 @@ class EnhancedPostViewer extends HookConsumerWidget {
                         left: 0,
                         right: 0,
                         child: ListenableBuilder(
-                          listenable: Listenable.merge([
-                            controller.overlayVisible,
-                            controller.forceHideOverlay,
-                          ]),
+                          listenable: controller.overlayShownListenable,
                           builder: (context, child) => SlideFadeVisibility(
                             direction: HidingDirection.toTop,
-                            visible: controller.overlayVisible.value &&
-                                !controller.forceHideOverlay.value &&
+                            visible: controller.overlayShownListenable.value &&
                                 showAppbar.value,
                             child: _PostAppBar(
                               subtitle: post.describeTags,
@@ -408,15 +402,12 @@ class EnhancedPostViewer extends HookConsumerWidget {
                           left: 0,
                           right: 0,
                           child: ListenableBuilder(
-                            listenable: Listenable.merge([
-                              controller.overlayVisible,
-                              controller.forceHideOverlay,
-                            ]),
+                            listenable: controller.overlayShownListenable,
                             builder: (context, child) => SlideFadeVisibility(
                               direction: HidingDirection.toBottom,
-                              visible: controller.overlayVisible.value &&
-                                  !controller.forceHideOverlay.value &&
-                                  !fullscreen,
+                              visible:
+                                  controller.overlayShownListenable.value &&
+                                      !fullscreen,
                               child: PostToolbox(
                                 key: ValueKey(
                                     'toolbox_${post.id}_${post.serverId}'),
@@ -448,8 +439,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
   List<Widget> _buildNavigationButtons(
       PostViewerController controller, bool isVerticalMode) {
     return [
-      ValueListenableBuilder(
-        valueListenable: controller.currentPage,
+      ValueListenableBuilder<int>(
+        valueListenable: controller.pageListenable,
         builder: (context, page, child) => Positioned(
           right: 16,
           top: 0,
@@ -470,8 +461,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
           ),
         ),
       ),
-      ValueListenableBuilder(
-        valueListenable: controller.currentPage,
+      ValueListenableBuilder<int>(
+        valueListenable: controller.pageListenable,
         builder: (context, page, child) => Positioned(
           left: 16,
           top: 0,
