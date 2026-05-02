@@ -6,7 +6,6 @@ import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
-import 'package:boorusphere/presentation/screens/home/drawer/home_drawer_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
@@ -21,27 +20,26 @@ class HomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: context.theme.drawerTheme.backgroundColor,
-      borderRadius: const BorderRadius.only(
-        topRight: Radius.circular(25),
-        bottomRight: Radius.circular(25),
+    return Drawer(
+      width: maxWidth,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(25),
+          bottomRight: Radius.circular(25),
+        ),
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SafeArea(
-          child: ListTileTheme(
-            data: context.theme.listTileTheme.copyWith(
-              dense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-            ),
-            child: const Column(
-              children: [
-                _Header(),
-                Expanded(child: _ServerSelection()),
-                _Footer(),
-              ],
-            ),
+      child: SafeArea(
+        child: ListTileTheme(
+          data: context.theme.listTileTheme.copyWith(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          ),
+          child: const Column(
+            children: [
+              _Header(),
+              Expanded(child: _ServerSelection()),
+              _Footer(),
+            ],
           ),
         ),
       ),
@@ -229,11 +227,8 @@ class _ServerSelection extends ConsumerWidget {
                 onSelected: (value) {
                   switch (value) {
                     case 'edit':
-                      ref.read(homeDrawerControllerProvider).close().then((_) {
-                        if (context.mounted) {
-                          context.router.push(ServerEditorRoute(server: it));
-                        }
-                      });
+                      Navigator.of(context).pop();
+                      context.router.push(ServerEditorRoute(server: it));
                       break;
                     case 'remove':
                       if (servers.length == 1) {
@@ -283,18 +278,15 @@ class _ServerSelection extends ConsumerWidget {
               selectedTileColor: context.colorScheme.primary
                   .withAlpha(context.isLightThemed ? 50 : 25),
               onTap: () {
-                ref.read(homeDrawerControllerProvider).close().then((value) {
-                  if (context.mounted) {
-                    if (it.id != serverActive.id) {
-                      context.router.push(HomeRoute(
-                          session: session.copyWith(serverId: it.id)));
-                    } else {
-                      ref
-                          .read(pageStateProvider.notifier)
-                          .update((it) => it.copyWith(clear: true));
-                    }
-                  }
-                });
+                Navigator.of(context).pop();
+                if (it.id != serverActive.id) {
+                  context.router.push(
+                      HomeRoute(session: session.copyWith(serverId: it.id)));
+                } else {
+                  ref
+                      .read(pageStateProvider.notifier)
+                      .update((it) => it.copyWith(clear: true));
+                }
               },
             ),
           );
