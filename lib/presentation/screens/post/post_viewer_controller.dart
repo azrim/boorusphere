@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 enum ViewMode {
@@ -8,14 +9,70 @@ enum ViewMode {
   vertical,
 }
 
-class PostViewerController {
+@immutable
+class PostViewerState {
+  const PostViewerState({
+    required this.page,
+    this.swipeEnabled = true,
+    this.animating = false,
+    this.overlayVisible = true,
+    this.forceHideOverlay = false,
+  });
+
+  final int page;
+  final bool swipeEnabled;
+  final bool animating;
+  final bool overlayVisible;
+  final bool forceHideOverlay;
+
+  bool get canSwipe => swipeEnabled && !animating;
+  bool get isOverlayShown => overlayVisible && !forceHideOverlay;
+
+  PostViewerState copyWith({
+    int? page,
+    bool? swipeEnabled,
+    bool? animating,
+    bool? overlayVisible,
+    bool? forceHideOverlay,
+  }) {
+    return PostViewerState(
+      page: page ?? this.page,
+      swipeEnabled: swipeEnabled ?? this.swipeEnabled,
+      animating: animating ?? this.animating,
+      overlayVisible: overlayVisible ?? this.overlayVisible,
+      forceHideOverlay: forceHideOverlay ?? this.forceHideOverlay,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PostViewerState &&
+          runtimeType == other.runtimeType &&
+          page == other.page &&
+          swipeEnabled == other.swipeEnabled &&
+          animating == other.animating &&
+          overlayVisible == other.overlayVisible &&
+          forceHideOverlay == other.forceHideOverlay;
+
+  @override
+  int get hashCode => Object.hash(
+        page,
+        swipeEnabled,
+        animating,
+        overlayVisible,
+        forceHideOverlay,
+      );
+}
+
+class PostViewerController extends ValueNotifier<PostViewerState> {
   PostViewerController({
     required this.initialPage,
     required this.totalPages,
     this.viewMode = ViewMode.horizontal,
     this.swipeMode = SwipeMode.horizontal,
   })  : _pageController = PageController(initialPage: initialPage),
-        _currentPage = ValueNotifier(initialPage);
+        super(PostViewerState(page: initialPage));
 
   final int initialPage;
   final int totalPages;
@@ -25,121 +82,87 @@ class PostViewerController {
   final PageController _pageController;
   PageController get pageController => _pageController;
 
-  // Current page tracking
-  final ValueNotifier<int> _currentPage;
-  ValueNotifier<int> get currentPage => _currentPage;
+  late final ValueListenable<int> pageListenable =
+      _Selected<int>(this, (s) => s.page);
+  late final ValueListenable<bool> canSwipeListenable =
+      _Selected<bool>(this, (s) => s.canSwipe);
+  late final ValueListenable<bool> overlayShownListenable =
+      _Selected<bool>(this, (s) => s.isOverlayShown);
 
-  // Precise page for smooth animations
-  final ValueNotifier<double?> _precisePage = ValueNotifier(null);
-  ValueNotifier<double?> get precisePage => _precisePage;
-
-  // Swipe state management
-  final ValueNotifier<bool> _swipeEnabled = ValueNotifier(true);
-  ValueNotifier<bool> get swipeEnabled => _swipeEnabled;
-
-  // Gesture state
-  final ValueNotifier<bool> _pulling = ValueNotifier(false);
-  ValueNotifier<bool> get pulling => _pulling;
-
-  final ValueNotifier<bool> _canPull = ValueNotifier(true);
-  ValueNotifier<bool> get canPull => _canPull;
-
-  // Freestyle movement for swipe-to-dismiss
-  final ValueNotifier<Offset> _freestyleMoveOffset = ValueNotifier(Offset.zero);
-  ValueNotifier<Offset> get freestyleMoveOffset => _freestyleMoveOffset;
-
-  final ValueNotifier<bool> _freestyleMoving = ValueNotifier(false);
-  ValueNotifier<bool> get freestyleMoving => _freestyleMoving;
-
-  // Vertical position for sheet interaction
-  final ValueNotifier<double> _verticalPosition = ValueNotifier(0);
-  ValueNotifier<double> get verticalPosition => _verticalPosition;
-
-  // UI visibility
-  final ValueNotifier<bool> _overlayVisible = ValueNotifier(true);
-  ValueNotifier<bool> get overlayVisible => _overlayVisible;
-
-  final ValueNotifier<bool> _forceHideOverlay = ValueNotifier(false);
-  ValueNotifier<bool> get forceHideOverlay => _forceHideOverlay;
-
-  // Animation state
-  final ValueNotifier<bool> _animating = ValueNotifier(false);
-  ValueNotifier<bool> get animating => _animating;
-
-  Timer? _cooldownTimer;
-
-  int get page => _currentPage.value;
+  int get page => value.page;
   bool get isFirstPage => page <= 0;
   bool get isLastPage => page >= totalPages - 1;
 
   void updateCurrentPage(int page) {
-    _currentPage.value = page;
-  }
-
-  void updatePrecisePage(double? page) {
-    _precisePage.value = page;
+    value = value.copyWith(page: page);
   }
 
   void enableSwipe() {
-    _swipeEnabled.value = true;
+    value = value.copyWith(swipeEnabled: true);
   }
 
   void disableSwipe() {
-    _swipeEnabled.value = false;
+    value = value.copyWith(swipeEnabled: false);
   }
 
   void showOverlay() {
-    _overlayVisible.value = true;
+    value = value.copyWith(overlayVisible: true);
   }
 
   void hideOverlay() {
-    _overlayVisible.value = false;
+    value = value.copyWith(overlayVisible: false);
   }
 
   void toggleOverlay() {
-    _overlayVisible.value = !_overlayVisible.value;
+    value = value.copyWith(overlayVisible: !value.overlayVisible);
   }
 
   void forceHideUI() {
-    _forceHideOverlay.value = true;
+    value = value.copyWith(forceHideOverlay: true);
   }
 
   void restoreUI() {
-    _forceHideOverlay.value = false;
+    value = value.copyWith(forceHideOverlay: false);
   }
 
   Future<void> nextPage({Duration? duration}) async {
     if (isLastPage) return;
-
-    _animating.value = true;
-    await _pageController.nextPage(
-      duration: duration ?? const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-    _animating.value = false;
+    value = value.copyWith(animating: true);
+    try {
+      await _pageController.nextPage(
+        duration: duration ?? const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } finally {
+      value = value.copyWith(animating: false);
+    }
   }
 
   Future<void> previousPage({Duration? duration}) async {
     if (isFirstPage) return;
-
-    _animating.value = true;
-    await _pageController.previousPage(
-      duration: duration ?? const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-    _animating.value = false;
+    value = value.copyWith(animating: true);
+    try {
+      await _pageController.previousPage(
+        duration: duration ?? const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } finally {
+      value = value.copyWith(animating: false);
+    }
   }
 
   Future<void> animateToPage(int page, {Duration? duration}) async {
     if (page < 0 || page >= totalPages) return;
-
-    _animating.value = true;
-    await _pageController.animateToPage(
-      page,
-      duration: duration ?? const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-    _animating.value = false;
+    value = value.copyWith(animating: true);
+    try {
+      await _pageController.animateToPage(
+        page,
+        duration: duration ?? const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } finally {
+      value = value.copyWith(animating: false);
+    }
   }
 
   void jumpToPage(int page) {
@@ -147,39 +170,36 @@ class PostViewerController {
     _pageController.jumpToPage(page);
   }
 
-  void startCooldownTimer() {
-    _cooldownTimer?.cancel();
-    _cooldownTimer = Timer(const Duration(milliseconds: 500), enableSwipe);
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+}
+
+class _Selected<R> extends ChangeNotifier implements ValueListenable<R> {
+  _Selected(this._source, this._selector) : _value = _selector(_source.value) {
+    _source.addListener(_update);
   }
 
-  void dragUpdate(DragUpdateDetails details) {
-    final dy = details.delta.dy;
+  final ValueListenable<PostViewerState> _source;
+  final R Function(PostViewerState) _selector;
+  R _value;
 
-    if (_canPull.value && dy > 0) {
-      _freestyleMoving.value = true;
-      _verticalPosition.value += dy;
+  @override
+  R get value => _value;
+
+  void _update() {
+    final next = _selector(_source.value);
+    if (next != _value) {
+      _value = next;
+      notifyListeners();
     }
   }
 
-  void dragEnd() {
-    _pulling.value = false;
-    _freestyleMoving.value = false;
-    _verticalPosition.value = 0;
-  }
-
+  @override
   void dispose() {
-    _cooldownTimer?.cancel();
-    _pageController.dispose();
-    _currentPage.dispose();
-    _precisePage.dispose();
-    _swipeEnabled.dispose();
-    _pulling.dispose();
-    _canPull.dispose();
-    _freestyleMoveOffset.dispose();
-    _freestyleMoving.dispose();
-    _verticalPosition.dispose();
-    _overlayVisible.dispose();
-    _forceHideOverlay.dispose();
-    _animating.dispose();
+    _source.removeListener(_update);
+    super.dispose();
   }
 }
