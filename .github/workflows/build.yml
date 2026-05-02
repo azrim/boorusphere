@@ -1,0 +1,58 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - "**"
+    paths-ignore:
+      - "fastlane/**"
+      - "**.md"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "fastlane/**"
+      - "**.md"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Install grinder
+        run: dart pub global activate grinder
+
+      - name: Get dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Run code generators
+        run: grind gencode genlang
+
+      - name: Build APKs (split per ABI)
+        run: flutter build apk --debug --split-per-abi
+
+      - name: Upload APKs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: boorusphere-apks-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+          retention-days: 14
