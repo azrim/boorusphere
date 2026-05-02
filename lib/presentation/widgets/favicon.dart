@@ -1,7 +1,6 @@
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class Favicon extends StatelessWidget {
@@ -35,15 +34,24 @@ class Favicon extends StatelessWidget {
       height: size ?? context.iconTheme.size,
       child: Center(
         child: faviconUrl.isNotEmpty
-            ? ExtendedImage.network(
-                faviconUrl,
+            ? CachedNetworkImage(
+                imageUrl: faviconUrl,
                 width: iconSize ?? context.iconTheme.size,
                 height: iconSize ?? context.iconTheme.size,
-                shape: shape,
                 fit: BoxFit.contain,
-                printError: false,
-                loadStateChanged: (state) =>
-                    state.isCompleted ? state.completedWidget : fallbackWidget,
+                imageBuilder: shape == null
+                    ? null
+                    : (context, provider) => Container(
+                          decoration: BoxDecoration(
+                            shape: shape!,
+                            image: DecorationImage(
+                              image: provider,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                placeholder: (context, _) => fallbackWidget,
+                errorWidget: (context, _, __) => fallbackWidget,
               )
             : fallbackWidget,
       ),

@@ -12,7 +12,8 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
-import 'package:extended_image/extended_image.dart';
+import 'package:cached_network_image/cached_network_image.dart'
+    hide DownloadProgress;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -147,13 +148,14 @@ class DownloadEntryView extends ConsumerWidget {
           ],
         ),
       ),
-      leading: ExtendedImage.network(
-        entry.post.previewFile,
-        headers: headers,
-        width: 42,
-        shape: BoxShape.rectangle,
+      leading: ClipRRect(
         borderRadius: const BorderRadius.all(Radius.circular(5)),
-        fit: BoxFit.cover,
+        child: CachedNetworkImage(
+          imageUrl: entry.post.previewFile,
+          httpHeaders: headers,
+          width: 42,
+          fit: BoxFit.cover,
+        ),
       ),
       trailing: _EntryPopupMenu(
         entry: entry,
@@ -180,13 +182,14 @@ class DownloadImagePreview extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExtendedImage.network(
-      entry.post.previewFile,
-      headers: headers,
-      width: 42,
-      shape: BoxShape.rectangle,
+    return ClipRRect(
       borderRadius: const BorderRadius.all(Radius.circular(5)),
-      fit: BoxFit.cover,
+      child: CachedNetworkImage(
+        imageUrl: entry.post.previewFile,
+        httpHeaders: headers,
+        width: 42,
+        fit: BoxFit.cover,
+      ),
     );
   }
 }
