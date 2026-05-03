@@ -24,6 +24,36 @@ import 'package:tinycolor2/tinycolor2.dart';
 final ImageFilter _kExplicitBlur =
     ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
 
+/// Hoisted out of the per-thumbnail [Hero] so all visible thumbnails share
+/// a single function reference; the previous closure captured `post` and
+/// allocated one builder object per visible item per build. The aspect
+/// ratio is read off the source [_ThumbnailImage] at flight time.
+Widget _thumbnailHeroShuttleBuilder(
+  BuildContext flightContext,
+  Animation<double> animation,
+  HeroFlightDirection flightDirection,
+  BuildContext fromHeroContext,
+  BuildContext toHeroContext,
+) {
+  final toHero = toHeroContext.widget as Hero;
+  final fromHero = fromHeroContext.widget as Hero;
+  final fromChild = fromHero.child;
+  final aspectRatio =
+      fromChild is _ThumbnailImage ? fromChild.post.aspectRatio : 1.0;
+  final isLong = aspectRatio < 0.5;
+  final isPop = flightDirection == HeroFlightDirection.pop;
+
+  return Stack(
+    alignment: Alignment.center,
+    children: [
+      AspectRatio(
+        aspectRatio: isPop && isLong ? 0.5 : aspectRatio,
+        child: isPop ? ClipRect(child: toHero.child) : toHero.child,
+      ),
+    ],
+  );
+}
+
 class Timeline extends ConsumerWidget {
   const Timeline({super.key, required this.posts});
 
@@ -123,24 +153,7 @@ class _ThumbnailCard extends HookConsumerWidget {
           onTap: onTap,
           child: Hero(
             tag: post.viewId,
-            flightShuttleBuilder: (flightContext, animation, flightDirection,
-                fromHeroContext, toHeroContext) {
-              final Hero toHero = toHeroContext.widget as Hero;
-              final isLong = post.aspectRatio < 0.5;
-              final isPop = flightDirection == HeroFlightDirection.pop;
-
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  AspectRatio(
-                    aspectRatio: isPop && isLong ? 0.5 : post.aspectRatio,
-                    // clip incoming child to avoid overflow that might be
-                    // caused by blurExplicit enabled
-                    child: isPop ? ClipRect(child: toHero.child) : toHero.child,
-                  ),
-                ],
-              );
-            },
+            flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
             child: _ThumbnailImage(
               post: post,
               blurExplicit: blurExplicit,
