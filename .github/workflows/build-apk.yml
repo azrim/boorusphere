@@ -98,8 +98,20 @@ jobs:
           caption=$(printf 'boorusphere %s\nref: %s @ %s\n%s' \
             "$VERSION" "$REF_NAME" "$short_sha" "$first_line" | head -c 1000)
 
+          # Telegram bot sendDocument is hard-capped at 50 MB. The universal
+          # APK is ~62 MB (it bundles every ABI), so it cannot be delivered
+          # via Telegram and would 413 the whole job. Skip files above
+          # 49 MB in the Telegram delivery loop and let them ship via the
+          # workflow artifact + GitHub Release path instead.
+          tg_max_bytes=$((49 * 1024 * 1024))
           for apk in dist/boorusphere-*.apk; do
             [ -e "$apk" ] || continue
+            size_bytes=$(stat -c '%s' "$apk")
+            if [ "$size_bytes" -gt "$tg_max_bytes" ]; then
+              size_mb=$((size_bytes / 1024 / 1024))
+              echo "Skipping ${apk} (${size_mb} MB > 49 MB Telegram cap); will still ship via GitHub Release."
+              continue
+            fi
             echo "Sending $apk to Telegram..."
             curl -fsSL --retry 3 --retry-delay 5 \
               -F "chat_id=${TELEGRAM_CHAT_ID}" \
