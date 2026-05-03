@@ -76,7 +76,7 @@ class PageState extends _$PageState {
     }
 
     state = FetchResult.loading(
-      state.data.copyWith(posts: _posts, option: option),
+      state.data.copyWith(posts: List.unmodifiable(_posts), option: option),
     );
 
     try {
@@ -96,7 +96,9 @@ class PageState extends _$PageState {
             posts.where((it) => !it.allTags.any(blockedTags.contains));
         if (displayedPosts.isNotEmpty) {
           _posts.addAll(posts);
-          state = FetchResult.data(state.data.copyWith(posts: _posts));
+          state = FetchResult.data(
+            state.data.copyWith(posts: List.unmodifiable(_posts)),
+          );
           break;
         }
 

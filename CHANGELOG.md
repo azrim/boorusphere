@@ -2,6 +2,17 @@
 
 * Fix Gelbooru and similar boorus failing to play normal videos (.mp4 / .webm). The video player now sends the same headers (Referer, User-Agent) that image requests already use, so servers that hotlink-protect their video CDN no longer reject the playback request.
 
+## 1.9.2
+
+* Pinch-zoom on a post now disables horizontal page-swipe so panning a zoomed image won't accidentally swipe to the next post
+* Search suggestions now show single-word matches before multi-word ones (typing "h" now shows `hololive` before `hololive_girl_tall`)
+* Drawer rebuilt on top of Material's standard drawer (smoother animation, native gesture handling)
+* Post viewer rebuilt on `cached_network_image` + `InteractiveViewer` (drops the unmaintained `extended_image` dependency)
+* Timeline thumbnails migrated to `cached_network_image` for better cache behavior
+* App theme rewrite removes a silent provider-contract violation that could leave the theme stale across rebuilds
+* Internal performance: removed per-frame rebuild storm during drawer animation, removed per-thumbnail closure allocations, removed redundant `RepaintBoundary`s
+* CI: `Build APK` workflow builds split-per-abi APKs and posts them to a configured Telegram chat on every push to `main`
+
 ## 1.9.1
 
 * Add server switch from search bar icon
