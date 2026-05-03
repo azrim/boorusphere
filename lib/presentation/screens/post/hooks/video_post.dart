@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -93,12 +94,15 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
     //final cookieJar = hook.ref.read(cookieJarProvider);
     //final cookies =
     //    await cookieJar.loadForRequest(hook.post.content.url.toUri());
-    //final headers =
-    //    hook.ref.read(postHeadersFactoryProvider(hook.post, cookies: cookies));
+    final headers =
+        hook.ref.read(postHeadersFactoryProvider(hook.post, cookies: []));
 
     final uri = Uri.parse(hook.post.content.url);
-    final controller = VideoPlayerController.networkUrl(uri,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true));
+    final controller = VideoPlayerController.networkUrl(
+      uri,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      httpHeaders: headers,
+    );
     unawaited(controller.setLooping(true));
     final prog = DownloadProgress(hook.post.content.url, 1, 1);
 

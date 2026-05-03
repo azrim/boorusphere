@@ -1,3 +1,7 @@
+## 1.9.3
+
+* Fix Gelbooru and similar boorus failing to play normal videos (.mp4 / .webm). The video player now sends the same headers (Referer, User-Agent) that image requests already use, so servers that hotlink-protect their video CDN no longer reject the playback request.
+
 ## 1.9.2
 
 * Pinch-zoom on a post now disables horizontal page-swipe so panning a zoomed image won't accidentally swipe to the next post
