@@ -1,3 +1,7 @@
+## 1.9.6
+
+* Fix pinch-to-zoom not working in the post viewer. The previous gesture stack wrapped the entire `PageView` in a `GestureDetector` with vertical-drag callbacks for swipe-up-for-details / swipe-down-to-dismiss; its `VerticalDragGestureRecognizer` aggressively claimed gestures with any vertical component, beating `InteractiveViewer`'s `ScaleGestureRecognizer` to the gesture arena and silently dropping pinch input. The post viewer's gesture surface is rewritten so each post page owns its own gesture stack, swipe-up/swipe-down ride on a custom `_SinglePointerVerticalDragRecognizer` that synchronously rejects itself the moment a second pointer joins, and the per-page overlay is taken out of the gesture path entirely while the image is zoomed.
+
 ## 1.9.5
 
 * CI: grant `contents: write` to the `Build APK` workflow so tagged releases can attach APKs to the GitHub Release. Without this permission `softprops/action-gh-release` fails with HTTP 403 on `v*` tag pushes.

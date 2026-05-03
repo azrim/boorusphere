@@ -130,12 +130,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
         ref.watch(contentSettingStateProvider.select((it) => it.loadOriginal));
     final precachePosts = usePrecachePosts(ref, posts);
 
-    // Gesture state - use useRef to avoid rebuilds
-    final pointerCount = useRef(0);
-    final interacting = useState(false);
-    final dragStartY = useRef(0.0);
-    final dragDelta = useRef(0.0);
-
     final isVerticalMode = swipeMode == SwipeMode.vertical;
     final isLargeScreen = MediaQuery.of(context).size.width > 600;
 
@@ -182,6 +176,32 @@ class EnhancedPostViewer extends HookConsumerWidget {
       }
     }
 
+    void handlePostTap() {
+      if (sheetExpanded.value) {
+        sheetController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+        );
+        return;
+      }
+      controller.toggleOverlay();
+      ref.read(fullscreenStateProvider.notifier).toggle();
+    }
+
+    VoidCallback? onSwipeUp;
+    VoidCallback? onSwipeDown;
+    if (!isVerticalMode) {
+      if (enableSwipeToDetails) {
+        onSwipeUp = expandSheet;
+      }
+      if (enableSwipeToDismiss) {
+        onSwipeDown = () {
+          Navigator.of(context).maybePop();
+        };
+      }
+    }
+
     return PopScope(
       canPop: !sheetExpanded.value,
       onPopInvokedWithResult: (didPop, result) async {
@@ -206,59 +226,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
               // Main content
               Positioned.fill(
                 child: ListenableBuilder(
-                  listenable: Listenable.merge([
-                    controller.canSwipeListenable,
-                    interacting,
-                  ]),
+                  listenable: controller.canSwipeListenable,
                   builder: (context, child) {
-                    final canSwipe = controller.canSwipeListenable.value &&
-                        !interacting.value;
+                    final canSwipe = controller.canSwipeListenable.value;
 
-                    return GestureDetector(
-                      onTap: () {
-                        if (sheetExpanded.value) {
-                          sheetController.animateTo(
-                            0,
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOutCubic,
-                          );
-                        } else {
-                          controller.toggleOverlay();
-                        }
-                      },
-                      onVerticalDragStart: !isVerticalMode
-                          ? (details) {
-                              dragStartY.value = details.globalPosition.dy;
-                              dragDelta.value = 0;
-                            }
-                          : null,
-                      onVerticalDragUpdate: !isVerticalMode
-                          ? (details) {
-                              dragDelta.value =
-                                  details.globalPosition.dy - dragStartY.value;
-                            }
-                          : null,
-                      onVerticalDragEnd: !isVerticalMode
-                          ? (details) {
-                              final dy = dragDelta.value;
-                              final velocity =
-                                  details.velocity.pixelsPerSecond.dy;
-
-                              // Swipe up - expand sheet
-                              if (enableSwipeToDetails &&
-                                  (dy < -swipeThreshold || velocity < -500)) {
-                                expandSheet();
-                                return;
-                              }
-                              // Swipe down - dismiss
-                              else if (enableSwipeToDismiss &&
-                                  (dy > swipeThreshold || velocity > 500)) {
-                                Navigator.of(context).maybePop();
-                                return;
-                              }
-                            }
-                          : null,
-                      child: PageView.builder(
+                    return PageView.builder(
                         controller: controller.pageController,
                         scrollDirection:
                             isVerticalMode ? Axis.vertical : Axis.horizontal,
@@ -329,6 +301,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                     controller.enableSwipe();
                                   }
                                 },
+                                onTap: handlePostTap,
+                                onSwipeUp: onSwipeUp,
+                                onSwipeDown: onSwipeDown,
                               );
                             case PostType.video:
                               widget = PostVideo(
@@ -349,18 +324,10 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             key: ValueKey('hero_${post.id}_${post.serverId}'),
                             enabled: index == controller.page,
                             child: RepaintBoundary(
-                              child: _PointerCountDetector(
-                                onCountChanged: (count) {
-                                  pointerCount.value = count;
-                                  interacting.value = count > 1;
-                                },
-                                child: widget,
-                              ),
+                              child: widget,
                             ),
                           );
-                        },
-                      ),
-                    );
+                        });
                   },
                 ),
               ),
@@ -546,40 +513,4 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 64);
-}
-
-class _PointerCountDetector extends StatefulWidget {
-  const _PointerCountDetector({
-    required this.child,
-    required this.onCountChanged,
-  });
-
-  final Widget child;
-  final ValueChanged<int> onCountChanged;
-
-  @override
-  State<_PointerCountDetector> createState() => _PointerCountDetectorState();
-}
-
-class _PointerCountDetectorState extends State<_PointerCountDetector> {
-  int _pointerCount = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (event) {
-        _pointerCount++;
-        widget.onCountChanged(_pointerCount);
-      },
-      onPointerUp: (event) {
-        _pointerCount--;
-        widget.onCountChanged(_pointerCount);
-      },
-      onPointerCancel: (event) {
-        _pointerCount--;
-        widget.onCountChanged(_pointerCount);
-      },
-      child: widget.child,
-    );
-  }
 }
