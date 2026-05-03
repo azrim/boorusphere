@@ -185,27 +185,27 @@ class PostImage extends HookConsumerWidget {
           ),
           // Single-finger gesture overlay. Layered on top of the
           // [InteractiveViewer] using `HitTestBehavior.translucent`, the
-          // overlay only declares single-pointer recognizers
-          // (tap / double-tap / vertical-drag-when-not-zoomed). The
+          // overlay declares only single-pointer recognizers (tap,
+          // double-tap, and conditionally vertical-drag-for-swipe). The
           // moment a second pointer arrives, the custom drag recognizer
           // resolves itself as rejected so [InteractiveViewer]'s
-          // [ScaleGestureRecognizer] can win the gesture arena
-          // uncontested. This is what makes pinch-to-zoom actually
-          // work — the previous wrapping `GestureDetector` with
-          // standard `onVerticalDrag*` consistently beat the scale
-          // recognizer to the arena.
+          // [ScaleGestureRecognizer] wins the gesture arena uncontested.
+          // This is what makes pinch-to-zoom actually work — the previous
+          // wrapping `GestureDetector` with standard `onVerticalDrag*`
+          // consistently beat the scale recognizer to the arena.
+          //
+          // Tap + double-tap are mounted at all times (including while
+          // zoomed) so the user can always tap to toggle the overlay or
+          // double-tap to zoom back out. The swipe-up / swipe-down
+          // recognizer is gated by zoom state so [InteractiveViewer]'s
+          // single-finger pan is uncontested while the user is panning a
+          // zoomed image.
           Positioned.fill(
             child: ValueListenableBuilder<Matrix4>(
               valueListenable: transformController,
               builder: (context, matrix, _) {
                 final scale = matrix.getMaxScaleOnAxis();
                 final isZoomed = scale > 1.01;
-                if (isZoomed) {
-                  // While zoomed, let InteractiveViewer have all
-                  // gestures so single-finger pan works without
-                  // interference from tap/double-tap recognizers.
-                  return const SizedBox.shrink();
-                }
                 return _PostImageGestureOverlay(
                   onTap: onTap ??
                       () {
@@ -215,8 +215,11 @@ class PostImage extends HookConsumerWidget {
                     tapPosition.value = details.localPosition;
                   },
                   onDoubleTap: handleDoubleTap,
-                  onSwipeUp: onSwipeUp,
-                  onSwipeDown: onSwipeDown,
+                  // While zoomed, suppress swipe-up / swipe-down so the
+                  // pan recognizer inside [InteractiveViewer] wins
+                  // single-finger drags.
+                  onSwipeUp: isZoomed ? null : onSwipeUp,
+                  onSwipeDown: isZoomed ? null : onSwipeDown,
                 );
               },
             ),

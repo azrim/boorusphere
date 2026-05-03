@@ -1,3 +1,11 @@
+## 2.0.1
+
+Follow-up gesture fixes against 2.0.0 + universal APK in CI.
+
+* **Double-tap-to-zoom-out fix**: 2.0.0 stripped the entire single-finger gesture overlay (tap + double-tap + swipe) the moment the image zoomed past 1× scale. That was the easiest way to give `InteractiveViewer`'s single-finger pan recognizer the full gesture arena, but it also stripped the double-tap recognizer — leaving the user no way to recover from a zoom except pinching back. Tap and double-tap are now mounted at every zoom level; only swipe-up / swipe-down are suppressed while zoomed.
+* **Reactive `PageView` swipe-lock**: the post viewer used to wrap its `PageView` in a `ListenableBuilder` watching `canSwipeListenable` and toggling between `PageScrollPhysics()` and `NeverScrollableScrollPhysics()`. Every zoom/zoom-out rebuilt the entire `PageView`, which in practice left the underlying `Scrollable` in an ambiguous state — manifesting as "after swipe to next post, gestures are dead until the settle finishes". Replaced with a custom `_PageViewerScrollPhysics` that gates `shouldAcceptUserOffset` on the listenable; the `PageView` is now built once and its drag-acceptance is consulted reactively on every pointer-down.
+* **Universal APK in CI**: the `apkrelease` grind task now also runs `flutter build apk` (no `--split-per-abi`) so every tagged release attaches a universal APK alongside the per-ABI ones, giving users who don't know their device ABI a fallback download. `bin/renameapks.dart` is generalised to map every known source filename onto the user-facing `boorusphere-X.Y.Z-{abi|universal}.apk` name.
+
 ## 2.0.0
 
 Major version bump consolidating the UI tech-debt + render-bottleneck modernization shipped across 1.9.2 – 1.9.6 and the gesture-stack rewrite below.
