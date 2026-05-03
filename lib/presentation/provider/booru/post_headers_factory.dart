@@ -21,7 +21,7 @@ Map<String, String> postHeadersFactory(
   Post post, {
   List<Cookie> cookies = const [],
 }) {
-  final versionRepo = ref.watch(versionRepoProvider);
+  final versionRepo = ref.read(versionRepoProvider);
   final url = post.postUrl.isEmpty ? post.content.url : post.postUrl;
   final referer = createReferer(url);
 
