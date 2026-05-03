@@ -61,7 +61,12 @@ Future<void> test() async {
 
 @Task('Build release apks')
 Future<void> apkrelease() async {
+  // Split-per-abi: produces app-arm64-v8a-release.apk,
+  // app-armeabi-v7a-release.apk, app-x86_64-release.apk (smaller, recommended).
   await me.fun(['build', 'apk', '--split-per-abi']);
+  // Universal: produces app-release.apk (one APK that runs on every ABI;
+  // larger, useful as a fallback for users who don't know their ABI).
+  await me.fun(['build', 'apk']);
   await me.pun('boorusphere', bin: 'renameapks');
 }
 

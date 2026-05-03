@@ -225,111 +225,110 @@ class EnhancedPostViewer extends HookConsumerWidget {
             children: [
               // Main content
               Positioned.fill(
-                child: ListenableBuilder(
-                  listenable: controller.canSwipeListenable,
-                  builder: (context, child) {
-                    final canSwipe = controller.canSwipeListenable.value;
-
-                    return PageView.builder(
-                        controller: controller.pageController,
-                        scrollDirection:
-                            isVerticalMode ? Axis.vertical : Axis.horizontal,
-                        physics: canSwipe
-                            ? const PageScrollPhysics()
-                            : const NeverScrollableScrollPhysics(),
-                        allowImplicitScrolling: true,
-                        onPageChanged: (index) async {
-                          // The new page starts at scale 1, so swipe should
-                          // be available again. Re-enabling here covers the
-                          // edge case where the previous page disabled it
-                          // and was unmounted before its
-                          // gestureDetailsIsChanged could fire the reset.
-                          controller.enableSwipe();
-                          SchedulerBinding.instance
-                              .addPostFrameCallback((timeStamp) {
-                            if (context.mounted) {
-                              controller.updateCurrentPage(index);
-                              // Update post notifier
-                              if (postsList.isNotEmpty &&
-                                  index < postsList.length) {
-                                currentPostNotifier.value = postsList[index];
-                              }
-                            }
-                          });
-
-                          context.scaffoldMessenger.hideCurrentSnackBar();
-
-                          if (loadMore == null) return;
-
-                          final offset = index + 1;
-                          final threshold = postsList.length /
-                              100 *
-                              (100 - loadMoreThreshold);
-                          if (offset + threshold > postsList.length - 1) {
-                            isLoadingMore.value = true;
-                            unawaited(loadMore());
-                            await Future.delayed(
-                                const Duration(milliseconds: 300), () {
-                              if (context.mounted) {
-                                isLoadingMore.value = false;
-                              }
-                            });
+                child: PageView.builder(
+                    controller: controller.pageController,
+                    scrollDirection:
+                        isVerticalMode ? Axis.vertical : Axis.horizontal,
+                    // Custom physics consult `canSwipeListenable` on
+                    // every drag attempt instead of being swapped via
+                    // a parent rebuild. The previous
+                    // `ListenableBuilder` approach replaced the
+                    // physics object on every zoom/zoom-out, which
+                    // could leave the underlying [Scrollable] in an
+                    // ambiguous state if the listenable toggled
+                    // mid-gesture. This way the `PageView` is built
+                    // once and its drag-acceptance is reactive.
+                    physics: _PageViewerScrollPhysics(
+                      canSwipe: controller.canSwipeListenable,
+                    ),
+                    allowImplicitScrolling: true,
+                    onPageChanged: (index) async {
+                      // The new page starts at scale 1, so swipe should
+                      // be available again. Re-enabling here covers the
+                      // edge case where the previous page disabled it
+                      // and was unmounted before its
+                      // gestureDetailsIsChanged could fire the reset.
+                      controller.enableSwipe();
+                      SchedulerBinding.instance
+                          .addPostFrameCallback((timeStamp) {
+                        if (context.mounted) {
+                          controller.updateCurrentPage(index);
+                          // Update post notifier
+                          if (postsList.isNotEmpty &&
+                              index < postsList.length) {
+                            currentPostNotifier.value = postsList[index];
                           }
-                        },
-                        itemCount: postsList.length,
-                        itemBuilder: (context, index) {
-                          precachePosts(index, loadOriginal);
+                        }
+                      });
 
-                          final post = postsList[index];
-                          final Widget widget;
+                      context.scaffoldMessenger.hideCurrentSnackBar();
 
-                          switch (post.content.type) {
-                            case PostType.photo:
-                            case PostType.gif:
-                              widget = PostImage(
-                                key: ValueKey(
-                                    'image_${post.id}_${post.serverId}'),
-                                post: post,
-                                onZoomChanged: (isZoomed) {
-                                  // Disable PageView swipe while the image
-                                  // is zoomed in so panning the zoomed
-                                  // image cannot accidentally page to the
-                                  // next post.
-                                  if (isZoomed) {
-                                    controller.disableSwipe();
-                                  } else {
-                                    controller.enableSwipe();
-                                  }
-                                },
-                                onTap: handlePostTap,
-                                onSwipeUp: onSwipeUp,
-                                onSwipeDown: onSwipeDown,
-                              );
-                            case PostType.video:
-                              widget = PostVideo(
-                                key: ValueKey(
-                                    'video_${post.id}_${post.serverId}'),
-                                post: post,
-                                onToolboxVisibilityChange: (visible) {},
-                              );
-                            default:
-                              widget = PostUnknown(
-                                key: ValueKey(
-                                    'unknown_${post.id}_${post.serverId}'),
-                                post: post,
-                              );
+                      if (loadMore == null) return;
+
+                      final offset = index + 1;
+                      final threshold =
+                          postsList.length / 100 * (100 - loadMoreThreshold);
+                      if (offset + threshold > postsList.length - 1) {
+                        isLoadingMore.value = true;
+                        unawaited(loadMore());
+                        await Future.delayed(const Duration(milliseconds: 300),
+                            () {
+                          if (context.mounted) {
+                            isLoadingMore.value = false;
                           }
-
-                          return HeroMode(
-                            key: ValueKey('hero_${post.id}_${post.serverId}'),
-                            enabled: index == controller.page,
-                            child: RepaintBoundary(
-                              child: widget,
-                            ),
-                          );
                         });
-                  },
-                ),
+                      }
+                    },
+                    itemCount: postsList.length,
+                    itemBuilder: (context, index) {
+                      precachePosts(index, loadOriginal);
+
+                      final post = postsList[index];
+                      final Widget widget;
+
+                      switch (post.content.type) {
+                        case PostType.photo:
+                        case PostType.gif:
+                          widget = PostImage(
+                            key: ValueKey('image_${post.id}_${post.serverId}'),
+                            post: post,
+                            onZoomChanged: (isZoomed) {
+                              // Disable PageView swipe while the image
+                              // is zoomed in so panning the zoomed
+                              // image cannot accidentally page to the
+                              // next post.
+                              if (isZoomed) {
+                                controller.disableSwipe();
+                              } else {
+                                controller.enableSwipe();
+                              }
+                            },
+                            onTap: handlePostTap,
+                            onSwipeUp: onSwipeUp,
+                            onSwipeDown: onSwipeDown,
+                          );
+                        case PostType.video:
+                          widget = PostVideo(
+                            key: ValueKey('video_${post.id}_${post.serverId}'),
+                            post: post,
+                            onToolboxVisibilityChange: (visible) {},
+                          );
+                        default:
+                          widget = PostUnknown(
+                            key:
+                                ValueKey('unknown_${post.id}_${post.serverId}'),
+                            post: post,
+                          );
+                      }
+
+                      return HeroMode(
+                        key: ValueKey('hero_${post.id}_${post.serverId}'),
+                        enabled: index == controller.page,
+                        child: RepaintBoundary(
+                          child: widget,
+                        ),
+                      );
+                    }),
               ),
               // Overlay UI
               ValueListenableBuilder<int>(
@@ -513,4 +512,30 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 64);
+}
+
+/// Page-snap scroll physics whose drag-acceptance is gated by a
+/// [ValueListenable]. Built once and consulted reactively on every
+/// pointer-down — the [PageView] never needs to be rebuilt to toggle
+/// between "swipeable" and "locked" states.
+class _PageViewerScrollPhysics extends PageScrollPhysics {
+  const _PageViewerScrollPhysics({
+    required this.canSwipe,
+    super.parent,
+  });
+
+  final ValueListenable<bool> canSwipe;
+
+  @override
+  bool shouldAcceptUserOffset(ScrollMetrics position) {
+    return canSwipe.value && super.shouldAcceptUserOffset(position);
+  }
+
+  @override
+  _PageViewerScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return _PageViewerScrollPhysics(
+      canSwipe: canSwipe,
+      parent: buildParent(ancestor),
+    );
+  }
 }

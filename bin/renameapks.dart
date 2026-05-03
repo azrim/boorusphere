@@ -8,10 +8,17 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
-final variants = {
-  'arm64-v8a',
-  'armeabi-v7a',
-  'x86_64',
+/// Maps the variant slug in the final APK filename to the source APK filename
+/// emitted by `flutter build apk`.
+///
+/// `--split-per-abi` produces `app-<abi>-release.apk` for each ABI; a plain
+/// `flutter build apk` produces a single `app-release.apk` containing every
+/// ABI (the "universal" build).
+const Map<String, String> _variantSources = {
+  'arm64-v8a': 'app-arm64-v8a-release.apk',
+  'armeabi-v7a': 'app-armeabi-v7a-release.apk',
+  'x86_64': 'app-x86_64-release.apk',
+  'universal': 'app-release.apk',
 };
 
 String get _outputDir {
@@ -54,8 +61,11 @@ void main() async {
   }
 
   await Future.wait([
-    ...variants.map((arch) => _renameOutputApks(_outputDir,
-        from: 'app-$arch-release.apk',
-        to: 'boorusphere-$_appVersionName-$arch.apk'))
+    for (final entry in _variantSources.entries)
+      _renameOutputApks(
+        _outputDir,
+        from: entry.value,
+        to: 'boorusphere-$_appVersionName-${entry.key}.apk',
+      ),
   ]);
 }
