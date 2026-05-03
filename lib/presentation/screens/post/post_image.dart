@@ -265,26 +265,31 @@ class _PostImageStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final completed = state is _PostImageCompleted;
     final loadPercent = switch (state) {
       _PostImageLoading(:final progress) => (progress * 100).round(),
       _PostImageCompleted() => 100,
       _PostImageFailed() => 0,
     };
-    return AnimatedScale(
-      duration: kThemeChangeDuration,
-      curve: Curves.easeInOutCubic,
-      scale: completed ? 0 : 1,
-      child: state is _PostImageFailed
-          ? QuickBar.action(
-              title: Text(context.t.loadImageFailed),
-              actionTitle: Text(context.t.retry),
-              onPressed: onRetry,
-            )
-          : QuickBar.progress(
-              title: loadPercent > 1 ? Text('$loadPercent%') : null,
-              progress: completed ? 1 : (loadPercent / 100),
-            ),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      child: state is _PostImageCompleted
+          ? const SizedBox.shrink()
+          : state is _PostImageFailed
+              ? QuickBar.action(
+                  key: const ValueKey('failed'),
+                  title: Text(context.t.loadImageFailed),
+                  actionTitle: Text(context.t.retry),
+                  onPressed: onRetry,
+                )
+              : QuickBar.progress(
+                  key: const ValueKey('loading'),
+                  title: loadPercent > 1 ? Text('$loadPercent%') : null,
+                  progress: loadPercent / 100,
+                ),
     );
   }
 }
