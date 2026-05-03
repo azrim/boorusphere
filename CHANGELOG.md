@@ -1,3 +1,7 @@
+## 1.9.5
+
+* CI: grant `contents: write` to the `Build APK` workflow so tagged releases can attach APKs to the GitHub Release. Without this permission `softprops/action-gh-release` fails with HTTP 403 on `v*` tag pushes.
+
 ## 1.9.4
 
 * Documentation: full README rewrite covering current 1.9.x features (engine-based server adder, post details sheet, Telegram backup integration, etc) and a new section documenting the GitHub Actions APK build + Telegram delivery pipeline.
