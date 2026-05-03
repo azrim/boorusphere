@@ -10,7 +10,6 @@ import 'package:boorusphere/presentation/screens/post/post_placeholder_image.dar
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -26,6 +25,7 @@ class PostImage extends HookConsumerWidget {
     super.key,
     required this.post,
     this.onZoomChanged,
+    this.onTap,
     this.onSwipeUp,
     this.onSwipeDown,
   });
@@ -37,6 +37,12 @@ class PostImage extends HookConsumerWidget {
   /// disable page-swipe gestures while a zoom is active so panning a
   /// zoomed image does not accidentally swipe to the next post.
   final void Function(bool isZoomed)? onZoomChanged;
+
+  /// Fired on a single-finger tap while the image is at rest (scale == 1).
+  /// The post viewer uses this to toggle the in-app overlay (appbar /
+  /// toolbox) and the system UI (status bar) together. If null, falls back
+  /// to toggling [fullscreenStateProvider] only.
+  final VoidCallback? onTap;
 
   /// Fired when the user single-finger swipes up while the image is at
   /// rest (scale == 1). The post viewer uses this to expand the details
@@ -201,9 +207,10 @@ class PostImage extends HookConsumerWidget {
                   return const SizedBox.shrink();
                 }
                 return _PostImageGestureOverlay(
-                  onTap: () {
-                    ref.read(fullscreenStateProvider.notifier).toggle();
-                  },
+                  onTap: onTap ??
+                      () {
+                        ref.read(fullscreenStateProvider.notifier).toggle();
+                      },
                   onDoubleTapDown: (details) {
                     tapPosition.value = details.localPosition;
                   },
@@ -274,7 +281,7 @@ class _PostImageGestureOverlay extends StatelessWidget {
       gestures: <Type, GestureRecognizerFactory>{
         TapGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-          () => TapGestureRecognizer(),
+          TapGestureRecognizer.new,
           (instance) {
             instance.onTap = onTap;
           },
@@ -292,7 +299,7 @@ class _PostImageGestureOverlay extends StatelessWidget {
           _SinglePointerVerticalDragRecognizer:
               GestureRecognizerFactoryWithHandlers<
                   _SinglePointerVerticalDragRecognizer>(
-            () => _SinglePointerVerticalDragRecognizer(),
+            _SinglePointerVerticalDragRecognizer.new,
             (instance) {
               instance.onEnd = (details) {
                 final velocity = details.velocity.pixelsPerSecond.dy;
@@ -320,7 +327,7 @@ class _PostImageGestureOverlay extends StatelessWidget {
 /// any vertical component, leaving the user unable to zoom.
 class _SinglePointerVerticalDragRecognizer
     extends VerticalDragGestureRecognizer {
-  _SinglePointerVerticalDragRecognizer({super.debugOwner});
+  _SinglePointerVerticalDragRecognizer();
 
   final Set<int> _activePointers = <int>{};
 
@@ -436,12 +443,13 @@ class _PostImageStatus extends StatelessWidget {
                   actionTitle: Text(context.t.retry),
                   onPressed: onRetry,
                 )
-              : QuickBar.text(
+              : QuickBar.progress(
                   key: ValueKey('loading-$loadPercent'),
                   title: Text(
                     '$loadPercent%',
                     style: const TextStyle(fontWeight: FontWeight.w400),
                   ),
+                  progress: loadPercent / 100,
                 ),
     );
   }
