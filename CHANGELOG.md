@@ -1,3 +1,18 @@
+## 2.0.0
+
+Major version bump consolidating the UI tech-debt + render-bottleneck modernization shipped across 1.9.2 – 1.9.6 and the gesture-stack rewrite below.
+
+**Highlights since 1.9.0:**
+
+* **Render correctness pass** (Phase B + C, 1.9.1 → 1.9.2): timeline rebuild storm fixed (post-list selectors no longer silently miss updates thanks to `List.unmodifiable` emissions); per-frame `ImageFilter` allocations hoisted out of the hot path; useless `RepaintBoundary` removed; `Hero.flightShuttleBuilder` closure hoisted to top-level so we don't allocate per visible thumbnail per build; pinch-zoom now disables `PageView` swipe.
+* **State graph cleanup** (Phase D): `PostViewerController` consolidated to a single `ValueNotifier<PostViewerState>` + selectors (11 notifiers → 1 + 3); `searchBarControllerProvider` migrated to a real `Provider.family`; `homeDrawerControllerProvider` got a real default factory; `app_theme.dart` rewritten to drop a singleton notifier that mutated its own field without notifying Riverpod.
+* **Image-stack migration** (Phase E): `extended_image` dropped entirely. Timeline + favicons + downloads + post-placeholder migrated to `cached_network_image`; explicit-content blur uses the framework's `ImageFiltered` instead of `extended_image`'s painter hooks. Post viewer rebuilt on `InteractiveViewer` + `TransformationController` for pinch zoom + pan, with double-tap zoom rebuilt via `Matrix4Tween`.
+* **M3 drawer** (Phase F.1): `Scaffold.drawer` adopted; manual slide animation, `vector_math` dependency, and the bespoke `HomeDrawerController` wrapper are gone (-202 LOC).
+* **Gelbooru video playback** (1.9.3): pass the post-headers factory to `VideoPlayerController.networkUrl` via `httpHeaders` so hotlink-protected video CDNs accept the request, mirroring the Kropatz fork.
+* **README** (1.9.4): full rewrite covering current 1.9.x feature surface and the GitHub Actions APK build + Telegram delivery pipeline.
+* **Release plumbing** (1.9.5): `Build APK` workflow granted `contents: write` so `v*` tags can attach APKs to the GitHub Release.
+* **Pinch-to-zoom gesture fix** (this release): the post viewer wrapped the entire `PageView` in a `GestureDetector` with vertical-drag callbacks for swipe-up-for-details / swipe-down-to-dismiss; its `VerticalDragGestureRecognizer` aggressively claimed gestures with any vertical component, beating `InteractiveViewer`'s `ScaleGestureRecognizer` to the gesture arena and silently dropping pinch input. The gesture surface is rewritten so each post page owns its own gesture stack, swipe-up/swipe-down ride on a custom `_SinglePointerVerticalDragRecognizer` that synchronously rejects itself the moment a second pointer joins, and the per-page overlay is taken out of the gesture path entirely while the image is zoomed.
+
 ## 1.9.5
 
 * CI: grant `contents: write` to the `Build APK` workflow so tagged releases can attach APKs to the GitHub Release. Without this permission `softprops/action-gh-release` fails with HTTP 403 on `v*` tag pushes.

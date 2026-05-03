@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/screens/post/post_placeholder_image.dar
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -24,6 +25,9 @@ class PostImage extends HookConsumerWidget {
     super.key,
     required this.post,
     this.onZoomChanged,
+    this.onTap,
+    this.onSwipeUp,
+    this.onSwipeDown,
   });
 
   final Post post;
@@ -33,6 +37,21 @@ class PostImage extends HookConsumerWidget {
   /// disable page-swipe gestures while a zoom is active so panning a
   /// zoomed image does not accidentally swipe to the next post.
   final void Function(bool isZoomed)? onZoomChanged;
+
+  /// Fired on a single-finger tap while the image is at rest (scale == 1).
+  /// The post viewer uses this to toggle the in-app overlay (appbar /
+  /// toolbox) and the system UI (status bar) together. If null, falls back
+  /// to toggling [fullscreenStateProvider] only.
+  final VoidCallback? onTap;
+
+  /// Fired when the user single-finger swipes up while the image is at
+  /// rest (scale == 1). The post viewer uses this to expand the details
+  /// sheet.
+  final VoidCallback? onSwipeUp;
+
+  /// Fired when the user single-finger swipes down while the image is at
+  /// rest (scale == 1). The post viewer uses this to dismiss the route.
+  final VoidCallback? onSwipeDown;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,130 +93,269 @@ class PostImage extends HookConsumerWidget {
     final imageUrl =
         contentSetting.loadOriginal ? post.originalFile : post.content.url;
 
-    return GestureDetector(
-      onTap: () {
-        ref.read(fullscreenStateProvider.notifier).toggle();
-      },
-      onDoubleTapDown: (details) {
-        tapPosition.value = details.localPosition;
-      },
-      onDoubleTap: () async {
-        if (zoomAnimator.isAnimating) {
-          return;
-        }
+    Future<void> handleDoubleTap() async {
+      if (zoomAnimator.isAnimating) {
+        return;
+      }
 
-        final current = transformController.value.clone();
-        final currentScale = current.getMaxScaleOnAxis();
-        final targetScale = currentScale > 1.01 ? 1.0 : max(2.0, scaleRatio);
-        final tap = tapPosition.value;
-        final target = targetScale == 1.0
-            ? Matrix4.identity()
-            : (Matrix4.identity()
-              ..translateByDouble(tap.dx, tap.dy, 0, 1)
-              ..scaleByDouble(targetScale, targetScale, targetScale, 1)
-              ..translateByDouble(-tap.dx, -tap.dy, 0, 1));
+      final current = transformController.value.clone();
+      final currentScale = current.getMaxScaleOnAxis();
+      final targetScale = currentScale > 1.01 ? 1.0 : max(2.0, scaleRatio);
+      final tap = tapPosition.value;
+      final target = targetScale == 1.0
+          ? Matrix4.identity()
+          : (Matrix4.identity()
+            ..translateByDouble(tap.dx, tap.dy, 0, 1)
+            ..scaleByDouble(targetScale, targetScale, targetScale, 1)
+            ..translateByDouble(-tap.dx, -tap.dy, 0, 1));
 
-        final tween = Matrix4Tween(begin: current, end: target);
-        final animation = tween.animate(zoomAnimator);
+      final tween = Matrix4Tween(begin: current, end: target);
+      final animation = tween.animate(zoomAnimator);
 
-        void onAnimating() {
-          transformController.value = animation.value;
-        }
+      void onAnimating() {
+        transformController.value = animation.value;
+      }
 
-        if (zoomAnimator.isCompleted) {
-          zoomAnimator.reset();
-        }
-        animation.addListener(onAnimating);
-        await zoomAnimator.forward();
-        animation.removeListener(onAnimating);
-      },
-      child: RepaintBoundary(
-        child: Stack(
-          alignment: Alignment.center,
-          fit: StackFit.passthrough,
-          children: [
-            Hero(
-              tag: post.viewId,
-              child: InteractiveViewer(
-                transformationController: transformController,
-                maxScale: scaleRatio * 5,
-                minScale: 1,
-                panEnabled: !isBlur.value,
-                scaleEnabled: !isBlur.value,
-                child: CachedNetworkImage(
-                  key: ValueKey('$imageUrl-${retryNonce.value}'),
-                  imageUrl: imageUrl,
-                  httpHeaders: headers,
-                  fit: BoxFit.contain,
-                  imageBuilder: (context, provider) {
-                    _scheduleLoadState(
-                        loadState, const _PostImageLoadState.completed());
-                    final image = Image(
-                      image: provider,
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                      height: double.infinity,
-                    );
-                    return isBlur.value
-                        ? ImageFiltered(
-                            imageFilter: _kExplicitBlur,
-                            child: image,
-                          )
-                        : image;
-                  },
-                  progressIndicatorBuilder: (context, url, progress) {
-                    _scheduleLoadState(
-                      loadState,
-                      _PostImageLoadState.loading(progress.progress ?? 0),
-                    );
-                    return PostPlaceholderImage(
-                      post: post,
-                      shouldBlur: isBlur.value,
-                      headers: headers,
-                    );
-                  },
-                  errorWidget: (context, url, error) {
-                    _scheduleLoadState(
-                      loadState,
-                      const _PostImageLoadState.failed(),
-                    );
-                    return PostPlaceholderImage(
-                      post: post,
-                      shouldBlur: isBlur.value,
-                      headers: headers,
-                    );
-                  },
-                ),
+      if (zoomAnimator.isCompleted) {
+        zoomAnimator.reset();
+      }
+      animation.addListener(onAnimating);
+      await zoomAnimator.forward();
+      animation.removeListener(onAnimating);
+    }
+
+    return RepaintBoundary(
+      child: Stack(
+        alignment: Alignment.center,
+        fit: StackFit.passthrough,
+        children: [
+          Hero(
+            tag: post.viewId,
+            child: InteractiveViewer(
+              transformationController: transformController,
+              maxScale: scaleRatio * 5,
+              minScale: 1,
+              panEnabled: !isBlur.value,
+              scaleEnabled: !isBlur.value,
+              child: CachedNetworkImage(
+                key: ValueKey('$imageUrl-${retryNonce.value}'),
+                imageUrl: imageUrl,
+                httpHeaders: headers,
+                fit: BoxFit.contain,
+                imageBuilder: (context, provider) {
+                  _scheduleLoadState(
+                      loadState, const _PostImageLoadState.completed());
+                  final image = Image(
+                    image: provider,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    height: double.infinity,
+                  );
+                  return isBlur.value
+                      ? ImageFiltered(
+                          imageFilter: _kExplicitBlur,
+                          child: image,
+                        )
+                      : image;
+                },
+                progressIndicatorBuilder: (context, url, progress) {
+                  _scheduleLoadState(
+                    loadState,
+                    _PostImageLoadState.loading(progress.progress ?? 0),
+                  );
+                  return PostPlaceholderImage(
+                    post: post,
+                    shouldBlur: isBlur.value,
+                    headers: headers,
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  _scheduleLoadState(
+                    loadState,
+                    const _PostImageLoadState.failed(),
+                  );
+                  return PostPlaceholderImage(
+                    post: post,
+                    shouldBlur: isBlur.value,
+                    headers: headers,
+                  );
+                },
               ),
             ),
-            if (!isBlur.value)
-              Positioned(
-                bottom: QuickBar.preferredBottomPosition(context),
-                child: _PostImageStatus(
-                  state: loadState.value,
-                  onRetry: () {
-                    CachedNetworkImage.evictFromCache(imageUrl);
-                    retryNonce.value += 1;
-                    loadState.value = const _PostImageLoadState.loading(0);
+          ),
+          // Single-finger gesture overlay. Layered on top of the
+          // [InteractiveViewer] using `HitTestBehavior.translucent`, the
+          // overlay only declares single-pointer recognizers
+          // (tap / double-tap / vertical-drag-when-not-zoomed). The
+          // moment a second pointer arrives, the custom drag recognizer
+          // resolves itself as rejected so [InteractiveViewer]'s
+          // [ScaleGestureRecognizer] can win the gesture arena
+          // uncontested. This is what makes pinch-to-zoom actually
+          // work — the previous wrapping `GestureDetector` with
+          // standard `onVerticalDrag*` consistently beat the scale
+          // recognizer to the arena.
+          Positioned.fill(
+            child: ValueListenableBuilder<Matrix4>(
+              valueListenable: transformController,
+              builder: (context, matrix, _) {
+                final scale = matrix.getMaxScaleOnAxis();
+                final isZoomed = scale > 1.01;
+                if (isZoomed) {
+                  // While zoomed, let InteractiveViewer have all
+                  // gestures so single-finger pan works without
+                  // interference from tap/double-tap recognizers.
+                  return const SizedBox.shrink();
+                }
+                return _PostImageGestureOverlay(
+                  onTap: onTap ??
+                      () {
+                        ref.read(fullscreenStateProvider.notifier).toggle();
+                      },
+                  onDoubleTapDown: (details) {
+                    tapPosition.value = details.localPosition;
                   },
-                ),
+                  onDoubleTap: handleDoubleTap,
+                  onSwipeUp: onSwipeUp,
+                  onSwipeDown: onSwipeDown,
+                );
+              },
+            ),
+          ),
+          if (!isBlur.value)
+            Positioned(
+              bottom: QuickBar.preferredBottomPosition(context),
+              child: _PostImageStatus(
+                state: loadState.value,
+                onRetry: () {
+                  CachedNetworkImage.evictFromCache(imageUrl);
+                  retryNonce.value += 1;
+                  loadState.value = const _PostImageLoadState.loading(0);
+                },
               ),
-            if (isBlur.value)
-              Positioned(
-                bottom: QuickBar.preferredBottomPosition(context),
-                child: QuickBar.action(
-                  title: Text(context.t.unsafeContent),
-                  actionTitle: Text(context.t.unblur),
-                  onPressed: () {
-                    isBlur.value = false;
-                  },
-                ),
+            ),
+          if (isBlur.value)
+            Positioned(
+              bottom: QuickBar.preferredBottomPosition(context),
+              child: QuickBar.action(
+                title: Text(context.t.unsafeContent),
+                actionTitle: Text(context.t.unblur),
+                onPressed: () {
+                  isBlur.value = false;
+                },
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
+}
+
+/// Single-pointer gesture surface for the post viewer.
+///
+/// Owns a custom [_SinglePointerVerticalDragRecognizer] that bows out
+/// the moment a second pointer is added so [InteractiveViewer]'s
+/// [ScaleGestureRecognizer] always wins multi-touch gestures. Tap and
+/// double-tap remain single-pointer gestures and coexist via the
+/// gesture arena as usual.
+class _PostImageGestureOverlay extends StatelessWidget {
+  const _PostImageGestureOverlay({
+    required this.onTap,
+    required this.onDoubleTapDown,
+    required this.onDoubleTap,
+    required this.onSwipeUp,
+    required this.onSwipeDown,
+  });
+
+  static const double _swipeVelocity = 500;
+
+  final VoidCallback onTap;
+  final void Function(TapDownDetails) onDoubleTapDown;
+  final VoidCallback onDoubleTap;
+  final VoidCallback? onSwipeUp;
+  final VoidCallback? onSwipeDown;
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: <Type, GestureRecognizerFactory>{
+        TapGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+          TapGestureRecognizer.new,
+          (instance) {
+            instance.onTap = onTap;
+          },
+        ),
+        DoubleTapGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<DoubleTapGestureRecognizer>(
+          DoubleTapGestureRecognizer.new,
+          (instance) {
+            instance
+              ..onDoubleTapDown = onDoubleTapDown
+              ..onDoubleTap = onDoubleTap;
+          },
+        ),
+        if (onSwipeUp != null || onSwipeDown != null)
+          _SinglePointerVerticalDragRecognizer:
+              GestureRecognizerFactoryWithHandlers<
+                  _SinglePointerVerticalDragRecognizer>(
+            _SinglePointerVerticalDragRecognizer.new,
+            (instance) {
+              instance.onEnd = (details) {
+                final velocity = details.velocity.pixelsPerSecond.dy;
+                if (velocity < -_swipeVelocity) {
+                  onSwipeUp?.call();
+                } else if (velocity > _swipeVelocity) {
+                  onSwipeDown?.call();
+                }
+              };
+            },
+          ),
+      },
+    );
+  }
+}
+
+/// A [VerticalDragGestureRecognizer] that synchronously rejects itself
+/// the moment a second pointer joins the gesture, freeing the gesture
+/// arena for [InteractiveViewer]'s [ScaleGestureRecognizer] to win
+/// pinch gestures uncontested.
+///
+/// The default [VerticalDragGestureRecognizer] tracks all incoming
+/// pointers and decides whether to claim based on dominant motion —
+/// which can race with scale recognition during a pinch that includes
+/// any vertical component, leaving the user unable to zoom.
+class _SinglePointerVerticalDragRecognizer
+    extends VerticalDragGestureRecognizer {
+  _SinglePointerVerticalDragRecognizer();
+
+  final Set<int> _activePointers = <int>{};
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _activePointers.add(event.pointer);
+    if (_activePointers.length > 1) {
+      // Multi-touch — yield to [InteractiveViewer]'s scale recognizer.
+      resolve(GestureDisposition.rejected);
+      return;
+    }
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void rejectGesture(int pointer) {
+    _activePointers.remove(pointer);
+    super.rejectGesture(pointer);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    _activePointers.remove(pointer);
+    super.didStopTrackingLastPointer(pointer);
+  }
+
+  @override
+  String get debugDescription => 'single_pointer_vertical_drag';
 }
 
 void _scheduleLoadState(
@@ -286,8 +444,11 @@ class _PostImageStatus extends StatelessWidget {
                   onPressed: onRetry,
                 )
               : QuickBar.progress(
-                  key: const ValueKey('loading'),
-                  title: loadPercent > 1 ? Text('$loadPercent%') : null,
+                  key: ValueKey('loading-$loadPercent'),
+                  title: Text(
+                    '$loadPercent%',
+                    style: const TextStyle(fontWeight: FontWeight.w400),
+                  ),
                   progress: loadPercent / 100,
                 ),
     );
