@@ -288,7 +288,7 @@ class _PostImageGestureOverlay extends StatelessWidget {
         ),
         DoubleTapGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<DoubleTapGestureRecognizer>(
-          () => DoubleTapGestureRecognizer(),
+          DoubleTapGestureRecognizer.new,
           (instance) {
             instance
               ..onDoubleTapDown = onDoubleTapDown
