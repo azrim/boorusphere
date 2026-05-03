@@ -1,3 +1,7 @@
+## 1.9.4
+
+* Documentation: full README rewrite covering current 1.9.x features (engine-based server adder, post details sheet, Telegram backup integration, etc) and a new section documenting the GitHub Actions APK build + Telegram delivery pipeline.
+
 ## 1.9.3
 
 * Fix Gelbooru and similar boorus failing to play normal videos (.mp4 / .webm). The video player now sends the same headers (Referer, User-Agent) that image requests already use, so servers that hotlink-protect their video CDN no longer reject the playback request.
