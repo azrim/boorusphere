@@ -1,3 +1,7 @@
+## 2.0.3
+
+* **CI: cache `~/.pub-cache` keyed on `pubspec.lock`**: every `Analyze and test` and `Build APK` run was cold-downloading ~300 packages from pub.dev (~45 s overhead). Added `actions/cache@v4` between the Flutter setup step and `flutter pub get`. The cache key is `${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}` with a soft `${{ runner.os }}-pub-` restore-key so PRs that touch `pubspec.lock` still get a partial restore. Subsequent `flutter pub get` and `dart pub global activate grinder` runs reuse the cached package archives without re-downloading.
+
 ## 2.0.2
 
 * **Page-swipe lock while zoomed actually engages now**: 2.0.1 replaced the `ListenableBuilder`-driven physics swap with a custom `_PageViewerScrollPhysics` whose `shouldAcceptUserOffset` consulted `canSwipeListenable` directly, on the assumption Flutter's `Scrollable` re-evaluates that on every pointer-down. It doesn't — `Scrollable` only re-runs `physics.shouldAcceptUserOffset(position)` inside `_updatePosition()` (which fires on `didUpdateWidget`). Because the `PageView` was built once and pinned, `setCanDrag()` was never called again and the `HorizontalDragGestureRecognizer` stayed installed permanently — letting the user page to the next post even while the current image was zoomed. Reverted to the `ListenableBuilder` wrapping the `PageView`: the underlying `PageView` State preserves across rebuild, but the swap from `PageScrollPhysics` to `NeverScrollableScrollPhysics` triggers `didUpdateWidget`, which un-installs the drag recognizer correctly.
