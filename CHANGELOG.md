@@ -1,3 +1,7 @@
+## 1.9.3
+
+* Fix Gelbooru and similar boorus failing to play normal videos (.mp4 / .webm). The video player now sends the same headers (Referer, User-Agent) that image requests already use, so servers that hotlink-protect their video CDN no longer reject the playback request.
+
 ## 1.9.1
 
 * Add server switch from search bar icon
