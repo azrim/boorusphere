@@ -1,3 +1,7 @@
+## 2.0.2
+
+* **CI: skip oversize APKs in Telegram delivery**: Telegram bot `sendDocument` is hard-capped at 50 MB. The universal APK introduced in 2.0.1 is ~62 MB (it bundles every ABI) and tripped a 413 on the post-merge Build APK run, which in turn blocked the `Attach APKs to GitHub Release` step from firing on a tag push. The Telegram delivery loop now skips any APK > 49 MB with a clear log line; the universal APK still ships via the workflow artifact + GitHub Release path. Per-ABI splits continue to be delivered to Telegram unchanged.
+
 ## 2.0.1
 
 Follow-up gesture fixes against 2.0.0 + universal APK in CI.
