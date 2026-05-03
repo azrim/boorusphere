@@ -76,8 +76,7 @@ class PageState extends _$PageState {
     }
 
     state = FetchResult.loading(
-      state.data
-          .copyWith(posts: List.unmodifiable(_posts), option: option),
+      state.data.copyWith(posts: List.unmodifiable(_posts), option: option),
     );
 
     try {
@@ -98,7 +97,8 @@ class PageState extends _$PageState {
         if (displayedPosts.isNotEmpty) {
           _posts.addAll(posts);
           state = FetchResult.data(
-              state.data.copyWith(posts: List.unmodifiable(_posts)));
+            state.data.copyWith(posts: List.unmodifiable(_posts)),
+          );
           break;
         }
 
