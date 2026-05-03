@@ -19,7 +19,6 @@ import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/widgets/slidefade_visibility.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -226,22 +225,21 @@ class EnhancedPostViewer extends HookConsumerWidget {
             children: [
               // Main content
               Positioned.fill(
-                child: PageView.builder(
+                child: ListenableBuilder(
+                  listenable: controller.canSwipeListenable,
+                  builder: (context, _) => PageView.builder(
                     controller: controller.pageController,
                     scrollDirection:
                         isVerticalMode ? Axis.vertical : Axis.horizontal,
-                    // Custom physics consult `canSwipeListenable` on
-                    // every drag attempt instead of being swapped via
-                    // a parent rebuild. The previous
-                    // `ListenableBuilder` approach replaced the
-                    // physics object on every zoom/zoom-out, which
-                    // could leave the underlying [Scrollable] in an
-                    // ambiguous state if the listenable toggled
-                    // mid-gesture. This way the `PageView` is built
-                    // once and its drag-acceptance is reactive.
-                    physics: _PageViewerScrollPhysics(
-                      canSwipe: controller.canSwipeListenable,
-                    ),
+                    // Swap physics objects on zoom toggle. `Scrollable`
+                    // re-evaluates `physics.shouldAcceptUserOffset(position)`
+                    // inside `_updatePosition()` on `didUpdateWidget`, so
+                    // a fresh physics instance is what actually causes the
+                    // `HorizontalDragGestureRecognizer` (or vertical, for
+                    // vertical-mode) to be uninstalled while zoomed.
+                    physics: controller.canSwipeListenable.value
+                        ? const PageScrollPhysics()
+                        : const NeverScrollableScrollPhysics(),
                     allowImplicitScrolling: true,
                     onPageChanged: (index) async {
                       // The new page starts at scale 1, so swipe should
@@ -329,7 +327,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
                           child: widget,
                         ),
                       );
-                    }),
+                    },
+                  ),
+                ),
               ),
               // Overlay UI
               ValueListenableBuilder<int>(
@@ -513,30 +513,4 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 64);
-}
-
-/// Page-snap scroll physics whose drag-acceptance is gated by a
-/// [ValueListenable]. Built once and consulted reactively on every
-/// pointer-down — the [PageView] never needs to be rebuilt to toggle
-/// between "swipeable" and "locked" states.
-class _PageViewerScrollPhysics extends PageScrollPhysics {
-  const _PageViewerScrollPhysics({
-    required this.canSwipe,
-    super.parent,
-  });
-
-  final ValueListenable<bool> canSwipe;
-
-  @override
-  bool shouldAcceptUserOffset(ScrollMetrics position) {
-    return canSwipe.value && super.shouldAcceptUserOffset(position);
-  }
-
-  @override
-  _PageViewerScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return _PageViewerScrollPhysics(
-      canSwipe: canSwipe,
-      parent: buildParent(ancestor),
-    );
-  }
 }
