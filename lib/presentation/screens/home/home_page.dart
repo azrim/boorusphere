@@ -96,7 +96,8 @@ class _Home extends HookConsumerWidget {
       key: scaffoldKey,
       extendBody: true,
       drawer: HomeDrawer(maxWidth: drawerWidth),
-      drawerEdgeDragWidth: searchBar.isOpen ? 0 : 24,
+      drawerEdgeDragWidth:
+          searchBar.isOpen ? 0 : MediaQuery.sizeOf(context).width,
       body: StyledOverlayRegion(
         child: PopScope(
           canPop:
