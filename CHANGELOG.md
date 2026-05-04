@@ -1,3 +1,8 @@
+## 2.0.8
+
+* **Pull-to-dismiss thresholds retuned for casual gestures**: the route-level `_PostViewerPullToDismissShell` introduced in 2.0.5 was too conservative — it required either pulling 120 logical px down OR a release velocity above 500 px/s for either swipe-up (open details) or swipe-down (dismiss) to fire. In practice that meant a "normal" flick that an Instagram/Reddit-style app would land registered as nothing on Boorusphere, and the only way to dismiss a post via gesture was an aggressive whip. The dismiss-distance threshold drops from **120 → 80 logical px**, and the fling-velocity gate drops from **500 → 250 px/s**. Net effect: a moderate flick now opens details on swipe-up and dismisses on swipe-down, while the elastic snap-back on slower drags still preserves the "you can pull around without committing to dismiss" affordance.
+* **No architectural change**: vertical drag is still owned exclusively by the route-level shell (no per-surface recognizers re-introduced), so the pinch-to-zoom multi-touch yield from 2.0.5 still holds. While zoomed past 1× the shell still suspends entirely so `InteractiveViewer`'s pan owns single-finger drag uncontested.
+
 ## 2.0.7
 
 * **In-app update flow now shows the changelog inline**: when a newer version is detected and the user lands on the About page, the new version's CHANGELOG.md entry is now rendered directly above the Download button — no more "tap *View changelog* → push another route → tap back" round-trip. The inline changelog is sourced via `ChangelogType.git` (the same path the dedicated changelog page uses for "What's new in the upcoming version") so even pre-Release builds delivered to Telegram can show what they ship.
