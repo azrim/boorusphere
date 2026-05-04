@@ -426,34 +426,59 @@ class _PostImageStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loadPercent = switch (state) {
-      _PostImageLoading(:final progress) => (progress * 100).round(),
-      _PostImageCompleted() => 100,
-      _PostImageFailed() => 0,
-    };
+    // The AnimatedSwitcher's child key only changes between
+    // load-state TYPES (loading / completed / failed), NOT on every
+    // percent tick. Previously the loading child carried a
+    // ValueKey('loading-$loadPercent') which incremented per progress
+    // event — the switcher then ran a 200 ms cross-fade for every
+    // single percent update, producing the visible blink while a post
+    // image was downloading. The pill's percent text and progress
+    // value are now updated in-place inside a stable widget instead.
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
       switchInCurve: Curves.easeOut,
       switchOutCurve: Curves.easeIn,
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
-      child: state is _PostImageCompleted
-          ? const SizedBox.shrink()
-          : state is _PostImageFailed
-              ? QuickBar.action(
-                  key: const ValueKey('failed'),
-                  title: Text(context.t.loadImageFailed),
-                  actionTitle: Text(context.t.retry),
-                  onPressed: onRetry,
-                )
-              : QuickBar.progress(
-                  key: ValueKey('loading-$loadPercent'),
-                  title: Text(
-                    '$loadPercent%',
-                    style: const TextStyle(fontWeight: FontWeight.w400),
-                  ),
-                  progress: loadPercent / 100,
-                ),
+      child: switch (state) {
+        _PostImageCompleted() => const SizedBox.shrink(
+            key: ValueKey('completed'),
+          ),
+        _PostImageFailed() => QuickBar.action(
+            key: const ValueKey('failed'),
+            title: Text(context.t.loadImageFailed),
+            actionTitle: Text(context.t.retry),
+            onPressed: onRetry,
+          ),
+        _PostImageLoading(:final progress) => _PostImageLoadingPill(
+            key: const ValueKey('loading'),
+            progress: progress,
+          ),
+      },
+    );
+  }
+}
+
+/// Stable loading pill whose percent text + progress value update in
+/// place. Living outside [AnimatedSwitcher]'s child-key boundary so
+/// the switcher does NOT cross-fade on every percent update.
+class _PostImageLoadingPill extends StatelessWidget {
+  const _PostImageLoadingPill({
+    super.key,
+    required this.progress,
+  });
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final loadPercent = (progress * 100).round();
+    return QuickBar.progress(
+      title: Text(
+        '$loadPercent%',
+        style: const TextStyle(fontWeight: FontWeight.w400),
+      ),
+      progress: loadPercent / 100,
     );
   }
 }
