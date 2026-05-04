@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
@@ -37,17 +38,18 @@ void main() async {
       const edgeVersion = '9.9.9';
       final adapter = DioAdapterMock(ref.read(dioProvider));
       // Mock the GitHub Releases API response with a realistic JSON response
-      // Note: ResponseBody.fromString needs proper content-type for Dio to parse JSON
+      // Use ByteStream so Dio can properly parse the JSON
+      final jsonString = jsonEncode({
+        'tag_name': 'v$edgeVersion+99',
+        'assets': [
+          {'name': 'boorusphere-$edgeVersion-arm64-v8a.apk'},
+          {'name': 'boorusphere-$edgeVersion-armeabi-v7a.apk'},
+          {'name': 'boorusphere-$edgeVersion-x86_64.apk'},
+        ],
+      });
       when(() => adapter.fetch(any(), any(), any())).thenAnswer(
-        (invocation) async => ResponseBody.fromString(
-          jsonEncode({
-            'tag_name': 'v$edgeVersion+99',
-            'assets': [
-              {'name': 'boorusphere-$edgeVersion-arm64-v8a.apk'},
-              {'name': 'boorusphere-$edgeVersion-armeabi-v7a.apk'},
-              {'name': 'boorusphere-$edgeVersion-x86_64.apk'},
-            ],
-          }),
+        (invocation) async => ResponseBody(
+          Stream.value(Uint8List.fromList(utf8.encode(jsonString))),
           200,
           headers: {'content-type': ['application/json']},
         ),
