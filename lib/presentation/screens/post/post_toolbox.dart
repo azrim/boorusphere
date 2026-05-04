@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -10,9 +11,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class PostToolbox extends HookConsumerWidget {
-  const PostToolbox(this.post, {super.key});
+  const PostToolbox(this.post, {super.key, this.onShowDetails});
 
   final Post post;
+
+  /// Optional callback wired by the post viewer to expand the details sheet.
+  /// When non-null, a details icon button is rendered as part of the row.
+  final VoidCallback? onShowDetails;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,6 +41,8 @@ class PostToolbox extends HookConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (onShowDetails != null)
+            PostDetailsButton(onPressed: onShowDetails!),
           PostFavoriteButton(
             key: ValueKey('fav_${post.id}_${post.serverId}'),
             post: post,
@@ -47,6 +54,23 @@ class PostToolbox extends HookConsumerWidget {
           PostOpenLinkButton(post: post),
         ],
       ),
+    );
+  }
+}
+
+class PostDetailsButton extends StatelessWidget {
+  const PostDetailsButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      icon: const Icon(Icons.info_outline),
+      tooltip: context.t.details,
+      onPressed: onPressed,
     );
   }
 }

@@ -311,6 +311,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             key: ValueKey('video_${post.id}_${post.serverId}'),
                             post: post,
                             onToolboxVisibilityChange: (visible) {},
+                            onShowDetails: expandSheet,
+                            onSwipeUp: onSwipeUp,
+                            onSwipeDown: onSwipeDown,
                           );
                         default:
                           widget = PostUnknown(
@@ -379,6 +382,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                 key: ValueKey(
                                     'toolbox_${post.id}_${post.serverId}'),
                                 post,
+                                onShowDetails: expandSheet,
                               ),
                             ),
                           ),
