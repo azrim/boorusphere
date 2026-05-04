@@ -1,6 +1,11 @@
-## 2.0.18
+## 2.0.19
 
 * **Fix image caching issue**: use unique timestamp in key to force fresh image load
+* **Fix invalid package installation**: bump version code to 84 (was 83) to allow APK updates from v2.0.17
+
+## 2.0.18
+
+* *Skipped*: version bump removed the build number suffix, causing version code to drop below 83 and breaking APK installation
 
 ## 2.0.17
 
