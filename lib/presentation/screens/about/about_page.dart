@@ -15,7 +15,6 @@ import 'package:boorusphere/utils/extensions/number.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 @RoutePage()
@@ -241,40 +240,22 @@ class _Downloader extends ConsumerWidget {
           ),
         if (progress.status.isDownloading) ...[
           const SizedBox(width: 16),
-          Padding(
+          SizedBox(
+            width: 48,
+            child: Padding(
               padding: const EdgeInsets.all(8),
-              child: Text('${progress.progress}%')),
+              child: Text(
+                '${progress.progress}%',
+                textAlign: TextAlign.end,
+              ),
+            ),
+          ),
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                children: [
-                  LinearProgressIndicator(
-                    value: progress.progress.ratio,
-                    minHeight: 16,
-                  ),
-                  Shimmer(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        context.colorScheme.primary.withValues(alpha: 0),
-                        context.colorScheme.primary.withValues(alpha: 0.5),
-                        context.colorScheme.primary.withValues(alpha: 0),
-                      ],
-                      stops: const <double>[
-                        0.35,
-                        0.5,
-                        0.65,
-                      ],
-                    ),
-                    period: const Duration(milliseconds: 700),
-                    child: const LinearProgressIndicator(
-                      value: 0,
-                      minHeight: 16,
-                    ),
-                  ),
-                ],
+              child: LinearProgressIndicator(
+                value: progress.progress.ratio,
+                minHeight: 16,
               ),
             ),
           ),
