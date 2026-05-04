@@ -1,3 +1,7 @@
+## 2.0.6
+
+* **Search history dedup + reorder-on-reuse**: searching the same term twice (e.g. "hololive" → switch posts → "hololive" again) used to silently no-op when the query already existed in history, leaving stale entries pinned wherever they originally landed. `UserSearchHistoryRepo.save()` now deletes any prior occurrences of the trimmed query (across all servers) before `add()`-ing the fresh entry, so the most recent search always rises to the top of the recent-searches list. The existing UI already iterates the Hive `Map<int, SearchHistory>` in descending key order (`historyList[length - 1 - index]`) — combined with Hive's auto-incrementing keys, the new entry wins the top slot automatically. The internal `isExists` helper is removed since it is no longer needed.
+
 ## 2.0.5
 
 * **Pull-to-dismiss in the post viewer**: a slow downward drag on a post now elastically translates and shrinks the entire post viewer body (the details sheet stays pinned). On release, if the drag has accumulated past 120 logical px **OR** the release velocity exceeds 500 px/s downward, the route is popped; otherwise the body snaps back to origin via a 250 ms ease-out-cubic animation. Backdrop fades from solid black to ~40 % opacity over the first ~360 px so the dismiss feels distinct from a page-swipe.

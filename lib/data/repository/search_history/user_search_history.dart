@@ -12,15 +12,25 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
   @override
   Map<int, SearchHistory> get all => Map.from(box.toMap());
 
-  bool isExists(String value) {
-    return box.values.map((e) => e.query).contains(value);
-  }
-
   @override
   Future<void> save(String value, String serverId) async {
     final query = value.trim();
-    if (query.isEmpty || isExists(query)) return;
+    if (query.isEmpty) return;
 
+    // Dedup + reorder-on-reuse: if the query already exists in
+    // history (regardless of server), delete the prior occurrence(s)
+    // first so the new entry rises to the top when the UI iterates
+    // newest-first. Hive auto-incrementing keys guarantee the most
+    // recently `add()`-ed entry has the highest key.
+    final existingKeys = <int>[];
+    for (final entry in box.toMap().entries) {
+      if (entry.value.query == query && entry.key is int) {
+        existingKeys.add(entry.key as int);
+      }
+    }
+    if (existingKeys.isNotEmpty) {
+      await box.deleteAll(existingKeys);
+    }
     await box.add(SearchHistory(query: query, server: serverId));
   }
 
