@@ -238,180 +238,191 @@ class EnhancedPostViewer extends HookConsumerWidget {
                       // Main content
                       Positioned.fill(
                         child: ListenableBuilder(
-                  listenable: controller.canSwipeListenable,
-                  builder: (context, _) => PageView.builder(
-                    controller: controller.pageController,
-                    scrollDirection:
-                        isVerticalMode ? Axis.vertical : Axis.horizontal,
-                    // Swap physics objects on zoom toggle. `Scrollable`
-                    // re-evaluates `physics.shouldAcceptUserOffset(position)`
-                    // inside `_updatePosition()` on `didUpdateWidget`, so
-                    // a fresh physics instance is what actually causes the
-                    // `HorizontalDragGestureRecognizer` (or vertical, for
-                    // vertical-mode) to be uninstalled while zoomed.
-                    physics: controller.canSwipeListenable.value
-                        ? const PageScrollPhysics()
-                        : const NeverScrollableScrollPhysics(),
-                    allowImplicitScrolling: true,
-                    onPageChanged: (index) async {
-                      // The new page starts at scale 1, so swipe should
-                      // be available again. Re-enabling here covers the
-                      // edge case where the previous page disabled it
-                      // and was unmounted before its
-                      // gestureDetailsIsChanged could fire the reset.
-                      controller.enableSwipe();
-                      SchedulerBinding.instance
-                          .addPostFrameCallback((timeStamp) {
-                        if (context.mounted) {
-                          controller.updateCurrentPage(index);
-                          // Update post notifier
-                          if (postsList.isNotEmpty &&
-                              index < postsList.length) {
-                            currentPostNotifier.value = postsList[index];
-                          }
-                        }
-                      });
+                          listenable: controller.canSwipeListenable,
+                          builder: (context, _) => PageView.builder(
+                            controller: controller.pageController,
+                            scrollDirection: isVerticalMode
+                                ? Axis.vertical
+                                : Axis.horizontal,
+                            // Swap physics objects on zoom toggle. `Scrollable`
+                            // re-evaluates `physics.shouldAcceptUserOffset(position)`
+                            // inside `_updatePosition()` on `didUpdateWidget`, so
+                            // a fresh physics instance is what actually causes the
+                            // `HorizontalDragGestureRecognizer` (or vertical, for
+                            // vertical-mode) to be uninstalled while zoomed.
+                            physics: controller.canSwipeListenable.value
+                                ? const PageScrollPhysics()
+                                : const NeverScrollableScrollPhysics(),
+                            allowImplicitScrolling: true,
+                            onPageChanged: (index) async {
+                              // The new page starts at scale 1, so swipe should
+                              // be available again. Re-enabling here covers the
+                              // edge case where the previous page disabled it
+                              // and was unmounted before its
+                              // gestureDetailsIsChanged could fire the reset.
+                              controller.enableSwipe();
+                              SchedulerBinding.instance
+                                  .addPostFrameCallback((timeStamp) {
+                                if (context.mounted) {
+                                  controller.updateCurrentPage(index);
+                                  // Update post notifier
+                                  if (postsList.isNotEmpty &&
+                                      index < postsList.length) {
+                                    currentPostNotifier.value =
+                                        postsList[index];
+                                  }
+                                }
+                              });
 
-                      context.scaffoldMessenger.hideCurrentSnackBar();
+                              context.scaffoldMessenger.hideCurrentSnackBar();
 
-                      if (loadMore == null) return;
+                              if (loadMore == null) return;
 
-                      final offset = index + 1;
-                      final threshold =
-                          postsList.length / 100 * (100 - loadMoreThreshold);
-                      if (offset + threshold > postsList.length - 1) {
-                        isLoadingMore.value = true;
-                        unawaited(loadMore());
-                        await Future.delayed(const Duration(milliseconds: 300),
-                            () {
-                          if (context.mounted) {
-                            isLoadingMore.value = false;
-                          }
-                        });
-                      }
-                    },
-                    itemCount: postsList.length,
-                    itemBuilder: (context, index) {
-                      precachePosts(index, loadOriginal);
-
-                      final post = postsList[index];
-                      final Widget widget;
-
-                      switch (post.content.type) {
-                        case PostType.photo:
-                        case PostType.gif:
-                          widget = PostImage(
-                            key: ValueKey('image_${post.id}_${post.serverId}'),
-                            post: post,
-                            onZoomChanged: (isZoomed) {
-                              // Disable PageView swipe while the image
-                              // is zoomed in so panning the zoomed
-                              // image cannot accidentally page to the
-                              // next post. Same listenable is also
-                              // consulted by the route-level pull-to-
-                              // dismiss shell to suspend its vertical
-                              // drag recognizer while zoomed.
-                              if (isZoomed) {
-                                controller.disableSwipe();
-                              } else {
-                                controller.enableSwipe();
+                              final offset = index + 1;
+                              final threshold = postsList.length /
+                                  100 *
+                                  (100 - loadMoreThreshold);
+                              if (offset + threshold > postsList.length - 1) {
+                                isLoadingMore.value = true;
+                                unawaited(loadMore());
+                                await Future.delayed(
+                                    const Duration(milliseconds: 300), () {
+                                  if (context.mounted) {
+                                    isLoadingMore.value = false;
+                                  }
+                                });
                               }
                             },
-                            onTap: handlePostTap,
-                            // Vertical drag (swipe-up / swipe-down /
-                            // pull-to-dismiss) is now owned by the
-                            // route-level _PostViewerPullToDismissShell
-                            // so we don't wire onSwipeUp / onSwipeDown
-                            // here anymore.
-                          );
-                        case PostType.video:
-                          widget = PostVideo(
-                            key: ValueKey('video_${post.id}_${post.serverId}'),
-                            post: post,
-                            onToolboxVisibilityChange: (visible) {},
-                            onShowDetails: expandSheet,
-                            // See note above on PostImage — vertical
-                            // drag is route-level now.
-                          );
-                        default:
-                          widget = PostUnknown(
-                            key:
-                                ValueKey('unknown_${post.id}_${post.serverId}'),
-                            post: post,
-                          );
-                      }
+                            itemCount: postsList.length,
+                            itemBuilder: (context, index) {
+                              precachePosts(index, loadOriginal);
 
-                      return HeroMode(
-                        key: ValueKey('hero_${post.id}_${post.serverId}'),
-                        enabled: index == controller.page,
-                        child: RepaintBoundary(
-                          child: widget,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              // Overlay UI
-              ValueListenableBuilder<int>(
-                valueListenable: controller.pageListenable,
-                builder: (context, currentPageIndex, child) {
-                  final post = postsList.isNotEmpty
-                      ? postsList[currentPageIndex]
-                      : Post.empty;
+                              final post = postsList[index];
+                              final Widget widget;
 
-                  return Stack(
-                    children: [
-                      // Top app bar
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: ListenableBuilder(
-                          listenable: controller.overlayShownListenable,
-                          builder: (context, child) => SlideFadeVisibility(
-                            direction: HidingDirection.toTop,
-                            visible: controller.overlayShownListenable.value &&
-                                showAppbar.value,
-                            child: _PostAppBar(
-                              subtitle: post.describeTags,
-                              title: isLoadingMore.value
-                                  ? '#${currentPageIndex + 1} of (loading...)'
-                                  : '#${currentPageIndex + 1} of ${postsList.length}',
-                              swipeMode: swipeMode,
-                            ),
+                              switch (post.content.type) {
+                                case PostType.photo:
+                                case PostType.gif:
+                                  widget = PostImage(
+                                    key: ValueKey(
+                                        'image_${post.id}_${post.serverId}'),
+                                    post: post,
+                                    onZoomChanged: (isZoomed) {
+                                      // Disable PageView swipe while the image
+                                      // is zoomed in so panning the zoomed
+                                      // image cannot accidentally page to the
+                                      // next post. Same listenable is also
+                                      // consulted by the route-level pull-to-
+                                      // dismiss shell to suspend its vertical
+                                      // drag recognizer while zoomed.
+                                      if (isZoomed) {
+                                        controller.disableSwipe();
+                                      } else {
+                                        controller.enableSwipe();
+                                      }
+                                    },
+                                    onTap: handlePostTap,
+                                    // Vertical drag (swipe-up / swipe-down /
+                                    // pull-to-dismiss) is now owned by the
+                                    // route-level _PostViewerPullToDismissShell
+                                    // so we don't wire onSwipeUp / onSwipeDown
+                                    // here anymore.
+                                  );
+                                case PostType.video:
+                                  widget = PostVideo(
+                                    key: ValueKey(
+                                        'video_${post.id}_${post.serverId}'),
+                                    post: post,
+                                    onToolboxVisibilityChange: (visible) {},
+                                    onShowDetails: expandSheet,
+                                    // See note above on PostImage — vertical
+                                    // drag is route-level now.
+                                  );
+                                default:
+                                  widget = PostUnknown(
+                                    key: ValueKey(
+                                        'unknown_${post.id}_${post.serverId}'),
+                                    post: post,
+                                  );
+                              }
+
+                              return HeroMode(
+                                key: ValueKey(
+                                    'hero_${post.id}_${post.serverId}'),
+                                enabled: index == controller.page,
+                                child: RepaintBoundary(
+                                  child: widget,
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
-                      // Bottom toolbox
-                      if (!post.content.isVideo)
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: ListenableBuilder(
-                            listenable: controller.overlayShownListenable,
-                            builder: (context, child) => SlideFadeVisibility(
-                              direction: HidingDirection.toBottom,
-                              visible:
-                                  controller.overlayShownListenable.value &&
-                                      !fullscreen,
-                              child: PostToolbox(
-                                key: ValueKey(
-                                    'toolbox_${post.id}_${post.serverId}'),
-                                post,
-                                onShowDetails: expandSheet,
+                      // Overlay UI
+                      ValueListenableBuilder<int>(
+                        valueListenable: controller.pageListenable,
+                        builder: (context, currentPageIndex, child) {
+                          final post = postsList.isNotEmpty
+                              ? postsList[currentPageIndex]
+                              : Post.empty;
+
+                          return Stack(
+                            children: [
+                              // Top app bar
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                child: ListenableBuilder(
+                                  listenable: controller.overlayShownListenable,
+                                  builder: (context, child) =>
+                                      SlideFadeVisibility(
+                                    direction: HidingDirection.toTop,
+                                    visible: controller
+                                            .overlayShownListenable.value &&
+                                        showAppbar.value,
+                                    child: _PostAppBar(
+                                      subtitle: post.describeTags,
+                                      title: isLoadingMore.value
+                                          ? '#${currentPageIndex + 1} of (loading...)'
+                                          : '#${currentPageIndex + 1} of ${postsList.length}',
+                                      swipeMode: swipeMode,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                      // Navigation buttons for desktop
-                      if (isLargeScreen && !isVerticalMode)
-                        ..._buildNavigationButtons(controller, isVerticalMode),
-                    ],
-                  );
-                },
-              ),
+                              // Bottom toolbox
+                              if (!post.content.isVideo)
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: ListenableBuilder(
+                                    listenable:
+                                        controller.overlayShownListenable,
+                                    builder: (context, child) =>
+                                        SlideFadeVisibility(
+                                      direction: HidingDirection.toBottom,
+                                      visible: controller
+                                              .overlayShownListenable.value &&
+                                          !fullscreen,
+                                      child: PostToolbox(
+                                        key: ValueKey(
+                                            'toolbox_${post.id}_${post.serverId}'),
+                                        post,
+                                        onShowDetails: expandSheet,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              // Navigation buttons for desktop
+                              if (isLargeScreen && !isVerticalMode)
+                                ..._buildNavigationButtons(
+                                    controller, isVerticalMode),
+                            ],
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -643,9 +654,7 @@ class _PostViewerPullToDismissShellState
     }
 
     // Swipe-up path — at origin with a fast fling up.
-    if (widget.onSwipeUp != null &&
-        offset == 0 &&
-        velocity < -_flingVelocity) {
+    if (widget.onSwipeUp != null && offset == 0 && velocity < -_flingVelocity) {
       widget.onSwipeUp!.call();
       return;
     }
@@ -697,9 +706,8 @@ class _PostViewerPullToDismissShellState
         return RawGestureDetector(
           behavior: HitTestBehavior.translucent,
           gestures: <Type, GestureRecognizerFactory>{
-            _PullToDismissDragRecognizer:
-                GestureRecognizerFactoryWithHandlers<
-                    _PullToDismissDragRecognizer>(
+            _PullToDismissDragRecognizer: GestureRecognizerFactoryWithHandlers<
+                _PullToDismissDragRecognizer>(
               _PullToDismissDragRecognizer.new,
               (instance) {
                 instance.onUpdate = _onUpdate;
