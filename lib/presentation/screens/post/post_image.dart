@@ -67,6 +67,7 @@ class PostImage extends HookConsumerWidget {
     final activePointers = useRef(0);
     final tapPosition = useRef(Offset.zero);
     final retryNonce = useState(0);
+    final createdAt = useState(DateTime.now().millisecondsSinceEpoch);
     final loadState = useState<_PostImageLoadState>(
       const _PostImageLoadState.loading(0),
     );
@@ -189,7 +190,7 @@ class PostImage extends HookConsumerWidget {
                 scaleEnabled: !isBlur.value,
                 child: CachedNetworkImage(
                   key: ValueKey(
-                    'postImage_${post.viewId}_${contentSetting.loadOriginal}_${retryNonce.value}',
+                    'postImage_${post.viewId}_${contentSetting.loadOriginal}_${retryNonce.value}_${createdAt.value}',
                   ),
                   imageUrl: imageUrl,
                   httpHeaders: headers,

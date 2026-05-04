@@ -1,3 +1,7 @@
+## 2.0.18
+
+* **Fix image caching issue**: use unique timestamp in key to force fresh image load
+
 ## 2.0.17
 
 * **Fix in-app updater "failed to download"**: user report after v2.0.15 — the updater advertised an update but the download 404'd. Root cause: `AppVersionRepo.fetch()` queried `https://github.com/azrim/boorusphere/raw/main/pubspec.yaml` to detect the latest version. But `pubspec.yaml` on `main` advertises the new version as soon as the version-bump commit lands, which is BEFORE the `Build APK` workflow uploads the corresponding APK assets to the matching GitHub Release. During that ~10 min build window, the updater would happily advertise version X and then 404 on the GitHub Release download URL because no `boorusphere-X.Y.Z-*.apk` asset existed yet.
