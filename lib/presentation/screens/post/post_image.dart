@@ -188,7 +188,7 @@ class PostImage extends HookConsumerWidget {
                 panEnabled: !isBlur.value,
                 scaleEnabled: !isBlur.value,
                 child: CachedNetworkImage(
-                  key: ValueKey('$imageUrl-${retryNonce.value}'),
+                  key: ValueKey('postImage_${post.viewId}_${contentSetting.loadOriginal}_${retryNonce.value}'),
                   imageUrl: imageUrl,
                   httpHeaders: headers,
                   fit: BoxFit.contain,
