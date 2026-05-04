@@ -252,7 +252,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                           // `HorizontalDragGestureRecognizer` (or vertical, for
                           // vertical-mode) to be uninstalled while zoomed.
                           physics: controller.canSwipeListenable.value
-                              ? const PageScrollPhysics()
+                              ? const _GentlePageScrollPhysics()
                               : const NeverScrollableScrollPhysics(),
                           allowImplicitScrolling: true,
                           onPageChanged: (index) async {
@@ -545,4 +545,79 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 64);
+}
+
+/// PageView physics that requires a more deliberate gesture before
+/// committing a page change, mitigating the user complaint that the
+/// default `PageScrollPhysics` page-flips on the slightest soft swipe
+/// while browsing posts.
+///
+/// Two thresholds, both higher than the framework default:
+///
+/// * **Distance**: a slow drag-release commits to the next page only
+///   when the user has crossed [_commitThreshold] (60 %) of the page
+///   width. Default `PageScrollPhysics` uses `roundToDouble()` which
+///   commits at 50 %.
+/// * **Velocity**: a fling commits regardless of distance only when
+///   the release velocity exceeds [_flingVelocity] (400 px/s). Default
+///   `Tolerance.velocity` is roughly 20–50 px/s, so even a barely
+///   perceptible flick used to commit a page change.
+class _GentlePageScrollPhysics extends PageScrollPhysics {
+  const _GentlePageScrollPhysics({super.parent});
+
+  /// Fraction of the page width past which a low-velocity drag commits
+  /// to the adjacent page. Below this fraction, the drag snaps back to
+  /// the page the user came from.
+  static const double _commitThreshold = 0.6;
+
+  /// Release velocity (px/s) past which a fling commits to the next
+  /// page regardless of drag distance.
+  static const double _flingVelocity = 400;
+
+  @override
+  _GentlePageScrollPhysics applyTo(ScrollPhysics? ancestor) {
+    return _GentlePageScrollPhysics(parent: buildParent(ancestor));
+  }
+
+  @override
+  Simulation? createBallisticSimulation(
+      ScrollMetrics position, double velocity) {
+    // Defer to the parent at the scroll-extent edges (overscroll glow,
+    // bounce-back, etc.) — we only want to override the page-snap
+    // decision in the middle of the scrollable.
+    if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
+        (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
+      return super.createBallisticSimulation(position, velocity);
+    }
+
+    final pageWidth = position.viewportDimension;
+    final currentPagePosition = position.pixels / pageWidth;
+    final currentFloor = currentPagePosition.floorToDouble();
+    final fractionPastFloor = currentPagePosition - currentFloor;
+
+    final double targetPage;
+    if (velocity > _flingVelocity) {
+      // Deliberate fling forward.
+      targetPage = currentFloor + 1;
+    } else if (velocity < -_flingVelocity) {
+      // Deliberate fling backward.
+      targetPage = currentFloor;
+    } else if (fractionPastFloor >= _commitThreshold) {
+      // Slow drag past the commit threshold — commit forward.
+      targetPage = currentFloor + 1;
+    } else {
+      // Slow drag short of the commit threshold — snap back.
+      targetPage = currentFloor;
+    }
+
+    final targetPixels = targetPage * pageWidth;
+    if (targetPixels == position.pixels) return null;
+    return ScrollSpringSimulation(
+      spring,
+      position.pixels,
+      targetPixels,
+      velocity,
+      tolerance: toleranceFor(position),
+    );
+  }
 }

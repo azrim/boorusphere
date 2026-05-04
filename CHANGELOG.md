@@ -1,3 +1,7 @@
+## 2.0.13
+
+* **Tone down horizontal page swipe sensitivity**: previous post-viewer used the framework default `PageScrollPhysics`, which committed a page change at any drag past 50 % of page width AND on any fling above ~20–50 px/s. In practice that meant a casual / accidental horizontal swipe (e.g., near the edge of the screen) would page-flip mid-browse. Custom `_GentlePageScrollPhysics` now requires either: a drag past **60 %** of page width, OR a deliberate fling above **400 px/s**. Below either threshold the page snaps back to where it came from. Existing pinch-to-zoom multi-touch yield is unaffected (the physics swap on `canSwipeListenable` still drops to `NeverScrollableScrollPhysics` while zoomed).
+
 ## 2.0.12
 
 * **Restore working swipe-up / swipe-down gestures on post viewer**: 2.0.5 moved all vertical-drag handling out of `PostImage` / `PostVideo` and up to a new route-level `_PostViewerPullToDismissShell`. The intent was to add an elastic pull-to-dismiss visual on top of the existing fast-fling-up / fast-fling-down behavior. In practice the route-level `VerticalDragGestureRecognizer` could not reliably win the gesture arena over `InteractiveViewer`'s built-in scale recognizer at scale = 1 (the scale recognizer claims pure-vertical drags greedily even when no scaling is happening), so the entire swipe-up / swipe-down family silently went dead. 2.0.8's threshold tuning didn't help because the recognizer was never firing in the first place.
