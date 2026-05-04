@@ -574,6 +574,51 @@ class _GentlePageScrollPhysics extends PageScrollPhysics {
   /// page regardless of drag distance.
   static const double _flingVelocity = 400;
 
+  /// Stiff, slightly under-damped spring used for the page-snap
+  /// animation. Tuned so the simulation settles in roughly 80 ms instead
+  /// of the framework default (~280 ms).
+  ///
+  /// User report (2.0.14): "the swipe gesture is done, I swipe and
+  /// release my finger. but the animation isn't done immediately. the
+  /// content is like almost 90 % loaded but animation still not done.
+  /// but user will be doing another gesture like swipe up, because in
+  /// their eyes it's already done. ... that make any gesture is
+  /// considered as swipe left or right gesture."
+  ///
+  /// Diagnosis: while the snap is animating, [Scrollable] is in a
+  /// [BallisticScrollActivity]. As soon as the user touches down (even
+  /// before they move) the drag recognizer's `_handleDragDown` fires,
+  /// holds the ballistic, and the [HorizontalDragGestureRecognizer] is
+  /// immediately a contender for the next motion. Any horizontal jitter
+  /// at the start of the follow-up gesture wins the arena and the page
+  /// continues animating from the frozen position. Shortening the snap
+  /// to ~80 ms (essentially imperceptible) collapses the window for
+  /// follow-up gesture confusion.
+  ///
+  /// `mass = 0.3, stiffness = 800` → ω = √(k/m) ≈ 51.6 rad/s; with
+  /// damping ratio 0.95 the simulation reaches the tolerance band in
+  /// roughly 4/ω ≈ 80 ms.
+  static final SpringDescription _snapSpring =
+      SpringDescription.withDampingRatio(
+    mass: 0.3,
+    stiffness: 800,
+    ratio: 0.95,
+  );
+
+  /// Permissive tolerance so the spring simulation declares "done" once
+  /// it is within ~3 px / 5 px·s of the target — far sooner than the
+  /// framework default (~0.4 px / ~20 px·s) which keeps the simulation
+  /// alive past the point any human could perceive motion. Combined
+  /// with [_snapSpring], the simulation effectively terminates within
+  /// 60–80 ms of release.
+  static const Tolerance _snapTolerance = Tolerance(
+    distance: 3.0,
+    velocity: 5.0,
+  );
+
+  @override
+  SpringDescription get spring => _snapSpring;
+
   @override
   _GentlePageScrollPhysics applyTo(ScrollPhysics? ancestor) {
     return _GentlePageScrollPhysics(parent: buildParent(ancestor));
@@ -617,7 +662,7 @@ class _GentlePageScrollPhysics extends PageScrollPhysics {
       position.pixels,
       targetPixels,
       velocity,
-      tolerance: toleranceFor(position),
+      tolerance: _snapTolerance,
     );
   }
 }
