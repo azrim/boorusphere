@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
 import 'package:boorusphere/domain/provider.dart';
@@ -34,9 +36,20 @@ void main() async {
 
       const edgeVersion = '9.9.9';
       final adapter = DioAdapterMock(ref.read(dioProvider));
+      // Mock the GitHub Releases API response with a realistic JSON response
       when(() => adapter.fetch(any(), any(), any())).thenAnswer(
-          (invocation) async => ResponseBody.fromString(
-              '\n# comments\nversion: $edgeVersion+99\n', 200));
+        (invocation) async => ResponseBody.fromString(
+          jsonEncode({
+            'tag_name': 'v$edgeVersion+99',
+            'assets': [
+              {'name': 'boorusphere-$edgeVersion-arm64-v8a.apk'},
+              {'name': 'boorusphere-$edgeVersion-armeabi-v7a.apk'},
+              {'name': 'boorusphere-$edgeVersion-x86_64.apk'},
+            ],
+          }),
+          200,
+        ),
+      );
 
       await ref.read(appVersionsStateProvider.future);
       final versions = ref.read(appVersionsStateProvider).value;
