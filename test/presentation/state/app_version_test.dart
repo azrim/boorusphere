@@ -37,6 +37,7 @@ void main() async {
       const edgeVersion = '9.9.9';
       final adapter = DioAdapterMock(ref.read(dioProvider));
       // Mock the GitHub Releases API response with a realistic JSON response
+      // Note: ResponseBody.fromString needs proper content-type for Dio to parse JSON
       when(() => adapter.fetch(any(), any(), any())).thenAnswer(
         (invocation) async => ResponseBody.fromString(
           jsonEncode({
@@ -48,6 +49,7 @@ void main() async {
             ],
           }),
           200,
+          headers: {'content-type': ['application/json']},
         ),
       );
 
