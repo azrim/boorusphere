@@ -593,11 +593,14 @@ class _PostViewerPullToDismissShellState
     extends State<_PostViewerPullToDismissShell>
     with SingleTickerProviderStateMixin {
   /// Distance (logical px) past which a slow drag-release dismisses.
-  static const double _dismissDistance = 120;
+  /// Lowered from 120 in 2.0.8 so casual pull-downs feel responsive
+  /// without requiring an exaggerated drag.
+  static const double _dismissDistance = 80;
 
   /// Release velocity (px/s) past which a fling dismisses (downward) or
-  /// opens details (upward).
-  static const double _flingVelocity = 500;
+  /// opens details (upward). Lowered from 500 in 2.0.8 so a moderate
+  /// flick — not just an aggressive whip — lands the gesture.
+  static const double _flingVelocity = 250;
 
   /// Distance over which the elastic transform fades the background to
   /// 40 % opacity and shrinks the content to 85 %.

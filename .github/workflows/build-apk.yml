@@ -50,6 +50,35 @@ jobs:
       - name: Install grinder
         run: dart pub global activate grinder
 
+      - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set; falling back to debug signing."
+            echo "Releases signed with the debug keystore CANNOT install over each other across machines/builds."
+            exit 0
+          fi
+          # Decode the keystore. android/app is the gradle Project for the
+          # storeFile path; build.gradle resolves storeFile relative to it.
+          mkdir -p android/app
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+          # Sanity check.
+          file android/app/release.jks
+          # build.gradle reads this file via rootProject.file('key.properties'),
+          # which on Android Flutter projects resolves to android/key.properties.
+          cat > android/key.properties <<EOF
+          storeFile=release.jks
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+          echo "Release keystore configured."
+
       - name: Get dependencies
         run: |
           flutter clean

@@ -1,3 +1,19 @@
+## 2.0.10
+
+* **CI now signs release APKs with a stable release keystore**: prior CI builds fell through to Flutter's default debug-style signing because no `key.properties` was provided. Each CI runner generated a different ad-hoc debug key, so two CI builds couldn't install on top of each other and an existing real-keystore install couldn't be upgraded by a CI build at all (Android refused with *"App not installed as package conflicts with an existing package"*). The `Build APK` workflow now reads four `ANDROID_*` GitHub Secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`), decodes the keystore into `android/app/release.jks`, and writes `android/key.properties` so the existing release `signingConfig` in `android/app/build.gradle` picks it up. Falls back to a CI warning + debug signing if any secret is missing, so old PRs / forks that don't have the secrets won't break.
+* **`.gitignore` updated** to exclude `android/key.properties`, `android/app/release.jks`, and any other `*.jks` / `*.keystore` so the keystore can never accidentally be committed.
+* **First install caveat**: because v1.x and v2.0.0–v2.0.9 weren't signed with this new keystore, the first v2.0.10+ install will require uninstalling the existing app once. From that install forward every CI build installs on top cleanly.
+
+## 2.0.9
+
+* **In-app updater progress bar no longer "blinks"**: the download progress UI on the About page used to overlay a `Shimmer`-driven sweep on top of the `LinearProgressIndicator` with a 700 ms period. The intent was a "loading" affordance on top of the determinate bar, but combined with the bar's own value-update repaints it read as a flicker / blink. The Shimmer is removed; the bar is now just the plain `LinearProgressIndicator(value: progress.progress.ratio)` clipped to a 16-px pill, which already conveys download progress unambiguously.
+* **Percent text is now right-aligned in a fixed 48-px slot** so the digit count flipping `9% → 10% → 99% → 100%` no longer reflows the row width. Reduces the perceived "jitter" of the percentage label as the download proceeds.
+
+## 2.0.8
+
+* **Pull-to-dismiss thresholds retuned for casual gestures**: the route-level `_PostViewerPullToDismissShell` introduced in 2.0.5 was too conservative — it required either pulling 120 logical px down OR a release velocity above 500 px/s for either swipe-up (open details) or swipe-down (dismiss) to fire. In practice that meant a "normal" flick that an Instagram/Reddit-style app would land registered as nothing on Boorusphere, and the only way to dismiss a post via gesture was an aggressive whip. The dismiss-distance threshold drops from **120 → 80 logical px**, and the fling-velocity gate drops from **500 → 250 px/s**. Net effect: a moderate flick now opens details on swipe-up and dismisses on swipe-down, while the elastic snap-back on slower drags still preserves the "you can pull around without committing to dismiss" affordance.
+* **No architectural change**: vertical drag is still owned exclusively by the route-level shell (no per-surface recognizers re-introduced), so the pinch-to-zoom multi-touch yield from 2.0.5 still holds. While zoomed past 1× the shell still suspends entirely so `InteractiveViewer`'s pan owns single-finger drag uncontested.
+
 ## 2.0.7
 
 * **In-app update flow now shows the changelog inline**: when a newer version is detected and the user lands on the About page, the new version's CHANGELOG.md entry is now rendered directly above the Download button — no more "tap *View changelog* → push another route → tap back" round-trip. The inline changelog is sourced via `ChangelogType.git` (the same path the dedicated changelog page uses for "What's new in the upcoming version") so even pre-Release builds delivered to Telegram can show what they ship.
