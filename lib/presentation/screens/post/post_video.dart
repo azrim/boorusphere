@@ -390,29 +390,38 @@ class _SinglePointerVerticalDragRecognizer
     extends VerticalDragGestureRecognizer {
   _SinglePointerVerticalDragRecognizer({super.debugOwner});
 
-  int _activePointers = 0;
+  final Set<int> _activePointers = <int>{};
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
-    _activePointers++;
-    if (_activePointers > 1) {
-      // Yield the gesture arena immediately on multi-touch so any
-      // ancestor recognizer (e.g. a future pinch-to-zoom) wins
-      // uncontested.
+    _activePointers.add(event.pointer);
+    if (_activePointers.length > 1) {
+      // Multi-touch — yield to any pinch-to-zoom recognizer that may
+      // sit above us in the future. We deliberately do NOT call
+      // [super.addAllowedPointer] for this 2nd+ pointer, which means
+      // Flutter will never route its up/cancel events to us — so we
+      // must remove the pointer from our local set explicitly here to
+      // avoid leaking IDs across gestures (see the matching recognizer
+      // in `post_image.dart` for full diagnosis; symptom is that all
+      // subsequent single-finger gestures silently self-reject as
+      // "multi-touch").
+      _activePointers.remove(event.pointer);
       resolve(GestureDisposition.rejected);
-      stopTrackingPointer(event.pointer);
-      _activePointers--;
       return;
     }
     super.addAllowedPointer(event);
   }
 
   @override
-  void handleEvent(PointerEvent event) {
-    if (event is PointerUpEvent || event is PointerCancelEvent) {
-      _activePointers = (_activePointers - 1).clamp(0, 10);
-    }
-    super.handleEvent(event);
+  void rejectGesture(int pointer) {
+    _activePointers.remove(pointer);
+    super.rejectGesture(pointer);
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    _activePointers.remove(pointer);
+    super.didStopTrackingLastPointer(pointer);
   }
 }
 
