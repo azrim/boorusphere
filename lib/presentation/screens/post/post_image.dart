@@ -394,6 +394,29 @@ class _SinglePointerVerticalDragRecognizer
     _activePointers.add(event.pointer);
     if (_activePointers.length > 1) {
       // Multi-touch — yield to [InteractiveViewer]'s scale recognizer.
+      //
+      // We deliberately do NOT call `super.addAllowedPointer(event)`
+      // for this 2nd+ pointer — we don't want to track its drag. But
+      // because we never tracked it, Flutter never routes its
+      // up/cancel events to us, and `rejectGesture(pointer)` /
+      // `didStopTrackingLastPointer(pointer)` are NEVER fired for this
+      // pointer either. If we leave [event.pointer] in [_activePointers]
+      // it leaks: the next pointer-down event we see will count it
+      // toward the multi-touch threshold even though the finger is
+      // long gone, and the recognizer will silently self-reject every
+      // subsequent single-finger gesture.
+      //
+      // User report (post v2.0.15): "after zooming out using pinch
+      // until original size, if I zoom out again at original size, the
+      // swipe up and down gesture is doing nothing." Reproduces because
+      // a second pinch at scale = 1 doesn't toggle `isZoomed`, so
+      // [RawGestureDetector] keeps the same recognizer instance with
+      // the leaked pointer ID.
+      //
+      // Fix: explicitly remove the new pointer from our local set
+      // before resolving. Pointer 1 (the one in arena) gets cleaned up
+      // via `rejectGesture` / `didStopTrackingLastPointer` as usual.
+      _activePointers.remove(event.pointer);
       resolve(GestureDisposition.rejected);
       return;
     }
