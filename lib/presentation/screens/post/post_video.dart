@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -22,10 +23,28 @@ class PostVideo extends StatefulWidget {
     super.key,
     required this.post,
     required this.onToolboxVisibilityChange,
+    this.onShowDetails,
+    this.onSwipeUp,
+    this.onSwipeDown,
   });
 
   final Post post;
   final void Function(bool visible) onToolboxVisibilityChange;
+
+  /// Wired by the post viewer to expand the details sheet. Used by both
+  /// the new details icon button in the video toolbox and the swipe-up
+  /// gesture (when [onSwipeUp] is null and [onShowDetails] is non-null).
+  final VoidCallback? onShowDetails;
+
+  /// Single-finger swipe-up (fast fling) handler. The post viewer wires
+  /// this to expand the details sheet, mirroring the [PostImage] gesture
+  /// stack.
+  final VoidCallback? onSwipeUp;
+
+  /// Single-finger swipe-down (fast fling) handler. The post viewer
+  /// wires this to dismiss the route, mirroring the [PostImage] gesture
+  /// stack.
+  final VoidCallback? onSwipeDown;
 
   @override
   State<PostVideo> createState() => _PostVideoState();
@@ -48,6 +67,9 @@ class _PostVideoState extends State<PostVideo> {
             ValueKey('video_content_${widget.post.id}_${widget.post.serverId}'),
         post: widget.post,
         onToolboxVisibilityChange: widget.onToolboxVisibilityChange,
+        onShowDetails: widget.onShowDetails,
+        onSwipeUp: widget.onSwipeUp,
+        onSwipeDown: widget.onSwipeDown,
         isVisible: _visible,
       ),
     );
@@ -60,11 +82,17 @@ class _PostVideoContent extends HookConsumerWidget {
     required this.post,
     required this.onToolboxVisibilityChange,
     required this.isVisible,
+    this.onShowDetails,
+    this.onSwipeUp,
+    this.onSwipeDown,
   });
 
   final Post post;
   final bool isVisible;
   final void Function(bool visible) onToolboxVisibilityChange;
+  final VoidCallback? onShowDetails;
+  final VoidCallback? onSwipeUp;
+  final VoidCallback? onSwipeDown;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -192,6 +220,7 @@ class _PostVideoContent extends HookConsumerWidget {
                         isMuted: contentSettings.videoMuted,
                         isFullscreen: fullscreen,
                         onAutoHideRequest: scheduleHide,
+                        onShowDetails: onShowDetails,
                         onPlayChange: (value) {
                           isPlaying.value = value;
                         },
@@ -202,6 +231,21 @@ class _PostVideoContent extends HookConsumerWidget {
               ),
             ),
           ),
+          // Swipe-up / swipe-down recognizer layered on top of the tap
+          // detector. [HitTestBehavior.translucent] lets pointer events
+          // also reach the [GestureDetector] above for tap toggling, and
+          // tap vs. vertical-drag don't conflict in the gesture arena
+          // (tap fires on quick release without movement; drag fires on
+          // sufficient vertical motion). Single-pointer-only — multi-
+          // touch is rejected so future enhancements that add scale on
+          // video are uncontested.
+          if (onSwipeUp != null || onSwipeDown != null)
+            Positioned.fill(
+              child: _PostVideoSwipeOverlay(
+                onSwipeUp: onSwipeUp,
+                onSwipeDown: onSwipeDown,
+              ),
+            ),
           if (isBlur.value)
             Positioned(
               bottom: QuickBar.preferredBottomPosition(context) + 24,
@@ -228,6 +272,7 @@ class _ToolboxOverlay extends ConsumerWidget {
     required this.isFullscreen,
     this.onAutoHideRequest,
     this.onPlayChange,
+    this.onShowDetails,
   });
 
   final bool isPlaying;
@@ -237,6 +282,7 @@ class _ToolboxOverlay extends ConsumerWidget {
   final bool isFullscreen;
   final void Function()? onAutoHideRequest;
   final void Function(bool value)? onPlayChange;
+  final VoidCallback? onShowDetails;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -247,6 +293,8 @@ class _ToolboxOverlay extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            if (onShowDetails != null)
+              PostDetailsButton(onPressed: onShowDetails!),
             PostFavoriteButton(
               key: ValueKey('fav_${post.id}_${post.serverId}'),
               post: post,
@@ -288,6 +336,81 @@ class _ToolboxOverlay extends ConsumerWidget {
         _Progress(source: source),
       ],
     );
+  }
+}
+
+/// Velocity-based swipe-up / swipe-down recognizer for the post viewer's
+/// video player. Mirrors the [PostImage] gesture stack: rejects on
+/// multi-touch (so future pinch-to-zoom on video would win uncontested),
+/// fires only on fast vertical flings (threshold 500 px/s).
+class _PostVideoSwipeOverlay extends StatelessWidget {
+  const _PostVideoSwipeOverlay({
+    required this.onSwipeUp,
+    required this.onSwipeDown,
+  });
+
+  static const double _swipeVelocity = 500;
+
+  final VoidCallback? onSwipeUp;
+  final VoidCallback? onSwipeDown;
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: <Type, GestureRecognizerFactory>{
+        _SinglePointerVerticalDragRecognizer:
+            GestureRecognizerFactoryWithHandlers<
+                _SinglePointerVerticalDragRecognizer>(
+          _SinglePointerVerticalDragRecognizer.new,
+          (instance) {
+            instance.onEnd = (details) {
+              final velocity = details.velocity.pixelsPerSecond.dy;
+              if (velocity < -_swipeVelocity) {
+                onSwipeUp?.call();
+              } else if (velocity > _swipeVelocity) {
+                onSwipeDown?.call();
+              }
+            };
+          },
+        ),
+      },
+    );
+  }
+}
+
+/// Vertical drag recognizer that rejects itself the moment a 2nd pointer
+/// arrives. Same shape as the one in [PostImage] — duplicated rather
+/// than extracted to a shared file so each surface stays self-contained
+/// while we iterate on the gesture stack. Once both call sites stabilize
+/// it can be hoisted to a shared utility.
+class _SinglePointerVerticalDragRecognizer
+    extends VerticalDragGestureRecognizer {
+  _SinglePointerVerticalDragRecognizer({super.debugOwner});
+
+  int _activePointers = 0;
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    _activePointers++;
+    if (_activePointers > 1) {
+      // Yield the gesture arena immediately on multi-touch so any
+      // ancestor recognizer (e.g. a future pinch-to-zoom) wins
+      // uncontested.
+      resolve(GestureDisposition.rejected);
+      stopTrackingPointer(event.pointer);
+      _activePointers--;
+      return;
+    }
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      _activePointers = (_activePointers - 1).clamp(0, 10);
+    }
+    super.handleEvent(event);
   }
 }
 
