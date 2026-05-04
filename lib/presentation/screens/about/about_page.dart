@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/constant/app.dart';
+import 'package:boorusphere/data/repository/changelog/entity/changelog_data.dart';
 import 'package:boorusphere/data/repository/version/app_version_repo.dart';
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -7,6 +8,7 @@ import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/app_versions/app_versions_state.dart';
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/about/changelog_page.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -145,17 +147,65 @@ class _Updater extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Text(context.t.updater.onNewVersion),
         ),
+        // Inline changelog for the new version. Sourced via
+        // ChangelogType.git so the pre-release CHANGELOG.md changes for
+        // an unreleased version (e.g. when CI delivers an APK to
+        // Telegram before the GitHub Release exists) are still
+        // surfaced. Falls back to a silent no-op if the network fetch
+        // returns empty / errors — the user can still tap Download.
+        _InlineChangelog(version: data),
         _Downloader(data),
-        ElevatedButton(
-          onPressed: () {
-            context.router.push(
-              ChangelogRoute(type: ChangelogType.git, version: data),
-            );
-          },
-          style: ElevatedButton.styleFrom(elevation: 0),
-          child: Text(context.t.changelog.view),
-        ),
       ],
+    );
+  }
+}
+
+/// Compact, scrollable card-style changelog rendered inline in the
+/// updater flow. Uses the existing [ChangelogDataView] for rendering
+/// so visuals stay consistent with the full-screen ChangelogPage.
+class _InlineChangelog extends ConsumerWidget {
+  const _InlineChangelog({required this.version});
+
+  final AppVersion version;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final changelog =
+        ref.watch(changelogStateProvider(ChangelogType.git, version));
+
+    return changelog.when(
+      data: (entries) {
+        if (entries.isEmpty || entries.first == ChangelogData.empty) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Card(
+            margin: EdgeInsets.zero,
+            elevation: 0,
+            color: context.colorScheme.surfaceContainerHighest,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+                child: ChangelogDataView(
+                  changelog: entries.first,
+                  showVersion: false,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
