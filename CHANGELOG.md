@@ -1,3 +1,9 @@
+## 2.0.10
+
+* **CI now signs release APKs with a stable release keystore**: prior CI builds fell through to Flutter's default debug-style signing because no `key.properties` was provided. Each CI runner generated a different ad-hoc debug key, so two CI builds couldn't install on top of each other and an existing real-keystore install couldn't be upgraded by a CI build at all (Android refused with *"App not installed as package conflicts with an existing package"*). The `Build APK` workflow now reads four `ANDROID_*` GitHub Secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`), decodes the keystore into `android/app/release.jks`, and writes `android/key.properties` so the existing release `signingConfig` in `android/app/build.gradle` picks it up. Falls back to a CI warning + debug signing if any secret is missing, so old PRs / forks that don't have the secrets won't break.
+* **`.gitignore` updated** to exclude `android/key.properties`, `android/app/release.jks`, and any other `*.jks` / `*.keystore` so the keystore can never accidentally be committed.
+* **First install caveat**: because v1.x and v2.0.0–v2.0.9 weren't signed with this new keystore, the first v2.0.10+ install will require uninstalling the existing app once. From that install forward every CI build installs on top cleanly.
+
 ## 2.0.9
 
 * **In-app updater progress bar no longer "blinks"**: the download progress UI on the About page used to overlay a `Shimmer`-driven sweep on top of the `LinearProgressIndicator` with a 700 ms period. The intent was a "loading" affordance on top of the determinate bar, but combined with the bar's own value-update repaints it read as a flicker / blink. The Shimmer is removed; the bar is now just the plain `LinearProgressIndicator(value: progress.progress.ratio)` clipped to a 16-px pill, which already conveys download progress unambiguously.
