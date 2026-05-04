@@ -64,6 +64,7 @@ class PostImage extends HookConsumerWidget {
     final zoomAnimator =
         useAnimationController(duration: const Duration(milliseconds: 150));
     final wasZoomed = useRef(false);
+    final activePointers = useRef(0);
     final tapPosition = useRef(Offset.zero);
     final retryNonce = useState(0);
     final loadState = useState<_PostImageLoadState>(
@@ -124,130 +125,180 @@ class PostImage extends HookConsumerWidget {
       animation.removeListener(onAnimating);
     }
 
+    // Pinch-to-zoom precedence over PageView's horizontal swipe.
+    //
+    // PageView's built-in `HorizontalDragGestureRecognizer` does NOT
+    // self-reject on multi-touch (only the single-pointer vertical
+    // recognizer below does). So when the user starts a pinch with two
+    // fingers, finger 1's slight horizontal motion can claim the arena
+    // before [InteractiveViewer]'s [ScaleGestureRecognizer] is given a
+    // chance, and the page swipes instead of zooming.
+    //
+    // The [Listener] tracks active pointer count synchronously at the
+    // engine level (Listener observes pointer events regardless of
+    // arena outcome). The moment a second pointer lands, we force-fire
+    // `onZoomChanged(true)` which flips `controller.canSwipeListenable`
+    // to false in the post viewer; the wrapping `ListenableBuilder`
+    // rebuilds [PageView] with [NeverScrollableScrollPhysics];
+    // [Scrollable] re-runs `_updatePosition()` on `didUpdateWidget`,
+    // recreating the position and cancelling any in-flight horizontal
+    // drag. The arena is then free for [ScaleGestureRecognizer] to win
+    // pinch-zoom uncontested.
+    //
+    // On the way out (last finger up), if the user did not actually end
+    // up zoomed (scale stayed at 1, e.g. a two-finger tap that never
+    // resolved into a pinch), we re-enable swipe by firing
+    // `onZoomChanged(false)`. If the user IS still zoomed, the
+    // [transformController] listener has already kept `wasZoomed` true
+    // and we leave swipe disabled.
+    void handlePointerDown(PointerDownEvent _) {
+      activePointers.value += 1;
+      if (activePointers.value == 2 && !wasZoomed.value) {
+        onZoomChanged?.call(true);
+      }
+    }
+
+    void handlePointerLeave(PointerEvent _) {
+      activePointers.value = (activePointers.value - 1).clamp(0, 1 << 16);
+      if (activePointers.value == 0) {
+        final scale = transformController.value.getMaxScaleOnAxis();
+        final actuallyZoomed = scale > 1.01;
+        if (!actuallyZoomed) {
+          onZoomChanged?.call(false);
+        }
+      }
+    }
+
     return RepaintBoundary(
-      child: Stack(
-        alignment: Alignment.center,
-        fit: StackFit.passthrough,
-        children: [
-          Hero(
-            tag: post.viewId,
-            child: InteractiveViewer(
-              transformationController: transformController,
-              maxScale: scaleRatio * 5,
-              minScale: 1,
-              panEnabled: !isBlur.value,
-              scaleEnabled: !isBlur.value,
-              child: CachedNetworkImage(
-                key: ValueKey('$imageUrl-${retryNonce.value}'),
-                imageUrl: imageUrl,
-                httpHeaders: headers,
-                fit: BoxFit.contain,
-                imageBuilder: (context, provider) {
-                  _scheduleLoadState(
-                      loadState, const _PostImageLoadState.completed());
-                  final image = Image(
-                    image: provider,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    height: double.infinity,
-                  );
-                  return isBlur.value
-                      ? ImageFiltered(
-                          imageFilter: _kExplicitBlur,
-                          child: image,
-                        )
-                      : image;
-                },
-                progressIndicatorBuilder: (context, url, progress) {
-                  _scheduleLoadState(
-                    loadState,
-                    _PostImageLoadState.loading(progress.progress ?? 0),
-                  );
-                  return PostPlaceholderImage(
-                    post: post,
-                    shouldBlur: isBlur.value,
-                    headers: headers,
-                  );
-                },
-                errorWidget: (context, url, error) {
-                  _scheduleLoadState(
-                    loadState,
-                    const _PostImageLoadState.failed(),
-                  );
-                  return PostPlaceholderImage(
-                    post: post,
-                    shouldBlur: isBlur.value,
-                    headers: headers,
-                  );
-                },
-              ),
-            ),
-          ),
-          // Single-finger gesture overlay. Layered on top of the
-          // [InteractiveViewer] using `HitTestBehavior.translucent`, the
-          // overlay declares only single-pointer recognizers (tap,
-          // double-tap, and conditionally vertical-drag-for-swipe). The
-          // moment a second pointer arrives, the custom drag recognizer
-          // resolves itself as rejected so [InteractiveViewer]'s
-          // [ScaleGestureRecognizer] wins the gesture arena uncontested.
-          // This is what makes pinch-to-zoom actually work — the previous
-          // wrapping `GestureDetector` with standard `onVerticalDrag*`
-          // consistently beat the scale recognizer to the arena.
-          //
-          // Tap + double-tap are mounted at all times (including while
-          // zoomed) so the user can always tap to toggle the overlay or
-          // double-tap to zoom back out. The swipe-up / swipe-down
-          // recognizer is gated by zoom state so [InteractiveViewer]'s
-          // single-finger pan is uncontested while the user is panning a
-          // zoomed image.
-          Positioned.fill(
-            child: ValueListenableBuilder<Matrix4>(
-              valueListenable: transformController,
-              builder: (context, matrix, _) {
-                final scale = matrix.getMaxScaleOnAxis();
-                final isZoomed = scale > 1.01;
-                return _PostImageGestureOverlay(
-                  onTap: onTap ??
-                      () {
-                        ref.read(fullscreenStateProvider.notifier).toggle();
-                      },
-                  onDoubleTapDown: (details) {
-                    tapPosition.value = details.localPosition;
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: handlePointerDown,
+        onPointerUp: handlePointerLeave,
+        onPointerCancel: handlePointerLeave,
+        child: Stack(
+          alignment: Alignment.center,
+          fit: StackFit.passthrough,
+          children: [
+            Hero(
+              tag: post.viewId,
+              child: InteractiveViewer(
+                transformationController: transformController,
+                maxScale: scaleRatio * 5,
+                minScale: 1,
+                panEnabled: !isBlur.value,
+                scaleEnabled: !isBlur.value,
+                child: CachedNetworkImage(
+                  key: ValueKey('$imageUrl-${retryNonce.value}'),
+                  imageUrl: imageUrl,
+                  httpHeaders: headers,
+                  fit: BoxFit.contain,
+                  imageBuilder: (context, provider) {
+                    _scheduleLoadState(
+                        loadState, const _PostImageLoadState.completed());
+                    final image = Image(
+                      image: provider,
+                      fit: BoxFit.contain,
+                      width: double.infinity,
+                      height: double.infinity,
+                    );
+                    return isBlur.value
+                        ? ImageFiltered(
+                            imageFilter: _kExplicitBlur,
+                            child: image,
+                          )
+                        : image;
                   },
-                  onDoubleTap: handleDoubleTap,
-                  // While zoomed, suppress swipe-up / swipe-down so the
-                  // pan recognizer inside [InteractiveViewer] wins
-                  // single-finger drags.
-                  onSwipeUp: isZoomed ? null : onSwipeUp,
-                  onSwipeDown: isZoomed ? null : onSwipeDown,
-                );
-              },
+                  progressIndicatorBuilder: (context, url, progress) {
+                    _scheduleLoadState(
+                      loadState,
+                      _PostImageLoadState.loading(progress.progress ?? 0),
+                    );
+                    return PostPlaceholderImage(
+                      post: post,
+                      shouldBlur: isBlur.value,
+                      headers: headers,
+                    );
+                  },
+                  errorWidget: (context, url, error) {
+                    _scheduleLoadState(
+                      loadState,
+                      const _PostImageLoadState.failed(),
+                    );
+                    return PostPlaceholderImage(
+                      post: post,
+                      shouldBlur: isBlur.value,
+                      headers: headers,
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-          if (!isBlur.value)
-            Positioned(
-              bottom: QuickBar.preferredBottomPosition(context),
-              child: _PostImageStatus(
-                state: loadState.value,
-                onRetry: () {
-                  CachedNetworkImage.evictFromCache(imageUrl);
-                  retryNonce.value += 1;
-                  loadState.value = const _PostImageLoadState.loading(0);
+            // Single-finger gesture overlay. Layered on top of the
+            // [InteractiveViewer] using `HitTestBehavior.translucent`, the
+            // overlay declares only single-pointer recognizers (tap,
+            // double-tap, and conditionally vertical-drag-for-swipe). The
+            // moment a second pointer arrives, the custom drag recognizer
+            // resolves itself as rejected so [InteractiveViewer]'s
+            // [ScaleGestureRecognizer] wins the gesture arena uncontested.
+            // This is what makes pinch-to-zoom actually work — the previous
+            // wrapping `GestureDetector` with standard `onVerticalDrag*`
+            // consistently beat the scale recognizer to the arena.
+            //
+            // Tap + double-tap are mounted at all times (including while
+            // zoomed) so the user can always tap to toggle the overlay or
+            // double-tap to zoom back out. The swipe-up / swipe-down
+            // recognizer is gated by zoom state so [InteractiveViewer]'s
+            // single-finger pan is uncontested while the user is panning a
+            // zoomed image.
+            Positioned.fill(
+              child: ValueListenableBuilder<Matrix4>(
+                valueListenable: transformController,
+                builder: (context, matrix, _) {
+                  final scale = matrix.getMaxScaleOnAxis();
+                  final isZoomed = scale > 1.01;
+                  return _PostImageGestureOverlay(
+                    onTap: onTap ??
+                        () {
+                          ref.read(fullscreenStateProvider.notifier).toggle();
+                        },
+                    onDoubleTapDown: (details) {
+                      tapPosition.value = details.localPosition;
+                    },
+                    onDoubleTap: handleDoubleTap,
+                    // While zoomed, suppress swipe-up / swipe-down so the
+                    // pan recognizer inside [InteractiveViewer] wins
+                    // single-finger drags.
+                    onSwipeUp: isZoomed ? null : onSwipeUp,
+                    onSwipeDown: isZoomed ? null : onSwipeDown,
+                  );
                 },
               ),
             ),
-          if (isBlur.value)
-            Positioned(
-              bottom: QuickBar.preferredBottomPosition(context),
-              child: QuickBar.action(
-                title: Text(context.t.unsafeContent),
-                actionTitle: Text(context.t.unblur),
-                onPressed: () {
-                  isBlur.value = false;
-                },
+            if (!isBlur.value)
+              Positioned(
+                bottom: QuickBar.preferredBottomPosition(context),
+                child: _PostImageStatus(
+                  state: loadState.value,
+                  onRetry: () {
+                    CachedNetworkImage.evictFromCache(imageUrl);
+                    retryNonce.value += 1;
+                    loadState.value = const _PostImageLoadState.loading(0);
+                  },
+                ),
               ),
-            ),
-        ],
+            if (isBlur.value)
+              Positioned(
+                bottom: QuickBar.preferredBottomPosition(context),
+                child: QuickBar.action(
+                  title: Text(context.t.unsafeContent),
+                  actionTitle: Text(context.t.unblur),
+                  onPressed: () {
+                    isBlur.value = false;
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
