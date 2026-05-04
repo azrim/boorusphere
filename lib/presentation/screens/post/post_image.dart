@@ -269,7 +269,11 @@ class _PostImageGestureOverlay extends StatelessWidget {
     required this.onSwipeDown,
   });
 
-  static const double _swipeVelocity = 500;
+  /// Release velocity (px/s) past which a vertical fling fires the
+  /// swipe-up / swipe-down callback. Lowered from 500 in 2.0.12 — the
+  /// 500 px/s threshold required an aggressive whip to land; a moderate
+  /// flick simply registered as nothing.
+  static const double _swipeVelocity = 250;
 
   final VoidCallback onTap;
   final void Function(TapDownDetails) onDoubleTapDown;

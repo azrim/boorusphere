@@ -349,7 +349,9 @@ class _PostVideoSwipeOverlay extends StatelessWidget {
     required this.onSwipeDown,
   });
 
-  static const double _swipeVelocity = 500;
+  /// See note in [_PostImageGestureOverlay] — lowered from 500 in 2.0.12
+  /// so a moderate flick lands the gesture.
+  static const double _swipeVelocity = 250;
 
   final VoidCallback? onSwipeUp;
   final VoidCallback? onSwipeDown;
