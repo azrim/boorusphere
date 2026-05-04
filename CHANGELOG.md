@@ -1,3 +1,8 @@
+## 2.0.9
+
+* **In-app updater progress bar no longer "blinks"**: the download progress UI on the About page used to overlay a `Shimmer`-driven sweep on top of the `LinearProgressIndicator` with a 700 ms period. The intent was a "loading" affordance on top of the determinate bar, but combined with the bar's own value-update repaints it read as a flicker / blink. The Shimmer is removed; the bar is now just the plain `LinearProgressIndicator(value: progress.progress.ratio)` clipped to a 16-px pill, which already conveys download progress unambiguously.
+* **Percent text is now right-aligned in a fixed 48-px slot** so the digit count flipping `9% → 10% → 99% → 100%` no longer reflows the row width. Reduces the perceived "jitter" of the percentage label as the download proceeds.
+
 ## 2.0.8
 
 * **Pull-to-dismiss thresholds retuned for casual gestures**: the route-level `_PostViewerPullToDismissShell` introduced in 2.0.5 was too conservative — it required either pulling 120 logical px down OR a release velocity above 500 px/s for either swipe-up (open details) or swipe-down (dismiss) to fire. In practice that meant a "normal" flick that an Instagram/Reddit-style app would land registered as nothing on Boorusphere, and the only way to dismiss a post via gesture was an aggressive whip. The dismiss-distance threshold drops from **120 → 80 logical px**, and the fling-velocity gate drops from **500 → 250 px/s**. Net effect: a moderate flick now opens details on swipe-up and dismisses on swipe-down, while the elastic snap-back on slower drags still preserves the "you can pull around without committing to dismiss" affordance.
