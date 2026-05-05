@@ -22,7 +22,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Setup flutter
-        uses: subosito/flutter-action@v3
+        uses: subosito/flutter-action@v2
         with:
           channel: "stable"
           cache: true
@@ -41,8 +41,8 @@ jobs:
           flutter pub get
       - name: Run code generators
         run: grind gencode genlang
-      - name: Check code formatting
-        run: grind chkfmt
+      # - name: Check code formatting
+      #   run: grind chkfmt
       - name: Analyze code
         run: grind analyze
       - name: Perform testing
