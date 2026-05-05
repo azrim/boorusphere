@@ -92,8 +92,16 @@ class PostImage extends HookConsumerWidget {
       return () => transformController.removeListener(onTransformChange);
     }, [transformController]);
 
-    final imageUrl =
-        contentSetting.loadOriginal ? post.originalFile : post.content.url;
+    final baseUrl = contentSetting.loadOriginal
+        ? post.originalFile
+        : post.content.url;
+    final imageUrl = baseUrl.isEmpty
+        ? baseUrl
+        : Uri.parse(baseUrl).replace(
+            queryParameters: {
+              ...Uri.parse(baseUrl).queryParameters,
+              '_cb': DateTime.now().millisecondsSinceEpoch.toString(),
+            }).toString();
 
     Future<void> handleDoubleTap() async {
       if (zoomAnimator.isAnimating) {
