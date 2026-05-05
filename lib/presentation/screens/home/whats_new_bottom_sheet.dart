@@ -17,66 +17,65 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
     final changelog = ref.watch(
         changelogStateProvider(ChangelogType.assets, envRepo.appVersion));
 
-    return Wrap(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Text(
-                      context.t.changelog.whatsNew(version: envRepo.appVersion),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        height: 1.3,
-                        fontWeight: FontWeight.w300,
-                      ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Text(
+                    context.t.changelog.whatsNew(version: envRepo.appVersion),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      height: 1.3,
+                      fontWeight: FontWeight.w300,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              changelog.when(
-                data: (data) => ChangelogDataView(
-                  changelog: data.first,
-                  showVersion: false,
-                ),
-                error: (e, s) => Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Center(
-                      child: NoticeCard(
-                        icon: const Icon(Icons.cancel_rounded),
-                        children: Text(context.t.changelog.none),
-                      ),
+            ),
+            changelog.when(
+              data: (data) => ChangelogDataView(
+                changelog: data.first,
+                showVersion: false,
+              ),
+              error: (e, s) => Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Center(
+                    child: NoticeCard(
+                      icon: const Icon(Icons.cancel_rounded),
+                      children: Text(context.t.changelog.none),
                     ),
-                  ],
-                ),
-                loading: () => const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Center(child: RefreshProgressIndicator()),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  minimumSize: const Size.fromHeight(48),
-                ),
-                onPressed: () {
-                  context.navigator.pop();
-                },
-                icon: const Icon(Icons.done),
-                label: Text(context.t.actionContinue),
+              loading: () => const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Center(child: RefreshProgressIndicator()),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                minimumSize: const Size.fromHeight(48),
+              ),
+              onPressed: () {
+                context.navigator.pop();
+              },
+              icon: const Icon(Icons.done),
+              label: Text(context.t.actionContinue),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
