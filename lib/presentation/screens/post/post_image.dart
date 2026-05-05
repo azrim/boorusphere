@@ -67,7 +67,7 @@ class PostImage extends HookConsumerWidget {
     final activePointers = useRef(0);
     final tapPosition = useRef(Offset.zero);
     final retryNonce = useState(0);
-    final createdAt = useState(DateTime.now().millisecondsSinceEpoch);
+    final cacheBuster = useState(DateTime.now().millisecondsSinceEpoch);
     final loadState = useState<_PostImageLoadState>(
       const _PostImageLoadState.loading(0),
     );
@@ -92,8 +92,17 @@ class PostImage extends HookConsumerWidget {
       return () => transformController.removeListener(onTransformChange);
     }, [transformController]);
 
-    final imageUrl =
-        contentSetting.loadOriginal ? post.originalFile : post.content.url;
+    final imageUrl = (() {
+      final url = contentSetting.loadOriginal
+          ? post.originalFile
+          : post.content.url;
+      if (url.isEmpty) return url;
+      final uri = Uri.parse(url);
+      return uri.replace(queryParameters: {
+        ...uri.queryParameters,
+        '_cb': cacheBuster.value.toString(),
+      }).toString();
+    })();
 
     Future<void> handleDoubleTap() async {
       if (zoomAnimator.isAnimating) {
@@ -190,7 +199,7 @@ class PostImage extends HookConsumerWidget {
                 scaleEnabled: !isBlur.value,
                 child: CachedNetworkImage(
                   key: ValueKey(
-                    'postImage_${post.viewId}_${contentSetting.loadOriginal}_${retryNonce.value}_${createdAt.value}',
+                    'postImage_${post.viewId}_${contentSetting.loadOriginal}_${retryNonce.value}_${cacheBuster.value}',
                   ),
                   imageUrl: imageUrl,
                   httpHeaders: headers,
