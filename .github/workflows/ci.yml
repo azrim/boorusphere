@@ -20,14 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v3
         with:
           channel: "stable"
           cache: true
       - name: Cache pub packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
@@ -41,8 +41,8 @@ jobs:
           flutter pub get
       - name: Run code generators
         run: grind gencode genlang
-      # - name: Check code formatting
-      #   run: grind chkfmt
+      - name: Check code formatting
+        run: grind chkfmt
       - name: Analyze code
         run: grind analyze
       - name: Perform testing
