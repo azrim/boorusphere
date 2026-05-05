@@ -41,8 +41,6 @@ jobs:
           flutter pub get
       - name: Run code generators
         run: grind gencode genlang
-      # - name: Check code formatting
-      #   run: grind chkfmt
       - name: Analyze code
         run: grind analyze
       - name: Perform testing
