@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 @RoutePage()
@@ -83,6 +84,7 @@ class ChangelogDataView extends StatelessWidget {
   final bool showVersion;
   @override
   Widget build(BuildContext context) {
+    final textContent = changelog.logs.join('\n');
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
       child: Column(
@@ -99,23 +101,12 @@ class ChangelogDataView extends StatelessWidget {
             ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: changelog.logs.map((it) {
-                const style = TextStyle(height: 1.5);
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Text('●', style: style),
-                    ),
-                    Expanded(
-                      child: Text(it, style: style),
-                    ),
-                  ],
-                );
-              }).toList(),
+            child: MarkdownBody(
+              data: textContent,
+              styleSheet: MarkdownStyleSheet(
+                p: const TextStyle(height: 1.5),
+                listBullet: const TextStyle(height: 1.5),
+              ),
             ),
           ),
         ],
