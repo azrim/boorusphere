@@ -27,11 +27,13 @@ void main() async {
   setupLogger(test: true);
   setupMocktailFallbacks();
   TestWidgetsFlutterBinding.ensureInitialized();
-  late ProviderContainer ref = ProviderContainer(overrides: [
-    envRepoProvider.overrideWithValue(FakeEnvRepo()),
-  ]);
-  late DioAdapterMock adapter =
-      DioAdapterMock(ref.read(dioProvider), byIntercepting: true);
+  late ProviderContainer ref = ProviderContainer(
+    overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+  );
+  late DioAdapterMock adapter = DioAdapterMock(
+    ref.read(dioProvider),
+    byIntercepting: true,
+  );
   late List<BooruParser> parsers = ref.read(booruParsersProvider);
 
   group('Scanner', () {
@@ -58,8 +60,10 @@ void main() async {
           FakeResponseBody.fromFixture('danbooru/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parser = DanbooruJsonParser();
@@ -88,8 +92,10 @@ void main() async {
           FakeResponseBody.fromFixture('gelbooru/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parserJson = GelbooruJsonParser();
@@ -119,8 +125,10 @@ void main() async {
           FakeResponseBody.fromFixture('konachan/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parser = MoebooruJsonParser();
@@ -148,8 +156,10 @@ void main() async {
           FakeResponseBody.fromFixture('safebooru/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parser = GelbooruXmlParser();
@@ -179,8 +189,10 @@ void main() async {
           FakeResponseBody.fromFixture('booruonrails/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parser = BooruOnRailsJsonParser();
@@ -208,8 +220,10 @@ void main() async {
           FakeResponseBody.fromFixture('e621/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parser = DanbooruJsonParser();
@@ -238,8 +252,10 @@ void main() async {
           FakeResponseBody.fromFixture('rule34.paheal/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parser = ShimmieXmlParser();
@@ -267,8 +283,10 @@ void main() async {
           FakeResponseBody.fromFixture('szurubooru/post.html', 200),
         );
 
-      final scanner =
-          BooruScanner(parsers: parsers, client: ref.read(dioProvider));
+      final scanner = BooruScanner(
+        parsers: parsers,
+        client: ref.read(dioProvider),
+      );
 
       final result = await scanner.scan(const Server(homepage: host));
       final parser = SzurubooruJsonParser();

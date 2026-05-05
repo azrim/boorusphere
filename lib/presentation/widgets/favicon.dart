@@ -42,14 +42,14 @@ class Favicon extends StatelessWidget {
                 imageBuilder: shape == null
                     ? null
                     : (context, provider) => Container(
-                          decoration: BoxDecoration(
-                            shape: shape!,
-                            image: DecorationImage(
-                              image: provider,
-                              fit: BoxFit.contain,
-                            ),
+                        decoration: BoxDecoration(
+                          shape: shape!,
+                          image: DecorationImage(
+                            image: provider,
+                            fit: BoxFit.contain,
                           ),
                         ),
+                      ),
                 placeholder: (context, _) => fallbackWidget,
                 errorWidget: (context, _, __) => fallbackWidget,
               )

@@ -36,8 +36,10 @@ class CustomHttpClient extends BaseHttpClient {
 
     final cookies = await cookieJar.loadForRequest(req.uri);
     if (cookies.isNotEmpty) {
-      req.headers
-          .set(HttpHeaders.cookieHeader, CookieManager.getCookies(cookies));
+      req.headers.set(
+        HttpHeaders.cookieHeader,
+        CookieManager.getCookies(cookies),
+      );
     }
     return req;
   }

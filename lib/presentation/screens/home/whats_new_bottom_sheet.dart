@@ -15,7 +15,8 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
     final envRepo = ref.read(envRepoProvider);
 
     final changelog = ref.watch(
-        changelogStateProvider(ChangelogType.assets, envRepo.appVersion));
+      changelogStateProvider(ChangelogType.assets, envRepo.appVersion),
+    );
 
     return SingleChildScrollView(
       child: Padding(
@@ -39,10 +40,8 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
               ),
             ),
             changelog.when(
-              data: (data) => ChangelogDataView(
-                changelog: data.first,
-                showVersion: false,
-              ),
+              data: (data) =>
+                  ChangelogDataView(changelog: data.first, showVersion: false),
               error: (e, s) => Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -56,9 +55,7 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
               ),
               loading: () => const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(child: RefreshProgressIndicator()),
-                ],
+                children: [Center(child: RefreshProgressIndicator())],
               ),
             ),
             const SizedBox(height: 16),

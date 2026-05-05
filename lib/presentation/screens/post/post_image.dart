@@ -17,8 +17,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Hoisted out of `build` so we don't allocate one [ImageFilter] per
 /// repaint while the user is zooming or scrolling.
-final ImageFilter _kExplicitBlur =
-    ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+final ImageFilter _kExplicitBlur = ImageFilter.blur(
+  sigmaX: 5,
+  sigmaY: 5,
+  tileMode: TileMode.decal,
+);
 
 class PostImage extends HookConsumerWidget {
   const PostImage({
@@ -61,8 +64,9 @@ class PostImage extends HookConsumerWidget {
     final headers = ref.watch(postHeadersFactoryProvider(post));
     final isBlur = useState(post.rating.isExplicit && shouldBlurExplicit);
     final transformController = useTransformationController();
-    final zoomAnimator =
-        useAnimationController(duration: const Duration(milliseconds: 150));
+    final zoomAnimator = useAnimationController(
+      duration: const Duration(milliseconds: 150),
+    );
     final wasZoomed = useRef(false);
     final activePointers = useRef(0);
     final tapPosition = useRef(Offset.zero);
@@ -98,10 +102,14 @@ class PostImage extends HookConsumerWidget {
           : post.content.url;
       if (url.isEmpty) return url;
       final uri = Uri.parse(url);
-      return uri.replace(queryParameters: {
-        ...uri.queryParameters,
-        '_cb': cacheBuster.value.toString(),
-      }).toString();
+      return uri
+          .replace(
+            queryParameters: {
+              ...uri.queryParameters,
+              '_cb': cacheBuster.value.toString(),
+            },
+          )
+          .toString();
     })();
 
     Future<void> handleDoubleTap() async {
@@ -116,9 +124,9 @@ class PostImage extends HookConsumerWidget {
       final target = targetScale == 1.0
           ? Matrix4.identity()
           : (Matrix4.identity()
-            ..translateByDouble(tap.dx, tap.dy, 0, 1)
-            ..scaleByDouble(targetScale, targetScale, targetScale, 1)
-            ..translateByDouble(-tap.dx, -tap.dy, 0, 1));
+              ..translateByDouble(tap.dx, tap.dy, 0, 1)
+              ..scaleByDouble(targetScale, targetScale, targetScale, 1)
+              ..translateByDouble(-tap.dx, -tap.dy, 0, 1));
 
       final tween = Matrix4Tween(begin: current, end: target);
       final animation = tween.animate(zoomAnimator);
@@ -206,7 +214,9 @@ class PostImage extends HookConsumerWidget {
                   fit: BoxFit.contain,
                   imageBuilder: (context, provider) {
                     _scheduleLoadState(
-                        loadState, const _PostImageLoadState.completed());
+                      loadState,
+                      const _PostImageLoadState.completed(),
+                    );
                     final image = Image(
                       image: provider,
                       fit: BoxFit.contain,
@@ -269,7 +279,8 @@ class PostImage extends HookConsumerWidget {
                   final scale = matrix.getMaxScaleOnAxis();
                   final isZoomed = scale > 1.01;
                   return _PostImageGestureOverlay(
-                    onTap: onTap ??
+                    onTap:
+                        onTap ??
                         () {
                           ref.read(fullscreenStateProvider.notifier).toggle();
                         },
@@ -351,36 +362,34 @@ class _PostImageGestureOverlay extends StatelessWidget {
       gestures: <Type, GestureRecognizerFactory>{
         TapGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-          TapGestureRecognizer.new,
-          (instance) {
-            instance.onTap = onTap;
-          },
-        ),
+              TapGestureRecognizer.new,
+              (instance) {
+                instance.onTap = onTap;
+              },
+            ),
         DoubleTapGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<DoubleTapGestureRecognizer>(
-          DoubleTapGestureRecognizer.new,
-          (instance) {
-            instance
-              ..onDoubleTapDown = onDoubleTapDown
-              ..onDoubleTap = onDoubleTap;
-          },
-        ),
+              DoubleTapGestureRecognizer.new,
+              (instance) {
+                instance
+                  ..onDoubleTapDown = onDoubleTapDown
+                  ..onDoubleTap = onDoubleTap;
+              },
+            ),
         if (onSwipeUp != null || onSwipeDown != null)
           _SinglePointerVerticalDragRecognizer:
               GestureRecognizerFactoryWithHandlers<
-                  _SinglePointerVerticalDragRecognizer>(
-            _SinglePointerVerticalDragRecognizer.new,
-            (instance) {
-              instance.onEnd = (details) {
-                final velocity = details.velocity.pixelsPerSecond.dy;
-                if (velocity < -_swipeVelocity) {
-                  onSwipeUp?.call();
-                } else if (velocity > _swipeVelocity) {
-                  onSwipeDown?.call();
-                }
-              };
-            },
-          ),
+                _SinglePointerVerticalDragRecognizer
+              >(_SinglePointerVerticalDragRecognizer.new, (instance) {
+                instance.onEnd = (details) {
+                  final velocity = details.velocity.pixelsPerSecond.dy;
+                  if (velocity < -_swipeVelocity) {
+                    onSwipeUp?.call();
+                  } else if (velocity > _swipeVelocity) {
+                    onSwipeDown?.call();
+                  }
+                };
+              }),
       },
     );
   }
@@ -506,10 +515,7 @@ class _PostImageFailed extends _PostImageLoadState {
 }
 
 class _PostImageStatus extends StatelessWidget {
-  const _PostImageStatus({
-    required this.state,
-    required this.onRetry,
-  });
+  const _PostImageStatus({required this.state, required this.onRetry});
 
   final _PostImageLoadState state;
   final VoidCallback onRetry;
@@ -532,18 +538,18 @@ class _PostImageStatus extends StatelessWidget {
           FadeTransition(opacity: animation, child: child),
       child: switch (state) {
         _PostImageCompleted() => const SizedBox.shrink(
-            key: ValueKey('completed'),
-          ),
+          key: ValueKey('completed'),
+        ),
         _PostImageFailed() => QuickBar.action(
-            key: const ValueKey('failed'),
-            title: Text(context.t.loadImageFailed),
-            actionTitle: Text(context.t.retry),
-            onPressed: onRetry,
-          ),
+          key: const ValueKey('failed'),
+          title: Text(context.t.loadImageFailed),
+          actionTitle: Text(context.t.retry),
+          onPressed: onRetry,
+        ),
         _PostImageLoading(:final progress) => _PostImageLoadingPill(
-            key: const ValueKey('loading'),
-            progress: progress,
-          ),
+          key: const ValueKey('loading'),
+          progress: progress,
+        ),
       },
     );
   }
@@ -553,10 +559,7 @@ class _PostImageStatus extends StatelessWidget {
 /// place. Living outside [AnimatedSwitcher]'s child-key boundary so
 /// the switcher does NOT cross-fade on every percent update.
 class _PostImageLoadingPill extends StatelessWidget {
-  const _PostImageLoadingPill({
-    super.key,
-    required this.progress,
-  });
+  const _PostImageLoadingPill({super.key, required this.progress});
 
   final double progress;
 

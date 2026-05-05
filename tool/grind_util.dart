@@ -19,8 +19,9 @@ Future<void> tasks() async {
       buf.writeln(' ${task.description}');
     }
 
-    final deps =
-        taskDeps.map((d) => '${ansi.blue}${d.name}${ansi.none}').join('  ');
+    final deps = taskDeps
+        .map((d) => '${ansi.blue}${d.name}${ansi.none}')
+        .join('  ');
     if (taskDeps.isNotEmpty) {
       buf.writeln('  󱞩 ${ansi.red}execute: ${ansi.none}$deps');
     }

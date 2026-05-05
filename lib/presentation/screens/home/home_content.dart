@@ -25,12 +25,16 @@ class HomeContent extends HookConsumerWidget {
     final servers = ref.watch(serverStateProvider);
 
     // Optimize blocked tags lookup with Set for O(1) contains check
-    final blockedTagsSet = ref.watch(tagsBlockerStateProvider.select(
-      (state) => state.values
-          .where((it) => it.serverId.isEmpty || it.serverId == session.serverId)
-          .map((it) => it.name)
-          .toSet(), // Convert to Set for faster lookup
-    ));
+    final blockedTagsSet = ref.watch(
+      tagsBlockerStateProvider.select(
+        (state) => state.values
+            .where(
+              (it) => it.serverId.isEmpty || it.serverId == session.serverId,
+            )
+            .map((it) => it.name)
+            .toSet(), // Convert to Set for faster lookup
+      ),
+    );
 
     // Use more efficient filtering with Set lookup
     final filteredPosts = pageState.data.posts
@@ -40,8 +44,11 @@ class HomeContent extends HookConsumerWidget {
     useEffect(() {
       if (servers.isNotEmpty) {
         Future(() {
-          ref.read(pageStateProvider.notifier).update(
-              (option) => option.copyWith(query: session.query, clear: true));
+          ref
+              .read(pageStateProvider.notifier)
+              .update(
+                (option) => option.copyWith(query: session.query, clear: true),
+              );
         });
       }
       return null;
@@ -83,9 +90,11 @@ class HomeContent extends HookConsumerWidget {
       children: [
         RefreshIndicator(
           onRefresh: () async {
-            unawaited(ref
-                .read(pageStateProvider.notifier)
-                .update((it) => it.copyWith(clear: true)));
+            unawaited(
+              ref
+                  .read(pageStateProvider.notifier)
+                  .update((it) => it.copyWith(clear: true)),
+            );
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -95,9 +104,7 @@ class HomeContent extends HookConsumerWidget {
                 SliverSafeArea(
                   sliver: SliverPadding(
                     padding: const EdgeInsets.all(10),
-                    sliver: Timeline(
-                      posts: filteredPosts,
-                    ),
+                    sliver: Timeline(posts: filteredPosts),
                   ),
                 ),
               if (!isNewSearch)

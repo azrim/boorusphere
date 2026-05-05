@@ -22,11 +22,7 @@ class Env {
   int sdkVersion;
 
   Object encode() {
-    return <Object?>[
-      versionName,
-      versionCode,
-      sdkVersion,
-    ];
+    return <Object?>[versionName, versionCode, sdkVersion];
   }
 
   static Env decode(Object result) {
@@ -67,15 +63,17 @@ class AppEnv {
   /// available for dependency injection.  If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
   AppEnv({BinaryMessenger? binaryMessenger})
-      : _binaryMessenger = binaryMessenger;
+    : _binaryMessenger = binaryMessenger;
   final BinaryMessenger? _binaryMessenger;
 
   static const MessageCodec<Object?> codec = _AppEnvCodec();
 
   Future<Env> get() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.AppEnv.get', codec,
-        binaryMessenger: _binaryMessenger);
+      'dev.flutter.pigeon.AppEnv.get',
+      codec,
+      binaryMessenger: _binaryMessenger,
+    );
     final List<Object?>? replyList = await channel.send(null) as List<Object?>?;
     if (replyList == null) {
       throw PlatformException(

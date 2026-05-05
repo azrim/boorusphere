@@ -90,10 +90,12 @@ class PageState extends _$PageState {
         }
         _page++;
 
-        final posts =
-            res.where((it) => !_posts.any((post) => post.id == it.id));
-        final displayedPosts =
-            posts.where((it) => !it.allTags.any(blockedTags.contains));
+        final posts = res.where(
+          (it) => !_posts.any((post) => post.id == it.id),
+        );
+        final displayedPosts = posts.where(
+          (it) => !it.allTags.any(blockedTags.contains),
+        );
         if (displayedPosts.isNotEmpty) {
           _posts.addAll(posts);
           state = FetchResult.data(

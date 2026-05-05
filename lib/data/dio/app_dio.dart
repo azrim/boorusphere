@@ -7,10 +7,7 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 
 class AppDio with DioMixin implements Dio {
-  AppDio({
-    required CookieJar cookieJar,
-    required EnvRepo envRepo,
-  }) {
+  AppDio({required CookieJar cookieJar, required EnvRepo envRepo}) {
     options = BaseOptions();
     httpClientAdapter = IOHttpClientAdapter();
     final retryDelays = List.generate(5, (index) {
@@ -20,10 +17,12 @@ class AppDio with DioMixin implements Dio {
     interceptors
       ..add(CookieManager(cookieJar))
       ..add(HeadersInterceptor(envRepo))
-      ..add(RetryInterceptor(
-        dio: this,
-        retries: retryDelays.length,
-        retryDelays: retryDelays,
-      ));
+      ..add(
+        RetryInterceptor(
+          dio: this,
+          retries: retryDelays.length,
+          retryDelays: retryDelays,
+        ),
+      );
   }
 }

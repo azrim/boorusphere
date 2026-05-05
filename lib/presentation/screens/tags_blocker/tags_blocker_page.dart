@@ -16,9 +16,7 @@ class TagsBlockerPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.t.tagsBlocker.title)),
-      body: const SafeArea(
-        child: _TagsBlockerContent(),
-      ),
+      body: const SafeArea(child: _TagsBlockerContent()),
     );
   }
 }
@@ -29,8 +27,9 @@ class _TagsBlockerContent extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final blockedTags = ref.watch(tagsBlockerStateProvider);
     final controller = useTextEditingController();
-    final imeIncognito =
-        ref.watch(uiSettingStateProvider.select((it) => it.imeIncognito));
+    final imeIncognito = ref.watch(
+      uiSettingStateProvider.select((it) => it.imeIncognito),
+    );
 
     return ListView(
       children: [

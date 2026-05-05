@@ -16,8 +16,11 @@ class PostPlaceholderImage extends StatelessWidget {
   final bool shouldBlur;
   final Map<String, String>? headers;
 
-  static final _blurFilter =
-      ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+  static final _blurFilter = ImageFilter.blur(
+    sigmaX: 5,
+    sigmaY: 5,
+    tileMode: TileMode.decal,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +30,14 @@ class PostPlaceholderImage extends StatelessWidget {
       fit: BoxFit.contain,
       imageBuilder: shouldBlur
           ? (context, provider) => ImageFiltered(
-                imageFilter: _blurFilter,
-                child: Image(
-                  image: provider,
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                  height: double.infinity,
-                ),
-              )
+              imageFilter: _blurFilter,
+              child: Image(
+                image: provider,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            )
           : null,
       placeholder: (context, _) => const SizedBox.shrink(),
       errorWidget: (context, _, __) => const SizedBox.shrink(),

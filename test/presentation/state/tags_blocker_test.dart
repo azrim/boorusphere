@@ -30,19 +30,13 @@ void main() async {
     test('push', () async {
       await notifier().push(serverId: serverId, tag: 'foo');
 
-      expect(
-        state().values.any((it) => it.name == 'foo'),
-        true,
-      );
+      expect(state().values.any((it) => it.name == 'foo'), true);
     });
 
     test('pushall', () async {
       await notifier().pushAll(serverId: serverId, tags: ['foo', 'bar']);
 
-      expect(
-        state().values.any((it) => it.name == 'bar'),
-        true,
-      );
+      expect(state().values.any((it) => it.name == 'bar'), true);
     });
 
     test('delete', () async {

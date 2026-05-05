@@ -29,7 +29,7 @@ Future<void>? showSystemAppSettingsDialog({
             unawaited(openAppSettings());
           },
           child: Text(context.t.openSettings),
-        )
+        ),
       ],
     ),
   );

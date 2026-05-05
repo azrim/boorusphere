@@ -23,9 +23,9 @@ class MoebooruJsonParser extends BooruParser {
 
   @override
   List<BooruParserType> get type => [
-        BooruParserType.search,
-        BooruParserType.suggestion,
-      ];
+    BooruParserType.search,
+    BooruParserType.suggestion,
+  ];
 
   @override
   bool canParsePage(Response res) {

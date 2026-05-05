@@ -21,10 +21,12 @@ void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('Moebooru', () async {
-    final ref = ProviderContainer(overrides: [
-      defaultServersProvider.overrideWithValue(await provideDefaultServers()),
-      envRepoProvider.overrideWithValue(FakeEnvRepo()),
-    ]);
+    final ref = ProviderContainer(
+      overrides: [
+        defaultServersProvider.overrideWithValue(await provideDefaultServers()),
+        envRepoProvider.overrideWithValue(FakeEnvRepo()),
+      ],
+    );
     final hiveContainer = HiveTestContainer();
 
     addTearDown(() async {
@@ -45,8 +47,9 @@ void main() async {
     const option = PageOption(limit: 5);
 
     const fakePage = 'konachan/posts.json';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
@@ -55,13 +58,17 @@ void main() async {
     );
 
     const fakeTags = 'konachan/tags.json';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getSuggestion('book'),
-      isA<Iterable>()
-          .having((x) => x.length, 'total', Server.tagSuggestionLimit - 2),
+      isA<Iterable>().having(
+        (x) => x.length,
+        'total',
+        Server.tagSuggestionLimit - 2,
+      ),
       reason: 'expecting 2 tags with zero post_count',
     );
   });

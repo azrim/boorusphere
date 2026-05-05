@@ -24,9 +24,9 @@ class BooruOnRailsJsonParser extends BooruParser {
 
   @override
   List<BooruParserType> get type => [
-        BooruParserType.search,
-        BooruParserType.suggestion,
-      ];
+    BooruParserType.search,
+    BooruParserType.suggestion,
+  ];
 
   @override
   bool canParsePage(Response res) {
@@ -54,7 +54,8 @@ class BooruOnRailsJsonParser extends BooruParser {
       final width = pick(post, 'width').asIntOrNull() ?? -1;
       final height = pick(post, 'height').asIntOrNull() ?? -1;
       final rating = tags.where(
-          (tag) => tag == 'explicit' || tag == 'safe' || tag == 'questionable');
+        (tag) => tag == 'explicit' || tag == 'safe' || tag == 'questionable',
+      );
       final source = pick(post, 'source_url').asStringOrNull() ?? '';
       final score = pick(post, 'score').asIntOrNull() ?? 0;
 

@@ -22,10 +22,12 @@ void main() async {
   final hiveContainer = HiveTestContainer();
 
   test('BooruOnRails', () async {
-    final ref = ProviderContainer(overrides: [
-      defaultServersProvider.overrideWithValue(await provideDefaultServers()),
-      envRepoProvider.overrideWithValue(FakeEnvRepo()),
-    ]);
+    final ref = ProviderContainer(
+      overrides: [
+        defaultServersProvider.overrideWithValue(await provideDefaultServers()),
+        envRepoProvider.overrideWithValue(FakeEnvRepo()),
+      ],
+    );
 
     addTearDown(() async {
       await hiveContainer.dispose();
@@ -38,15 +40,17 @@ void main() async {
 
     final parser = BooruOnRailsJsonParser();
     final server = Server(
-        homepage: 'https://derpibooru.org',
-        searchUrl: parser.searchQuery,
-        tagSuggestionUrl: parser.suggestionQuery);
+      homepage: 'https://derpibooru.org',
+      searchUrl: parser.searchQuery,
+      tagSuggestionUrl: parser.suggestionQuery,
+    );
 
     const option = PageOption(limit: 5);
 
     const fakePage = 'booruonrails/posts.json';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
@@ -55,8 +59,9 @@ void main() async {
     );
 
     const fakeTags = 'booruonrails/tags.json';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getSuggestion('book'),

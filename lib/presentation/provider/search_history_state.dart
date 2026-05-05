@@ -18,9 +18,11 @@ Map<int, SearchHistory> filterHistory(Ref ref, String query) {
   // Filtering history that contains last word from any state (either incomplete
   // or already contains multiple words)
   final filtered = Map<int, SearchHistory>.from(history);
-  filtered.removeWhere((key, value) =>
-      !value.query.contains(queries.last) ||
-      queries.take(queries.length).contains(value.query));
+  filtered.removeWhere(
+    (key, value) =>
+        !value.query.contains(queries.last) ||
+        queries.take(queries.length).contains(value.query),
+  );
 
   return filtered;
 }

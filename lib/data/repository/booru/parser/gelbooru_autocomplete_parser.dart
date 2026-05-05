@@ -18,9 +18,7 @@ class GelbooruAutocompleteParser extends BooruParser {
       'index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}';
 
   @override
-  List<BooruParserType> get type => [
-        BooruParserType.suggestion,
-      ];
+  List<BooruParserType> get type => [BooruParserType.suggestion];
 
   @override
   bool canParsePage(Response res) {

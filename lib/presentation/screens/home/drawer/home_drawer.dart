@@ -102,10 +102,7 @@ class _Header extends StatelessWidget {
         children: [
           const Text(
             'Boorusphere!',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w200,
-            ),
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w200),
           ),
           _ThemeSwitcherButton(),
         ],
@@ -128,8 +125,9 @@ class _ThemeSwitcherButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme =
-        ref.watch(uiSettingStateProvider.select((ui) => ui.themeMode));
+    final theme = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.themeMode),
+    );
 
     return IconButton(
       icon: Icon(themeIconOf(theme)),
@@ -171,7 +169,8 @@ class AppVersionTile extends ConsumerWidget {
               ),
             ),
             subtitle: Text(
-                context.t.updater.progress(progress: updateProgress.progress)),
+              context.t.updater.progress(progress: updateProgress.progress),
+            ),
             onTap: () => context.router.push(const AboutRoute()),
           );
         }
@@ -196,8 +195,7 @@ class AppVersionTile extends ConsumerWidget {
 class _HomeTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const SizedBox
-        .shrink(); // Always hidden - users can clear search instead
+    return const SizedBox.shrink(); // Always hidden - users can clear search instead
   }
 }
 
@@ -275,13 +273,15 @@ class _ServerSelection extends ConsumerWidget {
                 ),
               ),
               selected: it.id == serverActive.id,
-              selectedTileColor: context.colorScheme.primary
-                  .withAlpha(context.isLightThemed ? 50 : 25),
+              selectedTileColor: context.colorScheme.primary.withAlpha(
+                context.isLightThemed ? 50 : 25,
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 if (it.id != serverActive.id) {
                   context.router.push(
-                      HomeRoute(session: session.copyWith(serverId: it.id)));
+                    HomeRoute(session: session.copyWith(serverId: it.id)),
+                  );
                 } else {
                   ref
                       .read(pageStateProvider.notifier)
@@ -338,7 +338,7 @@ class _ServerSelection extends ConsumerWidget {
                         ref.read(serverStateProvider.notifier).reset();
                       },
                       child: Text(context.t.reset),
-                    )
+                    ),
                   ],
                 ),
               );

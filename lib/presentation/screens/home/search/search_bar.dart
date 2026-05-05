@@ -27,8 +27,9 @@ class HomeSearchBar extends HookConsumerWidget {
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final delta = useState([0.0, 0.0]);
     final collapsed = !searchBar.isOpen && delta.value.first > 0;
-    final isBlurAllowed =
-        ref.watch(uiSettingStateProvider.select((ui) => ui.blur));
+    final isBlurAllowed = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.blur),
+    );
 
     // Disable scroll listener when search is open for better performance
     final onScrolling = useCallback(() {
@@ -95,11 +96,11 @@ class HomeSearchBar extends HookConsumerWidget {
           color: context.theme.scaffoldBackgroundColor.withValues(
             alpha: context.isLightThemed
                 ? isBlurAllowed
-                    ? 0.7
-                    : 0.92
+                      ? 0.7
+                      : 0.92
                 : isBlurAllowed
-                    ? 0.85
-                    : 0.97,
+                ? 0.85
+                : 0.97,
           ),
           border: Border(
             top: BorderSide(color: context.colorScheme.outlineVariant),
@@ -163,8 +164,9 @@ class _SearchField extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final imeIncognito =
-        ref.watch(uiSettingStateProvider.select((it) => it.imeIncognito));
+    final imeIncognito = ref.watch(
+      uiSettingStateProvider.select((it) => it.imeIncognito),
+    );
     final session = ref.watch(searchSessionProvider);
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final server = ref.watch(serverStateProvider).getById(session.serverId);
@@ -206,9 +208,7 @@ class _OptionBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(18, 11, 18, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          _RatingButton(),
-        ],
+        children: [_RatingButton()],
       ),
     );
   }
@@ -238,15 +238,15 @@ class _RatingButton extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: BooruRating.values
-                  .map((e) => ListTile(
-                        leading: Radio<BooruRating>(
-                          value: e,
-                        ),
-                        title: Text(rateDesc(context, e)),
-                        onTap: () {
-                          context.navigator.pop(e);
-                        },
-                      ))
+                  .map(
+                    (e) => ListTile(
+                      leading: Radio<BooruRating>(value: e),
+                      title: Text(rateDesc(context, e)),
+                      onTap: () {
+                        context.navigator.pop(e);
+                      },
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -257,8 +257,9 @@ class _RatingButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rating =
-        ref.watch(serverSettingStateProvider.select((it) => it.searchRating));
+    final rating = ref.watch(
+      serverSettingStateProvider.select((it) => it.searchRating),
+    );
     final label = '${context.t.rating.title}: ${rateDesc(context, rating)}';
 
     return TextButton(
@@ -289,10 +290,7 @@ class _RatingButton extends ConsumerWidget {
 }
 
 class _Button extends StatelessWidget {
-  const _Button({
-    required this.onTap,
-    this.child,
-  });
+  const _Button({required this.onTap, this.child});
 
   final void Function() onTap;
   final Widget? child;
@@ -314,7 +312,10 @@ class _LeadingButton extends ConsumerWidget {
   const _LeadingButton();
 
   Future<void> _showServerSelector(
-      BuildContext context, WidgetRef ref, String currentServerId) async {
+    BuildContext context,
+    WidgetRef ref,
+    String currentServerId,
+  ) async {
     final servers = ref.read(serverStateProvider).toList();
     final session = ref.read(searchSessionProvider);
     final enableBlur = ref.read(uiSettingStateProvider.select((s) => s.blur));
@@ -367,8 +368,9 @@ class _LeadingButton extends ConsumerWidget {
                       final server = servers[index];
                       final isSelected = server.id == currentServerId;
                       return ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                        ),
                         leading: Favicon(
                           url: server.homepage,
                           shape: BoxShape.circle,
@@ -376,8 +378,10 @@ class _LeadingButton extends ConsumerWidget {
                         ),
                         title: Text(server.name),
                         trailing: isSelected
-                            ? Icon(Icons.check_circle,
-                                color: context.colorScheme.primary)
+                            ? Icon(
+                                Icons.check_circle,
+                                color: context.colorScheme.primary,
+                              )
                             : null,
                         selected: isSelected,
                         selectedTileColor: context.colorScheme.primary
@@ -408,9 +412,11 @@ class _LeadingButton extends ConsumerWidget {
     );
 
     if (selected != null && selected != currentServerId && context.mounted) {
-      unawaited(context.router.push(HomeRoute(
-        session: session.copyWith(serverId: selected),
-      )));
+      unawaited(
+        context.router.push(
+          HomeRoute(session: session.copyWith(serverId: selected)),
+        ),
+      );
     }
   }
 
@@ -442,8 +448,9 @@ class _LeadingButton extends ConsumerWidget {
 class _RatingIndicator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rating =
-        ref.watch(serverSettingStateProvider.select((it) => it.searchRating));
+    final rating = ref.watch(
+      serverSettingStateProvider.select((it) => it.searchRating),
+    );
 
     String letter = 's';
     switch (rating) {
@@ -478,8 +485,10 @@ class _RatingIndicator extends ConsumerWidget {
       child: Container(
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         padding: const EdgeInsets.all(4),
-        child: Text(letter,
-            style: const TextStyle(fontSize: 10, color: Colors.white)),
+        child: Text(
+          letter,
+          style: const TextStyle(fontSize: 10, color: Colors.white),
+        ),
       ),
     );
   }
@@ -497,9 +506,11 @@ class _TrailingButton extends ConsumerWidget {
     final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
 
     backToTop() {
-      scrollController?.animateTo(0,
-          duration: const Duration(milliseconds: 700),
-          curve: Curves.easeInOutCubic);
+      scrollController?.animateTo(
+        0,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOutCubic,
+      );
     }
 
     return _Button(

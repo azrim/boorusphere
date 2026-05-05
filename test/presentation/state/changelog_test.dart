@@ -19,9 +19,9 @@ void main() async {
 
   group('changelog', () {
     test('assets', () async {
-      final ref = ProviderContainer(overrides: [
-        envRepoProvider.overrideWithValue(FakeEnvRepo()),
-      ]);
+      final ref = ProviderContainer(
+        overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+      );
 
       final logProvider = changelogStateProvider(ChangelogType.assets, null);
       ref.setupTestFor(logProvider);
@@ -31,8 +31,11 @@ void main() async {
       await ref.read(logProvider.future);
       expect(
         ref.read(logProvider).value,
-        isA<List<ChangelogData>>()
-            .having((it) => it.first.version, 'version', isA<AppVersion>()),
+        isA<List<ChangelogData>>().having(
+          (it) => it.first.version,
+          'version',
+          isA<AppVersion>(),
+        ),
       );
     });
 
@@ -42,9 +45,9 @@ void main() async {
         AppVersion.fromString('999.9.9'),
       );
 
-      final ref = ProviderContainer(overrides: [
-        envRepoProvider.overrideWithValue(FakeEnvRepo()),
-      ]);
+      final ref = ProviderContainer(
+        overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+      );
 
       ref.setupTestFor(dioProvider);
       ref.setupTestFor(logProvider);
@@ -53,31 +56,38 @@ void main() async {
 
       final adapter = DioAdapterMock(ref.read(dioProvider));
       when(() => adapter.fetch(any(), any(), any())).thenAnswer(
-          (invocation) async =>
-              ResponseBody.fromString('\n## 999.9.9\n* Fix deez nuts\n', 200));
+        (invocation) async =>
+            ResponseBody.fromString('\n## 999.9.9\n* Fix deez nuts\n', 200),
+      );
 
       await ref.read(logProvider.future);
 
       expect(
         ref.read(logProvider).value,
-        isA<List<ChangelogData>>().having((it) => it.first.version, 'version',
-            AppVersion.fromString('999.9.9')),
+        isA<List<ChangelogData>>().having(
+          (it) => it.first.version,
+          'version',
+          AppVersion.fromString('999.9.9'),
+        ),
       );
     });
 
     test('git but no response', () async {
-      final ref = ProviderContainer(overrides: [
-        envRepoProvider.overrideWithValue(FakeEnvRepo()),
-      ]);
+      final ref = ProviderContainer(
+        overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+      );
       final logProvider = changelogStateProvider(
-          ChangelogType.git, AppVersion.fromString('9.9.9'));
+        ChangelogType.git,
+        AppVersion.fromString('9.9.9'),
+      );
 
       ref.setupTestFor(dioProvider);
       ref.setupTestFor(logProvider);
 
       final adapter = DioAdapterMock(ref.read(dioProvider));
-      when(() => adapter.fetch(any(), any(), any()))
-          .thenAnswer((invocation) async => ResponseBody.fromString('', 200));
+      when(
+        () => adapter.fetch(any(), any(), any()),
+      ).thenAnswer((invocation) async => ResponseBody.fromString('', 200));
 
       addTearDown(ref.dispose);
 

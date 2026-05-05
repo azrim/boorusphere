@@ -18,10 +18,7 @@ class TagsBlockerState extends _$TagsBlockerState {
     state = repo.get();
   }
 
-  Future<void> push({
-    String serverId = '',
-    required String tag,
-  }) async {
+  Future<void> push({String serverId = '', required String tag}) async {
     final repo = ref.read(tagsBlockerRepoProvider);
     await repo.push(BooruTag(serverId: serverId, name: tag));
     state = repo.get();

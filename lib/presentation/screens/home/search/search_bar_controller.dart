@@ -10,8 +10,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 final searchBarControllerProvider = ChangeNotifierProvider.autoDispose
     .family<SearchBarController, SearchSession>(
-  (ref, session) => SearchBarController(ref, session: session),
-);
+      (ref, session) => SearchBarController(ref, session: session),
+    );
 
 /// Controller for the search bar.
 ///
@@ -75,7 +75,7 @@ class SearchBarController extends ChangeNotifier {
     final current = value.toWordList();
     final result = {
       if (current.isNotEmpty) ...current.take(current.length - 1),
-      ...newValue.toWordList()
+      ...newValue.toWordList(),
     };
     _value = '${result.join(' ')} ';
   }

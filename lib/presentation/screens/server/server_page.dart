@@ -15,14 +15,13 @@ class ServerPage extends ConsumerWidget {
   final SearchSession? session;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final savedServerId =
-        ref.read(serverSettingStateProvider.select((it) => it.lastActiveId));
+    final savedServerId = ref.read(
+      serverSettingStateProvider.select((it) => it.lastActiveId),
+    );
     final session = this.session ?? SearchSession(serverId: savedServerId);
 
     return ProviderScope(
-      overrides: [
-        searchSessionProvider.overrideWith((ref) => session),
-      ],
+      overrides: [searchSessionProvider.overrideWith((ref) => session)],
       child: const _Content(),
     );
   }
@@ -62,7 +61,7 @@ class _Content extends ConsumerWidget {
                             ref.read(serverStateProvider.notifier).reset();
                           },
                           child: Text(context.t.reset),
-                        )
+                        ),
                       ],
                     ),
                   );
@@ -79,7 +78,7 @@ class _Content extends ConsumerWidget {
                 ),
               ];
             },
-          )
+          ),
         ],
       ),
       body: SafeArea(
@@ -102,8 +101,9 @@ class _Content extends ConsumerWidget {
                             context.scaffoldMessenger.showSnackBar(
                               SnackBar(
                                 duration: const Duration(seconds: 1),
-                                content:
-                                    Text(context.t.servers.removeLastError),
+                                content: Text(
+                                  context.t.servers.removeLastError,
+                                ),
                               ),
                             );
                             break;
@@ -135,7 +135,7 @@ class _Content extends ConsumerWidget {
                 title: Text(context.t.add),
                 leading: const Icon(Icons.add),
                 onTap: () => context.router.push(ServerEditorRoute()),
-              )
+              ),
             ],
           ),
         ),

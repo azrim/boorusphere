@@ -8,15 +8,19 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('number', () {
     test('valid ImageChunk', () {
-      const chunk =
-          ImageChunkEvent(expectedTotalBytes: 1024, cumulativeBytesLoaded: 512);
+      const chunk = ImageChunkEvent(
+        expectedTotalBytes: 1024,
+        cumulativeBytesLoaded: 512,
+      );
       expect(chunk.progressPercentage?.ratio, .5);
       expect(chunk.progressRatio?.percentage, 50);
     });
 
     test('nulled ImageChunk', () {
-      const chunk =
-          ImageChunkEvent(expectedTotalBytes: null, cumulativeBytesLoaded: 512);
+      const chunk = ImageChunkEvent(
+        expectedTotalBytes: null,
+        cumulativeBytesLoaded: 512,
+      );
       expect(chunk.progressPercentage?.ratio, null);
       expect(chunk.progressRatio?.percentage, null);
     });

@@ -31,8 +31,11 @@ class LicenseData {
   }
 
   Map<String, Iterable<LicenseEntry>> toMap() {
-    return Map.fromEntries(_packages.sorted().map(
-        (it) => MapEntry(it, _licenses.where((e) => e.packages.contains(it)))));
+    return Map.fromEntries(
+      _packages.sorted().map(
+        (it) => MapEntry(it, _licenses.where((e) => e.packages.contains(it))),
+      ),
+    );
   }
 }
 
@@ -99,10 +102,12 @@ class PackageLicenses extends StatelessWidget {
         title: Text(context.t.license.title(n: count)),
         centerTitle: true,
         bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(32),
-            child: Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: Text(context.t.license.package(name: packageName)))),
+          preferredSize: const Size.fromHeight(32),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 18),
+            child: Text(context.t.license.package(name: packageName)),
+          ),
+        ),
       ),
       body: ListView.separated(
         itemCount: packageLicenses.length,

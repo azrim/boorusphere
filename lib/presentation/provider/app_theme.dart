@@ -36,8 +36,9 @@ class AppThemeData {
 
 ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
   final isDark = brightness == Brightness.dark;
-  final defScheme =
-      isDark ? AppThemeData.defDarkScheme : AppThemeData.defLightScheme;
+  final defScheme = isDark
+      ? AppThemeData.defDarkScheme
+      : AppThemeData.defLightScheme;
   final harmonized = scheme?.harmonized() ?? defScheme;
   final colorScheme = harmonized.copyWith(
     surface: harmonized.surface.shade(isDark ? 30 : 3),
@@ -52,9 +53,7 @@ ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
     ),
     canvasColor: colorScheme.surface,
     scaffoldBackgroundColor: colorScheme.surface,
-    dialogTheme: DialogThemeData(
-      backgroundColor: colorScheme.surface,
-    ),
+    dialogTheme: DialogThemeData(backgroundColor: colorScheme.surface),
     drawerTheme: origin.drawerTheme.copyWith(
       backgroundColor: colorScheme.surfaceContainerLow,
     ),
@@ -85,9 +84,7 @@ ThemeData _createThemeDataMidnight(ColorScheme? scheme) {
     primaryColor: Colors.black,
     canvasColor: Colors.black,
     scaffoldBackgroundColor: Colors.black,
-    drawerTheme: origin.drawerTheme.copyWith(
-      backgroundColor: Colors.black,
-    ),
+    drawerTheme: origin.drawerTheme.copyWith(backgroundColor: Colors.black),
     colorScheme: origin.colorScheme.copyWith(
       brightness: Brightness.dark,
       surface: origin.colorScheme.surface,

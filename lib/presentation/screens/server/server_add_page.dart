@@ -101,8 +101,9 @@ class ServerAddPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final formKey = useMemoized(GlobalKey<FormState>.new);
-    final imeIncognito =
-        ref.watch(uiSettingStateProvider.select((it) => it.imeIncognito));
+    final imeIncognito = ref.watch(
+      uiSettingStateProvider.select((it) => it.imeIncognito),
+    );
     final selectedEngine = useState<BooruEngine?>(null);
     final profileName = useTextEditingController();
     final siteUrl = useTextEditingController(text: 'https://');
@@ -141,9 +142,7 @@ class ServerAddPage extends HookConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.t.servers.add),
-      ),
+      appBar: AppBar(title: Text(context.t.servers.add)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 16),

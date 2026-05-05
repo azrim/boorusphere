@@ -22,22 +22,28 @@ class DownloadsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final savedServerId =
-        ref.read(serverSettingStateProvider.select((it) => it.lastActiveId));
+    final savedServerId = ref.read(
+      serverSettingStateProvider.select((it) => it.lastActiveId),
+    );
     final session = this.session ?? SearchSession(serverId: savedServerId);
     final servers = ref.watch(serverStateProvider);
-    final downloadEntries =
-        ref.watch(downloadEntryStateProvider).whereNotReserved().toList();
+    final downloadEntries = ref
+        .watch(downloadEntryStateProvider)
+        .whereNotReserved()
+        .toList();
     final downloadProgressState = ref.watch(downloadProgressStateProvider);
-    final groupByServer = ref
-        .watch(downloadSettingStateProvider.select((it) => it.groupByServer));
+    final groupByServer = ref.watch(
+      downloadSettingStateProvider.select((it) => it.groupByServer),
+    );
     final filter = useState(DownloadFilter.none);
     List<DownloadEntry> filteredEntries = downloadEntries;
     if (filter.value != DownloadFilter.none) {
       filteredEntries = downloadEntries
-          .where((it) =>
-              downloadProgressState.getById(it.id).status ==
-              filter.value.toStatus())
+          .where(
+            (it) =>
+                downloadProgressState.getById(it.id).status ==
+                filter.value.toStatus(),
+          )
           .toList();
     }
 
@@ -94,7 +100,7 @@ class DownloadsPage extends HookConsumerWidget {
                     ),
                   ];
                 },
-              )
+              ),
           ],
         ),
         body: SafeArea(
@@ -144,15 +150,15 @@ class DownloadsPage extends HookConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: DownloadFilter.values
-                  .map((e) => ListTile(
-                        leading: Radio<DownloadFilter>(
-                          value: e,
-                        ),
-                        title: Text(e.describe(context)),
-                        onTap: () {
-                          context.navigator.pop(e);
-                        },
-                      ))
+                  .map(
+                    (e) => ListTile(
+                      leading: Radio<DownloadFilter>(value: e),
+                      title: Text(e.describe(context)),
+                      onTap: () {
+                        context.navigator.pop(e);
+                      },
+                    ),
+                  )
                   .toList(),
             ),
           ),

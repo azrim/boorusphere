@@ -161,15 +161,17 @@ class DataBackupState extends _$DataBackupState {
       if (option.searchHistory) searchHistory,
     ];
 
-    await Future.wait(entries.map((entry) async {
-      final item = await entry;
-      final data = item.value;
-      if (data is List && data.isEmpty) return;
+    await Future.wait(
+      entries.map((entry) async {
+        final item = await entry;
+        final data = item.value;
+        if (data is List && data.isEmpty) return;
 
-      final file = File('${temp.path}/${item.key}.json');
-      await file.writeAsString(jsonEncode(data));
-      return encoder.addFile(file);
-    }));
+        final file = File('${temp.path}/${item.key}.json');
+        await file.writeAsString(jsonEncode(data));
+        return encoder.addFile(file);
+      }),
+    );
 
     await encoder.close();
 

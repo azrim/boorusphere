@@ -14,9 +14,6 @@ class AppVersionsState extends _$AppVersionsState {
       state = const AsyncValue.loading();
     });
     final repo = ref.read(versionRepoProvider);
-    return (
-      current: repo.current,
-      latest: await repo.fetch(),
-    );
+    return (current: repo.current, latest: await repo.fetch());
   }
 }

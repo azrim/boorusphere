@@ -23,12 +23,14 @@ const Map<String, String> _variantSources = {
 
 String get _outputDir {
   return path.normalize(
-      path.join(Directory.current.path, 'build/app/outputs/flutter-apk'));
+    path.join(Directory.current.path, 'build/app/outputs/flutter-apk'),
+  );
 }
 
 YamlMap get _pubspec {
-  final yamlPath =
-      path.normalize(path.join(Directory.current.path, 'pubspec.yaml'));
+  final yamlPath = path.normalize(
+    path.join(Directory.current.path, 'pubspec.yaml'),
+  );
   final content = File(yamlPath).readAsStringSync();
   return loadYaml(content);
 }

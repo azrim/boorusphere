@@ -56,8 +56,9 @@ class _Content extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final periodicState = ref.watch(periodicBackupSettingStateProvider);
-    final periodicNotifier =
-        ref.read(periodicBackupSettingStateProvider.notifier);
+    final periodicNotifier = ref.read(
+      periodicBackupSettingStateProvider.notifier,
+    );
 
     ref.listen<BackupResult?>(dataBackupStateProvider, (prev, next) {
       switch (next) {
@@ -70,21 +71,27 @@ class _Content extends HookConsumerWidget {
             ),
           );
         case ImportedBackupResult():
-          context.scaffoldMessenger.showSnackBar(SnackBar(
-            content: Text(context.t.dataBackup.restore.success),
-            duration: const Duration(seconds: 2),
-          ));
+          context.scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(context.t.dataBackup.restore.success),
+              duration: const Duration(seconds: 2),
+            ),
+          );
           Future.delayed(const Duration(seconds: 2), SystemNavigator.pop);
         case ExportedBackupResult(:final path):
-          context.scaffoldMessenger.showSnackBar(SnackBar(
-            content: Text(context.t.dataBackup.backup.success(dest: path)),
-            duration: const Duration(seconds: 2),
-          ));
+          context.scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(context.t.dataBackup.backup.success(dest: path)),
+              duration: const Duration(seconds: 2),
+            ),
+          );
         case ErrorBackupResult():
-          context.scaffoldMessenger.showSnackBar(SnackBar(
-            content: Text(context.t.dataBackup.restore.invalid),
-            duration: const Duration(seconds: 1),
-          ));
+          context.scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(context.t.dataBackup.restore.invalid),
+              duration: const Duration(seconds: 1),
+            ),
+          );
         default:
       }
     });
@@ -103,9 +110,11 @@ class _Content extends HookConsumerWidget {
               builder: (context) => _BackupSelectionDialog(),
             );
             if (result != null) {
-              unawaited(ref
-                  .read(dataBackupStateProvider.notifier)
-                  .backup(option: result));
+              unawaited(
+                ref
+                    .read(dataBackupStateProvider.notifier)
+                    .backup(option: result),
+              );
             }
           },
         ),
@@ -194,8 +203,8 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
@@ -419,8 +428,9 @@ class _TelegramChatIdTile extends HookWidget {
       ),
       onTap: enabled
           ? () async {
-              final controller =
-                  TextEditingController(text: state.telegramChatId);
+              final controller = TextEditingController(
+                text: state.telegramChatId,
+              );
               final result = await showDialog<String>(
                 context: context,
                 builder: (dialogContext) => AlertDialog(
@@ -480,8 +490,9 @@ class _TelegramBotTokenTile extends HookWidget {
       ),
       onTap: enabled
           ? () async {
-              final controller =
-                  TextEditingController(text: state.telegramBotToken);
+              final controller = TextEditingController(
+                text: state.telegramBotToken,
+              );
               final result = await showDialog<String>(
                 context: context,
                 builder: (dialogContext) => AlertDialog(
@@ -597,7 +608,8 @@ class _BackupNowTile extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isLoading = useState(false);
     final settings = ref.watch(periodicBackupSettingStateProvider);
-    final isConfigured = settings.telegramChatId.isNotEmpty &&
+    final isConfigured =
+        settings.telegramChatId.isNotEmpty &&
         settings.telegramBotToken.isNotEmpty;
 
     return ListTile(
@@ -626,8 +638,9 @@ class _BackupNowTile extends HookConsumerWidget {
                 if (context.mounted) {
                   context.scaffoldMessenger.showSnackBar(
                     SnackBar(
-                      content:
-                          Text(context.t.periodicBackup.telegram.backupFailed),
+                      content: Text(
+                        context.t.periodicBackup.telegram.backupFailed,
+                      ),
                     ),
                   );
                 }

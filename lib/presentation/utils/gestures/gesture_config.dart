@@ -20,13 +20,13 @@ class GestureConfig {
   });
 
   const GestureConfig.undefined()
-      : swipeUp = null,
-        swipeDown = null,
-        swipeLeft = null,
-        swipeRight = null,
-        doubleTap = null,
-        longPress = null,
-        tap = null;
+    : swipeUp = null,
+      swipeDown = null,
+      swipeLeft = null,
+      swipeRight = null,
+      doubleTap = null,
+      longPress = null,
+      tap = null;
 
   factory GestureConfig.fromJson(Map<String, dynamic> json) {
     return GestureConfig(

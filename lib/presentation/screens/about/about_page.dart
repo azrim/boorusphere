@@ -45,8 +45,9 @@ class AboutPage extends ConsumerWidget {
               ),
               Text(
                 'Boorusphere',
-                style: context.theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w300),
+                style: context.theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w300,
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -54,8 +55,9 @@ class AboutPage extends ConsumerWidget {
                   data: (data) {
                     return Text(
                       context.t.version(version: '${data.current} - $kAppArch'),
-                      style: context.theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w400),
+                      style: context.theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w400,
+                      ),
                     );
                   },
                   orElse: SizedBox.shrink,
@@ -169,8 +171,9 @@ class _InlineChangelog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final changelog =
-        ref.watch(changelogStateProvider(ChangelogType.git, version));
+    final changelog = ref.watch(
+      changelogStateProvider(ChangelogType.git, version),
+    );
 
     return changelog.when(
       data: (entries) {
@@ -219,7 +222,8 @@ class _Downloader extends ConsumerWidget {
     final progress = ref.watch(appUpdateProgressProvider);
     final hasUpdateApk = progress.status.isDownloaded;
 
-    final showDownloadButton = progress.status.isCanceled ||
+    final showDownloadButton =
+        progress.status.isCanceled ||
         progress.status.isFailed ||
         progress.status.isEmpty;
 
@@ -244,10 +248,7 @@ class _Downloader extends ConsumerWidget {
             width: 48,
             child: Padding(
               padding: const EdgeInsets.all(8),
-              child: Text(
-                '${progress.progress}%',
-                textAlign: TextAlign.end,
-              ),
+              child: Text('${progress.progress}%', textAlign: TextAlign.end),
             ),
           ),
           Expanded(

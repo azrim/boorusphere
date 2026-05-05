@@ -54,11 +54,13 @@ class FakeResponseInterceptor extends Interceptor {
   ) async {
     final response = await holder.responseFor(options);
     if (!options.validateStatus(response.statusCode)) {
-      handler.reject(DioException.badResponse(
-        statusCode: response.statusCode ?? 200,
-        requestOptions: options,
-        response: response,
-      ));
+      handler.reject(
+        DioException.badResponse(
+          statusCode: response.statusCode ?? 200,
+          requestOptions: options,
+          response: response,
+        ),
+      );
       return;
     }
 
@@ -86,7 +88,7 @@ class ResponseHolder {
             path: '/notfound',
             fragment: '',
           ),
-        )
+        ),
       ],
     );
   }

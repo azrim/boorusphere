@@ -126,7 +126,7 @@ String _rateString(BooruRating searchRating) {
     BooruRating.questionable => 'rating:questionable',
     BooruRating.explicit => 'rating:explicit',
     BooruRating.sensitive => 'rating:sensitive',
-    _ => ''
+    _ => '',
   };
 }
 
@@ -135,6 +135,6 @@ String _szuruRateString(BooruRating searchRating) {
     BooruRating.safe => 'safety:safe',
     BooruRating.questionable => 'safety:sketchy',
     BooruRating.sensitive || BooruRating.explicit => 'safety:unsafe',
-    _ => ''
+    _ => '',
   };
 }

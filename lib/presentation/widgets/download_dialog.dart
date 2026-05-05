@@ -18,11 +18,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class DownloaderDialog extends ConsumerWidget {
-  const DownloaderDialog({
-    super.key,
-    required this.post,
-    this.onItemClick,
-  });
+  const DownloaderDialog({super.key, required this.post, this.onItemClick});
 
   final Post post;
   final Function(String type)? onItemClick;
@@ -53,38 +49,41 @@ class DownloaderDialog extends ConsumerWidget {
             ListTile(title: Text(context.t.downloads.title)),
             if (post.sampleFile.isNotEmpty)
               ListTile(
-                  title: Text(context.t.fileSample),
-                  subtitle: FutureBuilder<PixelSize>(
-                    future: (post.content.isPhoto || post.content.isGif) &&
-                            !post.sampleSize.hasPixels
-                        ? CachedNetworkImageProvider(
-                            post.sampleFile,
-                            headers: headers,
-                          ).resolvePixelSize()
-                        : Future.value(post.sampleSize),
-                    builder: (context, snapshot) {
-                      final size = snapshot.data ?? post.sampleSize;
-                      return Text('$size, ${post.sampleFile.fileExt}');
-                    },
-                  ),
-                  leading: Icon(_getFileIcon(post.sampleFile)),
-                  onTap: () {
-                    checkNotificationPermission(context).then((value) {
-                      if (value) {
-                        onItemClick?.call('sample');
-                        ref
-                            .read(downloaderProvider)
-                            .download(post, url: post.sampleFile);
-                      }
-                      if (context.mounted) {
-                        context.navigator.pop();
-                      }
-                    });
-                  }),
+                title: Text(context.t.fileSample),
+                subtitle: FutureBuilder<PixelSize>(
+                  future:
+                      (post.content.isPhoto || post.content.isGif) &&
+                          !post.sampleSize.hasPixels
+                      ? CachedNetworkImageProvider(
+                          post.sampleFile,
+                          headers: headers,
+                        ).resolvePixelSize()
+                      : Future.value(post.sampleSize),
+                  builder: (context, snapshot) {
+                    final size = snapshot.data ?? post.sampleSize;
+                    return Text('$size, ${post.sampleFile.fileExt}');
+                  },
+                ),
+                leading: Icon(_getFileIcon(post.sampleFile)),
+                onTap: () {
+                  checkNotificationPermission(context).then((value) {
+                    if (value) {
+                      onItemClick?.call('sample');
+                      ref
+                          .read(downloaderProvider)
+                          .download(post, url: post.sampleFile);
+                    }
+                    if (context.mounted) {
+                      context.navigator.pop();
+                    }
+                  });
+                },
+              ),
             ListTile(
               title: Text(context.t.fileOg),
               subtitle: Text(
-                  '${post.originalSize.toString()}, ${post.originalFile.fileExt}'),
+                '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
+              ),
               leading: Icon(_getFileIcon(post.originalFile)),
               onTap: () {
                 checkNotificationPermission(context).then((value) {
@@ -110,14 +109,15 @@ class DownloaderDialog extends ConsumerWidget {
     Post post, {
     Function(String type)? onItemClick,
   }) async {
-    final quality =
-        ref.read(downloadSettingStateProvider.select((it) => it.quality));
+    final quality = ref.read(
+      downloadSettingStateProvider.select((it) => it.quality),
+    );
 
     if (quality == DownloadQuality.ask) {
       await showModalBottomSheet(
-          context: context,
-          builder: (_) =>
-              DownloaderDialog(post: post, onItemClick: onItemClick));
+        context: context,
+        builder: (_) => DownloaderDialog(post: post, onItemClick: onItemClick),
+      );
 
       return;
     }
@@ -125,10 +125,14 @@ class DownloaderDialog extends ConsumerWidget {
     final isGranted = await checkNotificationPermission(context);
     if (!isGranted) return;
 
-    await ref.read(downloaderProvider).download(post,
-        url: quality == DownloadQuality.sample
-            ? post.sampleFile
-            : post.originalFile);
+    await ref
+        .read(downloaderProvider)
+        .download(
+          post,
+          url: quality == DownloadQuality.sample
+              ? post.sampleFile
+              : post.originalFile,
+        );
   }
 }
 

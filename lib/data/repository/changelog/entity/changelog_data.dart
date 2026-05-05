@@ -30,10 +30,12 @@ class ChangelogData with _$ChangelogData {
         data.last = data.last.copyWith(logs: [...data.last.logs, text]);
       } else if (line.isNotEmpty && data.last.logs.isNotEmpty) {
         final text = line;
-        data.last = data.last.copyWith(logs: [
-          ...data.last.logs.sublist(0, data.last.logs.length - 1),
-          '${data.last.logs.last}\n$text',
-        ]);
+        data.last = data.last.copyWith(
+          logs: [
+            ...data.last.logs.sublist(0, data.last.logs.length - 1),
+            '${data.last.logs.last}\n$text',
+          ],
+        );
       }
     }
     return data;

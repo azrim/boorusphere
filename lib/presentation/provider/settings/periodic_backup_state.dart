@@ -60,8 +60,10 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
   @override
   PeriodicBackupState build() {
     final repo = ref.read(settingsRepoProvider);
-    final lastBackupMs =
-        repo.get<int?>(Setting.periodicBackupLastTime, or: null);
+    final lastBackupMs = repo.get<int?>(
+      Setting.periodicBackupLastTime,
+      or: null,
+    );
     return PeriodicBackupState(
       enabled: repo.get(Setting.periodicBackupEnabled, or: false),
       frequency: BackupFrequency.fromIndex(

@@ -101,7 +101,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
     // Post notifier for details sheet
     final currentPostNotifier = useMemoized(
       () => ValueNotifier<Post>(
-          postsList.isNotEmpty ? postsList[initial] : Post.empty),
+        postsList.isNotEmpty ? postsList[initial] : Post.empty,
+      ),
       [postsList],
     );
 
@@ -126,8 +127,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
     final showAppbar = useState(true);
     final isLoadingMore = useState(false);
     final loadMore = timelineController.onLoadMore;
-    final loadOriginal =
-        ref.watch(contentSettingStateProvider.select((it) => it.loadOriginal));
+    final loadOriginal = ref.watch(
+      contentSettingStateProvider.select((it) => it.loadOriginal),
+    );
     final precachePosts = usePrecachePosts(ref, posts);
 
     final isVerticalMode = swipeMode == SwipeMode.vertical;
@@ -243,8 +245,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
                         listenable: controller.canSwipeListenable,
                         builder: (context, _) => PageView.builder(
                           controller: controller.pageController,
-                          scrollDirection:
-                              isVerticalMode ? Axis.vertical : Axis.horizontal,
+                          scrollDirection: isVerticalMode
+                              ? Axis.vertical
+                              : Axis.horizontal,
                           // Swap physics objects on zoom toggle. `Scrollable`
                           // re-evaluates `physics.shouldAcceptUserOffset(position)`
                           // inside `_updatePosition()` on `didUpdateWidget`, so
@@ -262,8 +265,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             // and was unmounted before its
                             // gestureDetailsIsChanged could fire the reset.
                             controller.enableSwipe();
-                            SchedulerBinding.instance
-                                .addPostFrameCallback((timeStamp) {
+                            SchedulerBinding.instance.addPostFrameCallback((
+                              timeStamp,
+                            ) {
                               if (context.mounted) {
                                 controller.updateCurrentPage(index);
                                 // Update post notifier
@@ -279,18 +283,21 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             if (loadMore == null) return;
 
                             final offset = index + 1;
-                            final threshold = postsList.length /
+                            final threshold =
+                                postsList.length /
                                 100 *
                                 (100 - loadMoreThreshold);
                             if (offset + threshold > postsList.length - 1) {
                               isLoadingMore.value = true;
                               unawaited(loadMore());
                               await Future.delayed(
-                                  const Duration(milliseconds: 300), () {
-                                if (context.mounted) {
-                                  isLoadingMore.value = false;
-                                }
-                              });
+                                const Duration(milliseconds: 300),
+                                () {
+                                  if (context.mounted) {
+                                    isLoadingMore.value = false;
+                                  }
+                                },
+                              );
                             }
                           },
                           itemCount: postsList.length,
@@ -305,7 +312,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               case PostType.gif:
                                 widget = PostImage(
                                   key: ValueKey(
-                                      'image_${post.id}_${post.serverId}'),
+                                    'image_${post.id}_${post.serverId}',
+                                  ),
                                   post: post,
                                   onZoomChanged: (isZoomed) {
                                     // Disable PageView swipe while the image
@@ -328,7 +336,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               case PostType.video:
                                 widget = PostVideo(
                                   key: ValueKey(
-                                      'video_${post.id}_${post.serverId}'),
+                                    'video_${post.id}_${post.serverId}',
+                                  ),
                                   post: post,
                                   onToolboxVisibilityChange: (visible) {},
                                   onShowDetails: expandSheet,
@@ -338,7 +347,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               default:
                                 widget = PostUnknown(
                                   key: ValueKey(
-                                      'unknown_${post.id}_${post.serverId}'),
+                                    'unknown_${post.id}_${post.serverId}',
+                                  ),
                                   post: post,
                                 );
                             }
@@ -346,9 +356,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             return HeroMode(
                               key: ValueKey('hero_${post.id}_${post.serverId}'),
                               enabled: index == controller.page,
-                              child: RepaintBoundary(
-                                child: widget,
-                              ),
+                              child: RepaintBoundary(child: widget),
                             );
                           },
                         ),
@@ -371,12 +379,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               right: 0,
                               child: ListenableBuilder(
                                 listenable: controller.overlayShownListenable,
-                                builder: (context, child) =>
-                                    SlideFadeVisibility(
+                                builder: (context, child) => SlideFadeVisibility(
                                   direction: HidingDirection.toTop,
                                   visible:
                                       controller.overlayShownListenable.value &&
-                                          showAppbar.value,
+                                      showAppbar.value,
                                   child: _PostAppBar(
                                     subtitle: post.describeTags,
                                     title: isLoadingMore.value
@@ -397,23 +404,28 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                   listenable: controller.overlayShownListenable,
                                   builder: (context, child) =>
                                       SlideFadeVisibility(
-                                    direction: HidingDirection.toBottom,
-                                    visible: controller
-                                            .overlayShownListenable.value &&
-                                        !fullscreen,
-                                    child: PostToolbox(
-                                      key: ValueKey(
-                                          'toolbox_${post.id}_${post.serverId}'),
-                                      post,
-                                      onShowDetails: expandSheet,
-                                    ),
-                                  ),
+                                        direction: HidingDirection.toBottom,
+                                        visible:
+                                            controller
+                                                .overlayShownListenable
+                                                .value &&
+                                            !fullscreen,
+                                        child: PostToolbox(
+                                          key: ValueKey(
+                                            'toolbox_${post.id}_${post.serverId}',
+                                          ),
+                                          post,
+                                          onShowDetails: expandSheet,
+                                        ),
+                                      ),
                                 ),
                               ),
                             // Navigation buttons for desktop
                             if (isLargeScreen && !isVerticalMode)
                               ..._buildNavigationButtons(
-                                  controller, isVerticalMode),
+                                controller,
+                                isVerticalMode,
+                              ),
                           ],
                         );
                       },
@@ -436,7 +448,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
   }
 
   List<Widget> _buildNavigationButtons(
-      PostViewerController controller, bool isVerticalMode) {
+    PostViewerController controller,
+    bool isVerticalMode,
+  ) {
     return [
       ValueListenableBuilder<int>(
         valueListenable: controller.pageListenable,
@@ -533,10 +547,7 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
             ),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 11),
-            ),
+            Text(subtitle, style: const TextStyle(fontSize: 11)),
           ],
         ),
       ),
@@ -600,10 +611,10 @@ class _GentlePageScrollPhysics extends PageScrollPhysics {
   /// roughly 4/ω ≈ 80 ms.
   static final SpringDescription _snapSpring =
       SpringDescription.withDampingRatio(
-    mass: 0.3,
-    stiffness: 800,
-    ratio: 0.95,
-  );
+        mass: 0.3,
+        stiffness: 800,
+        ratio: 0.95,
+      );
 
   /// Permissive tolerance so the spring simulation declares "done" once
   /// it is within ~3 px / 5 px·s of the target — far sooner than the
@@ -626,7 +637,9 @@ class _GentlePageScrollPhysics extends PageScrollPhysics {
 
   @override
   Simulation? createBallisticSimulation(
-      ScrollMetrics position, double velocity) {
+    ScrollMetrics position,
+    double velocity,
+  ) {
     // Defer to the parent at the scroll-extent edges (overscroll glow,
     // bounce-back, etc.) — we only want to override the page-snap
     // decision in the middle of the scrollable.

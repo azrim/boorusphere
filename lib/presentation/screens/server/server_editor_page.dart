@@ -55,14 +55,17 @@ class _ServerEditor extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final formKey = useMemoized(GlobalKey<FormState>.new);
-    final imeIncognito =
-        ref.watch(uiSettingStateProvider.select((it) => it.imeIncognito));
+    final imeIncognito = ref.watch(
+      uiSettingStateProvider.select((it) => it.imeIncognito),
+    );
     final server = useState(_server);
     final useApiAddr = useState(_server.apiAddr.isNotEmpty);
     final homepage = useTextEditingController(
-        text: isEditing ? _server.homepage : 'https://');
+      text: isEditing ? _server.homepage : 'https://',
+    );
     final apiAddr = useTextEditingController(
-        text: _server.apiAddr.isEmpty ? 'https://' : _server.apiAddr);
+      text: _server.apiAddr.isEmpty ? 'https://' : _server.apiAddr,
+    );
     final selectedEngine = useState<BooruEngine?>(_detectEngine(_server));
 
     validateAddress(String? value) {

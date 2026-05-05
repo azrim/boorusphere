@@ -23,10 +23,9 @@ extension StringExt on String {
   }
 
   List<String> toWordList() {
-    return replaceAll(RegExp('\\s+'), ' ')
-        .trim()
-        .split(' ')
-        .where((it) => it.isNotEmpty)
-        .toList();
+    return replaceAll(
+      RegExp('\\s+'),
+      ' ',
+    ).trim().split(' ').where((it) => it.isNotEmpty).toList();
   }
 }

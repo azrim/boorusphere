@@ -10,11 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 @RoutePage()
 class ChangelogPage extends ConsumerWidget {
-  const ChangelogPage({
-    super.key,
-    required this.type,
-    this.version,
-  });
+  const ChangelogPage({super.key, required this.type, this.version});
 
   final ChangelogType type;
   final AppVersion? version;
@@ -66,9 +62,7 @@ class ChangelogPage extends ConsumerWidget {
           loading: () => const Column(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Center(child: RefreshProgressIndicator()),
-            ],
+            children: [Center(child: RefreshProgressIndicator())],
           ),
         ),
       ),
@@ -77,8 +71,11 @@ class ChangelogPage extends ConsumerWidget {
 }
 
 class ChangelogDataView extends StatelessWidget {
-  const ChangelogDataView(
-      {super.key, required this.changelog, this.showVersion = true});
+  const ChangelogDataView({
+    super.key,
+    required this.changelog,
+    this.showVersion = true,
+  });
 
   final ChangelogData changelog;
   final bool showVersion;
@@ -97,7 +94,10 @@ class ChangelogDataView extends StatelessWidget {
               child: Text(
                 '${changelog.version}',
                 style: const TextStyle(
-                    fontSize: 22, height: 1.5, fontWeight: FontWeight.w300),
+                  fontSize: 22,
+                  height: 1.5,
+                  fontWeight: FontWeight.w300,
+                ),
               ),
             ),
           Padding(

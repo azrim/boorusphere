@@ -14,13 +14,12 @@ class AppVersion with _$AppVersion {
   const AppVersion._();
 
   factory AppVersion.fromString(String string) {
-    final n =
-        string.split('+').first.split('.').map((e) => int.tryParse(e) ?? 0);
-    return AppVersion(
-      major: n.first,
-      minor: n.elementAt(1),
-      patch: n.last,
-    );
+    final n = string
+        .split('+')
+        .first
+        .split('.')
+        .map((e) => int.tryParse(e) ?? 0);
+    return AppVersion(major: n.first, minor: n.elementAt(1), patch: n.last);
   }
 
   @override

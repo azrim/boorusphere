@@ -67,28 +67,35 @@ class BooruRepo implements ImageboardRepo {
   @override
   Future<Set<Suggestion>> getSuggestion(String word) async {
     try {
-      var parser = parsers.firstWhere((x) => x.id == server.suggestionParserId,
-          orElse: NoParser.new);
+      var parser = parsers.firstWhere(
+        (x) => x.id == server.suggestionParserId,
+        orElse: NoParser.new,
+      );
 
       final suggestionUrl = server.suggestionUrlsOf(word);
       _log.i('getSuggestion(${server.name}): URL = $suggestionUrl');
       final res = await _request(suggestionUrl, parser);
       _log.i(
-          'getSuggestion(${server.name}): response data type = ${res.data.runtimeType}');
+        'getSuggestion(${server.name}): response data type = ${res.data.runtimeType}',
+      );
       _log.i(
-          'getSuggestion(${server.name}): response data = ${res.data.toString().substring(0, (res.data.toString().length).clamp(0, 200))}');
+        'getSuggestion(${server.name}): response data = ${res.data.toString().substring(0, (res.data.toString().length).clamp(0, 200))}',
+      );
 
       if (parser.canParseSuggestion(res)) {
         _log.i('getSuggestion(${server.name}): using ${parser.id}_parser');
         return parser.parseSuggestion(server, res).toSet();
       }
 
-      parser = parsers.firstWhere((it) => it.canParseSuggestion(res),
-          orElse: NoParser.new);
+      parser = parsers.firstWhere(
+        (it) => it.canParseSuggestion(res),
+        orElse: NoParser.new,
+      );
 
       if (parser.id.isNotEmpty) {
         _log.i(
-            'getSuggestion(${server.name}): parser resolved, now using ${parser.id}_parser');
+          'getSuggestion(${server.name}): parser resolved, now using ${parser.id}_parser',
+        );
       } else {
         _log.w('getSuggestion(${server.name}): no parser found for response');
       }
@@ -97,13 +104,15 @@ class BooruRepo implements ImageboardRepo {
     } on FormatException catch (_) {
       // Handle malformed UTF-8 from server - return empty results
       _log.w(
-          'getSuggestion(${server.name}): UTF-8 decode error, returning empty');
+        'getSuggestion(${server.name}): UTF-8 decode error, returning empty',
+      );
       return {};
     } on DioException catch (e) {
       // Check if the underlying error is a FormatException
       if (e.error is FormatException) {
         _log.w(
-            'getSuggestion(${server.name}): UTF-8 decode error in Dio, returning empty');
+          'getSuggestion(${server.name}): UTF-8 decode error in Dio, returning empty',
+        );
         return {};
       }
       rethrow;
@@ -112,8 +121,10 @@ class BooruRepo implements ImageboardRepo {
 
   @override
   Future<Set<Post>> getPage(PageOption option, int index) async {
-    var parser = parsers.firstWhere((x) => x.id == server.searchParserId,
-        orElse: NoParser.new);
+    var parser = parsers.firstWhere(
+      (x) => x.id == server.searchParserId,
+      orElse: NoParser.new,
+    );
 
     final searchUrl = server.searchUrlOf(option, page: index);
     final res = await _request(searchUrl, parser);
@@ -123,12 +134,15 @@ class BooruRepo implements ImageboardRepo {
       return parser.parsePage(server, res).toSet();
     }
 
-    parser =
-        parsers.firstWhere((it) => it.canParsePage(res), orElse: NoParser.new);
+    parser = parsers.firstWhere(
+      (it) => it.canParsePage(res),
+      orElse: NoParser.new,
+    );
 
     if (parser.id.isNotEmpty) {
       _log.i(
-          'getPage(${server.name}): parser resolved, now using ${parser.id}_parser');
+        'getPage(${server.name}): parser resolved, now using ${parser.id}_parser',
+      );
     }
 
     return parser.parsePage(server, res).toSet();

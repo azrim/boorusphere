@@ -13,15 +13,17 @@ class StorageUtil {
   /// available for dependency injection.  If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
   StorageUtil({BinaryMessenger? binaryMessenger})
-      : _binaryMessenger = binaryMessenger;
+    : _binaryMessenger = binaryMessenger;
   final BinaryMessenger? _binaryMessenger;
 
   static const MessageCodec<Object?> codec = StandardMessageCodec();
 
   Future<String> getStoragePath() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.StorageUtil.getStoragePath', codec,
-        binaryMessenger: _binaryMessenger);
+      'dev.flutter.pigeon.StorageUtil.getStoragePath',
+      codec,
+      binaryMessenger: _binaryMessenger,
+    );
     final List<Object?>? replyList = await channel.send(null) as List<Object?>?;
     if (replyList == null) {
       throw PlatformException(
@@ -46,8 +48,10 @@ class StorageUtil {
 
   Future<String> getDownloadPath() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.StorageUtil.getDownloadPath', codec,
-        binaryMessenger: _binaryMessenger);
+      'dev.flutter.pigeon.StorageUtil.getDownloadPath',
+      codec,
+      binaryMessenger: _binaryMessenger,
+    );
     final List<Object?>? replyList = await channel.send(null) as List<Object?>?;
     if (replyList == null) {
       throw PlatformException(
@@ -72,8 +76,10 @@ class StorageUtil {
 
   Future<void> open(String arg_filePath) async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.StorageUtil.open', codec,
-        binaryMessenger: _binaryMessenger);
+      'dev.flutter.pigeon.StorageUtil.open',
+      codec,
+      binaryMessenger: _binaryMessenger,
+    );
     final List<Object?>? replyList =
         await channel.send(<Object?>[arg_filePath]) as List<Object?>?;
     if (replyList == null) {

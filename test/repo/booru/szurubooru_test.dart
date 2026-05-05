@@ -22,10 +22,12 @@ void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('Szurubooru', () async {
-    final ref = ProviderContainer(overrides: [
-      defaultServersProvider.overrideWithValue(await provideDefaultServers()),
-      envRepoProvider.overrideWithValue(FakeEnvRepo()),
-    ]);
+    final ref = ProviderContainer(
+      overrides: [
+        defaultServersProvider.overrideWithValue(await provideDefaultServers()),
+        envRepoProvider.overrideWithValue(FakeEnvRepo()),
+      ],
+    );
     final hiveContainer = HiveTestContainer();
 
     addTearDown(() async {
@@ -39,15 +41,17 @@ void main() async {
 
     final parser = SzurubooruJsonParser();
     final server = Server(
-        homepage: 'https://homestuck.net/resources/booru',
-        searchUrl: parser.searchQuery,
-        tagSuggestionUrl: parser.suggestionQuery);
+      homepage: 'https://homestuck.net/resources/booru',
+      searchUrl: parser.searchQuery,
+      tagSuggestionUrl: parser.suggestionQuery,
+    );
 
     const option = PageOption(limit: 5);
 
     const fakePage = 'szurubooru/posts.json';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
@@ -56,8 +60,9 @@ void main() async {
     );
 
     const fakeTags = 'szurubooru/tags.json';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 403));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 403));
 
     await expectLater(
       ref.read(imageboardRepoProvider(server)).getSuggestion('book'),
@@ -65,8 +70,9 @@ void main() async {
       reason: 'expecting error because not logged in',
     );
 
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getSuggestion('book'),

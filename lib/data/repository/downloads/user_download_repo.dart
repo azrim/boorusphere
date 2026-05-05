@@ -44,10 +44,14 @@ class UserDownloadsRepo implements DownloadsRepo {
   Future<void> clearEntries() async {
     final tasks = await FlutterDownloader.loadTasks();
     if (tasks != null) {
-      await Future.wait(tasks.map(
-        (e) async => await FlutterDownloader.remove(
-            taskId: e.taskId, shouldDeleteContent: false),
-      ));
+      await Future.wait(
+        tasks.map(
+          (e) async => await FlutterDownloader.remove(
+            taskId: e.taskId,
+            shouldDeleteContent: false,
+          ),
+        ),
+      );
     }
 
     await entryBox.deleteAll(entryBox.keys);
@@ -122,7 +126,7 @@ Future<void> _migrateProgresses(Box<DownloadProgress> box) async {
           4 => DownloadStatus.failed,
           5 => DownloadStatus.canceled,
           6 => DownloadStatus.paused,
-          _ => DownloadStatus.empty
+          _ => DownloadStatus.empty,
         },
         progress: prog,
         timestamp: timestamp,

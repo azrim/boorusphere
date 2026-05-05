@@ -40,10 +40,12 @@ Future<void> mkreleasenote() async {
 Future<void> chkfmt() async {
   final files = Directory('lib')
       .listSync(recursive: true)
-      .where((x) =>
-          x is File &&
-          x.path.endsWith('.dart') &&
-          !x.path.contains(RegExp(r'\.(freezed|g|gr|pi)\.dart$')))
+      .where(
+        (x) =>
+            x is File &&
+            x.path.endsWith('.dart') &&
+            !x.path.contains(RegExp(r'\.(freezed|g|gr|pi)\.dart$')),
+      )
       .map((x) => x.path);
 
   await me.fmt(['--output=none', '--set-exit-if-changed', ...files]);
