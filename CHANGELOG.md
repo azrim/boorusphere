@@ -1,3 +1,10 @@
+## 2.0.22
+
+* **Feature Multiple Select and Batch Download**: Long press on any post thumbnail to enter selection mode, tap to toggle selection. Use the bottom action bar to download selected posts as ZIP, add to favorites, or clear selection.
+* **Feature Color Palettes**: add preset color palettes for theme accent colors (Dracula, Catpuccin, Nord, Solarized, Gruvbox, One Dark, Monokai, GitHub, Material You)
+* **Feature Related Posts**: add related posts button in post toolbox to find similar posts based on tags
+* **Chore**: update dependencies, fix code formatting, fix code analysis errors
+
 ## 2.0.21
 
 * **Fix Danbooru post image failing to load on reopen**: add cache-busting query parameter to the image URL, ensuring fresh network requests when reopening posts. This replaces the aggressive cache eviction approach that was causing issues.
