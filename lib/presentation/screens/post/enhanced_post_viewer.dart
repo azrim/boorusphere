@@ -406,6 +406,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                           'toolbox_${post.id}_${post.serverId}'),
                                       post,
                                       onShowDetails: expandSheet,
+                                      session: post.serverId,
                                     ),
                                   ),
                                 ),

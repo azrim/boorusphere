@@ -1,7 +1,10 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -10,10 +13,57 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-class PostToolbox extends HookConsumerWidget {
-  const PostToolbox(this.post, {super.key, this.onShowDetails});
+class PostRelatedButton extends StatelessWidget {
+  const PostRelatedButton({
+    super.key,
+    required this.post,
+    required this.session,
+  });
 
   final Post post;
+  final String session;
+
+  @override
+  Widget build(BuildContext context) {
+    // Extract top tags from the post - prefer artist, character, copyright tags
+    // as they're most relevant for finding related content
+    final tags = [
+      ...post.tagsArtist.take(2),
+      ...post.tagsCharacter.take(2),
+      ...post.tagsCopyright.take(2),
+      ...post.tagsGeneral.take(3),
+    ];
+
+    if (tags.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final query = tags.join(' ');
+
+    return IconButton(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      icon: const Icon(Icons.find_in_page_outlined),
+      tooltip: context.t.findRelated,
+      onPressed: () {
+        final newSession = SearchSession(
+          serverId: session,
+          query: query,
+        );
+        context.router.push(HomeRoute(session: newSession));
+      },
+    );
+  }
+}
+
+class PostToolbox extends HookConsumerWidget {
+  const PostToolbox(this.post, {super.key, this.onShowDetails, this.session});
+
+  final Post post;
+
+  /// Session used for navigation to related posts search.
+  /// If null, related posts button won't be shown.
+  final String? session;
 
   /// Optional callback wired by the post viewer to expand the details sheet.
   /// When non-null, a details icon button is rendered as part of the row.
@@ -51,6 +101,7 @@ class PostToolbox extends HookConsumerWidget {
             key: ValueKey('dl_${post.id}_${post.serverId}'),
             post: post,
           ),
+          if (session != null) PostRelatedButton(post: post, session: session!),
           PostOpenLinkButton(post: post),
         ],
       ),
