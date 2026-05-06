@@ -3,6 +3,7 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/download_quality.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
@@ -40,6 +41,7 @@ class SettingsPage extends StatelessWidget {
                 _Language(),
                 _GestureSettings(),
                 _MidnightMode(),
+                _ColorPalette(),
                 _UiBlur(),
               ],
             ),
@@ -205,6 +207,52 @@ class _MidnightMode extends ConsumerWidget {
       value: ref.watch(uiSettingStateProvider.select((ui) => ui.midnightMode)),
       onChanged: (value) {
         ref.read(uiSettingStateProvider.notifier).setMidnightMode(value);
+      },
+    );
+  }
+}
+
+class _ColorPalette extends ConsumerWidget {
+  const _ColorPalette();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentPalette = ref.watch(uiSettingStateProvider).colorPalette;
+
+    return ListTile(
+      title: const Text('Color Palette'),
+      subtitle: Text(currentPalette.displayName),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (context) => ListView(
+            children: ColorPalette.values.map((palette) {
+              return ListTile(
+                title: Text(palette.displayName),
+                leading: palette.accentColor != null
+                    ? Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: palette.accentColor,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    : const Icon(Icons.brightness_auto),
+                trailing: currentPalette == palette
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  ref
+                      .read(uiSettingStateProvider.notifier)
+                      .setColorPalette(palette);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
       },
     );
   }

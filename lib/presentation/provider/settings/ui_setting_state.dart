@@ -96,4 +96,10 @@ class UiSettingState extends _$UiSettingState {
     await repo.put(Setting.imeIncognito, value);
     return state.imeIncognito;
   }
+
+  Future<ColorPalette> setColorPalette(ColorPalette palette) async {
+    state = state.copyWith(colorPalette: palette);
+    // TODO: Persist color palette setting
+    return state.colorPalette;
+  }
 }

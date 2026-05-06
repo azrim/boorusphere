@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:tinycolor2/tinycolor2.dart';
@@ -9,11 +10,26 @@ class AppThemeData {
     required this.midnight,
   });
 
-  factory AppThemeData.from({ColorScheme? light, ColorScheme? dark}) {
+  factory AppThemeData.from({
+    ColorScheme? light,
+    ColorScheme? dark,
+    ColorPalette colorPalette = ColorPalette.system,
+  }) {
+    final accent = colorPalette.accentColor ?? defaultAccent;
+
+    final lightScheme = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: Brightness.light,
+    );
+    final darkScheme = ColorScheme.fromSeed(
+      seedColor: accent,
+      brightness: Brightness.dark,
+    );
+
     return AppThemeData(
-      day: _createThemeData(light, Brightness.light),
-      night: _createThemeData(dark, Brightness.dark),
-      midnight: _createThemeDataMidnight(dark),
+      day: _createThemeData(light ?? lightScheme, Brightness.light),
+      night: _createThemeData(dark ?? darkScheme, Brightness.dark),
+      midnight: _createThemeDataMidnight(dark ?? darkScheme),
     );
   }
 
