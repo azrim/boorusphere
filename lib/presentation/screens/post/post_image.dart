@@ -95,9 +95,8 @@ class PostImage extends HookConsumerWidget {
     final createdAt = useState(DateTime.now().millisecondsSinceEpoch);
     final imageUrl = useMemoized(
       () {
-        final baseUrl = contentSetting.loadOriginal
-            ? post.originalFile
-            : post.content.url;
+        final baseUrl =
+            contentSetting.loadOriginal ? post.originalFile : post.content.url;
         // Add cache-busting query param to force fresh load on Danbooru
         // when reopening the same post
         final separator = baseUrl.contains('?') ? '&' : '?';
