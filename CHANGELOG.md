@@ -1,3 +1,10 @@
+## 2.0.21
+
+* **Fix Danbooru post image failing to load on reopen**: add cache-busting query parameter to the image URL, ensuring fresh network requests when reopening posts. This replaces the aggressive cache eviction approach that was causing issues.
+* **Performance**: add LRU cache eviction with max 500 objects
+* **CI**: only build APK on tag push, not on every commit to main
+* **Chore**: remove unused imports
+
 ## 2.0.20
 
 * Version bump
