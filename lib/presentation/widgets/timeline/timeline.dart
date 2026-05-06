@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
+import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
@@ -140,6 +141,8 @@ class _ThumbnailCard extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (index, post) = postdata;
+    final selection = ref.watch(postSelectionProvider);
+    final isSelected = selection.contains(post.id);
 
     return AutoScrollTag(
       key: ValueKey(post.viewId),
@@ -147,19 +150,61 @@ class _ThumbnailCard extends HookConsumerWidget {
       index: index,
       highlightColor: context.theme.colorScheme.surfaceTint,
       child: Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(5)),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          border: isSelected
+              ? Border.all(
+                  color: context.theme.colorScheme.primary,
+                  width: 3,
+                )
+              : null,
+        ),
         clipBehavior: Clip.hardEdge,
         child: GestureDetector(
-          onTap: onTap,
-          child: Hero(
-            tag: post.viewId,
-            flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
-            child: _ThumbnailImage(
-              post: post,
-              blurExplicit: blurExplicit,
-              gridSize: gridSize,
-              cacheBaseWidth: cacheBaseWidth,
-            ),
+          onTap: () {
+            if (selection.isNotEmpty) {
+              // If selection mode is active, toggle selection
+              ref.read(postSelectionProvider.notifier).toggle(post.id);
+            } else if (onTap != null) {
+              // Otherwise, open the post viewer
+              onTap!();
+            }
+          },
+          onLongPress: () {
+            // Enter selection mode and toggle this post
+            ref.read(postSelectionProvider.notifier).toggle(post.id);
+          },
+          child: Stack(
+            children: [
+              Hero(
+                tag: post.viewId,
+                flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
+                child: _ThumbnailImage(
+                  post: post,
+                  blurExplicit: blurExplicit,
+                  gridSize: gridSize,
+                  cacheBaseWidth: cacheBaseWidth,
+                ),
+              ),
+              // Selection checkbox overlay
+              if (isSelected)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(2),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
