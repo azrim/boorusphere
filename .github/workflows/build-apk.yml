@@ -2,11 +2,6 @@ name: Build APK
 
 on:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - "fastlane/**"
-      - "**.md"
     tags:
       - "v*"
   workflow_dispatch:
