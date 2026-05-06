@@ -1,3 +1,7 @@
+## 2.0.20
+
+* Version bump
+
 ## 2.0.19
 
 * **Fix image caching issue**: use unique timestamp in key to force fresh image load
