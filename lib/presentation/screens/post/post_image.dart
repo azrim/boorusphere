@@ -95,6 +95,15 @@ class PostImage extends HookConsumerWidget {
     final imageUrl =
         contentSetting.loadOriginal ? post.originalFile : post.content.url;
 
+    // Clear the image cache on first mount to avoid potential cache issues
+    // that can occur when reopening the same post (especially on Danbooru).
+    // This ensures a fresh network request instead of relying on potentially
+    // corrupted cached data.
+    useEffect(() {
+      CachedNetworkImage.evictFromCache(imageUrl);
+      return;
+    }, [imageUrl]);
+
     Future<void> handleDoubleTap() async {
       if (zoomAnimator.isAnimating) {
         return;
