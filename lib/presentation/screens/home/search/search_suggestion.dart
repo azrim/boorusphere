@@ -8,7 +8,6 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:dio/dio.dart';
