@@ -92,7 +92,7 @@ class PostImage extends HookConsumerWidget {
       return () => transformController.removeListener(onTransformChange);
     }, [transformController]);
 
-    final createdAt = useState(DateTime.now().millisecondsSinceEpoch);
+    final createdAtForUrl = useState(DateTime.now().millisecondsSinceEpoch);
     final imageUrl = useMemoized(
       () {
         final baseUrl =
@@ -100,7 +100,7 @@ class PostImage extends HookConsumerWidget {
         // Add cache-busting query param to force fresh load on Danbooru
         // when reopening the same post
         final separator = baseUrl.contains('?') ? '&' : '?';
-        return '$baseUrl${separator}_=${createdAt.value}';
+        return '$baseUrl${separator}_=${createdAtForUrl.value}';
       },
       [
         post.originalFile,
