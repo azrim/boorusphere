@@ -92,17 +92,24 @@ class PostImage extends HookConsumerWidget {
       return () => transformController.removeListener(onTransformChange);
     }, [transformController]);
 
-    final imageUrl =
-        contentSetting.loadOriginal ? post.originalFile : post.content.url;
-
-    // Clear the image cache on first mount to avoid potential cache issues
-    // that can occur when reopening the same post (especially on Danbooru).
-    // This ensures a fresh network request instead of relying on potentially
-    // corrupted cached data.
-    useEffect(() {
-      CachedNetworkImage.evictFromCache(imageUrl);
-      return;
-    }, [imageUrl]);
+    final createdAt = useState(DateTime.now().millisecondsSinceEpoch);
+    final imageUrl = useMemoized(
+      () {
+        final baseUrl = contentSetting.loadOriginal
+            ? post.originalFile
+            : post.content.url;
+        // Add cache-busting query param to force fresh load on Danbooru
+        // when reopening the same post
+        final separator = baseUrl.contains('?') ? '&' : '?';
+        return '$baseUrl${separator}_=${createdAt.value}';
+      },
+      [
+        post.originalFile,
+        post.content.url,
+        contentSetting.loadOriginal,
+        createdAt.value
+      ],
+    );
 
     Future<void> handleDoubleTap() async {
       if (zoomAnimator.isAnimating) {
