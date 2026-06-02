@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:flutter/material.dart';
@@ -116,9 +117,9 @@ class HomeSearchBar extends HookConsumerWidget {
               Container(
                 decoration: BoxDecoration(
                   color: Colors.grey.withValues(alpha: 0.2),
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusLg)),
                 ),
-                margin: const EdgeInsets.fromLTRB(16, 11, 16, 11),
+                margin: const EdgeInsets.fromLTRB(DesignTokens.spacingMd, DesignTokens.spacingMd - DesignTokens.spacingXs, DesignTokens.spacingMd, DesignTokens.spacingMd - DesignTokens.spacingXs),
                 child: Row(
                   children: [
                     Stack(
@@ -205,7 +206,7 @@ class _OptionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.fromLTRB(18, 11, 18, 0),
+      padding: EdgeInsets.fromLTRB(DesignTokens.spacingMd + DesignTokens.spacingXs, DesignTokens.spacingMd - DesignTokens.spacingXs, DesignTokens.spacingMd + DesignTokens.spacingXs, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [_RatingButton()],
@@ -272,7 +273,7 @@ class _RatingButton extends ConsumerWidget {
         }
       },
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: DesignTokens.spacingXs, horizontal: DesignTokens.spacingMd),
         minimumSize: const Size(1, 1),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         side: BorderSide(
@@ -301,7 +302,7 @@ class _Button extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+        padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd - DesignTokens.spacingXs, 6, DesignTokens.spacingMd - DesignTokens.spacingXs, 6),
         child: child,
       ),
     );
@@ -349,7 +350,7 @@ class _LeadingButton extends ConsumerWidget {
                 ),
                 // Title
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd + DesignTokens.spacingXs, DesignTokens.spacingSm, DesignTokens.spacingMd + DesignTokens.spacingXs, DesignTokens.spacingMd),
                   child: Text(
                     context.t.servers.select,
                     style: context.theme.textTheme.titleMedium,

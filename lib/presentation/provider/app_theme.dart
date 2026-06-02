@@ -1,4 +1,5 @@
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:tinycolor2/tinycolor2.dart';
@@ -76,8 +77,8 @@ ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
     snackBarTheme: origin.snackBarTheme.copyWith(
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(11),
-          topRight: Radius.circular(11),
+          topLeft: Radius.circular(DesignTokens.radiusLg),
+          topRight: Radius.circular(DesignTokens.radiusLg),
         ),
       ),
       backgroundColor: colorScheme.primaryContainer,

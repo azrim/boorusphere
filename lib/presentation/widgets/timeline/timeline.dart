@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/provider/settings/content_setting_state
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -97,8 +98,8 @@ class Timeline extends ConsumerWidget {
       // disposed every thumbnail when the grid count changed (e.g. on
       // rotation), forcing a full re-decode of every visible image.
       crossAxisCount: flexibleGrid,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
+      mainAxisSpacing: DesignTokens.spacingSm,
+      crossAxisSpacing: DesignTokens.spacingSm,
       childCount: postsList.length,
       itemBuilder: (context, index) {
         return RepaintBoundary(
@@ -162,7 +163,7 @@ class _ThumbnailCard extends HookConsumerWidget {
       highlightColor: context.theme.colorScheme.surfaceTint,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
           border: isSelected
               ? Border.all(
                   color: context.theme.colorScheme.primary,
@@ -207,7 +208,7 @@ class _ThumbnailCard extends HookConsumerWidget {
                       color: context.theme.colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
-                    padding: const EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(DesignTokens.spacingXs),
                     child: const Icon(
                       Icons.check,
                       color: Colors.white,
@@ -389,7 +390,7 @@ class _Placeholder extends StatelessWidget {
         ],
         stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
       ),
-      period: const Duration(milliseconds: 700),
+      period: DesignTokens.durationSlow,
       child: Container(color: Colors.black, child: const SizedBox.expand()),
     );
   }

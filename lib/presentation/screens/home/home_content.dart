@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/screens/home/home_status.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_screen.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
@@ -113,7 +114,7 @@ class HomeContent extends HookConsumerWidget {
               if (!isNewSearch)
                 SliverSafeArea(
                   sliver: SliverPadding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(DesignTokens.spacingMd),
                     sliver: Timeline(posts: filteredPosts),
                   ),
                 ),

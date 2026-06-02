@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -118,7 +119,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                       ? backgroundColor.withValues(alpha: 0.85)
                       : backgroundColor,
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
+                    top: Radius.circular(DesignTokens.radiusXl),
                   ),
                 ),
                 child: Stack(
@@ -161,7 +162,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
               if (enableBlur) {
                 return ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
+                    top: Radius.circular(DesignTokens.radiusXl),
                   ),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -172,7 +173,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
 
               return ClipRRect(
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
+                  top: Radius.circular(DesignTokens.radiusXl),
                 ),
                 child: content,
               );
@@ -200,7 +201,7 @@ class _DragHandle extends StatelessWidget {
             color: Theme.of(
               context,
             ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
           ),
         ),
       ),
@@ -334,7 +335,7 @@ class _SheetContent extends ConsumerWidget {
     final rating = post.rating.describe(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -387,9 +388,9 @@ class _SheetContent extends ConsumerWidget {
             ),
             trailing: _CopyButton(post.originalFile),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DesignTokens.spacingSm),
           Text(context.t.tags, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          const SizedBox(height: DesignTokens.spacingSm),
           if (!post.hasCategorizedTags)
             _TagsWrap(
               tags: post.tags,
@@ -433,7 +434,7 @@ class _SheetContent extends ConsumerWidget {
                 onTagPressed: onTagPressed,
               ),
           ],
-          const SizedBox(height: 100),
+          const SizedBox(height: DesignTokens.spacingXl * 3),
         ],
       ),
     );

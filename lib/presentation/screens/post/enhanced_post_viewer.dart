@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/post_unknown.dart';
 import 'package:boorusphere/presentation/screens/post/post_video.dart';
 import 'package:boorusphere/presentation/screens/post/post_viewer_controller.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -152,7 +153,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
           if (sheetController.isAttached && sheetController.size > 0) {
             sheetController.animateTo(
               0,
-              duration: const Duration(milliseconds: 200),
+              duration: DesignTokens.durationFast,
               curve: Curves.easeOutCubic,
             );
           }
@@ -172,7 +173,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
       if (sheetController.isAttached) {
         sheetController.animateTo(
           0.5,
-          duration: const Duration(milliseconds: 300),
+          duration: DesignTokens.durationNormal,
           curve: Curves.easeOutCubic,
         );
       }
@@ -182,7 +183,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
       if (sheetExpanded.value) {
         sheetController.animateTo(
           0,
-          duration: const Duration(milliseconds: 200),
+          duration: DesignTokens.durationFast,
           curve: Curves.easeOutCubic,
         );
         return;
@@ -211,7 +212,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
           // Close sheet instead of popping
           await sheetController.animateTo(
             0,
-            duration: const Duration(milliseconds: 200),
+            duration: DesignTokens.durationFast,
             curve: Curves.easeOutCubic,
           );
           return;
@@ -291,7 +292,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               isLoadingMore.value = true;
                               unawaited(loadMore());
                               await Future.delayed(
-                                const Duration(milliseconds: 300),
+                                DesignTokens.durationNormal,
                                 () {
                                   if (context.mounted) {
                                     isLoadingMore.value = false;

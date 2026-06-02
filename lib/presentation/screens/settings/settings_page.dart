@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/settings/gesture_settings_page.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
@@ -73,7 +74,7 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const sectionPadding = EdgeInsets.fromLTRB(16, 12, 16, 12);
+    const sectionPadding = EdgeInsets.fromLTRB(DesignTokens.spacingMd, 12, DesignTokens.spacingMd, 12);
     final sectionStyle =
         (context.theme.textTheme.titleSmall ?? const TextStyle()).copyWith(
           color: context.colorScheme.primary,
@@ -103,7 +104,7 @@ class _HideMedia extends HookConsumerWidget {
     return SwitchListTile(
       title: Text(context.t.settings.hideMedia.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.hideMedia.desc),
       ),
       value: sharedStorageHandle.isHidden,
@@ -162,7 +163,7 @@ class _DownloadQuality extends ConsumerWidget {
     return ListTile(
       title: Text(context.t.downloads.quality),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(quality.describe(context)),
       ),
       onTap: () async {
@@ -194,7 +195,7 @@ class _MidnightMode extends ConsumerWidget {
     return SwitchListTile(
       title: Text(context.t.settings.midnightTheme.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.midnightTheme.desc),
       ),
       value: ref.watch(uiSettingStateProvider.select((ui) => ui.midnightMode)),
@@ -259,7 +260,7 @@ class _UiBlur extends ConsumerWidget {
     return SwitchListTile(
       title: Text(context.t.settings.uiBlur.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.uiBlur.desc),
       ),
       value: ref.watch(uiSettingStateProvider.select((ui) => ui.blur)),
@@ -278,7 +279,7 @@ class _BlurContent extends ConsumerWidget {
     return SwitchListTile(
       title: Text(context.t.settings.blurContent.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.blurContent.desc),
       ),
       value: ref.watch(
@@ -307,7 +308,7 @@ class _BlurTimelineOnly extends ConsumerWidget {
     return SwitchListTile(
       title: Text(context.t.settings.blurTimelineOnly.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.blurTimelineOnly.desc),
       ),
       value: contentSettings.blurTimelineOnly,
@@ -324,7 +325,7 @@ class _ImeIncognito extends ConsumerWidget {
     return SwitchListTile(
       title: Text(context.t.settings.imeIncognito.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.imeIncognito.desc),
       ),
       value: ref.watch(uiSettingStateProvider.select((ui) => ui.imeIncognito)),
@@ -343,7 +344,7 @@ class _Language extends StatelessWidget {
     return ListTile(
       title: Text(context.t.settings.lang.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: _CurrentLanguage(),
       ),
       onTap: () {
@@ -365,7 +366,7 @@ class _GestureSettings extends ConsumerWidget {
     return ListTile(
       title: const Text('Gesture Settings'),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(
           swipeMode == SwipeMode.horizontal
               ? 'Horizontal swipe'
@@ -389,7 +390,7 @@ class _LoadOriginal extends ConsumerWidget {
     return SwitchListTile(
       title: Text(context.t.settings.loadOg.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.loadOg.desc),
       ),
       value: ref.watch(
@@ -412,7 +413,7 @@ class _PostLimit extends ConsumerWidget {
     return ListTile(
       title: Text(context.t.settings.postLimit.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.postLimit.desc),
       ),
       trailing: DropdownButton(
@@ -445,7 +446,7 @@ class _BackupRestore extends StatelessWidget {
     return ListTile(
       title: Text(context.t.dataBackup.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.dataBackup.desc),
       ),
       onTap: () {
@@ -463,7 +464,7 @@ class _ClearCache extends ConsumerWidget {
     return ListTile(
       title: Text(context.t.settings.clearCache.title),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.settings.clearCache.desc),
       ),
       onTap: () async {

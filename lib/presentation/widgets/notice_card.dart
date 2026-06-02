@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:flutter/material.dart';
 
 class NoticeCard extends StatelessWidget {
@@ -21,8 +22,8 @@ class NoticeCard extends StatelessWidget {
         borderRadius: BorderRadius.all(Radius.circular(20)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(children: [icon, const SizedBox(height: 16), children]),
+        padding: const EdgeInsets.all(DesignTokens.spacingLg),
+        child: Column(children: [icon, const SizedBox(height: DesignTokens.spacingMd), children]),
       ),
     );
   }

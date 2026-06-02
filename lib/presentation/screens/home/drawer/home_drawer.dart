@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +33,7 @@ class HomeDrawer extends StatelessWidget {
         child: ListTileTheme(
           data: context.theme.listTileTheme.copyWith(
             dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+            contentPadding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingLg),
           ),
           child: const Column(
             children: [
@@ -96,7 +97,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(15, 30, 15, 10),
+      padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd, DesignTokens.spacingXl, DesignTokens.spacingMd, DesignTokens.spacingMd),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -210,7 +211,7 @@ class _ServerSelection extends ConsumerWidget {
       children: [
         ...servers.map((it) {
           return Padding(
-            padding: const EdgeInsets.fromLTRB(0, 0, 16, 0),
+            padding: const EdgeInsets.fromLTRB(0, 0, DesignTokens.spacingMd, 0),
             child: ListTile(
               title: Text(it.name),
               leading: Favicon(
@@ -290,7 +291,7 @@ class _ServerSelection extends ConsumerWidget {
         }),
         // Add New Server button
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, 8, 16, 0),
+          padding: const EdgeInsets.fromLTRB(0, DesignTokens.spacingSm, DesignTokens.spacingMd, 0),
           child: ListTile(
             title: Text(context.t.servers.add),
             leading: const Icon(Icons.add_circle_outline, size: 21),
@@ -305,7 +306,7 @@ class _ServerSelection extends ConsumerWidget {
         ),
         // Reset servers button
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, 4, 16, 0),
+          padding: const EdgeInsets.fromLTRB(0, DesignTokens.spacingXs, DesignTokens.spacingMd, 0),
           child: ListTile(
             title: Text(context.t.resetToDefault),
             leading: const Icon(Icons.restore, size: 21),
