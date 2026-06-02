@@ -15,7 +15,8 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
     final envRepo = ref.read(envRepoProvider);
 
     final changelog = ref.watch(
-        changelogStateProvider(ChangelogType.assets, envRepo.appVersion));
+      changelogStateProvider(ChangelogType.assets, envRepo.appVersion),
+    );
 
     return SingleChildScrollView(
       child: Padding(
@@ -29,20 +30,16 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
                 children: [
                   Text(
                     context.t.changelog.whatsNew(version: envRepo.appVersion),
-                    style: const TextStyle(
-                      fontSize: 22,
-                      height: 1.3,
-                      fontWeight: FontWeight.w300,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineSmall?.copyWith(height: 1.3),
                   ),
                 ],
               ),
             ),
             changelog.when(
-              data: (data) => ChangelogDataView(
-                changelog: data.first,
-                showVersion: false,
-              ),
+              data: (data) =>
+                  ChangelogDataView(changelog: data.first, showVersion: false),
               error: (e, s) => Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -56,9 +53,7 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
               ),
               loading: () => const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Center(child: RefreshProgressIndicator()),
-                ],
+                children: [Center(child: RefreshProgressIndicator())],
               ),
             ),
             const SizedBox(height: 16),

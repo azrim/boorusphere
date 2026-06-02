@@ -35,10 +35,10 @@ class FullscreenState extends _$FullscreenState {
     final envRepo = ref.read(envRepoProvider);
     if (envRepo.sdkVersion < 29) {
       // SDK 28 and below ignores edgeToEdge, so we have to manually reenable them
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [
-        SystemUiOverlay.top,
-        SystemUiOverlay.bottom,
-      ]);
+      await SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom],
+      );
     } else {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }

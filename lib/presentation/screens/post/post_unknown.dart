@@ -36,7 +36,8 @@ class PostUnknown extends ConsumerWidget {
           ),
         ),
         Positioned(
-          bottom: context.mediaQuery.viewInsets.bottom +
+          bottom:
+              context.mediaQuery.viewInsets.bottom +
               kBottomNavigationBarHeight +
               32,
           child: QuickBar.action(
@@ -45,8 +46,10 @@ class PostUnknown extends ConsumerWidget {
             ),
             actionTitle: Text(context.t.openExternally),
             onPressed: () {
-              launchUrlString(post.originalFile,
-                  mode: LaunchMode.externalApplication);
+              launchUrlString(
+                post.originalFile,
+                mode: LaunchMode.externalApplication,
+              );
             },
           ),
         ),

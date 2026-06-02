@@ -29,9 +29,9 @@ class SzurubooruJsonParser extends BooruParser {
 
   @override
   List<BooruParserType> get type => [
-        BooruParserType.search,
-        BooruParserType.suggestion,
-      ];
+    BooruParserType.search,
+    BooruParserType.suggestion,
+  ];
 
   @override
   bool canParsePage(Response res) {
@@ -60,14 +60,16 @@ class SzurubooruJsonParser extends BooruParser {
       final rating = pick(post, 'safety').asStringOrNull() ?? 'q';
       final score = pick(post, 'score').asIntOrNull() ?? 0;
 
-      final tags = pick(post, 'tags').asListOrEmpty((x) {
-        final obj = x.asMapOrEmpty()['names'];
-        if (obj is List) {
-          return obj.map((e) => BooruUtil.decodeTag(e.toString()));
-        }
+      final tags = pick(post, 'tags')
+          .asListOrEmpty((x) {
+            final obj = x.asMapOrEmpty()['names'];
+            if (obj is List) {
+              return obj.map((e) => BooruUtil.decodeTag(e.toString()));
+            }
 
-        return <String>[];
-      }).fold(<String>{}, (x, a) => {...x, ...a});
+            return <String>[];
+          })
+          .fold(<String>{}, (x, a) => {...x, ...a});
 
       final hasFile = originalFile.isNotEmpty && previewFile.isNotEmpty;
       final hasContent = width > 0 && height > 0;

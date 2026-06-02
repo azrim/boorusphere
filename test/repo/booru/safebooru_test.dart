@@ -20,10 +20,12 @@ void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('Safebooru', () async {
-    final ref = ProviderContainer(overrides: [
-      defaultServersProvider.overrideWithValue(await provideDefaultServers()),
-      envRepoProvider.overrideWithValue(FakeEnvRepo()),
-    ]);
+    final ref = ProviderContainer(
+      overrides: [
+        defaultServersProvider.overrideWithValue(await provideDefaultServers()),
+        envRepoProvider.overrideWithValue(FakeEnvRepo()),
+      ],
+    );
     final hiveContainer = HiveTestContainer();
 
     addTearDown(() async {
@@ -44,8 +46,9 @@ void main() async {
     const option = PageOption(limit: 5);
 
     const fakePage = 'safebooru/posts.xml';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
@@ -53,8 +56,9 @@ void main() async {
     );
 
     const fakeTags = 'safebooru/tags.json';
-    when(() => adapter.fetch(any(), any(), any()))
-        .thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
+    when(
+      () => adapter.fetch(any(), any(), any()),
+    ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
 
     expect(
       await ref.read(imageboardRepoProvider(server)).getSuggestion('book'),

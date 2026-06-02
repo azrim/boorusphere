@@ -1,8 +1,5 @@
 class PixelSize {
-  const PixelSize({
-    this.width = -1,
-    this.height = -1,
-  });
+  const PixelSize({this.width = -1, this.height = -1});
 
   final int width;
   final int height;

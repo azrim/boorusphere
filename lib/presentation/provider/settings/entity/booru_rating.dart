@@ -50,7 +50,9 @@ enum BooruRating {
   }
 
   static BooruRating fromName(String name) {
-    return BooruRating.values
-        .firstWhere((it) => it.name == name, orElse: () => BooruRating.safe);
+    return BooruRating.values.firstWhere(
+      (it) => it.name == name,
+      orElse: () => BooruRating.safe,
+    );
   }
 }

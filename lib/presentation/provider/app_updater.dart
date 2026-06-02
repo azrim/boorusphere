@@ -40,7 +40,8 @@ class AppUpdater {
 
   Future<void> clear() async {
     final tasks = await FlutterDownloader.loadTasksWithRawQuery(
-        query: 'SELECT * FROM task WHERE file_name LIKE \'%.apk\'');
+      query: 'SELECT * FROM task WHERE file_name LIKE \'%.apk\'',
+    );
     if (tasks == null) return;
     for (var task in tasks) {
       await ref.read(downloadEntryStateProvider.notifier).remove(task.taskId);
@@ -84,17 +85,15 @@ class AppUpdater {
       savedDir: _savedDir,
       showNotification: true,
       openFileFromNotification: true,
-      headers:
-          HeadersFactory.builder().setUserAgent(versionRepo.current).build(),
+      headers: HeadersFactory.builder()
+          .setUserAgent(versionRepo.current)
+          .build(),
     );
 
     if (taskId != null) {
       id = taskId;
       // Track the download entry
-      final entry = DownloadEntry(
-        id: taskId,
-        dest: fileName,
-      );
+      final entry = DownloadEntry(id: taskId, dest: fileName);
       await ref.read(downloadEntryStateProvider.notifier).add(entry);
     }
   }

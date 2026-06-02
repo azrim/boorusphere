@@ -20,8 +20,9 @@ class StyledOverlayRegion extends ConsumerWidget {
     final theme = this.theme;
     final envRepo = ref.watch(envRepoProvider);
     final isNightMode = nightMode ?? context.brightness == Brightness.dark;
-    final foregroundBrightness =
-        isNightMode ? Brightness.light : Brightness.dark;
+    final foregroundBrightness = isNightMode
+        ? Brightness.light
+        : Brightness.dark;
 
     final defStyle =
         (isNightMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)

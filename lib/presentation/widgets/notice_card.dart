@@ -22,13 +22,7 @@ class NoticeCard extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            icon,
-            const SizedBox(height: 16),
-            children,
-          ],
-        ),
+        child: Column(children: [icon, const SizedBox(height: 16), children]),
       ),
     );
   }

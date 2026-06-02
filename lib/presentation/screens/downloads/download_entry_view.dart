@@ -46,22 +46,26 @@ class DownloadEntryView extends ConsumerWidget {
   }
 
   Color _buildStatusColor(
-      ColorScheme scheme, DownloadProgress progress, bool isFileExists) {
+    ColorScheme scheme,
+    DownloadProgress progress,
+    bool isFileExists,
+  ) {
     switch (progress.status) {
       case DownloadStatus.downloaded:
-        return isFileExists
-            ? Colors.lightBlueAccent
-            : scheme.onSurface.withAlpha(125);
+        return isFileExists ? scheme.primary : scheme.onSurface.withAlpha(125);
       case DownloadStatus.canceled:
       case DownloadStatus.failed:
-        return Colors.pinkAccent;
+        return scheme.error;
       default:
         return scheme.onSurface;
     }
   }
 
   String _buildStatusDesc(
-      BuildContext context, DownloadProgress progress, bool isFileExists) {
+    BuildContext context,
+    DownloadProgress progress,
+    bool isFileExists,
+  ) {
     if (progress.status.isDownloaded && !isFileExists) {
       return context.t.downloads.noFile;
     }
@@ -90,8 +94,9 @@ class DownloadEntryView extends ConsumerWidget {
     final servers = ref.watch(serverStateProvider);
     final headers = ref.watch(postHeadersFactoryProvider(entry.post));
     final progress = ref.watch(downloadProgressStateProvider).getById(entry.id);
-    final isFileExists =
-        ref.watch(sharedStorageHandleProvider).fileExists(entry.dest);
+    final isFileExists = ref
+        .watch(sharedStorageHandleProvider)
+        .fileExists(entry.dest);
 
     return ListTile(
       title: Text(
@@ -129,7 +134,10 @@ class DownloadEntryView extends ConsumerWidget {
                   Icon(
                     _buildStatusIcon(progress, isFileExists),
                     color: _buildStatusColor(
-                        context.colorScheme, progress, isFileExists),
+                      context.colorScheme,
+                      progress,
+                      isFileExists,
+                    ),
                     size: 18,
                   ),
                 Text(_buildStatusDesc(context, progress, isFileExists)),
@@ -138,10 +146,7 @@ class DownloadEntryView extends ConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
-                  width: 18,
-                  child: Center(child: Text('•')),
-                ),
+                const SizedBox(width: 18, child: Center(child: Text('•'))),
                 Text(servers.getById(entry.post.serverId).name),
               ],
             ),
@@ -207,8 +212,9 @@ class _EntryPopupMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFileExists =
-        ref.watch(sharedStorageHandleProvider).fileExists(entry.dest);
+    final isFileExists = ref
+        .watch(sharedStorageHandleProvider)
+        .fileExists(entry.dest);
 
     return PopupMenuButton(
       onSelected: (value) {
@@ -245,19 +251,10 @@ class _EntryPopupMenu extends ConsumerWidget {
               child: Text(context.t.downloads.redownload),
             ),
           if (progress.status.isCanceled || progress.status.isFailed)
-            PopupMenuItem(
-              value: 'retry',
-              child: Text(context.t.retry),
-            ),
+            PopupMenuItem(value: 'retry', child: Text(context.t.retry)),
           if (progress.status.isDownloading)
-            PopupMenuItem(
-              value: 'cancel',
-              child: Text(context.t.cancel),
-            ),
-          PopupMenuItem(
-            value: 'clear',
-            child: Text(context.t.clear),
-          ),
+            PopupMenuItem(value: 'cancel', child: Text(context.t.cancel)),
+          PopupMenuItem(value: 'clear', child: Text(context.t.clear)),
         ];
       },
     );

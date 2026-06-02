@@ -4,10 +4,7 @@ import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-enum ViewMode {
-  horizontal,
-  vertical,
-}
+enum ViewMode { horizontal, vertical }
 
 @immutable
 class PostViewerState {
@@ -57,12 +54,12 @@ class PostViewerState {
 
   @override
   int get hashCode => Object.hash(
-        page,
-        swipeEnabled,
-        animating,
-        overlayVisible,
-        forceHideOverlay,
-      );
+    page,
+    swipeEnabled,
+    animating,
+    overlayVisible,
+    forceHideOverlay,
+  );
 }
 
 class PostViewerController extends ValueNotifier<PostViewerState> {
@@ -71,8 +68,8 @@ class PostViewerController extends ValueNotifier<PostViewerState> {
     required this.totalPages,
     this.viewMode = ViewMode.horizontal,
     this.swipeMode = SwipeMode.horizontal,
-  })  : _pageController = PageController(initialPage: initialPage),
-        super(PostViewerState(page: initialPage));
+  }) : _pageController = PageController(initialPage: initialPage),
+       super(PostViewerState(page: initialPage));
 
   final int initialPage;
   final int totalPages;
@@ -82,12 +79,18 @@ class PostViewerController extends ValueNotifier<PostViewerState> {
   final PageController _pageController;
   PageController get pageController => _pageController;
 
-  late final ValueListenable<int> pageListenable =
-      _Selected<int>(this, (s) => s.page);
-  late final ValueListenable<bool> canSwipeListenable =
-      _Selected<bool>(this, (s) => s.canSwipe);
-  late final ValueListenable<bool> overlayShownListenable =
-      _Selected<bool>(this, (s) => s.isOverlayShown);
+  late final ValueListenable<int> pageListenable = _Selected<int>(
+    this,
+    (s) => s.page,
+  );
+  late final ValueListenable<bool> canSwipeListenable = _Selected<bool>(
+    this,
+    (s) => s.canSwipe,
+  );
+  late final ValueListenable<bool> overlayShownListenable = _Selected<bool>(
+    this,
+    (s) => s.isOverlayShown,
+  );
 
   int get page => value.page;
   bool get isFirstPage => page <= 0;

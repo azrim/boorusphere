@@ -42,12 +42,18 @@ class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
       swipeMode: SwipeMode.parse(
         repo.get(Setting.gestureSwipeMode, or: SwipeMode.horizontal.index),
       ),
-      swipeDownThreshold:
-          repo.get(Setting.gestureSwipeDownThreshold, or: 100.0),
-      enableSwipeToDetails:
-          repo.get(Setting.gestureEnableSwipeToDetails, or: true),
-      enableSwipeToDismiss:
-          repo.get(Setting.gestureEnableSwipeToDismiss, or: true),
+      swipeDownThreshold: repo.get(
+        Setting.gestureSwipeDownThreshold,
+        or: 100.0,
+      ),
+      enableSwipeToDetails: repo.get(
+        Setting.gestureEnableSwipeToDetails,
+        or: true,
+      ),
+      enableSwipeToDismiss: repo.get(
+        Setting.gestureEnableSwipeToDismiss,
+        or: true,
+      ),
     );
   }
 

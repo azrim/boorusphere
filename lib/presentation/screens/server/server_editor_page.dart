@@ -36,7 +36,7 @@ class ServerEditorPage extends StatelessWidget {
 }
 
 class _ServerEditor extends HookConsumerWidget {
-  const _ServerEditor({Server server = Server.empty}) : _server = server;
+  const _ServerEditor({this._server = Server.empty});
 
   final Server _server;
 
@@ -55,14 +55,17 @@ class _ServerEditor extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final formKey = useMemoized(GlobalKey<FormState>.new);
-    final imeIncognito =
-        ref.watch(uiSettingStateProvider.select((it) => it.imeIncognito));
+    final imeIncognito = ref.watch(
+      uiSettingStateProvider.select((it) => it.imeIncognito),
+    );
     final server = useState(_server);
     final useApiAddr = useState(_server.apiAddr.isNotEmpty);
     final homepage = useTextEditingController(
-        text: isEditing ? _server.homepage : 'https://');
+      text: isEditing ? _server.homepage : 'https://',
+    );
     final apiAddr = useTextEditingController(
-        text: _server.apiAddr.isEmpty ? 'https://' : _server.apiAddr);
+      text: _server.apiAddr.isEmpty ? 'https://' : _server.apiAddr,
+    );
     final selectedEngine = useState<BooruEngine?>(_detectEngine(_server));
 
     validateAddress(String? value) {
@@ -98,7 +101,7 @@ class _ServerEditor extends HookConsumerWidget {
                   initialValue: selectedEngine.value,
                   decoration: InputDecoration(
                     labelText: context.t.servers.engineType,
-                    border: const OutlineInputBorder(),
+                    border: const UnderlineInputBorder(),
                   ),
                   items: booruEngines.map((engine) {
                     return DropdownMenuItem(

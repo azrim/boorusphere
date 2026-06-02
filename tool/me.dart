@@ -13,13 +13,9 @@ Future<String> pun(
   String package, {
   List<String> args = const [],
   String? bin,
-}) =>
-    Pub.runAsync(package, arguments: args, script: bin, runOptions: utf8Opt);
+}) => Pub.runAsync(package, arguments: args, script: bin, runOptions: utf8Opt);
 
-Future<String> ex(
-  String executable, {
-  List<String> args = const [],
-}) =>
+Future<String> ex(String executable, {List<String> args = const []}) =>
     runAsync(executable, arguments: args, runOptions: utf8Opt);
 
 Future<String> fmt(List<String> args) => ex('dart', args: ['format', ...args]);

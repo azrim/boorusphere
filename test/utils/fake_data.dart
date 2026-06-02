@@ -17,8 +17,9 @@ Iterable<Post> getSamplePosts() {
 }
 
 Iterable<Server> getDefaultServerData() {
-  final fromAssets =
-      File(path.join(Directory.current.path, 'assets', 'servers.json'));
+  final fromAssets = File(
+    path.join(Directory.current.path, 'assets', 'servers.json'),
+  );
   final servers = jsonDecode(fromAssets.readAsStringSync()) as Iterable;
   return servers.map((it) => Server.fromJson(Map.from(it)));
 }

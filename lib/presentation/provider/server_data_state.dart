@@ -65,9 +65,6 @@ extension ServerDataListExt on Iterable<Server> {
   Server getById(String id, {Server? or}) {
     return isEmpty
         ? Server.empty
-        : firstWhere(
-            (it) => it.id == id,
-            orElse: () => or ?? first,
-          );
+        : firstWhere((it) => it.id == id, orElse: () => or ?? first);
   }
 }

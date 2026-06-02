@@ -16,8 +16,11 @@ class InitialDirectorPage extends HookConsumerWidget {
     useEffect(() {
       final serverSetting = ref.read(serverSettingStateProvider);
       SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
-        context.router.replace(HomeRoute(
-            session: SearchSession(serverId: serverSetting.lastActiveId)));
+        context.router.replace(
+          HomeRoute(
+            session: SearchSession(serverId: serverSetting.lastActiveId),
+          ),
+        );
       });
     }, []);
 

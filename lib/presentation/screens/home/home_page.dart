@@ -34,8 +34,9 @@ class HomePage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final savedServerId =
-        ref.read(serverSettingStateProvider.select((it) => it.lastActiveId));
+    final savedServerId = ref.read(
+      serverSettingStateProvider.select((it) => it.lastActiveId),
+    );
     final session = this.session ?? SearchSession(serverId: savedServerId);
     final envRepo = ref.read(envRepoProvider);
     final appStateRepo = ref.read(appStateRepoProvider);
@@ -55,9 +56,7 @@ class HomePage extends HookConsumerWidget {
     return ProviderScope(
       overrides: [
         searchSessionProvider.overrideWith((ref) => session),
-        pageStateProvider.overrideWith(
-          () => PageState(session: session),
-        ),
+        pageStateProvider.overrideWith(() => PageState(session: session)),
         suggestionStateProvider.overrideWith(
           () => SuggestionState(session: session),
         ),
@@ -96,8 +95,9 @@ class _Home extends HookConsumerWidget {
       key: scaffoldKey,
       extendBody: true,
       drawer: HomeDrawer(maxWidth: drawerWidth),
-      drawerEdgeDragWidth:
-          searchBar.isOpen ? 0 : MediaQuery.sizeOf(context).width,
+      drawerEdgeDragWidth: searchBar.isOpen
+          ? 0
+          : MediaQuery.sizeOf(context).width,
       body: StyledOverlayRegion(
         child: PopScope(
           canPop:
@@ -112,10 +112,12 @@ class _Home extends HookConsumerWidget {
 
             if (!allowPop.value && !context.router.canPop()) {
               allowPop.value = true;
-              context.scaffoldMessenger.showSnackBar(SnackBar(
-                content: Text(context.t.retryPopBack),
-                duration: maybePopTimeout,
-              ));
+              context.scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Text(context.t.retryPopBack),
+                  duration: maybePopTimeout,
+                ),
+              );
               maybePopTimer.cancel();
               maybePopTimer.reset();
             }

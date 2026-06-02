@@ -1,17 +1,9 @@
 import 'package:boorusphere/utils/extensions/string.dart';
 
-enum PostType {
-  video,
-  photo,
-  gif,
-  unsupported,
-}
+enum PostType { video, photo, gif, unsupported }
 
 class Content {
-  const Content({
-    required this.type,
-    required this.url,
-  });
+  const Content({required this.type, required this.url});
 
   final PostType type;
   final String url;

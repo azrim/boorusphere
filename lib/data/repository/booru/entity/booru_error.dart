@@ -1,4 +1,1 @@
-enum BooruError {
-  empty,
-  tagsBlocked,
-}
+enum BooruError { empty, tagsBlocked }

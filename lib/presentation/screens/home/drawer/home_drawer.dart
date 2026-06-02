@@ -100,13 +100,7 @@ class _Header extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Boorusphere!',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w200,
-            ),
-          ),
+          Text('Boorusphere!', style: context.theme.textTheme.headlineMedium),
           _ThemeSwitcherButton(),
         ],
       ),
@@ -128,8 +122,9 @@ class _ThemeSwitcherButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme =
-        ref.watch(uiSettingStateProvider.select((ui) => ui.themeMode));
+    final theme = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.themeMode),
+    );
 
     return IconButton(
       icon: Icon(themeIconOf(theme)),
@@ -171,7 +166,8 @@ class AppVersionTile extends ConsumerWidget {
               ),
             ),
             subtitle: Text(
-                context.t.updater.progress(progress: updateProgress.progress)),
+              context.t.updater.progress(progress: updateProgress.progress),
+            ),
             onTap: () => context.router.push(const AboutRoute()),
           );
         }
@@ -196,8 +192,7 @@ class AppVersionTile extends ConsumerWidget {
 class _HomeTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const SizedBox
-        .shrink(); // Always hidden - users can clear search instead
+    return const SizedBox.shrink(); // Always hidden - users can clear search instead
   }
 }
 
@@ -270,18 +265,20 @@ class _ServerSelection extends ConsumerWidget {
               ),
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+                  topRight: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
                 ),
               ),
               selected: it.id == serverActive.id,
-              selectedTileColor: context.colorScheme.primary
-                  .withAlpha(context.isLightThemed ? 50 : 25),
+              selectedTileColor: context.colorScheme.primary.withAlpha(
+                context.isLightThemed ? 50 : 25,
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 if (it.id != serverActive.id) {
                   context.router.push(
-                      HomeRoute(session: session.copyWith(serverId: it.id)));
+                    HomeRoute(session: session.copyWith(serverId: it.id)),
+                  );
                 } else {
                   ref
                       .read(pageStateProvider.notifier)
@@ -299,8 +296,8 @@ class _ServerSelection extends ConsumerWidget {
             leading: const Icon(Icons.add_circle_outline, size: 21),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
-                topRight: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+                topRight: Radius.circular(16),
+                bottomRight: Radius.circular(16),
               ),
             ),
             onTap: () => context.router.push(const ServerAddRoute()),
@@ -314,8 +311,8 @@ class _ServerSelection extends ConsumerWidget {
             leading: const Icon(Icons.restore, size: 21),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
-                topRight: Radius.circular(30),
-                bottomRight: Radius.circular(30),
+                topRight: Radius.circular(16),
+                bottomRight: Radius.circular(16),
               ),
             ),
             onTap: () {
@@ -338,7 +335,7 @@ class _ServerSelection extends ConsumerWidget {
                         ref.read(serverStateProvider.notifier).reset();
                       },
                       child: Text(context.t.reset),
-                    )
+                    ),
                   ],
                 ),
               );

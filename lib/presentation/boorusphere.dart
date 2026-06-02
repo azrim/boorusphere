@@ -41,10 +41,12 @@ class Boorusphere extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(uiSettingStateProvider.select((ui) => ui.locale));
-    final theme =
-        ref.watch(uiSettingStateProvider.select((ui) => ui.themeMode));
-    final isMidnight =
-        ref.watch(uiSettingStateProvider.select((ui) => ui.midnightMode));
+    final theme = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.themeMode),
+    );
+    final isMidnight = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.midnightMode),
+    );
     final envRepo = ref.watch(envRepoProvider);
     final cookieJar = ref.watch(cookieJarProvider);
     final router = useMemoized(AppRouter.new);
@@ -107,9 +109,7 @@ class Boorusphere extends HookConsumerWidget {
         darkTheme: isMidnight ? appTheme.midnight : appTheme.night,
         themeMode: theme,
         routerConfig: router.config(
-          navigatorObservers: () => [
-            AppRouteObserver(ref),
-          ],
+          navigatorObservers: () => [AppRouteObserver(ref)],
         ),
         locale: TranslationProvider.of(context).locale.digestedFlutterLocale,
         supportedLocales: AppLocaleUtils.supportedLocales,

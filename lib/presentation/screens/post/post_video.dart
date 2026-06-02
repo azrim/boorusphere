@@ -63,8 +63,9 @@ class _PostVideoState extends State<PostVideo> {
         });
       },
       child: _PostVideoContent(
-        key:
-            ValueKey('video_content_${widget.post.id}_${widget.post.serverId}'),
+        key: ValueKey(
+          'video_content_${widget.post.id}_${widget.post.serverId}',
+        ),
         post: widget.post,
         onToolboxVisibilityChange: widget.onToolboxVisibilityChange,
         onShowDetails: widget.onShowDetails,
@@ -105,8 +106,9 @@ class _PostVideoContent extends HookConsumerWidget {
         contentSettings.blurExplicit && !contentSettings.blurTimelineOnly;
     final shouldBlur = post.rating.isExplicit && shouldBlurExplicit;
     final isBlur = useState(shouldBlur);
-    final blurNoticeAnimator =
-        useAnimationController(duration: kThemeChangeDuration);
+    final blurNoticeAnimator = useAnimationController(
+      duration: kThemeChangeDuration,
+    );
     final showOverlay = useState(true);
     // don't show pause button on initial load
     final showPauseOverlay = useState(false);
@@ -187,8 +189,9 @@ class _PostVideoContent extends HookConsumerWidget {
               onVisibilityChange.call(!showOverlay.value);
             },
             child: Container(
-              color:
-                  showPauseOverlay.value ? Colors.black38 : Colors.transparent,
+              color: showPauseOverlay.value
+                  ? Colors.black38
+                  : Colors.transparent,
               child: Visibility(
                 visible: showOverlay.value,
                 replacement: const SizedBox.expand(),
@@ -312,9 +315,7 @@ class _ToolboxOverlay extends ConsumerWidget {
                     .toggleVideoPlayerMute();
                 await source.controller?.setVolume(mute ? 0 : 1);
               },
-              icon: Icon(
-                isMuted ? Icons.volume_mute : Icons.volume_up,
-              ),
+              icon: Icon(isMuted ? Icons.volume_mute : Icons.volume_up),
             ),
             IconButton(
               color: Colors.white,
@@ -363,19 +364,17 @@ class _PostVideoSwipeOverlay extends StatelessWidget {
       gestures: <Type, GestureRecognizerFactory>{
         _SinglePointerVerticalDragRecognizer:
             GestureRecognizerFactoryWithHandlers<
-                _SinglePointerVerticalDragRecognizer>(
-          _SinglePointerVerticalDragRecognizer.new,
-          (instance) {
-            instance.onEnd = (details) {
-              final velocity = details.velocity.pixelsPerSecond.dy;
-              if (velocity < -_swipeVelocity) {
-                onSwipeUp?.call();
-              } else if (velocity > _swipeVelocity) {
-                onSwipeDown?.call();
-              }
-            };
-          },
-        ),
+              _SinglePointerVerticalDragRecognizer
+            >(_SinglePointerVerticalDragRecognizer.new, (instance) {
+              instance.onEnd = (details) {
+                final velocity = details.velocity.pixelsPerSecond.dy;
+                if (velocity < -_swipeVelocity) {
+                  onSwipeUp?.call();
+                } else if (velocity > _swipeVelocity) {
+                  onSwipeDown?.call();
+                }
+              };
+            }),
       },
     );
   }
@@ -426,10 +425,7 @@ class _SinglePointerVerticalDragRecognizer
 }
 
 class _PlayPauseOverlay extends StatelessWidget {
-  const _PlayPauseOverlay({
-    required this.isPlaying,
-    required this.onPressed,
-  });
+  const _PlayPauseOverlay({required this.isPlaying, required this.onPressed});
 
   final bool isPlaying;
   final void Function()? onPressed;

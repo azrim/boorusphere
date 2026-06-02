@@ -27,9 +27,9 @@ void main() async {
 
   group('app version', () {
     test('get', () async {
-      final ref = ProviderContainer(overrides: [
-        envRepoProvider.overrideWithValue(FakeEnvRepo()),
-      ]);
+      final ref = ProviderContainer(
+        overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+      );
 
       addTearDown(ref.dispose);
 
@@ -51,7 +51,9 @@ void main() async {
         (invocation) async => ResponseBody(
           Stream.value(Uint8List.fromList(utf8.encode(jsonString))),
           200,
-          headers: {'content-type': ['application/json']},
+          headers: {
+            'content-type': ['application/json'],
+          },
         ),
       );
 
@@ -74,24 +76,22 @@ void main() async {
     });
 
     test('empty response', () async {
-      final ref = ProviderContainer(overrides: [
-        envRepoProvider.overrideWithValue(FakeEnvRepo()),
-      ]);
+      final ref = ProviderContainer(
+        overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+      );
 
       ref.setupTestFor(dioProvider);
       ref.setupTestFor(appVersionsStateProvider);
 
       final adapter = DioAdapterMock(ref.read(dioProvider));
-      when(() => adapter.fetch(any(), any(), any()))
-          .thenAnswer((invocation) async => ResponseBody.fromString('', 200));
+      when(
+        () => adapter.fetch(any(), any(), any()),
+      ).thenAnswer((invocation) async => ResponseBody.fromString('', 200));
 
       addTearDown(ref.dispose);
 
       await ref.read(appVersionsStateProvider.future);
-      expect(
-        ref.read(appVersionsStateProvider).value?.latest,
-        AppVersion.zero,
-      );
+      expect(ref.read(appVersionsStateProvider).value?.latest, AppVersion.zero);
     });
   });
 }

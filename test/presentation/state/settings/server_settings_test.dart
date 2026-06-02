@@ -29,19 +29,13 @@ void main() async {
           .read(serverSettingStateProvider.notifier)
           .setLastActiveId('TestBooru');
 
-      expect(
-        ref.read(serverSettingStateProvider).lastActiveId,
-        'TestBooru',
-      );
+      expect(ref.read(serverSettingStateProvider).lastActiveId, 'TestBooru');
     });
 
     test('postLimit', () async {
       await ref.read(serverSettingStateProvider.notifier).setPostLimit(90);
 
-      expect(
-        ref.read(serverSettingStateProvider).postLimit,
-        90,
-      );
+      expect(ref.read(serverSettingStateProvider).postLimit, 90);
     });
 
     test('searchRating', () async {

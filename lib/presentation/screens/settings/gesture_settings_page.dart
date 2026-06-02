@@ -12,13 +12,12 @@ class GestureSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gestureSettings = ref.watch(gestureSettingStateNotifierProvider);
-    final gestureNotifier =
-        ref.read(gestureSettingStateNotifierProvider.notifier);
+    final gestureNotifier = ref.read(
+      gestureSettingStateNotifierProvider.notifier,
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gesture Settings'),
-      ),
+      appBar: AppBar(title: const Text('Gesture Settings')),
       body: StyledOverlayRegion(
         child: SafeArea(
           child: ListView(
@@ -67,7 +66,8 @@ class GestureSettingsPage extends ConsumerWidget {
                       SwitchListTile(
                         title: const Text('Swipe to Details'),
                         subtitle: const Text(
-                            'Swipe up to open post details (horizontal mode)'),
+                          'Swipe up to open post details (horizontal mode)',
+                        ),
                         value: gestureSettings.enableSwipeToDetails,
                         onChanged: (_) =>
                             gestureNotifier.toggleSwipeToDetails(),
@@ -75,7 +75,8 @@ class GestureSettingsPage extends ConsumerWidget {
                       SwitchListTile(
                         title: const Text('Swipe to Dismiss'),
                         subtitle: const Text(
-                            'Swipe down to close viewer (horizontal mode)'),
+                          'Swipe down to close viewer (horizontal mode)',
+                        ),
                         value: gestureSettings.enableSwipeToDismiss,
                         onChanged: (_) =>
                             gestureNotifier.toggleSwipeToDismiss(),
@@ -139,8 +140,9 @@ class GestureSettingsPage extends ConsumerWidget {
                           gestureNotifier.reset();
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content:
-                                  Text('Gesture settings reset to defaults'),
+                              content: Text(
+                                'Gesture settings reset to defaults',
+                              ),
                               duration: Duration(seconds: 2),
                             ),
                           );
@@ -244,8 +246,9 @@ class _SwipeModeOption extends StatelessWidget {
                         color: isSelected
                             ? colorScheme.onPrimaryContainer
                             : colorScheme.onSurface,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -253,8 +256,9 @@ class _SwipeModeOption extends StatelessWidget {
                       subtitle,
                       style: textTheme.bodySmall?.copyWith(
                         color: isSelected
-                            ? colorScheme.onPrimaryContainer
-                                .withValues(alpha: 0.8)
+                            ? colorScheme.onPrimaryContainer.withValues(
+                                alpha: 0.8,
+                              )
                             : colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
@@ -262,10 +266,7 @@ class _SwipeModeOption extends StatelessWidget {
                 ),
               ),
               if (isSelected)
-                Icon(
-                  Icons.check_circle,
-                  color: colorScheme.onPrimaryContainer,
-                ),
+                Icon(Icons.check_circle, color: colorScheme.onPrimaryContainer),
             ],
           ),
         ),

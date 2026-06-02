@@ -80,7 +80,11 @@ class BaseHttpClient implements HttpClient {
 
   @override
   Future<HttpClientRequest> open(
-      String method, String host, int port, String path) {
+    String method,
+    String host,
+    int port,
+    String path,
+  ) {
     return client.open(method, host, port, path);
   }
 
@@ -130,29 +134,35 @@ class BaseHttpClient implements HttpClient {
 
   @override
   set authenticate(
-      Future<bool> Function(Uri url, String scheme, String? realm)? f) {
+    Future<bool> Function(Uri url, String scheme, String? realm)? f,
+  ) {
     client.authenticate = f;
   }
 
   @override
   set authenticateProxy(
-      Future<bool> Function(
-              String host, int port, String scheme, String? realm)?
-          f) {
+    Future<bool> Function(String host, int port, String scheme, String? realm)?
+    f,
+  ) {
     client.authenticateProxy = f;
   }
 
   @override
   set badCertificateCallback(
-      bool Function(X509Certificate cert, String host, int port)? callback) {
+    bool Function(X509Certificate cert, String host, int port)? callback,
+  ) {
     client.badCertificateCallback = callback;
   }
 
   @override
   set connectionFactory(
-      Future<ConnectionTask<Socket>> Function(
-              Uri url, String? proxyHost, int? proxyPort)?
-          f) {
+    Future<ConnectionTask<Socket>> Function(
+      Uri url,
+      String? proxyHost,
+      int? proxyPort,
+    )?
+    f,
+  ) {
     client.connectionFactory = f;
   }
 

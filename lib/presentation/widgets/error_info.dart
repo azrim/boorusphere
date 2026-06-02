@@ -92,9 +92,9 @@ class ErrorInfo extends HookWidget {
                     child: SingleChildScrollView(
                       child: Text(stackTrace.toString()),
                     ),
-                  )
+                  ),
                 ],
-              )
+              ),
           ],
         ),
       ),

@@ -19,11 +19,17 @@ import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:tinycolor2/tinycolor2.dart';
 
+/// Selection border width for multi-select mode on timeline thumbnails.
+const double _kSelectionBorderWidth = 3.0;
+
 /// Reused as the explicit-content blur on thumbnails. Hoisted out of the
 /// per-item builder so we don't allocate one [ImageFilter] per visible
 /// thumbnail per build.
-final ImageFilter _kExplicitBlur =
-    ImageFilter.blur(sigmaX: 5, sigmaY: 5, tileMode: TileMode.decal);
+final ImageFilter _kExplicitBlur = ImageFilter.blur(
+  sigmaX: 5,
+  sigmaY: 5,
+  tileMode: TileMode.decal,
+);
 
 /// Hoisted out of the per-thumbnail [Hero] so all visible thumbnails share
 /// a single function reference; the previous closure captured `post` and
@@ -39,8 +45,9 @@ Widget _thumbnailHeroShuttleBuilder(
   final toHero = toHeroContext.widget as Hero;
   final fromHero = fromHeroContext.widget as Hero;
   final fromChild = fromHero.child;
-  final aspectRatio =
-      fromChild is _ThumbnailImage ? fromChild.post.aspectRatio : 1.0;
+  final aspectRatio = fromChild is _ThumbnailImage
+      ? fromChild.post.aspectRatio
+      : 1.0;
   final isLong = aspectRatio < 0.5;
   final isPop = flightDirection == HeroFlightDirection.pop;
 
@@ -68,14 +75,17 @@ class Timeline extends ConsumerWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final dpr = MediaQuery.devicePixelRatioOf(context);
     final flexibleGrid = (screenWidth / 200).round() + grid;
-    final scrollController = ref
-        .watch(timelineControllerProvider.select((it) => it.scrollController));
-    final blurExplicit =
-        ref.watch(contentSettingStateProvider.select((it) => it.blurExplicit));
+    final scrollController = ref.watch(
+      timelineControllerProvider.select((it) => it.scrollController),
+    );
+    final blurExplicit = ref.watch(
+      contentSettingStateProvider.select((it) => it.blurExplicit),
+    );
 
     // Convert to list once for better performance
-    final postsList =
-        posts is List<Post> ? posts as List<Post> : posts.toList();
+    final postsList = posts is List<Post>
+        ? posts as List<Post>
+        : posts.toList();
 
     // Hoist DPR-scaled width out of the per-item closure so it isn't
     // recomputed for every visible thumbnail. The cache height is
@@ -102,8 +112,9 @@ class Timeline extends ConsumerWidget {
               context.scaffoldMessenger.removeCurrentSnackBar();
 
               // Use enhanced post viewer with configurable swipe mode
-              final gestureSettings =
-                  ref.read(gestureSettingStateNotifierProvider);
+              final gestureSettings = ref.read(
+                gestureSettingStateNotifierProvider,
+              );
               EnhancedPostViewer.open(
                 context,
                 index: index,
@@ -155,7 +166,7 @@ class _ThumbnailCard extends HookConsumerWidget {
           border: isSelected
               ? Border.all(
                   color: context.theme.colorScheme.primary,
-                  width: 3,
+                  width: _kSelectionBorderWidth,
                 )
               : null,
         ),
@@ -256,14 +267,14 @@ class _ThumbnailImage extends ConsumerWidget {
         errorWidget: (context, _, __) => const _Placeholder(isFailed: true),
         imageBuilder: shouldBlur
             ? (context, provider) => ImageFiltered(
-                  imageFilter: _kExplicitBlur,
-                  child: Image(
-                    image: provider,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                )
+                imageFilter: _kExplicitBlur,
+                child: Image(
+                  image: provider,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+              )
             : null,
       ),
     );
@@ -276,10 +287,7 @@ class _ThumbnailImage extends ConsumerWidget {
         isLong
             ? Stack(
                 alignment: Alignment.bottomCenter,
-                children: [
-                  image,
-                  const _LongThumbnailIndicator(),
-                ],
+                children: [image, const _LongThumbnailIndicator()],
               )
             : image,
         // Add overlay icons for GIF and video
@@ -321,10 +329,7 @@ class _LongThumbnailIndicator extends StatelessWidget {
 }
 
 class _MediaTypeIndicator extends StatelessWidget {
-  const _MediaTypeIndicator({
-    required this.isVideo,
-    required this.isGif,
-  });
+  const _MediaTypeIndicator({required this.isVideo, required this.isGif});
 
   final bool isVideo;
   final bool isGif;
@@ -340,11 +345,7 @@ class _MediaTypeIndicator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: _decoration,
       child: isVideo
-          ? const Icon(
-              Icons.play_arrow,
-              color: Colors.white,
-              size: 16,
-            )
+          ? const Icon(Icons.play_arrow, color: Colors.white, size: 16)
           : const Text(
               'GIF',
               style: TextStyle(
@@ -358,9 +359,7 @@ class _MediaTypeIndicator extends StatelessWidget {
 }
 
 class _Placeholder extends StatelessWidget {
-  const _Placeholder({
-    this.isFailed = false,
-  });
+  const _Placeholder({this.isFailed = false});
 
   final bool isFailed;
 
@@ -386,15 +385,12 @@ class _Placeholder extends StatelessWidget {
           baseColor,
           highlightColor,
           baseColor,
-          baseColor
+          baseColor,
         ],
         stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
       ),
       period: const Duration(milliseconds: 700),
-      child: Container(
-        color: Colors.black,
-        child: const SizedBox.expand(),
-      ),
+      child: Container(color: Colors.black, child: const SizedBox.expand()),
     );
   }
 }

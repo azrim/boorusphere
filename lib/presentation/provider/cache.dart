@@ -14,11 +14,13 @@ const _stalePeriod = Duration(days: 7);
 /// Custom CacheManager with configured settings for LRU eviction.
 class BooruCacheManager extends CacheManager {
   BooruCacheManager._()
-      : super(Config(
+    : super(
+        Config(
           _cacheKey,
           stalePeriod: _stalePeriod,
           maxNrOfCacheObjects: _maxCacheObjects,
-        ));
+        ),
+      );
 
   static final BooruCacheManager _instance = BooruCacheManager._();
 

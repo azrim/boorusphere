@@ -31,24 +31,20 @@ class HomeStatus extends HookConsumerWidget {
         switch (pageState) {
           IdleFetchResult() => const SizedBox.shrink(),
           DataFetchResult() => Container(
-              height: 50,
-              alignment: Alignment.topCenter,
-              child: ElevatedButton(
-                onPressed: ref.read(pageStateProvider.notifier).loadMore,
-                child: Text(context.t.loadMore),
-              ),
+            height: 50,
+            alignment: Alignment.topCenter,
+            child: ElevatedButton(
+              onPressed: ref.read(pageStateProvider.notifier).loadMore,
+              child: Text(context.t.loadMore),
             ),
+          ),
           LoadingFetchResult() => Container(
-              height: 50,
-              alignment: Alignment.topCenter,
-              child: const RefreshProgressIndicator(),
-            ),
+            height: 50,
+            alignment: Alignment.topCenter,
+            child: const RefreshProgressIndicator(),
+          ),
           ErrorFetchResult(:final data, :final error, :final stackTrace) =>
-            _ErrorStatus(
-              data: data,
-              error: error,
-              stackTrace: stackTrace,
-            ),
+            _ErrorStatus(data: data, error: error, stackTrace: stackTrace),
         },
       ],
     );
@@ -56,11 +52,7 @@ class HomeStatus extends HookConsumerWidget {
 }
 
 class _ErrorStatus extends ConsumerWidget {
-  const _ErrorStatus({
-    required this.data,
-    this.error,
-    this.stackTrace,
-  });
+  const _ErrorStatus({required this.data, this.error, this.stackTrace});
 
   final PageData data;
   final Object? error;
@@ -75,8 +67,10 @@ class _ErrorStatus extends ConsumerWidget {
     } else if (e == BooruError.empty) {
       return data.option.query.isEmpty
           ? context.t.pageStatus.noResult(n: data.posts.length)
-          : context.t.pageStatus
-              .noResultForQuery(n: data.posts.length, query: data.option.query);
+          : context.t.pageStatus.noResultForQuery(
+              n: data.posts.length,
+              query: data.option.query,
+            );
     } else if (e == BooruError.tagsBlocked) {
       return context.t.pageStatus.blocked(query: data.option.query);
     } else {

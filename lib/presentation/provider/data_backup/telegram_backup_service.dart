@@ -93,10 +93,9 @@ class TelegramBackupService extends _$TelegramBackupService {
       request.fields['caption'] =
           '📦 Boorusphere Backup\n📅 ${DateTime.now().toIso8601String()}';
 
-      request.files.add(await http.MultipartFile.fromPath(
-        'document',
-        file.path,
-      ));
+      request.files.add(
+        await http.MultipartFile.fromPath('document', file.path),
+      );
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);

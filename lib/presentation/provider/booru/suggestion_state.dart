@@ -66,12 +66,15 @@ class SuggestionState extends _$SuggestionState {
     state = FetchResult.loading(state.data);
     _lastWord = word;
     try {
-      final res =
-          await ref.read(imageboardRepoProvider(server)).getSuggestion(word);
+      final res = await ref
+          .read(imageboardRepoProvider(server))
+          .getSuggestion(word);
       final blockedTags = ref.read(tagsBlockerRepoProvider);
       final result = res
-          .where((it) =>
-              !blockedTags.get().values.map((e) => e.name).contains(it.name))
+          .where(
+            (it) =>
+                !blockedTags.get().values.map((e) => e.name).contains(it.name),
+          )
           .toList();
       // Sort single-word tags before multi-word tags (booru tags use `_` as
       // the word separator, but treat literal spaces the same way for

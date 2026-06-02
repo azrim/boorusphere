@@ -2,14 +2,8 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 
 class QuickBar extends StatelessWidget {
-  factory QuickBar({
-    Key? key,
-    Widget? title,
-  }) =>
-      QuickBar._(
-        key: key,
-        title: title,
-      );
+  factory QuickBar({Key? key, Widget? title}) =>
+      QuickBar._(key: key, title: title);
   const QuickBar._({
     super.key,
     this.title,
@@ -24,19 +18,14 @@ class QuickBar extends StatelessWidget {
     Widget? title,
     Widget? actionTitle,
     required VoidCallback onPressed,
-  }) =>
-      QuickBar._(
-        key: key,
-        title: title,
-        actionTitle: actionTitle,
-        onPressed: onPressed,
-      );
+  }) => QuickBar._(
+    key: key,
+    title: title,
+    actionTitle: actionTitle,
+    onPressed: onPressed,
+  );
 
-  factory QuickBar.progress({
-    Key? key,
-    Widget? title,
-    double? progress,
-  }) =>
+  factory QuickBar.progress({Key? key, Widget? title, double? progress}) =>
       QuickBar._(
         key: key,
         title: title,

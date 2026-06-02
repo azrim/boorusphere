@@ -15,9 +15,7 @@ class AutocompleteJsonParser extends BooruParser {
   final suggestionQuery = 'autocomplete.php?q={tag-part}';
 
   @override
-  List<BooruParserType> get type => [
-        BooruParserType.suggestion,
-      ];
+  List<BooruParserType> get type => [BooruParserType.suggestion];
 
   @override
   bool canParsePage(Response res) {
@@ -36,7 +34,8 @@ class AutocompleteJsonParser extends BooruParser {
     }
     try {
       final isList = jsonDecode(data) is List;
-      final canParse = isList &&
+      final canParse =
+          isList &&
           data.toString().contains('label') &&
           data.toString().contains('value');
       return canParse;
@@ -62,11 +61,10 @@ class AutocompleteJsonParser extends BooruParser {
         postCount = int.tryParse(postCountField) ?? 0;
       } else {
         // Fallback: post count is in label at the end of the string "<tag> (post count)"
-        postCount = int.tryParse(label
-                .split(' ')
-                .last
-                .replaceAll('(', '')
-                .replaceAll(')', '')) ??
+        postCount =
+            int.tryParse(
+              label.split(' ').last.replaceAll('(', '').replaceAll(')', ''),
+            ) ??
             0;
       }
 

@@ -36,8 +36,9 @@ class Downloader {
 
   static Future<void> _ensureNotificationsInitialized() async {
     if (_notificationsInitialized) return;
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     await _notifications.initialize(
       const InitializationSettings(android: androidSettings),
     );
@@ -105,15 +106,13 @@ class Downloader {
       // Create a fake task ID for tracking
       final taskId = 'cache_${DateTime.now().millisecondsSinceEpoch}';
 
-      final entry = DownloadEntry(
-        id: taskId,
-        post: post,
-        dest: fileName,
-      );
+      final entry = DownloadEntry(id: taskId, post: post, dest: fileName);
       await ref.read(downloadEntryStateProvider.notifier).add(entry);
 
       // Mark as completed immediately
-      await ref.read(downloadProgressStateProvider.notifier).update(
+      await ref
+          .read(downloadProgressStateProvider.notifier)
+          .update(
             DownloadProgress(
               id: taskId,
               progress: 100,
@@ -137,8 +136,9 @@ class Downloader {
   }) async {
     final fileUrl = url ?? post.originalFile;
     // sanitize forbidden characters on the file name
-    final fileName = Uri.decodeComponent(fileUrl.fileName)
-        .replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_]+)'), '_');
+    final fileName = Uri.decodeComponent(
+      fileUrl.fileName,
+    ).replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_]+)'), '_');
 
     // Try to use cached file first if enabled
     if (preferCache) {

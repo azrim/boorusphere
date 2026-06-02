@@ -17,11 +17,7 @@ class AppThemeBuilder extends HookConsumerWidget {
     return DynamicColorBuilder(
       builder: (light, dark) => builder(
         context,
-        AppThemeData.from(
-          light: light,
-          dark: dark,
-          colorPalette: colorPalette,
-        ),
+        AppThemeData.from(light: light, dark: dark, colorPalette: colorPalette),
       ),
     );
   }

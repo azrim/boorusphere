@@ -5,21 +5,21 @@ import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 
 extension PostExt on Post {
   bool get hasCategorizedTags => [
-        ...tagsArtist,
-        ...tagsCharacter,
-        ...tagsCopyright,
-        ...tagsGeneral,
-        ...tagsMeta
-      ].isNotEmpty;
+    ...tagsArtist,
+    ...tagsCharacter,
+    ...tagsCopyright,
+    ...tagsGeneral,
+    ...tagsMeta,
+  ].isNotEmpty;
 
   Set<String> get allTags => {
-        ...tagsArtist,
-        ...tagsCharacter,
-        ...tagsCopyright,
-        ...tagsGeneral,
-        ...tagsMeta,
-        ...tags,
-      };
+    ...tagsArtist,
+    ...tagsCharacter,
+    ...tagsCopyright,
+    ...tagsGeneral,
+    ...tagsMeta,
+    ...tags,
+  };
 
   String get describeTags => allTags.join(' ');
 

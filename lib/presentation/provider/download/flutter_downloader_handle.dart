@@ -47,11 +47,7 @@ class FlutterDownloaderHandle {
   static const _name = 'DownloaderHandle';
 
   @pragma('vm:entry-point')
-  static void _onProgressUpdated(
-    String id,
-    int status,
-    int progress,
-  ) {
+  static void _onProgressUpdated(String id, int status, int progress) {
     IsolateNameServer.lookupPortByName(_name)?.send([id, status, progress]);
   }
 }

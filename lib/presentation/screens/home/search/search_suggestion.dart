@@ -13,6 +13,7 @@ import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -88,23 +89,16 @@ class SearchSuggestion extends HookConsumerWidget {
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 1500),
-                    tween: Tween(begin: 0.2, end: 0.6),
-                    builder: (context, value, child) {
-                      return Container(
-                        margin: const EdgeInsets.only(top: 4, bottom: 12),
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant
-                              .withValues(alpha: value),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      );
-                    },
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 4, bottom: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
               ),
@@ -148,18 +142,20 @@ class SearchSuggestion extends HookConsumerWidget {
                     }
                   },
                   child: CustomScrollView(
+                    scrollCacheExtent: const ScrollCacheExtent.pixels(100),
                     controller: scrollController,
-                    physics: const BouncingScrollPhysics(),
-                    cacheExtent: 100, // Minimal cache for performance
+                    physics:
+                        const BouncingScrollPhysics(), // Minimal cache for performance
                     slivers: const [
                       _SearchHistoryHeader(),
                       _SearchHistory(),
                       _SuggestionHeader(),
                       _Suggestion(),
                       SliverToBoxAdapter(
-                        child:
-                            SizedBox(height: kBottomNavigationBarHeight + 38),
-                      )
+                        child: SizedBox(
+                          height: kBottomNavigationBarHeight + 38,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -196,9 +192,11 @@ class _SearchHistoryHeader extends HookConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(query.trim().isEmpty
-                ? context.t.recently
-                : '${context.t.recently}: $query'),
+            Text(
+              query.trim().isEmpty
+                  ? context.t.recently
+                  : '${context.t.recently}: $query',
+            ),
             TextButton(
               onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
               child: Text(context.t.clear),
@@ -242,10 +240,9 @@ class _SearchHistory extends HookConsumerWidget {
               Icon(
                 Icons.history,
                 size: 48,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant
-                    .withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               Text(
@@ -253,8 +250,8 @@ class _SearchHistory extends HookConsumerWidget {
                     ? 'No search history yet'
                     : 'No matching history found',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -263,11 +260,10 @@ class _SearchHistory extends HookConsumerWidget {
                     ? 'Your recent searches will appear here'
                     : 'Try a different search term',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant
-                          .withValues(alpha: 0.7),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -359,8 +355,8 @@ class _SuggestionHeader extends HookConsumerWidget {
         child: Text(
           context.t.suggestion.suggested(serverName: server.name),
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -404,47 +400,45 @@ class _Suggestion extends HookConsumerWidget {
 
     return switch (suggestion) {
       IdleFetchResult() => const SliverToBoxAdapter(
-          child: SizedBox(
-            height: 48,
-            child: Center(
-              child: Text('Start typing to see suggestions...'),
-            ),
-          ),
+        child: SizedBox(
+          height: 48,
+          child: Center(child: Text('Start typing to see suggestions...')),
         ),
+      ),
       DataFetchResult(:final data) => SliverList.builder(
-          itemCount: data.length.clamp(0, 20), // Show more suggestions
-          itemBuilder: (context, index) {
-            final suggestion = data.elementAt(index);
-            return RepaintBoundary(
-              child: _SuggestionEntryTile(
-                data: _SuggestionEntry(
-                  isHistory: false,
-                  text: suggestion.name,
-                  postCount: suggestion.count,
-                ),
-                onTap: (str) => searchBar.submit(context, str),
-                onAdded: searchBar.appendTyped,
+        itemCount: data.length.clamp(0, 20), // Show more suggestions
+        itemBuilder: (context, index) {
+          final suggestion = data.elementAt(index);
+          return RepaintBoundary(
+            child: _SuggestionEntryTile(
+              data: _SuggestionEntry(
+                isHistory: false,
+                text: suggestion.name,
+                postCount: suggestion.count,
               ),
-            );
-          },
-        ),
+              onTap: (str) => searchBar.submit(context, str),
+              onAdded: searchBar.appendTyped,
+            ),
+          );
+        },
+      ),
       LoadingFetchResult() => const SliverToBoxAdapter(
-          child: SizedBox(
-            height: 48,
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+        child: SizedBox(
+          height: 48,
+          child: Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
         ),
+      ),
       ErrorFetchResult(:final error) => _ErrorSuggestion(
-          error: error,
-          query: query,
-          serverName: server.name,
-        ),
+        error: error,
+        query: query,
+        serverName: server.name,
+      ),
     };
   }
 }
@@ -477,9 +471,7 @@ class _ErrorSuggestion extends StatelessWidget {
 
     return SliverPadding(
       padding: const EdgeInsets.all(16),
-      sliver: SliverToBoxAdapter(
-        child: ErrorInfo(error: msg),
-      ),
+      sliver: SliverToBoxAdapter(child: ErrorInfo(error: msg)),
     );
   }
 }
@@ -539,9 +531,8 @@ class _SuggestionEntryTile extends StatelessWidget {
                     Text(
                       context.t.suggestion.desc(serverName: data.server),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -552,8 +543,8 @@ class _SuggestionEntryTile extends StatelessWidget {
               Text(
                 data.postCount.toString(),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(width: 8),
             ],

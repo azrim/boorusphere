@@ -16,16 +16,16 @@ void main() async {
 
   Map<String, Server> mapDefaultServers() {
     return Map.fromEntries(
-      getDefaultServerData().map(
-        (it) => MapEntry(it.key, it),
-      ),
+      getDefaultServerData().map((it) => MapEntry(it.key, it)),
     );
   }
 
   group('server data', () {
-    final ref = ProviderContainer(overrides: [
-      defaultServersProvider.overrideWithValue(mapDefaultServers()),
-    ]);
+    final ref = ProviderContainer(
+      overrides: [
+        defaultServersProvider.overrideWithValue(mapDefaultServers()),
+      ],
+    );
 
     notifier() => ref.read(serverStateProvider.notifier);
     state() => ref.read(serverStateProvider);
@@ -69,10 +69,7 @@ void main() async {
       final server = state().getById('Yandere');
       await notifier().remove(server);
 
-      expect(
-        state().getById('Yandere', or: Server.empty),
-        Server.empty,
-      );
+      expect(state().getById('Yandere', or: Server.empty), Server.empty);
     });
 
     test('removeAll', () async {
@@ -85,8 +82,11 @@ void main() async {
       expect(
         removeAll,
         throwsA(
-          isA<Exception>()
-              .having((e) => e.toString(), 'desc', contains('Last server')),
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'desc',
+            contains('Last server'),
+          ),
         ),
       );
     });

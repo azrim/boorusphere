@@ -31,12 +31,16 @@ class HomeContent extends HookConsumerWidget {
     final servers = ref.watch(serverStateProvider);
 
     // Optimize blocked tags lookup with Set for O(1) contains check
-    final blockedTagsSet = ref.watch(tagsBlockerStateProvider.select(
-      (state) => state.values
-          .where((it) => it.serverId.isEmpty || it.serverId == session.serverId)
-          .map((it) => it.name)
-          .toSet(), // Convert to Set for faster lookup
-    ));
+    final blockedTagsSet = ref.watch(
+      tagsBlockerStateProvider.select(
+        (state) => state.values
+            .where(
+              (it) => it.serverId.isEmpty || it.serverId == session.serverId,
+            )
+            .map((it) => it.name)
+            .toSet(), // Convert to Set for faster lookup
+      ),
+    );
 
     // Use more efficient filtering with Set lookup
     final filteredPosts = pageState.data.posts
@@ -46,8 +50,11 @@ class HomeContent extends HookConsumerWidget {
     useEffect(() {
       if (servers.isNotEmpty) {
         Future(() {
-          ref.read(pageStateProvider.notifier).update(
-              (option) => option.copyWith(query: session.query, clear: true));
+          ref
+              .read(pageStateProvider.notifier)
+              .update(
+                (option) => option.copyWith(query: session.query, clear: true),
+              );
         });
       }
       return null;
@@ -93,9 +100,11 @@ class HomeContent extends HookConsumerWidget {
       children: [
         RefreshIndicator(
           onRefresh: () async {
-            unawaited(ref
-                .read(pageStateProvider.notifier)
-                .update((it) => it.copyWith(clear: true)));
+            unawaited(
+              ref
+                  .read(pageStateProvider.notifier)
+                  .update((it) => it.copyWith(clear: true)),
+            );
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -105,9 +114,7 @@ class HomeContent extends HookConsumerWidget {
                 SliverSafeArea(
                   sliver: SliverPadding(
                     padding: const EdgeInsets.all(10),
-                    sliver: Timeline(
-                      posts: filteredPosts,
-                    ),
+                    sliver: Timeline(posts: filteredPosts),
                   ),
                 ),
               if (!isNewSearch)
@@ -144,8 +151,9 @@ class HomeContent extends HookConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content:
-                          Text('Downloading ${selectedPosts.length} images...'),
+                      content: Text(
+                        'Downloading ${selectedPosts.length} images...',
+                      ),
                       duration: const Duration(seconds: 2),
                     ),
                   );
@@ -155,7 +163,8 @@ class HomeContent extends HookConsumerWidget {
                   // Create temp directory for downloads
                   final tempDir = await getTemporaryDirectory();
                   final batchDir = Directory(
-                      '${tempDir.path}/batch_download_${DateTime.now().millisecondsSinceEpoch}');
+                    '${tempDir.path}/batch_download_${DateTime.now().millisecondsSinceEpoch}',
+                  );
                   await batchDir.create(recursive: true);
 
                   // Download each image
@@ -197,8 +206,9 @@ class HomeContent extends HookConsumerWidget {
 
                   // Save ZIP to documents directory
                   final documentsDir = await getApplicationDocumentsDirectory();
-                  final downloadsDir =
-                      Directory('${documentsDir.path}/downloads');
+                  final downloadsDir = Directory(
+                    '${documentsDir.path}/downloads',
+                  );
                   if (!downloadsDir.existsSync()) {
                     downloadsDir.createSync(recursive: true);
                   }
@@ -216,16 +226,15 @@ class HomeContent extends HookConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                            'Downloaded ${selectedPosts.length} images to $zipFileName'),
+                          'Downloaded ${selectedPosts.length} images to $zipFileName',
+                        ),
                       ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Batch download failed: $e'),
-                      ),
+                      SnackBar(content: Text('Batch download failed: $e')),
                     );
                   }
                 }
@@ -242,7 +251,8 @@ class HomeContent extends HookConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          'Added ${selectedPosts.length} posts to favorites'),
+                        'Added ${selectedPosts.length} posts to favorites',
+                      ),
                     ),
                   );
                 }

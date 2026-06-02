@@ -33,7 +33,7 @@ class ChangelogState extends _$ChangelogState {
         parsed.firstWhere(
           (it) => it.version == version,
           orElse: () => ChangelogData.empty,
-        )
+        ),
       ];
     } else {
       return parsed;
