@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/provider/app_versions/app_versions_stat
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/about/changelog_page.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -36,8 +37,8 @@ class AboutPage extends ConsumerWidget {
                   shape: BoxShape.circle,
                   color: context.colorScheme.primaryContainer,
                 ),
-                padding: const EdgeInsets.all(32),
-                margin: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.all(DesignTokens.spacingXl),
+                margin: const EdgeInsets.symmetric(vertical: DesignTokens.spacingMd),
                 child: Image.asset(
                   'assets/icons/exported/logo.png',
                   height: 48,
@@ -101,7 +102,7 @@ class AboutPage extends ConsumerWidget {
                   );
                 },
               ),
-              const Divider(height: 32),
+              const Divider(height: DesignTokens.spacingXl),
               ListTile(
                 title: Text(context.t.changelog.title),
                 leading: const Icon(Icons.list_alt_rounded),

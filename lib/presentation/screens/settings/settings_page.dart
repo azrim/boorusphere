@@ -423,7 +423,7 @@ class _PostLimit extends ConsumerWidget {
         ),
         elevation: 1,
         underline: const SizedBox.shrink(),
-        borderRadius: const BorderRadius.all(Radius.circular(5)),
+        borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
         items: List<DropdownMenuItem<int>>.generate(10, (i) {
           final x = i * 10 + 10;
           return DropdownMenuItem(value: x, child: Text('$x'));

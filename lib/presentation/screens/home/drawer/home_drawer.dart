@@ -25,8 +25,8 @@ class HomeDrawer extends StatelessWidget {
       width: maxWidth,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topRight: Radius.circular(25),
-          bottomRight: Radius.circular(25),
+          topRight: Radius.circular(DesignTokens.radiusXl),
+          bottomRight: Radius.circular(DesignTokens.radiusXl),
         ),
       ),
       child: SafeArea(
@@ -266,8 +266,8 @@ class _ServerSelection extends ConsumerWidget {
               ),
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(16),
-                  bottomRight: Radius.circular(16),
+                  topRight: Radius.circular(DesignTokens.radiusXl),
+                  bottomRight: Radius.circular(DesignTokens.radiusXl),
                 ),
               ),
               selected: it.id == serverActive.id,

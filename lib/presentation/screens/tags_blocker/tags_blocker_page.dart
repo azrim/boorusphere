@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +35,7 @@ class _TagsBlockerContent extends HookConsumerWidget {
     return ListView(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
+          padding: const EdgeInsets.fromLTRB(DesignTokens.spacingLg, DesignTokens.spacingMd, DesignTokens.spacingLg, DesignTokens.spacingMd),
           child: Column(
             children: [
               Text(context.t.tagsBlocker.desc),

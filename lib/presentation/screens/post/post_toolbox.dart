@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -41,7 +42,7 @@ class PostRelatedButton extends StatelessWidget {
     final query = tags.join(' ');
 
     return IconButton(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DesignTokens.spacingMd),
       color: Colors.white,
       icon: const Icon(Icons.find_in_page_outlined),
       tooltip: context.t.findRelated,
@@ -114,7 +115,7 @@ class PostDetailsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DesignTokens.spacingMd),
       color: Colors.white,
       icon: const Icon(Icons.info_outline),
       tooltip: context.t.details,
@@ -131,7 +132,7 @@ class PostOpenLinkButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DesignTokens.spacingMd),
       color: Colors.white,
       icon: const Icon(Icons.link_outlined),
       onPressed: () => launchUrlString(
@@ -163,7 +164,7 @@ class PostFavoriteButton extends HookConsumerWidget {
     isFav ? animator.forward() : animator.reverse();
 
     return IconButton(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DesignTokens.spacingMd),
       color: Colors.white,
       icon: isFav
           ? Icon(Icons.favorite, color: animation)
@@ -201,7 +202,7 @@ class PostDownloadButton extends HookConsumerWidget {
               : 0,
         ),
         IconButton(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(DesignTokens.spacingMd),
           color: Colors.white,
           icon: Icon(
             progress.status.isDownloaded ? Icons.download_done : Icons.download,

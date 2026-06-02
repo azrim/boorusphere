@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -128,7 +129,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                       controller: scrollController,
                       slivers: [
                         // Drag handle
-                        const SliverToBoxAdapter(child: _DragHandle()),
+                        const SliverToBoxAdapter(child: DragHandle(margin: EdgeInsets.symmetric(vertical: 12))),
                         // Content
                         SliverToBoxAdapter(
                           child: _SheetContent(
@@ -181,30 +182,6 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
           ),
         );
       },
-    );
-  }
-}
-
-class _DragHandle extends StatelessWidget {
-  const _DragHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Center(
-        child: Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -276,7 +253,7 @@ class _TagActionBar extends ConsumerWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingSm, vertical: DesignTokens.spacingSm),
           child: Row(
             children: [
               Text(

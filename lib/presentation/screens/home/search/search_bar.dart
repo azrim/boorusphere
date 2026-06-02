@@ -116,7 +116,7 @@ class HomeSearchBar extends HookConsumerWidget {
               if (searchBar.isOpen) const _OptionBar(),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.2),
+                  color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusLg)),
                 ),
                 margin: const EdgeInsets.fromLTRB(DesignTokens.spacingMd, DesignTokens.spacingMd - DesignTokens.spacingXs, DesignTokens.spacingMd, DesignTokens.spacingMd - DesignTokens.spacingXs),

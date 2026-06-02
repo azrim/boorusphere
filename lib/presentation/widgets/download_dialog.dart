@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/permissions.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -47,17 +48,7 @@ class DownloaderDialog extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Drag handle
-            Container(
-              margin: const EdgeInsets.only(top: 4, bottom: 8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            const DragHandle(),
             ListTile(title: Text(context.t.downloads.title)),
             if (post.sampleFile.isNotEmpty)
               ListTile(

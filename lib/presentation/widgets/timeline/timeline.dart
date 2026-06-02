@@ -317,12 +317,12 @@ class _LongThumbnailIndicator extends StatelessWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(10),
-          topRight: Radius.circular(10),
+          topLeft: Radius.circular(DesignTokens.radiusMd),
+          topRight: Radius.circular(DesignTokens.radiusMd),
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(22, 6, 22, 4),
+        padding: EdgeInsets.fromLTRB(DesignTokens.spacingLg, DesignTokens.spacingXs, DesignTokens.spacingLg, DesignTokens.spacingXs),
         child: Icon(Icons.gradient, size: 16),
       ),
     );
@@ -337,7 +337,7 @@ class _MediaTypeIndicator extends StatelessWidget {
 
   static const _decoration = BoxDecoration(
     color: Color(0xB3000000), // Pre-computed 0.7 alpha black
-    borderRadius: BorderRadius.all(Radius.circular(4)),
+    borderRadius: BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
   );
 
   @override

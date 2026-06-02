@@ -7,9 +7,11 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
+import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -87,19 +89,9 @@ class SearchSuggestion extends HookConsumerWidget {
                     await animator.forward();
                   }
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Container(
-                    margin: const EdgeInsets.only(top: 4, bottom: 12),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: DragHandle(margin: EdgeInsets.only(top: 4, bottom: 12)),
                 ),
               ),
               Expanded(
@@ -187,7 +179,7 @@ class _SearchHistoryHeader extends HookConsumerWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: DesignTokens.spacingSm, horizontal: DesignTokens.spacingMd),
       sliver: SliverToBoxAdapter(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -234,7 +226,7 @@ class _SearchHistory extends HookConsumerWidget {
     if (history.entries.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(DesignTokens.spacingXl),
           child: Column(
             children: [
               Icon(
@@ -244,7 +236,7 @@ class _SearchHistory extends HookConsumerWidget {
                   context,
                 ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DesignTokens.spacingMd),
               Text(
                 query.trim().isEmpty
                     ? 'No search history yet'
@@ -254,7 +246,7 @@ class _SearchHistory extends HookConsumerWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DesignTokens.spacingSm),
               Text(
                 query.trim().isEmpty
                     ? 'Your recent searches will appear here'
@@ -333,11 +325,11 @@ class _SuggestionHeader extends HookConsumerWidget {
     if (!server.canSuggestTags) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(DesignTokens.spacingMd),
           child: Column(
             children: [
               const Icon(Icons.search_off, size: 32),
-              const SizedBox(height: 8),
+              const SizedBox(height: DesignTokens.spacingSm),
               Text(
                 context.t.suggestion.notSupported(serverName: server.name),
                 textAlign: TextAlign.center,
@@ -350,7 +342,7 @@ class _SuggestionHeader extends HookConsumerWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd, DesignTokens.spacingMd, DesignTokens.spacingMd, DesignTokens.spacingSm),
       sliver: SliverToBoxAdapter(
         child: Text(
           context.t.suggestion.suggested(serverName: server.name),
@@ -507,7 +499,7 @@ class _SuggestionEntryTile extends StatelessWidget {
     return InkWell(
       onTap: () => onTap.call(data.text),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd, vertical: DesignTokens.spacingSm),
         child: Row(
           children: [
             Icon(

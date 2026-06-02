@@ -6,6 +6,7 @@ import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
@@ -144,7 +145,7 @@ class _Content extends ConsumerWidget {
       slivers: [
         SliverSafeArea(
           sliver: SliverPadding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(DesignTokens.spacingMd),
             sliver: Timeline(posts: posts),
           ),
         ),
