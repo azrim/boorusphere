@@ -1,3 +1,10 @@
+## 2.0.23
+
+* **Fix**: replace discontinued `flutter_markdown` with `flutter_markdown_plus`
+* **Fix**: remove deprecated `use_if_null_to_convert_nulls_to_bools` lint rule
+* **Refactor**: introduce design tokens and enforce design token discipline across presentation layer
+* **Chore**: upgrade Android build tooling for Flutter 3.44 compatibility, resolve all analyze/format/test issues
+
 ## 2.0.22
 
 * **Feature Multiple Select and Batch Download**: Long press on any post thumbnail to enter selection mode, tap to toggle selection. Use the bottom action bar to download selected posts as ZIP, add to favorites, or clear selection.
