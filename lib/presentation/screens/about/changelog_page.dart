@@ -5,7 +5,7 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 @RoutePage()
