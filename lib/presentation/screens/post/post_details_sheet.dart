@@ -129,7 +129,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                       controller: scrollController,
                       slivers: [
                         // Drag handle
-                        const SliverToBoxAdapter(child: DragHandle(margin: EdgeInsets.symmetric(vertical: 12))),
+                        const SliverToBoxAdapter(
+                          child: DragHandle(
+                            margin: EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
                         // Content
                         SliverToBoxAdapter(
                           child: _SheetContent(
@@ -253,7 +257,10 @@ class _TagActionBar extends ConsumerWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingSm, vertical: DesignTokens.spacingSm),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignTokens.spacingSm,
+            vertical: DesignTokens.spacingSm,
+          ),
           child: Row(
             children: [
               Text(

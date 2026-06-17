@@ -116,10 +116,19 @@ class HomeSearchBar extends HookConsumerWidget {
               if (searchBar.isOpen) const _OptionBar(),
               Container(
                 decoration: BoxDecoration(
-                  color: context.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusLg)),
+                  color: context.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(DesignTokens.radiusLg),
+                  ),
                 ),
-                margin: const EdgeInsets.fromLTRB(DesignTokens.spacingMd, DesignTokens.spacingMd - DesignTokens.spacingXs, DesignTokens.spacingMd, DesignTokens.spacingMd - DesignTokens.spacingXs),
+                margin: const EdgeInsets.fromLTRB(
+                  DesignTokens.spacingMd,
+                  DesignTokens.spacingMd - DesignTokens.spacingXs,
+                  DesignTokens.spacingMd,
+                  DesignTokens.spacingMd - DesignTokens.spacingXs,
+                ),
                 child: Row(
                   children: [
                     Stack(
@@ -206,7 +215,12 @@ class _OptionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.fromLTRB(DesignTokens.spacingMd + DesignTokens.spacingXs, DesignTokens.spacingMd - DesignTokens.spacingXs, DesignTokens.spacingMd + DesignTokens.spacingXs, 0),
+      padding: EdgeInsets.fromLTRB(
+        DesignTokens.spacingMd + DesignTokens.spacingXs,
+        DesignTokens.spacingMd - DesignTokens.spacingXs,
+        DesignTokens.spacingMd + DesignTokens.spacingXs,
+        0,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [_RatingButton()],
@@ -273,7 +287,10 @@ class _RatingButton extends ConsumerWidget {
         }
       },
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: DesignTokens.spacingXs, horizontal: DesignTokens.spacingMd),
+        padding: const EdgeInsets.symmetric(
+          vertical: DesignTokens.spacingXs,
+          horizontal: DesignTokens.spacingMd,
+        ),
         minimumSize: const Size(1, 1),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         side: BorderSide(
@@ -302,7 +319,12 @@ class _Button extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd - DesignTokens.spacingXs, 6, DesignTokens.spacingMd - DesignTokens.spacingXs, 6),
+        padding: const EdgeInsets.fromLTRB(
+          DesignTokens.spacingMd - DesignTokens.spacingXs,
+          6,
+          DesignTokens.spacingMd - DesignTokens.spacingXs,
+          6,
+        ),
         child: child,
       ),
     );
@@ -350,7 +372,12 @@ class _LeadingButton extends ConsumerWidget {
                 ),
                 // Title
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd + DesignTokens.spacingXs, DesignTokens.spacingSm, DesignTokens.spacingMd + DesignTokens.spacingXs, DesignTokens.spacingMd),
+                  padding: const EdgeInsets.fromLTRB(
+                    DesignTokens.spacingMd + DesignTokens.spacingXs,
+                    DesignTokens.spacingSm,
+                    DesignTokens.spacingMd + DesignTokens.spacingXs,
+                    DesignTokens.spacingMd,
+                  ),
                   child: Text(
                     context.t.servers.select,
                     style: context.theme.textTheme.titleMedium,

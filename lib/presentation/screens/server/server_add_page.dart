@@ -123,7 +123,8 @@ class ServerAddPage extends HookConsumerWidget {
       if (first == 10) return true;
       if (first == 127) return true;
       if (first == 0) return true;
-      if (first == 172 && second != null && second >= 16 && second <= 31) return true;
+      if (first == 172 && second != null && second >= 16 && second <= 31)
+        return true;
       if (first == 192 && second == 168) return true;
       return false;
     }

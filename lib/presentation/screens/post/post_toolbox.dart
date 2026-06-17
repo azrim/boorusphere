@@ -191,7 +191,9 @@ class PostDownloadButton extends HookConsumerWidget {
       downloadEntryStateProvider.select((entries) => entries.getByPost(post)),
     );
     final progress = ref.watch(
-      downloadProgressStateProvider.select((progresses) => progresses.getById(entry.id)),
+      downloadProgressStateProvider.select(
+        (progresses) => progresses.getById(entry.id),
+      ),
     );
     final pending = useState(false);
 

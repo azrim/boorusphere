@@ -35,7 +35,12 @@ class _TagsBlockerContent extends HookConsumerWidget {
     return ListView(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(DesignTokens.spacingLg, DesignTokens.spacingMd, DesignTokens.spacingLg, DesignTokens.spacingMd),
+          padding: const EdgeInsets.fromLTRB(
+            DesignTokens.spacingLg,
+            DesignTokens.spacingMd,
+            DesignTokens.spacingLg,
+            DesignTokens.spacingMd,
+          ),
           child: Column(
             children: [
               Text(context.t.tagsBlocker.desc),

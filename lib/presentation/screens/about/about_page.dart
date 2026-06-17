@@ -38,7 +38,9 @@ class AboutPage extends ConsumerWidget {
                   color: context.colorScheme.primaryContainer,
                 ),
                 padding: const EdgeInsets.all(DesignTokens.spacingXl),
-                margin: const EdgeInsets.symmetric(vertical: DesignTokens.spacingMd),
+                margin: const EdgeInsets.symmetric(
+                  vertical: DesignTokens.spacingMd,
+                ),
                 child: Image.asset(
                   'assets/icons/exported/logo.png',
                   height: 48,

@@ -91,7 +91,9 @@ class SearchSuggestion extends HookConsumerWidget {
                 },
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: DragHandle(margin: EdgeInsets.only(top: 4, bottom: 12)),
+                  child: DragHandle(
+                    margin: EdgeInsets.only(top: 4, bottom: 12),
+                  ),
                 ),
               ),
               Expanded(
@@ -179,7 +181,10 @@ class _SearchHistoryHeader extends HookConsumerWidget {
     }
 
     return SliverPadding(
-          padding: const EdgeInsets.symmetric(vertical: DesignTokens.spacingSm, horizontal: DesignTokens.spacingMd),
+      padding: const EdgeInsets.symmetric(
+        vertical: DesignTokens.spacingSm,
+        horizontal: DesignTokens.spacingMd,
+      ),
       sliver: SliverToBoxAdapter(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,7 +347,12 @@ class _SuggestionHeader extends HookConsumerWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd, DesignTokens.spacingMd, DesignTokens.spacingMd, DesignTokens.spacingSm),
+      padding: const EdgeInsets.fromLTRB(
+        DesignTokens.spacingMd,
+        DesignTokens.spacingMd,
+        DesignTokens.spacingMd,
+        DesignTokens.spacingSm,
+      ),
       sliver: SliverToBoxAdapter(
         child: Text(
           context.t.suggestion.suggested(serverName: server.name),
@@ -499,7 +509,10 @@ class _SuggestionEntryTile extends StatelessWidget {
     return InkWell(
       onTap: () => onTap.call(data.text),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd, vertical: DesignTokens.spacingSm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacingMd,
+          vertical: DesignTokens.spacingSm,
+        ),
         child: Row(
           children: [
             Icon(

@@ -33,7 +33,9 @@ class HomeDrawer extends StatelessWidget {
         child: ListTileTheme(
           data: context.theme.listTileTheme.copyWith(
             dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingLg),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingLg,
+            ),
           ),
           child: const Column(
             children: [
@@ -96,7 +98,12 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(DesignTokens.spacingMd, DesignTokens.spacingXl, DesignTokens.spacingMd, DesignTokens.spacingMd),
+      padding: const EdgeInsets.fromLTRB(
+        DesignTokens.spacingMd,
+        DesignTokens.spacingXl,
+        DesignTokens.spacingMd,
+        DesignTokens.spacingMd,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -283,7 +290,12 @@ class _ServerSelection extends ConsumerWidget {
         }),
         // Add New Server button
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, DesignTokens.spacingSm, DesignTokens.spacingMd, 0),
+          padding: const EdgeInsets.fromLTRB(
+            0,
+            DesignTokens.spacingSm,
+            DesignTokens.spacingMd,
+            0,
+          ),
           child: ListTile(
             title: Text(context.t.servers.add),
             leading: const Icon(Icons.add_circle_outline, size: 21),
@@ -298,7 +310,12 @@ class _ServerSelection extends ConsumerWidget {
         ),
         // Reset servers button
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, DesignTokens.spacingXs, DesignTokens.spacingMd, 0),
+          padding: const EdgeInsets.fromLTRB(
+            0,
+            DesignTokens.spacingXs,
+            DesignTokens.spacingMd,
+            0,
+          ),
           child: ListTile(
             title: Text(context.t.resetToDefault),
             leading: const Icon(Icons.restore, size: 21),

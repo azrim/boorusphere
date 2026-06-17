@@ -322,7 +322,12 @@ class _LongThumbnailIndicator extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(DesignTokens.spacingLg, DesignTokens.spacingXs, DesignTokens.spacingLg, DesignTokens.spacingXs),
+        padding: EdgeInsets.fromLTRB(
+          DesignTokens.spacingLg,
+          DesignTokens.spacingXs,
+          DesignTokens.spacingLg,
+          DesignTokens.spacingXs,
+        ),
         child: Icon(Icons.gradient, size: 16),
       ),
     );

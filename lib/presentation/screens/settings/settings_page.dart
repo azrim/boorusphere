@@ -74,7 +74,12 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const sectionPadding = EdgeInsets.fromLTRB(DesignTokens.spacingMd, 12, DesignTokens.spacingMd, 12);
+    const sectionPadding = EdgeInsets.fromLTRB(
+      DesignTokens.spacingMd,
+      12,
+      DesignTokens.spacingMd,
+      12,
+    );
     final sectionStyle =
         (context.theme.textTheme.titleSmall ?? const TextStyle()).copyWith(
           color: context.colorScheme.primary,
@@ -423,7 +428,9 @@ class _PostLimit extends ConsumerWidget {
         ),
         elevation: 1,
         underline: const SizedBox.shrink(),
-        borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
+        borderRadius: const BorderRadius.all(
+          Radius.circular(DesignTokens.radiusSm),
+        ),
         items: List<DropdownMenuItem<int>>.generate(10, (i) {
           final x = i * 10 + 10;
           return DropdownMenuItem(value: x, child: Text('$x'));

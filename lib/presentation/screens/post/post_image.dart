@@ -102,9 +102,7 @@ class PostImage extends HookConsumerWidget {
     }, [transformController]);
 
     final imageUrl = useMemoized(
-      () => contentSetting.loadOriginal
-          ? post.originalFile
-          : post.content.url,
+      () => contentSetting.loadOriginal ? post.originalFile : post.content.url,
       [post.originalFile, post.content.url, contentSetting.loadOriginal],
     );
 
