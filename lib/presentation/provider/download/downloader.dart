@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dar
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart'
     hide DownloadProgress;
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -72,7 +73,9 @@ class Downloader {
       if (file != null && file.existsSync()) {
         return file;
       }
-    } catch (_) {}
+    } catch (e) {
+      mainLog.e('Downloader: Failed to get cached file', e);
+    }
     return null;
   }
 

@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
+import 'package:boorusphere/presentation/provider/cache.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -87,12 +90,12 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
   Future<void> createController() async {
     if (!hook.active) return;
 
-    //final cache = hook.ref.read(cacheManagerProvider);
-    //final cookieJar = hook.ref.read(cookieJarProvider);
-    //final cookies =
-    //    await cookieJar.loadForRequest(hook.post.content.url.toUri());
+    final cache = hook.ref.read(cacheManagerProvider);
+    final cookieJar = hook.ref.read(cookieJarProvider);
+    final cookies =
+        await cookieJar.loadForRequest(hook.post.content.url.toUri());
     final headers = hook.ref.read(
-      postHeadersFactoryProvider(hook.post, cookies: []),
+      postHeadersFactoryProvider(hook.post, cookies: cookies),
     );
 
     final uri = Uri.parse(hook.post.content.url);
@@ -107,10 +110,10 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
     setState(() {
       source = source.copyWith(controller: controller, progress: prog);
     });
-    //cache
-    //    .getFileStream(hook.post.content.url,
-    //        headers: headers, withProgress: true)
-    //    .listen(onFileStream);
+    cache
+        .getFileStream(hook.post.content.url,
+            headers: headers, withProgress: true)
+        .listen(onFileStream);
   }
 
   void destroyController() {

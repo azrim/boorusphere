@@ -59,7 +59,6 @@ class _Footer extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _HomeTile(),
         ListTile(
           title: Text(context.t.downloads.title),
           leading: const Icon(Icons.cloud_download),
@@ -187,13 +186,6 @@ class AppVersionTile extends ConsumerWidget {
       },
       orElse: () => currentTile,
     );
-  }
-}
-
-class _HomeTile extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const SizedBox.shrink(); // Always hidden - users can clear search instead
   }
 }
 

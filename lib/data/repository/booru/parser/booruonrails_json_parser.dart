@@ -36,7 +36,7 @@ class BooruOnRailsJsonParser extends BooruParser {
 
   @override
   List<Post> parsePage(Server server, Response res) {
-    final entries = List.from(res.data['images']);
+    final entries = List.from(res.data['images'] ?? <dynamic>[]);
     final result = <Post>[];
     for (final post in entries.whereType<Map<String, dynamic>>()) {
       final id = pick(post, 'id').asIntOrNull() ?? -1;
@@ -96,7 +96,7 @@ class BooruOnRailsJsonParser extends BooruParser {
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = List.from(res.data['tags']);
+    final entries = List.from(res.data['tags'] ?? <dynamic>[]);
 
     final result = <Suggestion>{};
     for (final Map<String, dynamic> entry in entries) {

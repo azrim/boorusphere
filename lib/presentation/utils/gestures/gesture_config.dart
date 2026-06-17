@@ -72,7 +72,7 @@ class GestureConfig {
     return {
       if (swipeUp != null) 'swipeUp': swipeUp,
       if (swipeDown != null) 'swipeDown': swipeDown,
-      if (swipeLeft != null) 'swipeLeft': swipeRight,
+      if (swipeLeft != null) 'swipeLeft': swipeLeft,
       if (swipeRight != null) 'swipeRight': swipeRight,
       if (doubleTap != null) 'doubleTap': doubleTap,
       if (longPress != null) 'longPress': longPress,

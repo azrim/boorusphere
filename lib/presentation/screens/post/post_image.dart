@@ -82,6 +82,11 @@ class PostImage extends HookConsumerWidget {
         ? imageRatio / deviceRatio
         : deviceRatio / imageRatio;
 
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final screenSize = MediaQuery.sizeOf(context);
+    final cacheWidth = (screenSize.width * pixelRatio).round();
+    final cacheHeight = (screenSize.height * pixelRatio).round();
+
     useEffect(() {
       void onTransformChange() {
         final scale = transformController.value.getMaxScaleOnAxis();
@@ -96,23 +101,11 @@ class PostImage extends HookConsumerWidget {
       return () => transformController.removeListener(onTransformChange);
     }, [transformController]);
 
-    final createdAtForUrl = useState(DateTime.now().millisecondsSinceEpoch);
     final imageUrl = useMemoized(
-      () {
-        final baseUrl = contentSetting.loadOriginal
-            ? post.originalFile
-            : post.content.url;
-        // Add cache-busting query param to force fresh load on Danbooru
-        // when reopening the same post
-        final separator = baseUrl.contains('?') ? '&' : '?';
-        return '$baseUrl${separator}_=${createdAtForUrl.value}';
-      },
-      [
-        post.originalFile,
-        post.content.url,
-        contentSetting.loadOriginal,
-        createdAt.value,
-      ],
+      () => contentSetting.loadOriginal
+          ? post.originalFile
+          : post.content.url,
+      [post.originalFile, post.content.url, contentSetting.loadOriginal],
     );
 
     Future<void> handleDoubleTap() async {
@@ -215,11 +208,17 @@ class PostImage extends HookConsumerWidget {
                   imageUrl: imageUrl,
                   httpHeaders: headers,
                   fit: BoxFit.contain,
+                  memCacheWidth: cacheWidth,
+                  memCacheHeight: cacheHeight,
                   imageBuilder: (context, provider) {
                     _scheduleLoadState(
                       loadState,
                       const _PostImageLoadState.completed(),
                     );
+                    // ponytail: cacheWidth/cacheHeight live on CachedNetworkImage's
+                    // memCacheWidth/memCacheHeight above — the generic Image()
+                    // constructor doesn't expose them. The provider from
+                    // imageBuilder is already sized by those params.
                     final image = Image(
                       image: provider,
                       fit: BoxFit.contain,

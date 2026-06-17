@@ -23,7 +23,9 @@ class UserSettingsRepo implements SettingsRepo {
     final Map map = jsonDecode(src);
     if (map.isEmpty) return;
     await box.deleteAll(box.keys);
-    map.forEach((key, value) async {
+    for (final entry in map.entries) {
+      final key = entry.key;
+      final value = entry.value;
       if (key == Setting.downloadsQuality.name) {
         await box.put(key, DownloadQuality.fromName(value));
       } else if (key == Setting.searchRating.name) {
@@ -31,7 +33,7 @@ class UserSettingsRepo implements SettingsRepo {
       } else {
         await box.put(key, value);
       }
-    });
+    }
   }
 
   @override

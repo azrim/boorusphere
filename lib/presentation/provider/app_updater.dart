@@ -7,6 +7,7 @@ import 'package:boorusphere/data/repository/downloads/entity/download_progress.d
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -67,7 +68,9 @@ class AppUpdater {
     if (!saveDir.existsSync()) {
       try {
         saveDir.createSync(recursive: true);
-      } catch (_) {}
+      } catch (e) {
+        mainLog.e('AppUpdater: Failed to create cache dir', e);
+      }
     }
 
     // Delete existing APK if present
@@ -75,7 +78,9 @@ class AppUpdater {
     if (apk.existsSync()) {
       try {
         apk.deleteSync();
-      } catch (_) {}
+      } catch (e) {
+        mainLog.e('AppUpdater: Failed to delete old apk', e);
+      }
     }
 
     final versionRepo = ref.read(versionRepoProvider);

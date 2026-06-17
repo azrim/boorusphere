@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path/path.dart' as p;
@@ -42,8 +43,9 @@ class SharedStorageHandle {
     if (!dir.existsSync()) {
       try {
         Directory(path).createSync();
-        // ignore: empty_catches
-      } catch (e) {}
+      } catch (e) {
+        mainLog.e('SharedStorageHandle: Failed to create dir', e);
+      }
     }
   }
 
@@ -51,8 +53,9 @@ class SharedStorageHandle {
     final dir = Directory(p.join(path, directory));
     try {
       dir.createSync();
-      // ignore: empty_catches
-    } catch (e) {}
+    } catch (e) {
+      mainLog.e('SharedStorageHandle: Failed to create subdir $directory', e);
+    }
     return dir;
   }
 
@@ -60,9 +63,10 @@ class SharedStorageHandle {
     final file = File(p.join(path, Uri.decodeFull(relativePath)));
     try {
       return file.existsSync();
-      // ignore: empty_catches
-    } catch (e) {}
-    return false;
+    } catch (e) {
+      mainLog.e('SharedStorageHandle: Failed to check file $relativePath', e);
+      return false;
+    }
   }
 
   Future<void> rescan() async {
@@ -78,8 +82,9 @@ class SharedStorageHandle {
       } else if (!hide && isExists) {
         await _nomedia.delete();
       }
-      // ignore: empty_catches
-    } catch (e) {}
+    } catch (e) {
+      mainLog.e('SharedStorageHandle: Failed to toggle .nomedia', e);
+    }
     await rescan();
   }
 
@@ -87,7 +92,8 @@ class SharedStorageHandle {
     try {
       final filePath = p.join(on ?? path, Uri.decodeFull(dest));
       await StorageUtil().open(filePath);
-      // ignore: empty_catches
-    } catch (e) {}
+    } catch (e) {
+      mainLog.e('SharedStorageHandle: Failed to open $dest', e);
+    }
   }
 }

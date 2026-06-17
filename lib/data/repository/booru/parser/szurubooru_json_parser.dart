@@ -44,7 +44,7 @@ class SzurubooruJsonParser extends BooruParser {
 
   @override
   List<Post> parsePage(Server server, res) {
-    final entries = List.from(res.data['results']);
+    final entries = List.from(res.data['results'] ?? <dynamic>[]);
     final result = <Post>[];
     for (final post in entries.whereType<Map<String, dynamic>>()) {
       final id = pick(post, 'id').asIntOrNull() ?? -1;
@@ -107,7 +107,7 @@ class SzurubooruJsonParser extends BooruParser {
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = List.from(res.data['results']);
+    final entries = List.from(res.data['results'] ?? <dynamic>[]);
     final result = <Suggestion>{};
     for (final entry in entries.whereType<Map<String, dynamic>>()) {
       final tags = pick(entry, 'names').asListOrEmpty((x) => x.asString());

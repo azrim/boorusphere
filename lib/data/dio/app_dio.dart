@@ -8,7 +8,11 @@ import 'package:dio_smart_retry/dio_smart_retry.dart';
 
 class AppDio with DioMixin implements Dio {
   AppDio({required CookieJar cookieJar, required EnvRepo envRepo}) {
-    options = BaseOptions();
+    options = BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 30),
+      followRedirects: false,
+    );
     httpClientAdapter = IOHttpClientAdapter();
     final retryDelays = List.generate(5, (index) {
       return Duration(milliseconds: 400 + (100 * (index + 1)));

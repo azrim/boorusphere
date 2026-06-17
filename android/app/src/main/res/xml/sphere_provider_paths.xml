@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <root-path name="root" path="." />
     <files-path name="files" path="." />
-    <external-path name="external_files" path="."/>
+    <external-path name="external_files" path="Download/Boorusphere/" />
 </paths>

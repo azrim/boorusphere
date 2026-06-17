@@ -13,6 +13,7 @@ analyzer:
   exclude:
     - lib/**/*.g.dart
     - lib/*.g.dart
+    - lib/**/*.pi.dart
 
   errors:
     public_member_api_docs: ignore

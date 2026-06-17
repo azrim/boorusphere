@@ -24,7 +24,7 @@ class ErrorInfo extends HookWidget {
   final TextStyle? style;
   final EdgeInsets padding;
 
-  String get descibeError {
+  String get describeError {
     dynamic e = error;
     String? host;
     if (e == null) {
@@ -76,7 +76,7 @@ class ErrorInfo extends HookWidget {
           children: [
             DefaultTextStyle(
               style: style ?? DefaultTextStyle.of(context).style,
-              child: Text(descibeError, textAlign: textAlign),
+              child: Text(describeError, textAlign: textAlign),
             ),
             if (showTrace.value && stackTrace != null)
               Column(

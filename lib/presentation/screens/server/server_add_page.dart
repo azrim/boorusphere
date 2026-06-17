@@ -111,8 +111,35 @@ class ServerAddPage extends HookConsumerWidget {
     final apiAddr = useTextEditingController(text: 'https://');
     final server = useState(Server.empty);
 
+    bool isPrivateIp(String host) {
+      if (host == '::1') return true;
+      if (host == 'localhost') return true;
+      final addr = host.replaceAll(RegExp(r'[\[\]]'), '');
+      final parts = addr.split('.');
+      if (parts.length != 4) return false;
+      final first = int.tryParse(parts[0]);
+      final second = parts.length > 1 ? int.tryParse(parts[1]) : null;
+      if (first == null) return false;
+      if (first == 10) return true;
+      if (first == 127) return true;
+      if (first == 0) return true;
+      if (first == 172 && second != null && second >= 16 && second <= 31) return true;
+      if (first == 192 && second == 168) return true;
+      return false;
+    }
+
     validateAddress(String? value) {
       if (value?.contains(RegExp(r'https?://.+\..+')) == false) {
+        return context.t.servers.addrError;
+      }
+      final uri = Uri.tryParse(value!);
+      if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+        return context.t.servers.addrError;
+      }
+      if (uri.userInfo.isNotEmpty) {
+        return context.t.servers.addrError;
+      }
+      if (isPrivateIp(uri.host)) {
         return context.t.servers.addrError;
       }
       return null;
