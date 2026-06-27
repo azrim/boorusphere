@@ -153,8 +153,9 @@ class _ThumbnailCard extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (index, post) = postdata;
-    final selection = ref.watch(postSelectionProvider);
-    final isSelected = selection.contains(post.id);
+    final isSelected = ref.watch(
+      postSelectionProvider.select((sel) => sel.contains(post.id)),
+    );
 
     return AutoScrollTag(
       key: ValueKey(post.viewId),
@@ -174,7 +175,7 @@ class _ThumbnailCard extends HookConsumerWidget {
         clipBehavior: Clip.hardEdge,
         child: GestureDetector(
           onTap: () {
-            if (selection.isNotEmpty) {
+            if (ref.read(postSelectionProvider).isNotEmpty) {
               // If selection mode is active, toggle selection
               ref.read(postSelectionProvider.notifier).toggle(post.id);
             } else if (onTap != null) {

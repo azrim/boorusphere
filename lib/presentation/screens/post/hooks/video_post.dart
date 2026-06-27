@@ -65,6 +65,7 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
   _VideoPostState();
 
   VideoPostSource source = VideoPostSource();
+  StreamSubscription? _cacheSubscription;
 
   void onFileStream(FileResponse event) {
     if (!context.mounted) return;
@@ -111,7 +112,7 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
     setState(() {
       source = source.copyWith(controller: controller, progress: prog);
     });
-    cache
+    _cacheSubscription = cache
         .getFileStream(
           hook.post.content.url,
           headers: headers,
@@ -121,6 +122,8 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
   }
 
   void destroyController() {
+    _cacheSubscription?.cancel();
+    _cacheSubscription = null;
     unawaited(source.controller?.pause());
     source.controller?.dispose();
     source = VideoPostSource();

@@ -168,8 +168,9 @@ class HomeContent extends HookConsumerWidget {
                   );
                   await batchDir.create(recursive: true);
 
-                  // Download each image
+                  // Download each image in parallel
                   final dio = Dio();
+                  final downloadFutures = <Future<void>>[];
                   for (int i = 0; i < selectedPosts.length; i++) {
                     final post = selectedPosts[i];
                     // Prefer sample file for smaller size, fallback to original
@@ -184,15 +185,16 @@ class HomeContent extends HookConsumerWidget {
                     final fileName = '${post.id}.$ext';
                     final filePath = '${batchDir.path}/$fileName';
 
-                    await dio.download(imageUrl, filePath);
+                    downloadFutures.add(dio.download(imageUrl, filePath));
                   }
+                  await Future.wait(downloadFutures);
 
                   // Create ZIP file
                   final archive = Archive();
                   final files = batchDir.listSync();
                   for (final file in files) {
                     if (file is File) {
-                      final data = file.readAsBytesSync();
+                      final data = await file.readAsBytes();
                       final fileName = file.path.split('/').last;
                       archive.addFile(ArchiveFile(fileName, data.length, data));
                     }

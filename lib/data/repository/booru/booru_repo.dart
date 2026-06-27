@@ -73,7 +73,9 @@ class BooruRepo implements ImageboardRepo {
       );
 
       final suggestionUrl = server.suggestionUrlsOf(word);
-      _log.i('getSuggestion(${server.name}): URL = $suggestionUrl');
+      _log.v(
+        'getSuggestion(${server.name}): URL = ${suggestionUrl.split('?').first}',
+      );
       final res = await _request(suggestionUrl, parser);
       _log.i(
         'getSuggestion(${server.name}): response data type = ${res.data.runtimeType}',
@@ -121,30 +123,43 @@ class BooruRepo implements ImageboardRepo {
 
   @override
   Future<Set<Post>> getPage(PageOption option, int index) async {
-    var parser = parsers.firstWhere(
-      (x) => x.id == server.searchParserId,
-      orElse: NoParser.new,
-    );
-
-    final searchUrl = server.searchUrlOf(option, page: index);
-    final res = await _request(searchUrl, parser);
-
-    if (parser.canParsePage(res)) {
-      _log.i('getPage(${server.name}): using ${parser.id}_parser');
-      return parser.parsePage(server, res).toSet();
-    }
-
-    parser = parsers.firstWhere(
-      (it) => it.canParsePage(res),
-      orElse: NoParser.new,
-    );
-
-    if (parser.id.isNotEmpty) {
-      _log.i(
-        'getPage(${server.name}): parser resolved, now using ${parser.id}_parser',
+    try {
+      var parser = parsers.firstWhere(
+        (x) => x.id == server.searchParserId,
+        orElse: NoParser.new,
       );
-    }
 
-    return parser.parsePage(server, res).toSet();
+      final searchUrl = server.searchUrlOf(option, page: index);
+      final res = await _request(searchUrl, parser);
+
+      if (parser.canParsePage(res)) {
+        _log.i('getPage(${server.name}): using ${parser.id}_parser');
+        return parser.parsePage(server, res).toSet();
+      }
+
+      parser = parsers.firstWhere(
+        (it) => it.canParsePage(res),
+        orElse: NoParser.new,
+      );
+
+      if (parser.id.isNotEmpty) {
+        _log.i(
+          'getPage(${server.name}): parser resolved, now using ${parser.id}_parser',
+        );
+      }
+
+      return parser.parsePage(server, res).toSet();
+    } on FormatException catch (_) {
+      _log.w('getPage(${server.name}): UTF-8 decode error, returning empty');
+      return {};
+    } on DioException catch (e) {
+      if (e.error is FormatException) {
+        _log.w(
+          'getPage(${server.name}): UTF-8 decode error in Dio, returning empty',
+        );
+        return {};
+      }
+      rethrow;
+    }
   }
 }

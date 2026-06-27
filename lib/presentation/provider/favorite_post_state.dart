@@ -12,6 +12,8 @@ class FavoritePostState extends _$FavoritePostState {
     return repo.get();
   }
 
+  Set<int> get _favoriteIds => state.map((p) => p.id).toSet();
+
   Future<void> clear() async {
     final repo = ref.read(favoritePostRepoProvider);
     await repo.clear();
@@ -25,7 +27,7 @@ class FavoritePostState extends _$FavoritePostState {
   }
 
   Future<void> save(Post post) async {
-    if (state.contains(post)) return;
+    if (_favoriteIds.contains(post.id)) return;
 
     final repo = ref.read(favoritePostRepoProvider);
     await repo.save(post);

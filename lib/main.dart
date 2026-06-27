@@ -15,6 +15,7 @@ import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/presentation/boorusphere.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -23,6 +24,7 @@ import 'package:boorusphere/presentation/provider/settings/entity/download_quali
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/utils/device_workarounds.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -72,15 +74,24 @@ void main() async {
   LocaleHelper.setupPluralResolver();
   DeviceWorkarounds.apply();
 
+  final results = await Future.wait<Object>([
+    provideSharedStorageHandle(),
+    provideCookieJar(),
+    provideDefaultServers(),
+    provideEnvRepo(),
+  ]);
+
   runApp(
     ProviderScope(
       overrides: [
         sharedStorageHandleProvider.overrideWithValue(
-          await provideSharedStorageHandle(),
+          results[0] as SharedStorageHandle,
         ),
-        cookieJarProvider.overrideWithValue(await provideCookieJar()),
-        defaultServersProvider.overrideWithValue(await provideDefaultServers()),
-        envRepoProvider.overrideWithValue(await provideEnvRepo()),
+        cookieJarProvider.overrideWithValue(results[1] as CookieJar),
+        defaultServersProvider.overrideWithValue(
+          results[2] as Map<String, Server>,
+        ),
+        envRepoProvider.overrideWithValue(results[3] as EnvRepo),
       ],
       child: TranslationProvider(child: const Boorusphere()),
     ),

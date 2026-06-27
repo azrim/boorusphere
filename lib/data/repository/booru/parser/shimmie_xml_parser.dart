@@ -49,7 +49,7 @@ class ShimmieXmlParser extends BooruParser {
 
     final conv = jsonDecode(xjson.toGData());
 
-    if (!conv.values.first.keys.contains('tag')) {
+    if (conv.isEmpty || !conv.values.first.keys.contains('tag')) {
       throw BooruError.empty;
     }
 

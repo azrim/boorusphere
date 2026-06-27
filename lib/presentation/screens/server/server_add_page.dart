@@ -123,17 +123,21 @@ class ServerAddPage extends HookConsumerWidget {
       if (first == 10) return true;
       if (first == 127) return true;
       if (first == 0) return true;
-      if (first == 172 && second != null && second >= 16 && second <= 31)
+      if (first == 172 && second != null && second >= 16 && second <= 31) {
         return true;
+      }
       if (first == 192 && second == 168) return true;
       return false;
     }
 
     validateAddress(String? value) {
-      if (value?.contains(RegExp(r'https?://.+\..+')) == false) {
+      if (value == null || value.trim().isEmpty) {
         return context.t.servers.addrError;
       }
-      final uri = Uri.tryParse(value!);
+      if (!value.contains(RegExp(r'https?://.+\..+'))) {
+        return context.t.servers.addrError;
+      }
+      final uri = Uri.tryParse(value);
       if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
         return context.t.servers.addrError;
       }

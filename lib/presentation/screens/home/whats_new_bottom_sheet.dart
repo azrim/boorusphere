@@ -38,8 +38,12 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
               ),
             ),
             changelog.when(
-              data: (data) =>
-                  ChangelogDataView(changelog: data.first, showVersion: false),
+              data: (data) => data.isEmpty
+                  ? const SizedBox.shrink()
+                  : ChangelogDataView(
+                      changelog: data.first,
+                      showVersion: false,
+                    ),
               error: (e, s) => Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

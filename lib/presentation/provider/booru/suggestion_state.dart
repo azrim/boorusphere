@@ -70,11 +70,9 @@ class SuggestionState extends _$SuggestionState {
           .read(imageboardRepoProvider(server))
           .getSuggestion(word);
       final blockedTags = ref.read(tagsBlockerRepoProvider);
+      final blockedNames = blockedTags.get().values.map((e) => e.name).toSet();
       final result = res
-          .where(
-            (it) =>
-                !blockedTags.get().values.map((e) => e.name).contains(it.name),
-          )
+          .where((it) => !blockedNames.contains(it.name))
           .toList();
       // Sort single-word tags before multi-word tags (booru tags use `_` as
       // the word separator, but treat literal spaces the same way for

@@ -57,7 +57,9 @@ class ServerState extends _$ServerState {
     final repo = ref.read(serverRepoProvider);
     await repo.reset();
     state = repo.servers;
-    await settings.setLastActiveId(state.first.id);
+    if (state.isNotEmpty) {
+      await settings.setLastActiveId(state.first.id);
+    }
   }
 }
 

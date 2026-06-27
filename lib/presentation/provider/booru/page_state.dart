@@ -24,12 +24,15 @@ class PageState extends _$PageState {
 
   final SearchSession session;
   final _posts = <Post>[];
+  final _seenIds = <int>{};
+  bool _loading = false;
   int _page = 0;
 
   @override
   FetchResult<PageData> build() {
     _page = 0;
     _posts.clear();
+    _seenIds.clear();
     return const FetchResult.idle(PageData());
   }
 
@@ -73,6 +76,7 @@ class PageState extends _$PageState {
     if (option.clear) {
       _page = 0;
       _posts.clear();
+      _seenIds.clear();
     }
 
     state = FetchResult.loading(
@@ -85,14 +89,18 @@ class PageState extends _$PageState {
       while (skipCount <= 3) {
         final res = await repo.getPage(option, _page);
         if (res.isEmpty) {
-          state = FetchResult.error(state.data, error: BooruError.empty);
+          if (_posts.isEmpty) {
+            state = FetchResult.error(state.data, error: BooruError.empty);
+          } else {
+            state = FetchResult.data(
+              state.data.copyWith(posts: List.unmodifiable(_posts)),
+            );
+          }
           return;
         }
         _page++;
 
-        final posts = res.where(
-          (it) => !_posts.any((post) => post.id == it.id),
-        );
+        final posts = res.where((it) => _seenIds.add(it.id));
         final displayedPosts = posts.where(
           (it) => !it.allTags.any(blockedTags.contains),
         );
@@ -113,7 +121,12 @@ class PageState extends _$PageState {
 
   Future<void> loadMore() async {
     if (state is! DataFetchResult) return;
-
-    await update((it) => it.copyWith(clear: false));
+    if (_loading) return;
+    _loading = true;
+    try {
+      await update((it) => it.copyWith(clear: false));
+    } finally {
+      _loading = false;
+    }
   }
 }

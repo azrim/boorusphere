@@ -18,17 +18,23 @@ class TimelineController extends ChangeNotifier {
 
   final AutoScrollController scrollController;
   final Future<void> Function()? onLoadMore;
+  bool _isLoading = false;
 
   Future<void> _autoLoadMore() async {
     if (!scrollController.hasClients) return;
+    if (_isLoading) return;
     if (scrollController.position.extentAfter < 200) {
-      await onLoadMore?.call();
+      _isLoading = true;
+      try {
+        await onLoadMore?.call();
+      } finally {
+        _isLoading = false;
+      }
     }
   }
 
   void scrollTo(int index) {
     if (!scrollController.hasClients) return;
-
     scrollController.scrollToIndex(index);
   }
 

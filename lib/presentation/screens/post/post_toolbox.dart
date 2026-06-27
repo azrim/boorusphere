@@ -161,7 +161,14 @@ class PostFavoriteButton extends HookConsumerWidget {
       ).animate(animator),
     );
     final isFav = favorites.contains(post);
-    isFav ? animator.forward() : animator.reverse();
+    useEffect(() {
+      if (isFav) {
+        animator.forward();
+      } else {
+        animator.reverse();
+      }
+      return null;
+    }, [isFav]);
 
     return IconButton(
       padding: const EdgeInsets.all(DesignTokens.spacingMd),
