@@ -99,12 +99,15 @@ class EnhancedPostViewer extends HookConsumerWidget {
     final sheetController = useMemoized(DraggableScrollableController.new);
     final sheetExpanded = useState(false);
 
-    // Post notifier for details sheet
+    // Post notifier for details sheet. Empty deps because the notifier
+    // must survive parent rebuilds — `onPageChanged` updates its .value
+    // directly. [postsList] was a wrong dep: posts.toList() creates a
+    // new List each build, causing useMemoized to recreate the notifier
+    // (resetting to the initial post) whenever a watched provider fires.
     final currentPostNotifier = useMemoized(
       () => ValueNotifier<Post>(
         postsList.isNotEmpty ? postsList[initial] : Post.empty,
       ),
-      [postsList],
     );
 
     useEffect(() {
