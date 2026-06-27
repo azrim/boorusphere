@@ -3,7 +3,10 @@ import 'package:boorusphere/data/repository/version/entity/app_version.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/domain/repository/version_repo.dart';
 import 'package:dio/dio.dart';
+import 'package:logging/logging.dart';
 import 'package:yaml/yaml.dart';
+
+final _log = Logger('AppVersionRepo');
 
 class AppVersionRepo implements VersionRepo {
   AppVersionRepo({required this.envRepo, required this.client});
@@ -44,7 +47,8 @@ class AppVersionRepo implements VersionRepo {
       if (res.statusCode == 200) {
         return _parseReleaseResponse(res.data) ?? AppVersion.zero;
       }
-    } catch (_) {
+    } catch (e) {
+      _log.warning('Version fetch failed: $e');
       // Fall through to pubspec fallback below.
     }
     try {
@@ -52,7 +56,8 @@ class AppVersionRepo implements VersionRepo {
       if (res.statusCode == 200) {
         return _parsePubspecResponse(res.data) ?? AppVersion.zero;
       }
-    } catch (_) {
+    } catch (e) {
+      _log.warning('Version fetch failed: $e');
       // Fall through to zero.
     }
     return AppVersion.zero;

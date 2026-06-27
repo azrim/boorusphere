@@ -66,10 +66,11 @@ class GelbooruXmlParser extends BooruParser {
     }
 
     final result = <Post>[];
+    final seenIds = <int>{};
 
     for (final post in entries.whereType<Map<String, dynamic>>()) {
       final id = pick(post, 'id').asIntOrNull() ?? -1;
-      if (result.any((it) => it.id == id)) {
+      if (!seenIds.add(id)) {
         // duplicated result, skipping
         continue;
       }

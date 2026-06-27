@@ -48,7 +48,8 @@ class BooruRepo implements ImageboardRepo {
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       try {
         data = json.decode(decoded);
-      } catch (_) {
+      } catch (e) {
+        _log.w('JSON decode failed: $e');
         data = decoded;
       }
     } else {

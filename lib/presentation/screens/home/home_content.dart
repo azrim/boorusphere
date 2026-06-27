@@ -237,7 +237,9 @@ class HomeContent extends HookConsumerWidget {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Batch download failed: $e')),
+                      const SnackBar(
+                        content: Text('Batch download failed'),
+                      ),
                     );
                   }
                 }

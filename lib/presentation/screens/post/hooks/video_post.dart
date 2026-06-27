@@ -100,18 +100,6 @@ class _VideoPostState extends HookState<VideoPostSource, _VideoPostHook> {
       postHeadersFactoryProvider(hook.post, cookies: cookies),
     );
 
-    final uri = Uri.parse(hook.post.content.url);
-    final controller = VideoPlayerController.networkUrl(
-      uri,
-      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      httpHeaders: headers,
-    );
-    unawaited(controller.setLooping(true));
-    final prog = DownloadProgress(hook.post.content.url, 1, 1);
-
-    setState(() {
-      source = source.copyWith(controller: controller, progress: prog);
-    });
     _cacheSubscription = cache
         .getFileStream(
           hook.post.content.url,

@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
+import 'package:boorusphere/utils/url_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -135,10 +136,14 @@ class PostOpenLinkButton extends StatelessWidget {
       padding: const EdgeInsets.all(DesignTokens.spacingMd),
       color: Colors.white,
       icon: const Icon(Icons.link_outlined),
-      onPressed: () => launchUrlString(
-        post.originalFile,
-        mode: LaunchMode.externalApplication,
-      ),
+      onPressed: () {
+        if (isSafeUrl(post.originalFile)) {
+          launchUrlString(
+            post.originalFile,
+            mode: LaunchMode.externalApplication,
+          );
+        }
+      },
     );
   }
 }

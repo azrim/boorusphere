@@ -23,6 +23,8 @@ class PageState extends _$PageState {
   PageState({this.session = const SearchSession()});
 
   final SearchSession session;
+  static const _maxLoadedPages = 3;
+
   final _posts = <Post>[];
   final _seenIds = <int>{};
   bool _loading = false;
@@ -105,7 +107,13 @@ class PageState extends _$PageState {
           (it) => !it.allTags.any(blockedTags.contains),
         );
         if (displayedPosts.isNotEmpty) {
-          _posts.addAll(posts);
+          _posts.addAll(displayedPosts);
+          // Trim old pages to prevent unbounded memory growth
+          final pageLimit = option.limit;
+          final maxPosts = _maxLoadedPages * pageLimit;
+          if (_posts.length > maxPosts) {
+            _posts.removeRange(0, _posts.length - maxPosts);
+          }
           state = FetchResult.data(
             state.data.copyWith(posts: List.unmodifiable(_posts)),
           );

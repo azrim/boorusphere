@@ -31,16 +31,19 @@ class DanbooruJsonParser extends BooruParser {
   @override
   bool canParsePage(Response res) {
     final data = res.data;
-    return data is List && data.toString().contains('preview_file_url');
+    return data is List &&
+        data.isNotEmpty &&
+        (data.first as Map).containsKey('preview_file_url');
   }
 
   @override
   List<Post> parsePage(Server server, Response res) {
     final entries = List.from(res.data);
     final result = <Post>[];
+    final seenIds = <int>{};
     for (final post in entries.whereType<Map<String, dynamic>>()) {
       final id = pick(post, 'id').asIntOrNull() ?? -1;
-      if (result.any((it) => it.id == id)) {
+      if (!seenIds.add(id)) {
         // duplicated result, skipping
         continue;
       }
@@ -96,8 +99,9 @@ class DanbooruJsonParser extends BooruParser {
   bool canParseSuggestion(Response res) {
     final data = res.data;
     return data is List &&
-        data.toString().contains('name') &&
-        data.toString().contains('post_count');
+        data.isNotEmpty &&
+        (data.first as Map).containsKey('name') &&
+        (data.first as Map).containsKey('post_count');
   }
 
   @override

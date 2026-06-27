@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/screens/post/quickbar.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/url_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -46,10 +47,12 @@ class PostUnknown extends ConsumerWidget {
             ),
             actionTitle: Text(context.t.openExternally),
             onPressed: () {
-              launchUrlString(
-                post.originalFile,
-                mode: LaunchMode.externalApplication,
-              );
+              if (isSafeUrl(post.originalFile)) {
+                launchUrlString(
+                  post.originalFile,
+                  mode: LaunchMode.externalApplication,
+                );
+              }
             },
           ),
         ),

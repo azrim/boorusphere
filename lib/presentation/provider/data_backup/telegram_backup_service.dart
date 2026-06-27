@@ -17,13 +17,17 @@ enum TelegramResult {
 
 @riverpod
 class TelegramBackupService extends _$TelegramBackupService {
-  static const _baseUrl = 'https://api.telegram.org/bot';
+  static const _apiBaseUrl = 'https://api.telegram.org';
   static const _maxFileSize = 50 * 1024 * 1024; // 50MB limit for Telegram
 
   @override
   TelegramResult? build() => null;
 
-  String _getBotUrl(String token, String method) => '$_baseUrl$token/$method';
+  String _getApiUrl(String method) => '$_apiBaseUrl/$method';
+
+  Map<String, String> _authHeaders(String token) => {
+    'Authorization': 'Bearer $token',
+  };
 
   Future<TelegramResult> testConnection() async {
     final settings = ref.read(periodicBackupSettingStateProvider);
@@ -37,7 +41,8 @@ class TelegramBackupService extends _$TelegramBackupService {
     try {
       // Test by sending a simple message
       final response = await http.post(
-        Uri.parse(_getBotUrl(token, 'sendMessage')),
+        Uri.parse(_getApiUrl('sendMessage')),
+        headers: _authHeaders(token),
         body: {
           'chat_id': chatId,
           'text':
@@ -86,9 +91,10 @@ class TelegramBackupService extends _$TelegramBackupService {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse(_getBotUrl(token, 'sendDocument')),
+        Uri.parse(_getApiUrl('sendDocument')),
       );
 
+      request.headers.addAll(_authHeaders(token));
       request.fields['chat_id'] = chatId;
       request.fields['caption'] =
           '📦 Boorusphere Backup\n📅 ${DateTime.now().toIso8601String()}';

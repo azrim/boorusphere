@@ -28,17 +28,21 @@ class AutocompleteJsonParser extends BooruParser {
 
     if (data is Map) {
       return false;
-    } else if (data is List) {
-      return data.toString().contains('label') &&
-          data.toString().contains('value');
+    } else if (data is List && data.isNotEmpty) {
+      final first = data.first;
+      return first is Map &&
+          first.containsKey('label') &&
+          first.containsKey('value');
     }
     try {
-      final isList = jsonDecode(data) is List;
-      final canParse =
-          isList &&
-          data.toString().contains('label') &&
-          data.toString().contains('value');
-      return canParse;
+      final parsed = jsonDecode(data);
+      if (parsed is List && parsed.isNotEmpty) {
+        final first = parsed.first;
+        return first is Map &&
+            first.containsKey('label') &&
+            first.containsKey('value');
+      }
+      return false;
     } catch (e) {
       return false;
     }

@@ -38,9 +38,10 @@ class BooruOnRailsJsonParser extends BooruParser {
   List<Post> parsePage(Server server, Response res) {
     final entries = List.from(res.data['images'] ?? <dynamic>[]);
     final result = <Post>[];
+    final seenIds = <int>{};
     for (final post in entries.whereType<Map<String, dynamic>>()) {
       final id = pick(post, 'id').asIntOrNull() ?? -1;
-      if (result.any((it) => it.id == id)) {
+      if (!seenIds.add(id)) {
         // duplicated result, skipping
         continue;
       }
@@ -89,9 +90,7 @@ class BooruOnRailsJsonParser extends BooruParser {
   @override
   bool canParseSuggestion(Response res) {
     final data = res.data;
-    return data is Map &&
-        data.keys.contains('tags') &&
-        data.toString().contains('images');
+    return data is Map && data.containsKey('tags');
   }
 
   @override

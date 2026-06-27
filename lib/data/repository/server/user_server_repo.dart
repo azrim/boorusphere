@@ -101,22 +101,31 @@ class UserServerRepo implements ServerRepo {
 
   @override
   Future<void> import(String src) async {
-    final List maps = jsonDecode(src);
-    if (maps.isEmpty) return;
-    await box.deleteAll(box.keys);
-    for (final map in maps) {
-      if (map is Map<String, dynamic>) {
-        final server = Server.fromJson(map);
-        await add(server);
+    try {
+      final List maps = jsonDecode(src);
+      if (maps.isEmpty) return;
+      await box.deleteAll(box.keys);
+      for (final map in maps) {
+        if (map is Map<String, dynamic>) {
+          final server = Server.fromJson(map);
+          await add(server);
+        }
       }
+      // Run migrations after import to fix any outdated server configs
+      await _migrateGelbooruSuggestionUrl();
+    } catch (e) {
+      // Import failed, leave existing data intact
     }
-    // Run migrations after import to fix any outdated server configs
-    await _migrateGelbooruSuggestionUrl();
   }
 
   @override
   Future<BackupItem> export() async {
-    return BackupItem(key, box.values.map((e) => e.toJson()).toList());
+    return BackupItem(key, box.values.map((e) {
+      final json = e.toJson();
+      json['login'] = '';
+      json['apiKey'] = '';
+      return json;
+    }).toList());
   }
 
   static const String key = 'server';

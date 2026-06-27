@@ -87,6 +87,13 @@ class DataBackupState extends _$DataBackupState {
     }
     final stream = InputFileStream(path);
     final decoder = ZipDecoder().decodeBuffer(stream);
+    const maxDecompressedSize = 100 * 1024 * 1024; // 100MB
+    final totalSize =
+        decoder.files.fold<int>(0, (sum, file) => sum + file.size);
+    if (totalSize > maxDecompressedSize) {
+      state = const BackupResult.error();
+      return;
+    }
     if (!decoder.files.any((it) => it.name == '$appId.json')) {
       state = const BackupResult.error();
       return;

@@ -10,8 +10,8 @@ import 'package:boorusphere/presentation/screens/post/post_placeholder_image.dar
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/presentation/utils/gestures/single_pointer_vertical_drag_recognizer.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -362,10 +362,10 @@ class _PostVideoSwipeOverlay extends StatelessWidget {
     return RawGestureDetector(
       behavior: HitTestBehavior.translucent,
       gestures: <Type, GestureRecognizerFactory>{
-        _SinglePointerVerticalDragRecognizer:
+        SinglePointerVerticalDragRecognizer:
             GestureRecognizerFactoryWithHandlers<
-              _SinglePointerVerticalDragRecognizer
-            >(_SinglePointerVerticalDragRecognizer.new, (instance) {
+              SinglePointerVerticalDragRecognizer
+            >(SinglePointerVerticalDragRecognizer.new, (instance) {
               instance.onEnd = (details) {
                 final velocity = details.velocity.pixelsPerSecond.dy;
                 if (velocity < -_swipeVelocity) {
@@ -377,50 +377,6 @@ class _PostVideoSwipeOverlay extends StatelessWidget {
             }),
       },
     );
-  }
-}
-
-/// Vertical drag recognizer that rejects itself the moment a 2nd pointer
-/// arrives. Same shape as the one in [PostImage] — duplicated rather
-/// than extracted to a shared file so each surface stays self-contained
-/// while we iterate on the gesture stack. Once both call sites stabilize
-/// it can be hoisted to a shared utility.
-class _SinglePointerVerticalDragRecognizer
-    extends VerticalDragGestureRecognizer {
-  _SinglePointerVerticalDragRecognizer({super.debugOwner});
-
-  final Set<int> _activePointers = <int>{};
-
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    _activePointers.add(event.pointer);
-    if (_activePointers.length > 1) {
-      // Multi-touch — yield to any pinch-to-zoom recognizer that may
-      // sit above us in the future. We deliberately do NOT call
-      // [super.addAllowedPointer] for this 2nd+ pointer, which means
-      // Flutter will never route its up/cancel events to us — so we
-      // must remove the pointer from our local set explicitly here to
-      // avoid leaking IDs across gestures (see the matching recognizer
-      // in `post_image.dart` for full diagnosis; symptom is that all
-      // subsequent single-finger gestures silently self-reject as
-      // "multi-touch").
-      _activePointers.remove(event.pointer);
-      resolve(GestureDisposition.rejected);
-      return;
-    }
-    super.addAllowedPointer(event);
-  }
-
-  @override
-  void rejectGesture(int pointer) {
-    _activePointers.remove(pointer);
-    super.rejectGesture(pointer);
-  }
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {
-    _activePointers.remove(pointer);
-    super.didStopTrackingLastPointer(pointer);
   }
 }
 

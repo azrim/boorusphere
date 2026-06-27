@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/provider/settings/content_setting_state
 import 'package:boorusphere/presentation/screens/post/post_placeholder_image.dart';
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/presentation/utils/gestures/single_pointer_vertical_drag_recognizer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -329,7 +330,7 @@ class PostImage extends HookConsumerWidget {
 
 /// Single-pointer gesture surface for the post viewer.
 ///
-/// Owns a custom [_SinglePointerVerticalDragRecognizer] that bows out
+/// Owns a custom [SinglePointerVerticalDragRecognizer] that bows out
 /// the moment a second pointer is added so [InteractiveViewer]'s
 /// [ScaleGestureRecognizer] always wins multi-touch gestures. Tap and
 /// double-tap remain single-pointer gestures and coexist via the
@@ -377,10 +378,10 @@ class _PostImageGestureOverlay extends StatelessWidget {
               },
             ),
         if (onSwipeUp != null || onSwipeDown != null)
-          _SinglePointerVerticalDragRecognizer:
+          SinglePointerVerticalDragRecognizer:
               GestureRecognizerFactoryWithHandlers<
-                _SinglePointerVerticalDragRecognizer
-              >(_SinglePointerVerticalDragRecognizer.new, (instance) {
+                SinglePointerVerticalDragRecognizer
+              >(SinglePointerVerticalDragRecognizer.new, (instance) {
                 instance.onEnd = (details) {
                   final velocity = details.velocity.pixelsPerSecond.dy;
                   if (velocity < -_swipeVelocity) {
@@ -396,70 +397,6 @@ class _PostImageGestureOverlay extends StatelessWidget {
 }
 
 /// A [VerticalDragGestureRecognizer] that synchronously rejects itself
-/// the moment a second pointer joins the gesture, freeing the gesture
-/// arena for [InteractiveViewer]'s [ScaleGestureRecognizer] to win
-/// pinch gestures uncontested.
-///
-/// The default [VerticalDragGestureRecognizer] tracks all incoming
-/// pointers and decides whether to claim based on dominant motion —
-/// which can race with scale recognition during a pinch that includes
-/// any vertical component, leaving the user unable to zoom.
-class _SinglePointerVerticalDragRecognizer
-    extends VerticalDragGestureRecognizer {
-  _SinglePointerVerticalDragRecognizer();
-
-  final Set<int> _activePointers = <int>{};
-
-  @override
-  void addAllowedPointer(PointerDownEvent event) {
-    _activePointers.add(event.pointer);
-    if (_activePointers.length > 1) {
-      // Multi-touch — yield to [InteractiveViewer]'s scale recognizer.
-      //
-      // We deliberately do NOT call `super.addAllowedPointer(event)`
-      // for this 2nd+ pointer — we don't want to track its drag. But
-      // because we never tracked it, Flutter never routes its
-      // up/cancel events to us, and `rejectGesture(pointer)` /
-      // `didStopTrackingLastPointer(pointer)` are NEVER fired for this
-      // pointer either. If we leave [event.pointer] in [_activePointers]
-      // it leaks: the next pointer-down event we see will count it
-      // toward the multi-touch threshold even though the finger is
-      // long gone, and the recognizer will silently self-reject every
-      // subsequent single-finger gesture.
-      //
-      // User report (post v2.0.15): "after zooming out using pinch
-      // until original size, if I zoom out again at original size, the
-      // swipe up and down gesture is doing nothing." Reproduces because
-      // a second pinch at scale = 1 doesn't toggle `isZoomed`, so
-      // [RawGestureDetector] keeps the same recognizer instance with
-      // the leaked pointer ID.
-      //
-      // Fix: explicitly remove the new pointer from our local set
-      // before resolving. Pointer 1 (the one in arena) gets cleaned up
-      // via `rejectGesture` / `didStopTrackingLastPointer` as usual.
-      _activePointers.remove(event.pointer);
-      resolve(GestureDisposition.rejected);
-      return;
-    }
-    super.addAllowedPointer(event);
-  }
-
-  @override
-  void rejectGesture(int pointer) {
-    _activePointers.remove(pointer);
-    super.rejectGesture(pointer);
-  }
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {
-    _activePointers.remove(pointer);
-    super.didStopTrackingLastPointer(pointer);
-  }
-
-  @override
-  String get debugDescription => 'single_pointer_vertical_drag';
-}
-
 void _scheduleLoadState(
   ValueNotifier<_PostImageLoadState> notifier,
   _PostImageLoadState next,

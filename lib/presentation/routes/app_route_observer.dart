@@ -4,6 +4,9 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('AppRouteObserver');
 
 class AppRouteObserver extends AutoRouterObserver {
   AppRouteObserver(this.ref);
@@ -14,7 +17,10 @@ class AppRouteObserver extends AutoRouterObserver {
     dynamic args = route?.settings.arguments;
     try {
       return args.session;
-    } catch (_) {}
+    } catch (e) {
+      _log.warning('Failed to extract session from route: $e');
+      return null;
+    }
   }
 
   void _setLastActiveServer(String id) {

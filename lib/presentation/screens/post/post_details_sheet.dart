@@ -14,6 +14,7 @@ import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/url_validator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -170,7 +171,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                     top: Radius.circular(DesignTokens.radiusXl),
                   ),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: content,
                   ),
                 );
@@ -470,7 +471,11 @@ class _LinkText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => launchUrlString(url, mode: LaunchMode.externalApplication),
+      onTap: () {
+        if (isSafeUrl(url)) {
+          launchUrlString(url, mode: LaunchMode.externalApplication);
+        }
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
