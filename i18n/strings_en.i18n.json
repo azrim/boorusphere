@@ -294,5 +294,48 @@
       "backupSent": "Backup sent to Telegram",
       "backupFailed": "Failed to send backup"
     }
-  }
+  },
+  "onboarding": {
+    "welcome_title": "Welcome to Boorusphere",
+    "welcome_desc": "Add a booru server to start discovering and collecting images",
+    "add_first_server": "Add your first server",
+    "browse_presets": "Browse popular servers",
+    "start_browsing": "Start browsing"
+  },
+  "batch": {
+    "downloading": "Downloading ${n} images...",
+    "downloaded": "Downloaded ${n} images to ${filename}",
+    "failed": "Batch download failed",
+    "favorited": "Added ${n} posts to favorites",
+    "selected": "${n} selected"
+  },
+  "settings_page": {
+    "color_palette": "Color Palette",
+    "gesture_settings": "Gesture Settings",
+    "swipe_horizontal": "Horizontal swipe",
+    "swipe_vertical": "Vertical swipe",
+    "swipe_mode": "Swipe Mode",
+    "swipe_mode_desc": "Choose how to navigate between posts",
+    "swipe_actions": "Swipe Actions",
+    "swipe_to_details": "Swipe to Details",
+    "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
+    "swipe_to_dismiss": "Swipe to Dismiss",
+    "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
+    "sensitivity": "Sensitivity",
+    "swipe_down_threshold": "Swipe Down Threshold",
+    "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
+    "reset": "Reset",
+    "reset_success": "Gesture settings reset to defaults",
+    "horizontal": "Horizontal",
+    "horizontal_desc": "Swipe left/right to navigate between posts",
+    "vertical": "Vertical",
+    "vertical_desc": "Swipe up/down to navigate between posts"
+  },
+  "error": {
+    "unknown": "Something went wrong and we don't know why"
+  },
+  "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+  "downloads_hint": "Open any post and tap download to save it to your device.",
+  "page_status_empty_hint": "Try different tags, or check the rating filter above.",
+  "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
 }

@@ -19,7 +19,7 @@ class NoticeCard extends StatelessWidget {
       elevation: 0,
       margin: margin,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(20)),
+        borderRadius: BorderRadius.all(Radius.circular(DesignTokens.radiusXl)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(DesignTokens.spacingLg),

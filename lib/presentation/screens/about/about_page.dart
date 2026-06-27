@@ -257,7 +257,7 @@ class _Downloader extends ConsumerWidget {
           ),
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
               child: LinearProgressIndicator(
                 value: progress.progress.ratio,
                 minHeight: 16,

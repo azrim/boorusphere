@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/home_status.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_screen.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
@@ -96,6 +99,49 @@ class HomeContent extends HookConsumerWidget {
     final selection = ref.watch(postSelectionProvider);
     final hasSelection = selection.isNotEmpty;
 
+    if (servers.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(DesignTokens.spacingXl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.explore,
+                size: 72,
+                color: context.colorScheme.primary.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: DesignTokens.spacingLg),
+              Text(
+                context.t.onboarding.welcomeTitle,
+                style: context.theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: DesignTokens.spacingSm),
+              Text(
+                context.t.onboarding.welcomeDesc,
+                textAlign: TextAlign.center,
+                style: context.theme.textTheme.bodyMedium?.copyWith(
+                  color: context.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: DesignTokens.spacingLg),
+              FilledButton.icon(
+                onPressed: () => context.router.push(const ServerAddRoute()),
+                icon: const Icon(Icons.add),
+                label: Text(context.t.onboarding.addFirstServer),
+              ),
+              const SizedBox(height: DesignTokens.spacingSm),
+              TextButton(
+                onPressed: () =>
+                    context.router.push(ServerPresetRoute()),
+                child: Text(context.t.onboarding.browsePresets),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -153,7 +199,7 @@ class HomeContent extends HookConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Downloading ${selectedPosts.length} images...',
+                        context.t.batch.downloading(n: selectedPosts.length),
                       ),
                       duration: const Duration(seconds: 2),
                     ),
@@ -227,18 +273,21 @@ class HomeContent extends HookConsumerWidget {
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Downloaded ${selectedPosts.length} images to $zipFileName',
+                    SnackBar(
+                      content: Text(
+                        context.t.batch.downloaded(
+                          n: selectedPosts.length,
+                          filename: zipFileName,
                         ),
                       ),
+                    ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Batch download failed'),
+                      SnackBar(
+                        content: Text(context.t.batch.failed),
                       ),
                     );
                   }
@@ -256,7 +305,7 @@ class HomeContent extends HookConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Added ${selectedPosts.length} posts to favorites',
+                        context.t.batch.favorited(n: selectedPosts.length),
                       ),
                     ),
                   );
@@ -302,12 +351,12 @@ class _SelectionActionBar extends StatelessWidget {
             TextButton.icon(
               onPressed: onDownload,
               icon: const Icon(Icons.download),
-              label: const Text('Download'),
+              label: Text(context.t.downloads.title),
             ),
             TextButton.icon(
               onPressed: onFavorite,
               icon: const Icon(Icons.favorite_border),
-              label: const Text('Favorite'),
+              label: Text(context.t.favorites.title),
             ),
             TextButton.icon(
               onPressed: onClear,

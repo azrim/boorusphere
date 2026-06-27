@@ -421,6 +421,7 @@ class _Progress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = source.controller;
+    final colorScheme = Theme.of(context).colorScheme;
 
     if (controller == null || !controller.value.isInitialized) {
       return Padding(
@@ -430,14 +431,15 @@ class _Progress extends StatelessWidget {
             if (_isDownloading(source))
               LinearProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.white.withAlpha(100),
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 ),
                 value: _getProgressValue(source),
                 backgroundColor: Colors.transparent,
               ),
             LinearProgressIndicator(
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
-              backgroundColor: Colors.white.withAlpha(20),
+              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+              backgroundColor:
+                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             ),
           ],
         ),
@@ -447,8 +449,8 @@ class _Progress extends StatelessWidget {
     return VideoProgressIndicator(
       controller,
       colors: VideoProgressColors(
-        playedColor: Colors.red,
-        backgroundColor: Colors.white.withAlpha(20),
+        playedColor: colorScheme.primary,
+        backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       ),
       allowScrubbing: true,
       padding: const EdgeInsets.only(top: 16, bottom: 16),

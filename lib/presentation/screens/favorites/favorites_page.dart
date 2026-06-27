@@ -56,7 +56,20 @@ class _EmptyView extends StatelessWidget {
               child: NoticeCard(
                 icon: const Icon(Icons.favorite),
                 margin: const EdgeInsets.only(top: 64),
-                children: Text(context.t.favorites.placeholder),
+                children: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(context.t.favorites.placeholder),
+                    const SizedBox(height: DesignTokens.spacingSm),
+                    Text(
+                      context.t.favoritesHint,
+                      textAlign: TextAlign.center,
+                      style: context.theme.textTheme.bodySmall?.copyWith(
+                        color: context.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

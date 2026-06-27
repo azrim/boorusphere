@@ -43,6 +43,10 @@ class AppRouter extends RootStackRouter {
     CustomRoute(page: TagsBlockerRoute.page, customRouteBuilder: _routeBuilder),
     CustomRoute(page: SettingsRoute.page, customRouteBuilder: _routeBuilder),
     CustomRoute(
+      page: GestureSettingsRoute.page,
+      customRouteBuilder: _routeBuilder,
+    ),
+    CustomRoute(
       page: LanguageSettingsRoute.page,
       customRouteBuilder: _routeBuilder,
     ),

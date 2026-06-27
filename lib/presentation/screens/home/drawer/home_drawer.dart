@@ -180,7 +180,7 @@ class AppVersionTile extends ConsumerWidget {
         }
         return ListTile(
           title: Text(context.t.updater.available(version: '${data.latest}')),
-          leading: Icon(Icons.info_outline, color: Colors.pink.shade300),
+          leading: Icon(Icons.info_outline, color: context.colorScheme.tertiary),
           subtitle: Text(
             updateProgress.status.isDownloaded
                 ? context.t.updater.install
@@ -301,8 +301,8 @@ class _ServerSelection extends ConsumerWidget {
             leading: const Icon(Icons.add_circle_outline, size: 21),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
-                topRight: Radius.circular(16),
-                bottomRight: Radius.circular(16),
+                topRight: Radius.circular(DesignTokens.radiusXl),
+                bottomRight: Radius.circular(DesignTokens.radiusXl),
               ),
             ),
             onTap: () => context.router.push(const ServerAddRoute()),
@@ -321,8 +321,8 @@ class _ServerSelection extends ConsumerWidget {
             leading: const Icon(Icons.restore, size: 21),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
-                topRight: Radius.circular(16),
-                bottomRight: Radius.circular(16),
+                topRight: Radius.circular(DesignTokens.radiusXl),
+                bottomRight: Radius.circular(DesignTokens.radiusXl),
               ),
             ),
             onTap: () {

@@ -9,7 +9,6 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
-import 'package:boorusphere/presentation/screens/settings/gesture_settings_page.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
@@ -219,7 +218,7 @@ class _ColorPalette extends ConsumerWidget {
     final currentPalette = ref.watch(uiSettingStateProvider).colorPalette;
 
     return ListTile(
-      title: const Text('Color Palette'),
+      title: Text(context.t.settingsPage.colorPalette),
       subtitle: Text(currentPalette.displayName),
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
@@ -240,7 +239,7 @@ class _ColorPalette extends ConsumerWidget {
                       )
                     : const Icon(Icons.brightness_auto),
                 trailing: currentPalette == palette
-                    ? const Icon(Icons.check, color: Colors.green)
+                    ? Icon(Icons.check, color: context.colorScheme.primary)
                     : null,
                 onTap: () {
                   ref
@@ -369,19 +368,17 @@ class _GestureSettings extends ConsumerWidget {
     );
 
     return ListTile(
-      title: const Text('Gesture Settings'),
+      title: Text(context.t.settingsPage.gestureSettings),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(
           swipeMode == SwipeMode.horizontal
-              ? 'Horizontal swipe'
-              : 'Vertical swipe',
+              ? context.t.settingsPage.swipeHorizontal
+              : context.t.settingsPage.swipeVertical,
         ),
       ),
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const GestureSettingsPage()),
-        );
+        context.router.push(const GestureSettingsRoute());
       },
     );
   }

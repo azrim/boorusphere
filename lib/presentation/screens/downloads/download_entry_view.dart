@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -105,7 +106,7 @@ class DownloadEntryView extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Wrap(
           children: [
             SeparatedRow(
@@ -118,7 +119,7 @@ class DownloadEntryView extends ConsumerWidget {
                     height: 18,
                     width: 18,
                     child: Padding(
-                      padding: const EdgeInsets.all(3),
+                      padding: const EdgeInsets.all(DesignTokens.spacingXs),
                       child: CircularProgressIndicator(
                         value: progress.status.isPending
                             ? null
@@ -154,7 +155,7 @@ class DownloadEntryView extends ConsumerWidget {
         ),
       ),
       leading: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(5)),
+        borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
         child: CachedNetworkImage(
           imageUrl: entry.post.previewFile,
           httpHeaders: headers,
@@ -188,7 +189,7 @@ class DownloadImagePreview extends HookWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: const BorderRadius.all(Radius.circular(5)),
+      borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
       child: CachedNetworkImage(
         imageUrl: entry.post.previewFile,
         httpHeaders: headers,

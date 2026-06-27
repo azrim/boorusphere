@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
@@ -17,7 +18,7 @@ class GestureSettingsPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Gesture Settings')),
+      appBar: AppBar(title: Text(context.t.settingsPage.gestureSettings)),
       body: StyledOverlayRegion(
         child: SafeArea(
           child: ListView(
@@ -31,12 +32,12 @@ class GestureSettingsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Swipe Mode',
+                        context.t.settingsPage.swipeMode,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Choose how to navigate between posts',
+                        context.t.settingsPage.swipeModeDesc,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 16),
@@ -59,23 +60,23 @@ class GestureSettingsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Swipe Actions',
+                        context.t.settingsPage.swipeActions,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 16),
                       SwitchListTile(
-                        title: const Text('Swipe to Details'),
-                        subtitle: const Text(
-                          'Swipe up to open post details (horizontal mode)',
+                        title: Text(context.t.settingsPage.swipeToDetails),
+                        subtitle: Text(
+                          context.t.settingsPage.swipeToDetailsDesc,
                         ),
                         value: gestureSettings.enableSwipeToDetails,
                         onChanged: (_) =>
                             gestureNotifier.toggleSwipeToDetails(),
                       ),
                       SwitchListTile(
-                        title: const Text('Swipe to Dismiss'),
-                        subtitle: const Text(
-                          'Swipe down to close viewer (horizontal mode)',
+                        title: Text(context.t.settingsPage.swipeToDismiss),
+                        subtitle: Text(
+                          context.t.settingsPage.swipeToDismissDesc,
                         ),
                         value: gestureSettings.enableSwipeToDismiss,
                         onChanged: (_) =>
@@ -96,14 +97,16 @@ class GestureSettingsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sensitivity',
+                        context.t.settingsPage.sensitivity,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 16),
                       ListTile(
-                        title: const Text('Swipe Down Threshold'),
+                        title: Text(context.t.settingsPage.swipeDownThreshold),
                         subtitle: Text(
-                          'Distance required to trigger dismiss: ${gestureSettings.swipeDownThreshold.round()}px',
+                          context.t.settingsPage.swipeDownThresholdDesc(
+                            threshold: gestureSettings.swipeDownThreshold.round(),
+                          ),
                         ),
                         trailing: SizedBox(
                           width: 200,
@@ -131,7 +134,7 @@ class GestureSettingsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Reset',
+                        context.t.settingsPage.reset,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 16),
@@ -139,15 +142,15 @@ class GestureSettingsPage extends ConsumerWidget {
                         onPressed: () {
                           gestureNotifier.reset();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
+                            SnackBar(
                               content: Text(
-                                'Gesture settings reset to defaults',
+                                context.t.settingsPage.resetSuccess,
                               ),
-                              duration: Duration(seconds: 2),
+                              duration: const Duration(seconds: 2),
                             ),
                           );
                         },
-                        child: const Text('Reset to Defaults'),
+                        child: Text(context.t.resetToDefault),
                       ),
                     ],
                   ),
@@ -176,8 +179,8 @@ class _SwipeModeSelector extends StatelessWidget {
       children: [
         _SwipeModeOption(
           mode: SwipeMode.horizontal,
-          title: 'Horizontal',
-          subtitle: 'Swipe left/right to navigate between posts',
+          title: context.t.settingsPage.horizontal,
+          subtitle: context.t.settingsPage.horizontalDesc,
           icon: Icons.swap_horiz,
           isSelected: currentMode == SwipeMode.horizontal,
           onTap: () => onModeChanged(SwipeMode.horizontal),
@@ -185,8 +188,8 @@ class _SwipeModeSelector extends StatelessWidget {
         const SizedBox(height: 8),
         _SwipeModeOption(
           mode: SwipeMode.vertical,
-          title: 'Vertical',
-          subtitle: 'Swipe up/down to navigate between posts',
+          title: context.t.settingsPage.vertical,
+          subtitle: context.t.settingsPage.verticalDesc,
           icon: Icons.swap_vert,
           isSelected: currentMode == SwipeMode.vertical,
           onTap: () => onModeChanged(SwipeMode.vertical),

@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/screens/downloads/download_entry_view.dart';
 import 'package:boorusphere/presentation/screens/downloads/download_filter.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/expandable_group_list_view.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
@@ -109,9 +110,32 @@ class DownloadsPage extends HookConsumerWidget {
                   children: [
                     Center(
                       child: NoticeCard(
-                        icon: const Icon(Icons.cloud_download),
+                        icon: Icon(
+                          downloadEntries.isEmpty
+                              ? Icons.cloud_download
+                              : Icons.filter_list_off,
+                        ),
                         margin: const EdgeInsets.only(top: 64),
-                        children: Text(context.t.downloads.placeholder),
+                        children: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              downloadEntries.isEmpty
+                                  ? context.t.downloads.placeholder
+                                  : context.t.downloads.placeholder,
+                            ),
+                            const SizedBox(height: DesignTokens.spacingSm),
+                            Text(
+                              context.t.downloadsHint,
+                              textAlign: TextAlign.center,
+                              style:
+                                  context.theme.textTheme.bodySmall?.copyWith(
+                                    color:
+                                        context.colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

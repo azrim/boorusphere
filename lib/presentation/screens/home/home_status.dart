@@ -10,6 +10,8 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
@@ -78,6 +80,17 @@ class _ErrorStatus extends ConsumerWidget {
     }
   }
 
+  Icon _getIconForError(Object? error) {
+    if (error is DioException) {
+      return const Icon(Icons.wifi_off);
+    } else if (error == BooruError.empty) {
+      return const Icon(Icons.explore_off);
+    } else if (error == BooruError.tagsBlocked) {
+      return const Icon(Icons.block);
+    }
+    return const Icon(Icons.error_outline);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
@@ -85,14 +98,26 @@ class _ErrorStatus extends ConsumerWidget {
 
     return Center(
       child: NoticeCard(
-        icon: const Icon(Icons.search),
-        margin: const EdgeInsets.all(16),
+        icon: _getIconForError(error),
+        margin: const EdgeInsets.all(DesignTokens.spacingMd),
         children: Column(
           children: [
             ErrorInfo(
               error: buildError(context, server),
               stackTrace: stackTrace,
             ),
+            if (error == BooruError.empty)
+              Padding(
+                padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
+                child: Text(
+                  data.option.searchRating == BooruRating.safe
+                      ? context.t.pageStatusEmptyHintRating
+                      : context.t.pageStatusEmptyHint,
+                  style: context.theme.textTheme.bodySmall?.copyWith(
+                    color: context.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [

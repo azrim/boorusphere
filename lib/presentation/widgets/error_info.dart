@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
+import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -24,11 +25,12 @@ class ErrorInfo extends HookWidget {
   final TextStyle? style;
   final EdgeInsets padding;
 
-  String get describeError {
+  String describeError(BuildContext context) {
     dynamic e = error;
     String? host;
     if (e == null) {
-      return "Something went wrong and we don't know why";
+      final t = TranslationProvider.of(context).translations;
+      return t.error.unknown;
     }
 
     while (true) {
@@ -76,7 +78,7 @@ class ErrorInfo extends HookWidget {
           children: [
             DefaultTextStyle(
               style: style ?? DefaultTextStyle.of(context).style,
-              child: Text(describeError, textAlign: textAlign),
+              child: Text(describeError(context), textAlign: textAlign),
             ),
             if (showTrace.value && stackTrace != null)
               Column(

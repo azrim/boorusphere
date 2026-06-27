@@ -265,7 +265,7 @@ class _TagActionBar extends ConsumerWidget {
           child: Row(
             children: [
               Text(
-                '${selectedTags.length} selected',
+                context.t.batch.selected(n: selectedTags.length),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const Spacer(),

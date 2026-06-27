@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 
@@ -51,7 +52,7 @@ class QuickBar extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
           color: context.colorScheme.surface,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -81,7 +82,7 @@ class QuickBar extends StatelessWidget {
             if (useProgressBar)
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
                   color: context.theme.colorScheme.surface,
                 ),
                 padding: const EdgeInsets.all(8),
