@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:boorusphere/data/encryption.dart';
 import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/domain/repository/settings_repo.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
@@ -54,6 +55,22 @@ class UserSettingsRepo implements SettingsRepo {
 
   static const String key = 'settings';
   static Future<void> prepare() async {
-    await Hive.openBox(key);
+    final cipher = await EncryptionHelper.getCipher();
+
+    try {
+      await Hive.openBox(key, encryptionCipher: cipher);
+    } catch (_) {
+      // Migration: old data was unencrypted
+      final plainBox = await Hive.openBox(key);
+      final data = plainBox.toMap();
+      await plainBox.close();
+
+      await Hive.deleteBoxFromDisk(key);
+
+      final encryptedBox =
+          await Hive.openBox(key, encryptionCipher: cipher);
+      await encryptedBox.putAll(data);
+      await encryptedBox.flush();
+    }
   }
 }

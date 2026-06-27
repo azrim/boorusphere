@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:boorusphere/data/encryption.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/server_data_repo.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
@@ -131,6 +132,22 @@ class UserServerRepo implements ServerRepo {
   static const String key = 'server';
 
   static Future<void> prepare() async {
-    await Hive.openBox<Server>(key);
+    final cipher = await EncryptionHelper.getCipher();
+
+    try {
+      await Hive.openBox<Server>(key, encryptionCipher: cipher);
+    } catch (_) {
+      // Migration: old data was unencrypted
+      final plainBox = await Hive.openBox<Server>(key);
+      final data = plainBox.toMap();
+      await plainBox.close();
+
+      await Hive.deleteBoxFromDisk(key);
+
+      final encryptedBox =
+          await Hive.openBox<Server>(key, encryptionCipher: cipher);
+      await encryptedBox.putAll(data);
+      await encryptedBox.flush();
+    }
   }
 }

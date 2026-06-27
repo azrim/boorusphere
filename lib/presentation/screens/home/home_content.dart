@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/batch_download_provider.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
@@ -19,11 +18,9 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 class HomeContent extends HookConsumerWidget {
   const HomeContent({super.key});
@@ -187,14 +184,12 @@ class HomeContent extends HookConsumerWidget {
             child: _SelectionActionBar(
               selectedCount: selection.length,
               onDownload: () async {
-                // Batch download: download images and create ZIP
                 final selectedPosts = filteredPosts
                     .where((post) => selection.contains(post.id))
                     .toList();
 
                 if (selectedPosts.isEmpty) return;
 
-                // Show downloading message
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -206,85 +201,31 @@ class HomeContent extends HookConsumerWidget {
                   );
                 }
 
-                try {
-                  // Create temp directory for downloads
-                  final tempDir = await getTemporaryDirectory();
-                  final batchDir = Directory(
-                    '${tempDir.path}/batch_download_${DateTime.now().millisecondsSinceEpoch}',
-                  );
-                  await batchDir.create(recursive: true);
+                final imageUrls = selectedPosts
+                    .map(
+                      (post) => post.sampleFile.isNotEmpty
+                          ? post.sampleFile
+                          : post.originalFile,
+                    )
+                    .where((url) => url.isNotEmpty)
+                    .toList();
 
-                  // Download each image in parallel
-                  final dio = Dio();
-                  final downloadFutures = <Future<void>>[];
-                  for (int i = 0; i < selectedPosts.length; i++) {
-                    final post = selectedPosts[i];
-                    // Prefer sample file for smaller size, fallback to original
-                    final imageUrl = post.sampleFile.isNotEmpty
-                        ? post.sampleFile
-                        : post.originalFile;
-                    if (imageUrl.isEmpty) continue;
+                final result = await BatchDownloadProvider.download(imageUrls);
 
-                    // Extract file extension from URL
-                    final urlParts = imageUrl.split('.');
-                    final ext = urlParts.last.split('?').first;
-                    final fileName = '${post.id}.$ext';
-                    final filePath = '${batchDir.path}/$fileName';
-
-                    downloadFutures.add(dio.download(imageUrl, filePath));
-                  }
-                  await Future.wait(downloadFutures);
-
-                  // Create ZIP file
-                  final archive = Archive();
-                  final files = batchDir.listSync();
-                  for (final file in files) {
-                    if (file is File) {
-                      final data = await file.readAsBytes();
-                      final fileName = file.path.split('/').last;
-                      archive.addFile(ArchiveFile(fileName, data.length, data));
-                    }
-                  }
-
-                  // Encode archive to ZIP
-                  final zipEncoder = ZipEncoder();
-                  final zipData = zipEncoder.encode(archive);
-                  if (zipData == null) {
-                    throw Exception('Failed to create ZIP archive');
-                  }
-
-                  // Save ZIP to documents directory
-                  final documentsDir = await getApplicationDocumentsDirectory();
-                  final downloadsDir = Directory(
-                    '${documentsDir.path}/downloads',
-                  );
-                  if (!downloadsDir.existsSync()) {
-                    downloadsDir.createSync(recursive: true);
-                  }
-
-                  final zipFileName =
-                      'batch_${DateTime.now().millisecondsSinceEpoch}.zip';
-                  final finalZipPath = '${downloadsDir.path}/$zipFileName';
-                  final zipFile = File(finalZipPath);
-                  await zipFile.writeAsBytes(zipData);
-
-                  // Clean up temp files
-                  await batchDir.delete(recursive: true);
-
-                  if (context.mounted) {
+                if (context.mounted) {
+                  if (result.success) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        context.t.batch.downloaded(
-                          n: selectedPosts.length,
-                          filename: zipFileName,
+                      SnackBar(
+                        content: Text(
+                          context.t.batch.downloaded(
+                            n: selectedPosts.length,
+                            filename:
+                                result.zipPath?.split('/').last ?? 'batch.zip',
+                          ),
                         ),
                       ),
-                    ),
                     );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
+                  } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(context.t.batch.failed),
