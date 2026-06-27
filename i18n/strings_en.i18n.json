@@ -305,9 +305,11 @@
   "batch": {
     "downloading": "Downloading ${n} images...",
     "downloaded": "Downloaded ${n} images to ${filename}",
+    "downloaded_files": "Downloaded ${n} images to Downloads",
     "failed": "Batch download failed",
     "favorited": "Added ${n} posts to favorites",
-    "selected": "${n} selected"
+    "selected": "${n} selected",
+    "as_archive": "Save as ZIP"
   },
   "settings_page": {
     "color_palette": "Color Palette",

@@ -183,7 +183,7 @@ class HomeContent extends HookConsumerWidget {
             right: 16,
             child: _SelectionActionBar(
               selectedCount: selection.length,
-              onDownload: () async {
+              onDownload: (asArchive) async {
                 final selectedPosts = filteredPosts
                     .where((post) => selection.contains(post.id))
                     .toList();
@@ -210,20 +210,25 @@ class HomeContent extends HookConsumerWidget {
                     .where((url) => url.isNotEmpty)
                     .toList();
 
-                final result = await BatchDownloadProvider.download(imageUrls);
+                final result = await BatchDownloadProvider.download(
+                  imageUrls,
+                  asArchive: asArchive,
+                );
 
                 if (context.mounted) {
                   if (result.success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          context.t.batch.downloaded(
+                    final msg = asArchive
+                        ? context.t.batch.downloaded(
                             n: selectedPosts.length,
                             filename:
-                                result.zipPath?.split('/').last ?? 'batch.zip',
-                          ),
-                        ),
-                      ),
+                                result.savedPath?.split('/').last ??
+                                'batch.zip',
+                          )
+                        : context.t.batch.downloadedFiles(
+                            n: selectedPosts.length,
+                          );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(msg)),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -263,7 +268,7 @@ class HomeContent extends HookConsumerWidget {
   }
 }
 
-class _SelectionActionBar extends StatelessWidget {
+class _SelectionActionBar extends StatefulWidget {
   const _SelectionActionBar({
     required this.selectedCount,
     required this.onDownload,
@@ -272,9 +277,16 @@ class _SelectionActionBar extends StatelessWidget {
   });
 
   final int selectedCount;
-  final VoidCallback onDownload;
+  final void Function(bool asArchive) onDownload;
   final VoidCallback onFavorite;
   final VoidCallback onClear;
+
+  @override
+  State<_SelectionActionBar> createState() => _SelectionActionBarState();
+}
+
+class _SelectionActionBarState extends State<_SelectionActionBar> {
+  bool _asArchive = false;
 
   @override
   Widget build(BuildContext context) {
@@ -289,20 +301,42 @@ class _SelectionActionBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            TextButton.icon(
-              onPressed: onDownload,
-              icon: const Icon(Icons.download),
-              label: Text(context.t.downloads.title),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton.icon(
+                  onPressed: () => widget.onDownload(_asArchive),
+                  icon: Icon(
+                    _asArchive ? Icons.archive : Icons.download,
+                  ),
+                  label: Text(context.t.downloads.title),
+                ),
+                GestureDetector(
+                  onTap: () => setState(() => _asArchive = !_asArchive),
+                  child: Tooltip(
+                    message: context.t.batch.asArchive,
+                    child: Icon(
+                      _asArchive
+                          ? Icons.toggle_on
+                          : Icons.toggle_off_outlined,
+                      size: 28,
+                      color: _asArchive
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
             ),
             TextButton.icon(
-              onPressed: onFavorite,
+              onPressed: widget.onFavorite,
               icon: const Icon(Icons.favorite_border),
               label: Text(context.t.favorites.title),
             ),
             TextButton.icon(
-              onPressed: onClear,
+              onPressed: widget.onClear,
               icon: const Icon(Icons.clear),
-              label: Text('$selectedCount'),
+              label: Text('${widget.selectedCount}'),
             ),
           ],
         ),
