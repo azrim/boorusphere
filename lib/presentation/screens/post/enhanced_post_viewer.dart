@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
@@ -80,7 +78,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timelineController = ref.watch(timelineControllerProvider);
     final session = ref.watch(searchSessionProvider);
-    const loadMoreThreshold = 90;
     final postsList = posts.toList();
 
     final controller = useMemoized(
@@ -129,8 +126,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
     final fullscreen = ref.watch(fullscreenStateProvider);
     final showAppbar = useState(true);
-    final isLoadingMore = useState(false);
-    final loadMore = timelineController.onLoadMore;
     final loadOriginal = ref.watch(
       contentSettingStateProvider.select((it) => it.loadOriginal),
     );
@@ -262,7 +257,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               ? const _GentlePageScrollPhysics()
                               : const NeverScrollableScrollPhysics(),
                           allowImplicitScrolling: true,
-                          onPageChanged: (index) async {
+                          onPageChanged: (index) {
                             // The new page starts at scale 1, so swipe should
                             // be available again. Re-enabling here covers the
                             // edge case where the previous page disabled it
@@ -283,26 +278,6 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             });
 
                             context.scaffoldMessenger.hideCurrentSnackBar();
-
-                            if (loadMore == null) return;
-
-                            final offset = index + 1;
-                            final threshold =
-                                postsList.length /
-                                100 *
-                                (100 - loadMoreThreshold);
-                            if (offset + threshold > postsList.length - 1) {
-                              isLoadingMore.value = true;
-                              unawaited(loadMore());
-                              await Future.delayed(
-                                DesignTokens.durationNormal,
-                                () {
-                                  if (context.mounted) {
-                                    isLoadingMore.value = false;
-                                  }
-                                },
-                              );
-                            }
                           },
                           itemCount: postsList.length,
                           itemBuilder: (context, index) {
@@ -390,9 +365,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                       showAppbar.value,
                                   child: _PostAppBar(
                                     subtitle: post.describeTags,
-                                    title: isLoadingMore.value
-                                        ? '#${currentPageIndex + 1} of (loading...)'
-                                        : '#${currentPageIndex + 1} of ${postsList.length}',
+                                    title:
+                                        '#${currentPageIndex + 1} of ${postsList.length}',
                                     swipeMode: swipeMode,
                                   ),
                                 ),
