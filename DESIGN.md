@@ -110,8 +110,13 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 ### Timeline Grid
 - **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders
+- **Card footer**: A quiet metadata strip below each thumbnail — never overlaid on the image:
+  - **Metadata** (labelSmall, onSurfaceVariant): rating badge, score ("+42", hidden at 0), dimensions ("1920×1080", hidden when unknown)
+  - **Rating badge**: one-letter chip — S / Q / E / SN — colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
+  - **Quick actions**: compact icon row (18dp icons, minimal padding, evenly spaced, onSurfaceVariant) — favorite, download, share, open source — usable without opening the viewer
 - **Loading**: Shimmer placeholders with desaturated surface color
 - **States**: Visible detector triggers lazy loading at screen edges
+- **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom navigation bar
 
 ### Navigation
 - **Style**: Bottom navigation bar with 3 tabs (Timeline, Favorites, Downloads)
@@ -153,7 +158,7 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Do:
 - **Do** use `ColorScheme` tokens for all colors — never hard-code hex values
-- **Do** keep images edge-to-edge in the grid; padding kills the browsing rhythm
+- **Do** keep thumbnails edge-to-edge within their card; the quiet metadata footer is the only chrome allowed between the image and the next card
 - **Do** use shimmer loading for thumbnails — it communicates "loading" without blank space
 - **Do** let the staggered grid handle visual interest — varied aspect ratios are the texture
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
@@ -163,6 +168,6 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 - **Don't** add shadows, borders, or elevation to image thumbnails — they are the content, not cards
 - **Don't** use generic Material defaults without considering the content-first philosophy — every chrome element must earn its pixels
 - **Don't** hard-code colors outside of `ColorScheme` — the adaptive palette is the identity
-- **Don't** use heavy text overlays on images — metadata lives below the image in the details sheet
+- **Don't** use heavy text overlays on images — card metadata belongs in the small footer below the thumbnail; deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens — the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations — motion serves feedback (loading, transitions), not delight for its own sake
