@@ -61,11 +61,10 @@ class HomePage extends HookConsumerWidget {
           () => SuggestionState(session: session),
         ),
         timelineControllerProvider.overrideWith(
-          (ref) => TimelineController(
+          (_) => TimelineController(
             scrollController: AutoScrollController(
               viewportBoundaryGetter: () => _timelineBoundary(context),
             ),
-            onLoadMore: () => ref.read(pageStateProvider.notifier).loadMore(),
           ),
         ),
       ],

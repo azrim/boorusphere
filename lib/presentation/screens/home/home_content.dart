@@ -11,6 +11,8 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/home_status.dart';
+import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
+import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_screen.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -64,30 +66,21 @@ class HomeContent extends HookConsumerWidget {
     final timelineController = ref.watch(timelineControllerProvider);
     final scrollController = timelineController.scrollController;
 
-    // Auto-stretch the scroll past the bottom edge after a fetch settles.
-    // The previous implementation enqueued a post-frame callback from inside
-    // `build` itself, which fires after every rebuild (every keystroke,
-    // every drawer animation tick, etc.). Scoping it to a `useEffect` keyed
-    // on `pageState` so it only re-runs when the fetch result actually
-    // changes.
+    // React to a successful page change: scroll back to the top and drop any
+    // selection that belonged to the previous page.
+    final pageIndex = pageState.data.pageIndex;
+    final lastPageIndex = useMemoized(() => <int>[pageIndex]);
     useEffect(() {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!scrollController.hasClients ||
-            pageState is DataFetchResult ||
-            pageState is LoadingFetchResult) {
-          return;
-        }
+      final previous = lastPageIndex[0];
+      lastPageIndex[0] = pageIndex;
+      if (previous == pageIndex) return null;
 
-        if (scrollController.position.extentAfter < 300) {
-          scrollController.animateTo(
-            scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.fastOutSlowIn,
-          );
-        }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (scrollController.hasClients) scrollController.jumpTo(0);
       });
+      ref.read(postSelectionProvider.notifier).clear();
       return null;
-    }, [pageState, scrollController]);
+    }, [pageIndex, scrollController]);
 
     final isNewSearch =
         pageState is! DataFetchResult && pageState.data.option.clear;
@@ -95,6 +88,13 @@ class HomeContent extends HookConsumerWidget {
     // Watch selection state for bottom action bar
     final selection = ref.watch(postSelectionProvider);
     final hasSelection = selection.isNotEmpty;
+
+    final searchBar = ref.watch(searchBarControllerProvider(session));
+    final showPagination =
+        !isNewSearch &&
+        pageState.data.posts.isNotEmpty &&
+        !hasSelection &&
+        !searchBar.isOpen;
 
     if (servers.isEmpty) {
       return Center(
@@ -129,8 +129,7 @@ class HomeContent extends HookConsumerWidget {
               ),
               const SizedBox(height: DesignTokens.spacingSm),
               TextButton(
-                onPressed: () =>
-                    context.router.push(ServerPresetRoute()),
+                onPressed: () => context.router.push(ServerPresetRoute()),
                 child: Text(context.t.onboarding.browsePresets),
               ),
             ],
@@ -143,13 +142,7 @@ class HomeContent extends HookConsumerWidget {
       alignment: Alignment.center,
       children: [
         RefreshIndicator(
-          onRefresh: () async {
-            unawaited(
-              ref
-                  .read(pageStateProvider.notifier)
-                  .update((it) => it.copyWith(clear: true)),
-            );
-          },
+          onRefresh: ref.read(pageStateProvider.notifier).load,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             controller: scrollController,
@@ -175,6 +168,28 @@ class HomeContent extends HookConsumerWidget {
         ),
         const _EdgeShadow(),
         SearchScreen(scrollController: scrollController),
+        // Pagination control
+        if (showPagination)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom:
+                MediaQuery.viewPaddingOf(context).bottom +
+                HomeSearchBar.innerHeight +
+                DesignTokens.spacingSm,
+            child: Center(
+              child: _PaginationPill(
+                pageIndex: pageState.data.pageIndex,
+                hasPrev: pageState.data.hasPrev,
+                hasNext: pageState.data.hasNext,
+                loading: pageState is LoadingFetchResult,
+                onPrev: () =>
+                    unawaited(ref.read(pageStateProvider.notifier).prevPage()),
+                onNext: () =>
+                    unawaited(ref.read(pageStateProvider.notifier).nextPage()),
+              ),
+            ),
+          ),
         // Selection action bar
         if (hasSelection)
           Positioned(
@@ -227,14 +242,12 @@ class HomeContent extends HookConsumerWidget {
                         : context.t.batch.downloadedFiles(
                             n: selectedPosts.length,
                           );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(msg)),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(msg)));
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(context.t.batch.failed),
-                      ),
+                      SnackBar(content: Text(context.t.batch.failed)),
                     );
                   }
                 }
@@ -306,9 +319,7 @@ class _SelectionActionBarState extends State<_SelectionActionBar> {
               children: [
                 TextButton.icon(
                   onPressed: () => widget.onDownload(_asArchive),
-                  icon: Icon(
-                    _asArchive ? Icons.archive : Icons.download,
-                  ),
+                  icon: Icon(_asArchive ? Icons.archive : Icons.download),
                   label: Text(context.t.downloads.title),
                 ),
                 GestureDetector(
@@ -316,9 +327,7 @@ class _SelectionActionBarState extends State<_SelectionActionBar> {
                   child: Tooltip(
                     message: context.t.batch.asArchive,
                     child: Icon(
-                      _asArchive
-                          ? Icons.toggle_on
-                          : Icons.toggle_off_outlined,
+                      _asArchive ? Icons.toggle_on : Icons.toggle_off_outlined,
                       size: 28,
                       color: _asArchive
                           ? Theme.of(context).colorScheme.primary
@@ -373,6 +382,72 @@ class _EdgeShadow extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact floating pagination control: previous arrow, page indicator and
+/// next arrow. Displayed above the bottom search bar.
+class _PaginationPill extends StatelessWidget {
+  const _PaginationPill({
+    required this.pageIndex,
+    required this.hasPrev,
+    required this.hasNext,
+    required this.loading,
+    required this.onPrev,
+    required this.onNext,
+  });
+
+  final int pageIndex;
+  final bool hasPrev;
+  final bool hasNext;
+  final bool loading;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: context.colorScheme.surfaceContainerHighest,
+      elevation: 2,
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingXs),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: hasPrev && !loading ? onPrev : null,
+              tooltip: context.t.pagination.previous,
+              iconSize: 20,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 64),
+              child: Center(
+                child: loading
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        context.t.pagination.page(page: pageIndex),
+                        style: context.theme.textTheme.labelLarge,
+                      ),
+              ),
+            ),
+            IconButton(
+              onPressed: hasNext && !loading ? onNext : null,
+              tooltip: context.t.pagination.next,
+              iconSize: 20,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
         ),
       ),
     );

@@ -31,15 +31,7 @@ class HomeStatus extends HookConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         switch (pageState) {
-          IdleFetchResult() => const SizedBox.shrink(),
-          DataFetchResult() => Container(
-            height: 50,
-            alignment: Alignment.topCenter,
-            child: ElevatedButton(
-              onPressed: ref.read(pageStateProvider.notifier).loadMore,
-              child: Text(context.t.loadMore),
-            ),
-          ),
+          IdleFetchResult() || DataFetchResult() => const SizedBox.shrink(),
           LoadingFetchResult() => Container(
             height: 50,
             alignment: Alignment.topCenter,

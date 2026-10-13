@@ -12,6 +12,11 @@
   "reset_to_default": "Reset to default",
   "scan": "Scan",
   "load_more": "Load more",
+  "pagination": {
+    "previous": "Previous page",
+    "next": "Next page",
+    "page": "Page ${page}"
+  },
   "clearing": "Clearing...",
   "findRelated": "Find related",
   "details": "Details",
