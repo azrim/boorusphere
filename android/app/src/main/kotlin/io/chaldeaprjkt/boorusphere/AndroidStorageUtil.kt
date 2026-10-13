@@ -31,6 +31,19 @@ class AndroidStorageUtil(private val context: Context) : StorageUtil {
         context.startActivity(intent)
     }
 
+    override fun shareText(text: String, subject: String?) {
+        val sendIntent = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, text)
+        if (subject != null) {
+            sendIntent.putExtra(Intent.EXTRA_SUBJECT, subject)
+        }
+
+        val chooser = Intent.createChooser(sendIntent, null)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(chooser)
+    }
+
     private fun uriOfPath(path: String): Uri {
         val file = File(path)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

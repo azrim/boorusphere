@@ -13,4 +13,5 @@ abstract class StorageUtil {
   String getStoragePath();
   String getDownloadPath();
   void open(String filePath);
+  void shareText(String text, String? subject);
 }
