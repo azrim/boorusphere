@@ -136,11 +136,11 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 ### FAB / Action Buttons
 - **Style**: Material 3 FAB with primaryContainer fill
 - **Shape**: Rounded (12px or full depending on variant)
-- **Position**: Bottom-right, above navigation bar
+- **Position**: Bottom-right, above the system inset
 
 ### Snackbars
 - **Shape**: Top-rounded (12px), primaryContainer background
-- **Position**: Above bottom navigation
+- **Position**: Docked to the bottom, clearing the system inset
 - **Duration**: Short (2s) for info, indefinite for actions
 
 ### Search
