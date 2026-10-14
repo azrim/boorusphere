@@ -50,10 +50,19 @@ void main() async {
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
 
+    final posts = await ref
+        .read(imageboardRepoProvider(server))
+        .getPage(option, 1);
     expect(
-      await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
+      posts,
       isA<Iterable>().having((x) => x.length, 'total', option.limit),
     );
+
+    final first = posts.first;
+    expect(first.id, 4401125);
+    expect(first.width, 500);
+    expect(first.height, 500);
+    expect(first.rateValue, 's');
 
     const fakeTags = 'safebooru/tags.json';
     when(

@@ -3,8 +3,10 @@ import 'dart:convert';
 
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
+import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
@@ -54,58 +56,41 @@ class SafebooruXmlParser extends BooruParser {
       throw BooruError.empty;
     }
 
-    final result = <Post>[];
-    final seenIds = <int>{};
+    return buildPosts(server, entries, _mapEntry);
+  }
 
-    for (final post in entries.whereType<Map<String, dynamic>>()) {
-      final id = pick(post, 'id').asIntOrNull() ?? -1;
-      if (!seenIds.add(id)) {
-        // duplicated result, skipping
-        continue;
-      }
+  RawPost _mapEntry(Map<String, dynamic> post) {
+    final id = pick(post, 'id').asIntOrNull() ?? -1;
+    final originalFile = pick(post, 'file_url').asStringOrNull() ?? '';
+    final sampleFile = pick(post, 'sample_url').asStringOrNull() ?? '';
+    final previewFile = pick(post, 'preview_url').asStringOrNull() ?? '';
+    final tags = pick(post, 'tags').toWordList();
+    final width = pick(post, 'width').asIntOrNull() ?? -1;
+    final height = pick(post, 'height').asIntOrNull() ?? -1;
+    final sampleWidth = pick(post, 'sample_width').asIntOrNull() ?? -1;
+    final sampleHeight = pick(post, 'sample_height').asIntOrNull() ?? -1;
+    final previewWidth = pick(post, 'preview_width').asIntOrNull() ?? -1;
+    final previewHeight = pick(post, 'preview_height').asIntOrNull() ?? -1;
+    final rating = pick(post, 'rating').asStringOrNull() ?? '';
+    final source = pick(post, 'source').asStringOrNull() ?? '';
+    final score = pick(post, 'score').asIntOrNull() ?? 0;
 
-      final originalFile = pick(post, 'file_url').asStringOrNull() ?? '';
-      final sampleFile = pick(post, 'sample_url').asStringOrNull() ?? '';
-      final previewFile = pick(post, 'preview_url').asStringOrNull() ?? '';
-      final tags = pick(post, 'tags').toWordList();
-      final width = pick(post, 'width').asIntOrNull() ?? -1;
-      final height = pick(post, 'height').asIntOrNull() ?? -1;
-      final sampleWidth = pick(post, 'sample_width').asIntOrNull() ?? -1;
-      final sampleHeight = pick(post, 'sample_height').asIntOrNull() ?? -1;
-      final previewWidth = pick(post, 'preview_width').asIntOrNull() ?? -1;
-      final previewHeight = pick(post, 'preview_height').asIntOrNull() ?? -1;
-      final rating = pick(post, 'rating').asStringOrNull() ?? 'q';
-      final source = pick(post, 'source').asStringOrNull() ?? '';
-      final score = pick(post, 'score').asIntOrNull() ?? 0;
-
-      final hasFile = originalFile.isNotEmpty && previewFile.isNotEmpty;
-      final hasContent = width > 0 && height > 0;
-      final postUrl = server.postUrlOf(id);
-
-      if (hasFile && hasContent) {
-        result.add(
-          Post(
-            id: id,
-            originalFile: BooruUtil.normalizeUrl(server, originalFile),
-            sampleFile: BooruUtil.normalizeUrl(server, sampleFile),
-            previewFile: BooruUtil.normalizeUrl(server, previewFile),
-            tags: tags.map(BooruUtil.decodeTag).toList(),
-            width: width,
-            height: height,
-            sampleWidth: sampleWidth,
-            sampleHeight: sampleHeight,
-            previewWidth: previewWidth,
-            previewHeight: previewHeight,
-            serverId: server.id,
-            postUrl: postUrl,
-            rateValue: rating.isEmpty ? 'q' : rating,
-            source: source,
-            score: score,
-          ),
-        );
-      }
-    }
-    return result;
+    return RawPost(
+      id: id,
+      originalFile: originalFile,
+      sampleFile: sampleFile,
+      previewFile: previewFile,
+      width: width,
+      height: height,
+      sampleWidth: sampleWidth,
+      sampleHeight: sampleHeight,
+      previewWidth: previewWidth,
+      previewHeight: previewHeight,
+      rating: rating,
+      source: source,
+      score: score,
+      tags: tags.map(BooruUtil.decodeTag).toList(),
+    );
   }
 
   @override

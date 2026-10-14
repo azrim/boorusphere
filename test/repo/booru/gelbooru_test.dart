@@ -100,11 +100,22 @@ void main() async {
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((x) async => FakeResponseBody.fromFixture(fakePageXml, 200));
 
+    final xmlPosts = await ref
+        .read(imageboardRepoProvider(server))
+        .getPage(option, 1);
     expect(
-      await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
+      xmlPosts,
       isA<Iterable>().having((x) => x.length, 'total', option.limit - 2),
       reason: 'expecting 2 invalid post',
     );
+
+    final xmlFirst = xmlPosts.first;
+    expect(xmlFirst.id, 1943185);
+    expect(xmlFirst.sampleFile, '');
+    expect(xmlFirst.width, 992);
+    expect(xmlFirst.height, 1228);
+    expect(xmlFirst.rateValue, 'safe');
+    expect(xmlFirst.score, 14);
 
     const fakeTagsXml = 'gelbooru/tags.xml';
     when(
