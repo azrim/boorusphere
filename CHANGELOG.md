@@ -1,3 +1,7 @@
+## 2.0.24
+
+* **Fix**: surface video playback failures with a manual retry button instead of failing silently
+
 ## 2.0.23
 
 * **Fix**: replace discontinued `flutter_markdown` with `flutter_markdown_plus`
