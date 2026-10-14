@@ -155,7 +155,9 @@ class DownloadEntryView extends ConsumerWidget {
         ),
       ),
       leading: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
+        borderRadius: const BorderRadius.all(
+          Radius.circular(DesignTokens.radiusSm),
+        ),
         child: CachedNetworkImage(
           imageUrl: entry.post.previewFile,
           httpHeaders: headers,
@@ -189,7 +191,9 @@ class DownloadImagePreview extends HookWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: const BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
+      borderRadius: const BorderRadius.all(
+        Radius.circular(DesignTokens.radiusSm),
+      ),
       child: CachedNetworkImage(
         imageUrl: entry.post.previewFile,
         httpHeaders: headers,

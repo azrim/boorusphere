@@ -105,7 +105,8 @@ class GestureSettingsPage extends ConsumerWidget {
                         title: Text(context.t.settingsPage.swipeDownThreshold),
                         subtitle: Text(
                           context.t.settingsPage.swipeDownThresholdDesc(
-                            threshold: gestureSettings.swipeDownThreshold.round(),
+                            threshold: gestureSettings.swipeDownThreshold
+                                .round(),
                           ),
                         ),
                         trailing: SizedBox(

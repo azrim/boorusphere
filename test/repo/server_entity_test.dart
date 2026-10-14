@@ -10,8 +10,7 @@ void main() {
         homepage: 'https://danbooru.donmai.us',
         searchUrl: 'posts.json?tags={tags}&page={page-id}&limit={post-limit}',
       );
-      const option =
-          PageOption(query: 'test', searchRating: BooruRating.safe);
+      const option = PageOption(query: 'test', searchRating: BooruRating.safe);
       final url = server.searchUrlOf(option, page: 1);
       expect(url, contains('rating%3Asafe'));
       expect(url, contains('test'));
@@ -24,8 +23,7 @@ void main() {
         searchUrl:
             'api/posts?offset={post-offset}&limit={post-limit}&tags={tags}',
       );
-      const option =
-          PageOption(query: 'test', searchRating: BooruRating.safe);
+      const option = PageOption(query: 'test', searchRating: BooruRating.safe);
       final url = server.searchUrlOf(option, page: 1);
       expect(url, contains('safety%3Asafe'));
     });
@@ -62,8 +60,7 @@ void main() {
         login: 'testuser',
         apiKey: 'testkey',
       );
-      const option =
-          PageOption(query: 'test', searchRating: BooruRating.safe);
+      const option = PageOption(query: 'test', searchRating: BooruRating.safe);
       final url = server.searchUrlOf(option, page: 1);
       expect(url, contains('user_id=testuser'));
       expect(url, contains('api_key=testkey'));
@@ -74,8 +71,7 @@ void main() {
         homepage: 'https://danbooru.donmai.us',
         searchUrl: 'posts.json?tags={tags}&page={page-id}&limit={post-limit}',
       );
-      const option =
-          PageOption(query: 'test', searchRating: BooruRating.safe);
+      const option = PageOption(query: 'test', searchRating: BooruRating.safe);
       final url = server.searchUrlOf(option, page: 1);
       expect(url, isNot(contains('user_id=')));
       expect(url, isNot(contains('api_key=')));
@@ -103,8 +99,10 @@ void main() {
         searchUrl:
             'api/posts?offset={post-offset}&limit={post-limit}&tags={tags}',
       );
-      const option =
-          PageOption(query: 'test', searchRating: BooruRating.explicit);
+      const option = PageOption(
+        query: 'test',
+        searchRating: BooruRating.explicit,
+      );
       final url = server.searchUrlOf(option, page: 1);
       expect(url, contains('safety%3Aunsafe'));
     });

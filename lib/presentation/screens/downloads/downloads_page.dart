@@ -128,10 +128,9 @@ class DownloadsPage extends HookConsumerWidget {
                             Text(
                               context.t.downloadsHint,
                               textAlign: TextAlign.center,
-                              style:
-                                  context.theme.textTheme.bodySmall?.copyWith(
-                                    color:
-                                        context.colorScheme.onSurfaceVariant,
+                              style: context.theme.textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: context.colorScheme.onSurfaceVariant,
                                   ),
                             ),
                           ],

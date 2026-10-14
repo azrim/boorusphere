@@ -121,12 +121,15 @@ class UserServerRepo implements ServerRepo {
 
   @override
   Future<BackupItem> export() async {
-    return BackupItem(key, box.values.map((e) {
-      final json = e.toJson();
-      json['login'] = '';
-      json['apiKey'] = '';
-      return json;
-    }).toList());
+    return BackupItem(
+      key,
+      box.values.map((e) {
+        final json = e.toJson();
+        json['login'] = '';
+        json['apiKey'] = '';
+        return json;
+      }).toList(),
+    );
   }
 
   static const String key = 'server';
@@ -144,8 +147,10 @@ class UserServerRepo implements ServerRepo {
 
       await Hive.deleteBoxFromDisk(key);
 
-      final encryptedBox =
-          await Hive.openBox<Server>(key, encryptionCipher: cipher);
+      final encryptedBox = await Hive.openBox<Server>(
+        key,
+        encryptionCipher: cipher,
+      );
       await encryptedBox.putAll(data);
       await encryptedBox.flush();
     }

@@ -354,7 +354,9 @@ class _LeadingButton extends ConsumerWidget {
             color: enableBlur
                 ? backgroundColor.withValues(alpha: 0.85)
                 : backgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXl)),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(DesignTokens.radiusXl),
+            ),
           ),
           child: SafeArea(
             child: Column(
@@ -362,7 +364,10 @@ class _LeadingButton extends ConsumerWidget {
               children: [
                 // Handle bar
                 Container(
-                  margin: const EdgeInsets.only(top: DesignTokens.spacingMd - DesignTokens.spacingXs, bottom: DesignTokens.spacingSm),
+                  margin: const EdgeInsets.only(
+                    top: DesignTokens.spacingMd - DesignTokens.spacingXs,
+                    bottom: DesignTokens.spacingSm,
+                  ),
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
@@ -390,7 +395,9 @@ class _LeadingButton extends ConsumerWidget {
                   ),
                   child: ListView.builder(
                     shrinkWrap: true,
-                    padding: const EdgeInsets.only(bottom: DesignTokens.spacingMd),
+                    padding: const EdgeInsets.only(
+                      bottom: DesignTokens.spacingMd,
+                    ),
                     itemCount: servers.length,
                     itemBuilder: (context, index) {
                       final server = servers[index];
@@ -415,7 +422,9 @@ class _LeadingButton extends ConsumerWidget {
                         selectedTileColor: context.colorScheme.primary
                             .withAlpha(context.isLightThemed ? 30 : 20),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+                          borderRadius: BorderRadius.circular(
+                            DesignTokens.radiusXl,
+                          ),
                         ),
                         onTap: () => Navigator.of(context).pop(server.id),
                       );
@@ -430,7 +439,9 @@ class _LeadingButton extends ConsumerWidget {
         if (!enableBlur) return content;
 
         return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXl)),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(DesignTokens.radiusXl),
+          ),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: content,

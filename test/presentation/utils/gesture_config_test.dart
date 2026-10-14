@@ -40,11 +40,7 @@ void main() {
     });
 
     test('copyWith preserves unmodified fields', () {
-      const original = GestureConfig(
-        swipeUp: 'a',
-        swipeDown: 'b',
-        tap: 'c',
-      );
+      const original = GestureConfig(swipeUp: 'a', swipeDown: 'b', tap: 'c');
       final copied = original.copyWith(swipeUp: () => 'x');
       expect(copied.swipeUp, 'x');
       expect(copied.swipeDown, 'b');

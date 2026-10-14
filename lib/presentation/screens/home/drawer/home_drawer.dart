@@ -180,7 +180,10 @@ class AppVersionTile extends ConsumerWidget {
         }
         return ListTile(
           title: Text(context.t.updater.available(version: '${data.latest}')),
-          leading: Icon(Icons.info_outline, color: context.colorScheme.tertiary),
+          leading: Icon(
+            Icons.info_outline,
+            color: context.colorScheme.tertiary,
+          ),
           subtitle: Text(
             updateProgress.status.isDownloaded
                 ? context.t.updater.install

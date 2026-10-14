@@ -67,8 +67,7 @@ class UserSettingsRepo implements SettingsRepo {
 
       await Hive.deleteBoxFromDisk(key);
 
-      final encryptedBox =
-          await Hive.openBox(key, encryptionCipher: cipher);
+      final encryptedBox = await Hive.openBox(key, encryptionCipher: cipher);
       await encryptedBox.putAll(data);
       await encryptedBox.flush();
     }

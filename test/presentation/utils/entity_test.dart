@@ -47,10 +47,7 @@ void main() {
 
     test('aspectRatio handles zero height', () {
       const size = PixelSize(width: 200, height: 0);
-      expect(
-        size.aspectRatio.isInfinite || size.aspectRatio.isNaN,
-        isTrue,
-      );
+      expect(size.aspectRatio.isInfinite || size.aspectRatio.isNaN, isTrue);
     });
 
     test('toString with pixels', () {

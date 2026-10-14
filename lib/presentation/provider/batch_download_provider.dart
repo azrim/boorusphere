@@ -118,10 +118,7 @@ class BatchDownloadProvider {
 
         return BatchDownloadResult(success: true, savedPath: finalZipPath);
       } else {
-        return BatchDownloadResult(
-          success: true,
-          savedPath: downloadsDir.path,
-        );
+        return BatchDownloadResult(success: true, savedPath: downloadsDir.path);
       }
     } catch (e) {
       return BatchDownloadResult(success: false, error: e.toString());
