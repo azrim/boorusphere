@@ -1,12 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:logging/logging.dart';
-
-final _log = Logger('AppRouteObserver');
 
 class AppRouteObserver extends AutoRouterObserver {
   AppRouteObserver(this.ref);
@@ -14,13 +12,16 @@ class AppRouteObserver extends AutoRouterObserver {
   final WidgetRef ref;
 
   SearchSession? _getSession(Route? route) {
-    dynamic args = route?.settings.arguments;
-    try {
-      return args.session;
-    } catch (e) {
-      _log.warning('Failed to extract session from route: $e');
-      return null;
-    }
+    // Only a handful of routes carry a [SearchSession] in their arguments.
+    // Match on those argument types explicitly so routes without a session
+    // (e.g. ServerAddRoute, SettingsRoute) don't trigger a spurious lookup.
+    final args = route?.settings.arguments;
+    return switch (args) {
+      HomeRouteArgs(:final session) => session,
+      DownloadsRouteArgs(:final session) => session,
+      FavoritesRouteArgs(:final session) => session,
+      _ => null,
+    };
   }
 
   void _setLastActiveServer(String id) {
