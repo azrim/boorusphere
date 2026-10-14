@@ -168,6 +168,14 @@
     "api_addr_hint": "API address, example: https://api-v69.verycoolbooru.com",
     "engine_type": "Booru engine",
     "engine_required": "Please select a booru engine",
+    "mode": {
+      "scan": "Scan",
+      "manual": "Manual"
+    },
+    "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+    "scanning": "Scanning...",
+    "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+    "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
     "profile_name": "Profile name",
     "name_error": "Please enter a name",
     "already_exists": "Server data for ${name} already exists",

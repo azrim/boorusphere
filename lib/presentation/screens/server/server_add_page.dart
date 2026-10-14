@@ -1,11 +1,20 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/booru/provider.dart';
+import 'package:boorusphere/data/repository/booru/utils/booru_scanner.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+/// How a new server is configured: let [BooruScanner] detect the engine from
+/// the homepage, or pick a [BooruEngine] manually.
+enum _AddMode { scan, manual }
 
 /// Represents a booru engine type that users can select
 class BooruEngine {
@@ -104,12 +113,20 @@ class ServerAddPage extends HookConsumerWidget {
     final imeIncognito = ref.watch(
       uiSettingStateProvider.select((it) => it.imeIncognito),
     );
+    final mode = useState(_AddMode.scan);
     final selectedEngine = useState<BooruEngine?>(null);
     final profileName = useTextEditingController();
     final siteUrl = useTextEditingController(text: 'https://');
     final useApiAddr = useState(false);
     final apiAddr = useTextEditingController(text: 'https://');
     final server = useState(Server.empty);
+    // Result of the last successful scan, or null when a (re)scan is needed.
+    final scanResult = useState<Server?>(null);
+    final scanFailed = useState(false);
+    final scanner = useBooruScanner(
+      ref.watch(dioProvider),
+      ref.watch(booruParsersProvider),
+    );
 
     bool isPrivateIp(String host) {
       if (host == '::1') return true;
@@ -173,6 +190,54 @@ class ServerAddPage extends HookConsumerWidget {
       );
     }
 
+    /// A previously detected engine is only valid for the name/homepage it was
+    /// scanned from, so any edit there invalidates the result.
+    void resetScan() {
+      if (scanResult.value != null || scanFailed.value) {
+        scanResult.value = null;
+        scanFailed.value = false;
+      }
+    }
+
+    Future<void> onScan() async {
+      if (formKey.currentState?.validate() != true) {
+        return;
+      }
+
+      FocusScope.of(context).unfocus();
+      final name = profileName.text.trim();
+      final url = siteUrl.text.trim();
+
+      scanResult.value = null;
+      scanFailed.value = false;
+
+      final base = Server(
+        id: name,
+        homepage: url,
+        apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
+      );
+
+      try {
+        final scanned = await scanner.scan(base);
+        if (scanned.searchParserId.isEmpty) {
+          scanFailed.value = true;
+          return;
+        }
+
+        final result = scanned.copyWith(id: name, homepage: url);
+        server.value = result;
+        scanResult.value = result;
+      } catch (_) {
+        scanFailed.value = true;
+      }
+    }
+
+    void submit() {
+      final serverPod = ref.read(serverStateProvider.notifier);
+      serverPod.add(server.value);
+      context.router.maybePop();
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(context.t.servers.add)),
       body: SafeArea(
@@ -183,36 +248,232 @@ class ServerAddPage extends HookConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Engine selector
+                // Mode selector
                 Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: DropdownButtonFormField<BooruEngine>(
-                    decoration: InputDecoration(
-                      labelText: context.t.servers.engineType,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: booruEngines.map((engine) {
-                      return DropdownMenuItem(
-                        value: engine,
-                        child: Text(engine.name),
-                      );
-                    }).toList(),
-                    onChanged: (engine) {
-                      selectedEngine.value = engine;
-                      updateServer();
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return context.t.servers.engineRequired;
-                      }
-                      return null;
+                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
+                  child: SegmentedButton<_AddMode>(
+                    segments: [
+                      ButtonSegment(
+                        value: _AddMode.scan,
+                        icon: const Icon(Icons.radar),
+                        label: Text(context.t.servers.mode.scan),
+                      ),
+                      ButtonSegment(
+                        value: _AddMode.manual,
+                        icon: const Icon(Icons.tune),
+                        label: Text(context.t.servers.mode.manual),
+                      ),
+                    ],
+                    selected: {mode.value},
+                    onSelectionChanged: (selection) {
+                      mode.value = selection.first;
                     },
                   ),
                 ),
 
+                // Mode-specific control
+                if (mode.value == _AddMode.manual)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      DesignTokens.spacingMd,
+                      0,
+                      DesignTokens.spacingMd,
+                      DesignTokens.spacingMd,
+                    ),
+                    child: DropdownButtonFormField<BooruEngine>(
+                      decoration: InputDecoration(
+                        labelText: context.t.servers.engineType,
+                        border: const OutlineInputBorder(),
+                      ),
+                      items: booruEngines.map((engine) {
+                        return DropdownMenuItem(
+                          value: engine,
+                          child: Text(engine.name),
+                        );
+                      }).toList(),
+                      onChanged: (engine) {
+                        selectedEngine.value = engine;
+                        updateServer();
+                      },
+                      validator: (value) {
+                        if (value == null) {
+                          return context.t.servers.engineRequired;
+                        }
+                        return null;
+                      },
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      DesignTokens.spacingMd,
+                      0,
+                      DesignTokens.spacingMd,
+                      DesignTokens.spacingMd,
+                    ),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: scanner.isScanning,
+                      builder: (context, isScanning, _) {
+                        final result = scanResult.value;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              context.t.servers.scanHint,
+                              style: context.theme.textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: DesignTokens.spacingSm),
+                            FilledButton.tonalIcon(
+                              onPressed: isScanning ? null : onScan,
+                              icon: const Icon(Icons.search),
+                              label: Text(
+                                isScanning
+                                    ? context.t.servers.scanning
+                                    : context.t.scan,
+                              ),
+                            ),
+                            if (isScanning) ...[
+                              const Padding(
+                                padding: EdgeInsets.only(
+                                  top: DesignTokens.spacingMd,
+                                ),
+                                child: LinearProgressIndicator(),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: DesignTokens.spacingSm,
+                                ),
+                                child: ValueListenableBuilder<List<String>>(
+                                  valueListenable: scanner.logs,
+                                  builder: (context, logs, _) {
+                                    if (logs.isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: logs
+                                          .map(
+                                            (line) => Text(
+                                              line,
+                                              style: context
+                                                  .theme
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    fontFamily: 'monospace',
+                                                  ),
+                                            ),
+                                          )
+                                          .toList(),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                            if (result != null) ...[
+                              const SizedBox(height: DesignTokens.spacingMd),
+                              Container(
+                                padding: const EdgeInsets.all(
+                                  DesignTokens.spacingMd,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(
+                                    DesignTokens.radiusMd,
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_outline,
+                                      color: context
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                    ),
+                                    const SizedBox(
+                                      width: DesignTokens.spacingSm,
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        context.t.servers.scanResult(
+                                          search: result.searchParserId.isEmpty
+                                              ? context.t.auto
+                                              : result.searchParserId,
+                                          suggestion:
+                                              result.suggestionParserId.isEmpty
+                                              ? context.t.auto
+                                              : result.suggestionParserId,
+                                        ),
+                                        style: context
+                                            .theme
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: context
+                                                  .colorScheme
+                                                  .onPrimaryContainer,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            if (scanFailed.value) ...[
+                              const SizedBox(height: DesignTokens.spacingMd),
+                              Container(
+                                padding: const EdgeInsets.all(
+                                  DesignTokens.spacingMd,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(
+                                    DesignTokens.radiusMd,
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      color:
+                                          context.colorScheme.onErrorContainer,
+                                    ),
+                                    const SizedBox(
+                                      width: DesignTokens.spacingSm,
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        context.t.servers.scanFailed,
+                                        style: context
+                                            .theme
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: context
+                                                  .colorScheme
+                                                  .onErrorContainer,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+
                 // Profile name
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacingMd,
+                  ),
                   child: TextFormField(
                     controller: profileName,
                     enableIMEPersonalizedLearning: !imeIncognito,
@@ -221,15 +482,20 @@ class ServerAddPage extends HookConsumerWidget {
                       border: const OutlineInputBorder(),
                     ),
                     validator: validateName,
-                    onChanged: (_) => updateServer(),
+                    onChanged: (_) {
+                      resetScan();
+                      updateServer();
+                    },
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: DesignTokens.spacingMd),
 
                 // Site URL
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacingMd,
+                  ),
                   child: TextFormField(
                     controller: siteUrl,
                     enableIMEPersonalizedLearning: !imeIncognito,
@@ -238,7 +504,10 @@ class ServerAddPage extends HookConsumerWidget {
                       border: const OutlineInputBorder(),
                     ),
                     validator: validateAddress,
-                    onChanged: (_) => updateServer(),
+                    onChanged: (_) {
+                      resetScan();
+                      updateServer();
+                    },
                   ),
                 ),
 
@@ -246,11 +515,11 @@ class ServerAddPage extends HookConsumerWidget {
                 CheckboxListTile(
                   value: useApiAddr.value,
                   title: Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
                     child: Text(context.t.servers.useCustomApi),
                   ),
                   subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
                     child: Text(context.t.servers.useCustomApiDesc),
                   ),
                   onChanged: (isChecked) {
@@ -263,7 +532,12 @@ class ServerAddPage extends HookConsumerWidget {
 
                 if (useApiAddr.value)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(
+                      DesignTokens.spacingMd,
+                      0,
+                      DesignTokens.spacingMd,
+                      DesignTokens.spacingMd,
+                    ),
                     child: TextFormField(
                       controller: apiAddr,
                       enableIMEPersonalizedLearning: !imeIncognito,
@@ -280,18 +554,18 @@ class ServerAddPage extends HookConsumerWidget {
 
                 // Add button
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
                   child: FilledButton(
-                    onPressed: () {
-                      if (formKey.currentState?.validate() != true) {
-                        return;
-                      }
+                    onPressed: mode.value == _AddMode.manual
+                        ? () {
+                            if (formKey.currentState?.validate() != true) {
+                              return;
+                            }
 
-                      updateServer();
-                      final serverPod = ref.read(serverStateProvider.notifier);
-                      serverPod.add(server.value);
-                      context.router.maybePop();
-                    },
+                            updateServer();
+                            submit();
+                          }
+                        : (scanResult.value == null ? null : submit),
                     child: Text(context.t.servers.add),
                   ),
                 ),
