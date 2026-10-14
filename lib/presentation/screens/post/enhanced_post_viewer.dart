@@ -5,13 +5,10 @@ import 'package:boorusphere/presentation/routes/slide_page_route.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
 import 'package:boorusphere/presentation/screens/post/post_details_sheet.dart';
-import 'package:boorusphere/presentation/screens/post/post_image.dart';
+import 'package:boorusphere/presentation/screens/post/post_media.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
-import 'package:boorusphere/presentation/screens/post/post_unknown.dart';
-import 'package:boorusphere/presentation/screens/post/post_video.dart';
 import 'package:boorusphere/presentation/screens/post/post_viewer_controller.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
@@ -231,8 +228,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
               // scale = 1, so vertical swipes were silently swallowed.
               // 2.0.12 reverts to the proven per-surface gesture
               // wiring used in v2.0.4: vertical drag is owned by
-              // [PostImage]'s `_PostImageGestureOverlay` and
-              // [PostVideo]'s `_PostVideoSwipeOverlay`, both of which
+              // [PostMedia]'s image and video surfaces, both of which
               // self-reject on multi-touch so pinch-to-zoom is
               // uncontested.
               Positioned.fill(
@@ -284,53 +280,30 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             precachePosts(index, loadOriginal);
 
                             final post = postsList[index];
-                            final Widget widget;
-
-                            switch (post.content.type) {
-                              case PostType.photo:
-                              case PostType.gif:
-                                widget = PostImage(
-                                  key: ValueKey(
-                                    'image_${post.id}_${post.serverId}',
-                                  ),
-                                  post: post,
-                                  onZoomChanged: (isZoomed) {
-                                    // Disable PageView swipe while the image
-                                    // is zoomed in so panning the zoomed
-                                    // image cannot accidentally page to the
-                                    // next post. Same listenable is also
-                                    // consulted by the route-level pull-to-
-                                    // dismiss shell to suspend its vertical
-                                    // drag recognizer while zoomed.
-                                    if (isZoomed) {
-                                      controller.disableSwipe();
-                                    } else {
-                                      controller.enableSwipe();
-                                    }
-                                  },
-                                  onTap: handlePostTap,
-                                  onSwipeUp: onSwipeUp,
-                                  onSwipeDown: onSwipeDown,
-                                );
-                              case PostType.video:
-                                widget = PostVideo(
-                                  key: ValueKey(
-                                    'video_${post.id}_${post.serverId}',
-                                  ),
-                                  post: post,
-                                  onToolboxVisibilityChange: (visible) {},
-                                  onShowDetails: expandSheet,
-                                  onSwipeUp: onSwipeUp,
-                                  onSwipeDown: onSwipeDown,
-                                );
-                              default:
-                                widget = PostUnknown(
-                                  key: ValueKey(
-                                    'unknown_${post.id}_${post.serverId}',
-                                  ),
-                                  post: post,
-                                );
-                            }
+                            final widget = PostMedia(
+                              key: ValueKey(
+                                'media_${post.id}_${post.serverId}',
+                              ),
+                              post: post,
+                              onZoomChanged: (isZoomed) {
+                                // Disable PageView swipe while the image
+                                // is zoomed in so panning the zoomed
+                                // image cannot accidentally page to the
+                                // next post. Same listenable is also
+                                // consulted by the route-level pull-to-
+                                // dismiss shell to suspend its vertical
+                                // drag recognizer while zoomed.
+                                if (isZoomed) {
+                                  controller.disableSwipe();
+                                } else {
+                                  controller.enableSwipe();
+                                }
+                              },
+                              onTap: handlePostTap,
+                              onShowDetails: expandSheet,
+                              onSwipeUp: onSwipeUp,
+                              onSwipeDown: onSwipeDown,
+                            );
 
                             return HeroMode(
                               key: ValueKey('hero_${post.id}_${post.serverId}'),
