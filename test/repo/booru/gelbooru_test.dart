@@ -52,11 +52,22 @@ void main() async {
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((x) async => FakeResponseBody.fromFixture(fakePage, 200));
 
+    final posts = await ref
+        .read(imageboardRepoProvider(server))
+        .getPage(option, 1);
     expect(
-      await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
+      posts,
       isA<Iterable>().having((x) => x.length, 'total', option.limit - 2),
       reason: 'expecting 2 invalid post',
     );
+
+    final first = posts.first;
+    expect(first.id, 1943185);
+    expect(first.sampleFile, '');
+    expect(first.width, 992);
+    expect(first.height, 1228);
+    expect(first.rateValue, 'safe');
+    expect(first.score, 14);
 
     const fakeTags = 'gelbooru/tags.json';
     when(

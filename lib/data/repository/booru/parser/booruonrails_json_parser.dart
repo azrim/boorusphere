@@ -1,6 +1,8 @@
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
+import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
@@ -37,54 +39,42 @@ class BooruOnRailsJsonParser extends BooruParser {
   @override
   List<Post> parsePage(Server server, Response res) {
     final entries = List.from(res.data['images'] ?? <dynamic>[]);
-    final result = <Post>[];
-    final seenIds = <int>{};
-    for (final post in entries.whereType<Map<String, dynamic>>()) {
-      final id = pick(post, 'id').asIntOrNull() ?? -1;
-      if (!seenIds.add(id)) {
-        // duplicated result, skipping
-        continue;
-      }
+    return buildPosts(server, entries, _mapEntry);
+  }
 
-      final originalFile = pick(post, 'view_url').asStringOrNull() ?? '';
-      final sampleFile =
-          pick(post, 'representations', 'large').asStringOrNull() ?? '';
-      final previewFile =
-          pick(post, 'representations', 'thumb').asStringOrNull() ?? '';
-      final tags = pick(post, 'tags').asStringList();
-      final width = pick(post, 'width').asIntOrNull() ?? -1;
-      final height = pick(post, 'height').asIntOrNull() ?? -1;
-      final rating = tags.where(
-        (tag) => tag == 'explicit' || tag == 'safe' || tag == 'questionable',
-      );
-      final source = pick(post, 'source_url').asStringOrNull() ?? '';
-      final score = pick(post, 'score').asIntOrNull() ?? 0;
+  RawPost _mapEntry(Map<String, dynamic> post) {
+    final id = pick(post, 'id').asIntOrNull() ?? -1;
+    final originalFile = pick(post, 'view_url').asStringOrNull() ?? '';
+    final sampleFile =
+        pick(post, 'representations', 'large').asStringOrNull() ?? '';
+    final previewFile =
+        pick(post, 'representations', 'thumb').asStringOrNull() ?? '';
+    final tags = pick(post, 'tags').asStringList();
+    final width = pick(post, 'width').asIntOrNull() ?? -1;
+    final height = pick(post, 'height').asIntOrNull() ?? -1;
+    final rating =
+        tags
+            .where(
+              (tag) =>
+                  tag == 'explicit' || tag == 'safe' || tag == 'questionable',
+            )
+            .firstOrNull ??
+        '';
+    final source = pick(post, 'source_url').asStringOrNull() ?? '';
+    final score = pick(post, 'score').asIntOrNull() ?? 0;
 
-      final hasFile = originalFile.isNotEmpty && previewFile.isNotEmpty;
-      final hasContent = width > 0 && height > 0;
-      final postUrl = server.postUrlOf(id);
-
-      if (hasFile && hasContent) {
-        result.add(
-          Post(
-            id: id,
-            originalFile: BooruUtil.normalizeUrl(server, originalFile),
-            sampleFile: BooruUtil.normalizeUrl(server, sampleFile),
-            previewFile: BooruUtil.normalizeUrl(server, previewFile),
-            tags: tags.map(BooruUtil.decodeTag).toList(),
-            width: width,
-            height: height,
-            serverId: server.id,
-            postUrl: postUrl,
-            rateValue: rating.firstOrNull ?? '',
-            source: source,
-            score: score,
-          ),
-        );
-      }
-    }
-
-    return result;
+    return RawPost(
+      id: id,
+      originalFile: originalFile,
+      sampleFile: sampleFile,
+      previewFile: previewFile,
+      width: width,
+      height: height,
+      rating: rating,
+      source: source,
+      score: score,
+      tags: tags.map(BooruUtil.decodeTag).toList(),
+    );
   }
 
   @override

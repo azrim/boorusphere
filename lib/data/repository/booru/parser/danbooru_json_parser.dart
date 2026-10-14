@@ -1,6 +1,8 @@
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
+import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
@@ -39,60 +41,44 @@ class DanbooruJsonParser extends BooruParser {
   @override
   List<Post> parsePage(Server server, Response res) {
     final entries = List.from(res.data);
-    final result = <Post>[];
-    final seenIds = <int>{};
-    for (final post in entries.whereType<Map<String, dynamic>>()) {
-      final id = pick(post, 'id').asIntOrNull() ?? -1;
-      if (!seenIds.add(id)) {
-        // duplicated result, skipping
-        continue;
-      }
+    return buildPosts(server, entries, _mapEntry);
+  }
 
-      String originalFile = pick(post, 'file_url').asStringOrNull() ?? '';
-      final sampleFile = pick(post, 'large_file_url').asStringOrNull() ?? '';
-      final previewFile = pick(post, 'preview_file_url').asStringOrNull() ?? '';
-      final rating = pick(post, 'rating').asStringOrNull() ?? 'q';
-      final source = pick(post, 'source').asStringOrNull() ?? '';
-      final width = pick(post, 'image_width').asIntOrNull() ?? -1;
-      final height = pick(post, 'image_height').asIntOrNull() ?? -1;
-      final tags = pick(post, 'tag_string').toWordList();
-      final tagsArtist = pick(post, 'tag_string_artist').toWordList();
-      final tagsCharacter = pick(post, 'tag_string_character').toWordList();
-      final tagsCopyright = pick(post, 'tag_string_copyright').toWordList();
-      final tagsGeneral = pick(post, 'tag_string_general').toWordList();
-      final tagsMeta = pick(post, 'tag_string_meta').toWordList();
-      final score = pick(post, 'score').asIntOrNull() ?? 0;
+  RawPost _mapEntry(Map<String, dynamic> post) {
+    final id = pick(post, 'id').asIntOrNull() ?? -1;
+    final originalFile = pick(post, 'file_url').asStringOrNull() ?? '';
+    final sampleFile = pick(post, 'large_file_url').asStringOrNull() ?? '';
+    final previewFile = pick(post, 'preview_file_url').asStringOrNull() ?? '';
+    final rating = pick(post, 'rating').asStringOrNull() ?? '';
+    final source = pick(post, 'source').asStringOrNull() ?? '';
+    final width = pick(post, 'image_width').asIntOrNull() ?? -1;
+    final height = pick(post, 'image_height').asIntOrNull() ?? -1;
+    final tags = pick(post, 'tag_string').toWordList();
+    final tagsArtist = pick(post, 'tag_string_artist').toWordList();
+    final tagsCharacter = pick(post, 'tag_string_character').toWordList();
+    final tagsCopyright = pick(post, 'tag_string_copyright').toWordList();
+    final tagsGeneral = pick(post, 'tag_string_general').toWordList();
+    final tagsMeta = pick(post, 'tag_string_meta').toWordList();
+    final score = pick(post, 'score').asIntOrNull() ?? 0;
 
-      final hasFile = originalFile.isNotEmpty && previewFile.isNotEmpty;
-      final hasContent = width > 0 && height > 0;
-      final postUrl = server.postUrlOf(id);
-
-      if (hasFile && hasContent) {
-        result.add(
-          Post(
-            id: id,
-            originalFile: BooruUtil.normalizeUrl(server, originalFile),
-            sampleFile: BooruUtil.normalizeUrl(server, sampleFile),
-            previewFile: BooruUtil.normalizeUrl(server, previewFile),
-            tags: tags,
-            width: width,
-            height: height,
-            serverId: server.id,
-            postUrl: postUrl,
-            rateValue: rating.isEmpty ? 'q' : rating,
-            source: source,
-            tagsArtist: tagsArtist.map(BooruUtil.decodeTag).toList(),
-            tagsCharacter: tagsCharacter.map(BooruUtil.decodeTag).toList(),
-            tagsCopyright: tagsCopyright.map(BooruUtil.decodeTag).toList(),
-            tagsGeneral: tagsGeneral.map(BooruUtil.decodeTag).toList(),
-            tagsMeta: tagsMeta.map(BooruUtil.decodeTag).toList(),
-            score: score,
-          ),
-        );
-      }
-    }
-
-    return result;
+    return RawPost(
+      id: id,
+      originalFile: originalFile,
+      sampleFile: sampleFile,
+      previewFile: previewFile,
+      width: width,
+      height: height,
+      rating: rating,
+      source: source,
+      score: score,
+      // Base tags are intentionally NOT decoded, matching the engine response.
+      tags: tags,
+      tagsArtist: tagsArtist.map(BooruUtil.decodeTag).toList(),
+      tagsCharacter: tagsCharacter.map(BooruUtil.decodeTag).toList(),
+      tagsCopyright: tagsCopyright.map(BooruUtil.decodeTag).toList(),
+      tagsGeneral: tagsGeneral.map(BooruUtil.decodeTag).toList(),
+      tagsMeta: tagsMeta.map(BooruUtil.decodeTag).toList(),
+    );
   }
 
   @override

@@ -53,10 +53,23 @@ void main() async {
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
 
+    final posts = await ref
+        .read(imageboardRepoProvider(server))
+        .getPage(option, 1);
     expect(
-      await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
+      posts,
       isA<Iterable>().having((x) => x.length, 'total', option.limit - 2),
       reason: 'expecting 2 invalid post',
+    );
+
+    final first = posts.first;
+    expect(first.id, 174);
+    expect(first.width, 347);
+    expect(first.height, 248);
+    expect(
+      first.originalFile,
+      'https://homestuck.net/resources/booru/data/posts/'
+      '174_c71017bfccab32df.png',
     );
 
     const fakeTags = 'szurubooru/tags.json';

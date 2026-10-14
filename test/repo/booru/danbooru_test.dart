@@ -51,11 +51,20 @@ void main() async {
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((x) async => FakeResponseBody.fromFixture(fakePage, 200));
 
+    final posts = await ref
+        .read(imageboardRepoProvider(server))
+        .getPage(option, 1);
     expect(
-      await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
+      posts,
       isA<Iterable>().having((x) => x.length, 'total', option.limit - 2),
       reason: 'expecting 2 invalid post',
     );
+
+    final first = posts.first;
+    expect(first.id, 6402984);
+    expect(first.width, 583);
+    expect(first.height, 1024);
+    expect(first.rateValue, 's');
 
     const fakeTags = 'danbooru/tags.json';
     when(

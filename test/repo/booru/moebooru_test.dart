@@ -51,11 +51,21 @@ void main() async {
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
 
+    final posts = await ref
+        .read(imageboardRepoProvider(server))
+        .getPage(option, 1);
     expect(
-      await ref.read(imageboardRepoProvider(server)).getPage(option, 1),
+      posts,
       isA<Iterable>().having((x) => x.length, 'total', option.limit - 2),
       reason: 'expecting 2 invalid post',
     );
+
+    final first = posts.first;
+    expect(first.id, 358401);
+    expect(first.width, 3840);
+    expect(first.height, 2160);
+    expect(first.sampleWidth, 1500);
+    expect(first.sampleHeight, 844);
 
     const fakeTags = 'konachan/tags.json';
     when(
