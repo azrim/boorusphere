@@ -1,7 +1,6 @@
 import 'dart:collection';
 import 'dart:convert';
 
-import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
@@ -54,7 +53,7 @@ class GelbooruXmlParser extends BooruParser {
 
     final fromParkerConv = jsonDecode(xjson.toParker());
     if (!fromParkerConv.values.first.keys.contains('post')) {
-      throw BooruError.empty;
+      return [];
     }
 
     final posts = fromParkerConv.values.first['post'];
@@ -64,7 +63,7 @@ class GelbooruXmlParser extends BooruParser {
     } else if (posts is List) {
       entries.addAll(posts);
     } else {
-      throw BooruError.empty;
+      return [];
     }
 
     return buildPosts(server, entries, _mapEntry);
@@ -125,7 +124,7 @@ class GelbooruXmlParser extends BooruParser {
 
     final fromParkerConv = jsonDecode(xjson.toParker());
     if (!fromParkerConv.values.first.keys.contains('tag')) {
-      throw StateError('no tags');
+      return {};
     }
 
     final tags = fromParkerConv.values.first['tag'];
@@ -135,7 +134,7 @@ class GelbooruXmlParser extends BooruParser {
     } else if (tags is List) {
       entries.addAll(tags);
     } else {
-      throw StateError('no tags');
+      return {};
     }
 
     final result = <Suggestion>{};

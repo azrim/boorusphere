@@ -1,7 +1,6 @@
 import 'dart:collection';
 import 'dart:convert';
 
-import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
@@ -52,7 +51,7 @@ class ShimmieXmlParser extends BooruParser {
     final conv = jsonDecode(xjson.toGData());
 
     if (conv.isEmpty || !conv.values.first.keys.contains('tag')) {
-      throw BooruError.empty;
+      return [];
     }
 
     final posts = conv.values.first['tag'];
@@ -62,7 +61,7 @@ class ShimmieXmlParser extends BooruParser {
     } else if (posts is List) {
       entries.addAll(posts);
     } else {
-      throw BooruError.empty;
+      return [];
     }
 
     return buildPosts(server, entries, _mapEntry);
