@@ -393,42 +393,48 @@ class _LeadingButton extends ConsumerWidget {
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.5,
                   ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.only(
-                      bottom: DesignTokens.spacingMd,
-                    ),
-                    itemCount: servers.length,
-                    itemBuilder: (context, index) {
-                      final server = servers[index];
-                      final isSelected = server.id == currentServerId;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                        ),
-                        leading: Favicon(
-                          url: server.homepage,
-                          shape: BoxShape.circle,
-                          iconSize: 24,
-                        ),
-                        title: Text(server.name),
-                        trailing: isSelected
-                            ? Icon(
-                                Icons.check_circle,
-                                color: context.colorScheme.primary,
-                              )
-                            : null,
-                        selected: isSelected,
-                        selectedTileColor: context.colorScheme.primary
-                            .withAlpha(context.isLightThemed ? 30 : 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            DesignTokens.radiusXl,
+                  // The translucent surface above is painted by a decorated
+                  // Container, so the tiles need their own Material ancestor to
+                  // render their background and ink splashes.
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.only(
+                        bottom: DesignTokens.spacingMd,
+                      ),
+                      itemCount: servers.length,
+                      itemBuilder: (context, index) {
+                        final server = servers[index];
+                        final isSelected = server.id == currentServerId;
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
                           ),
-                        ),
-                        onTap: () => Navigator.of(context).pop(server.id),
-                      );
-                    },
+                          leading: Favicon(
+                            url: server.homepage,
+                            shape: BoxShape.circle,
+                            iconSize: 24,
+                          ),
+                          title: Text(server.name),
+                          trailing: isSelected
+                              ? Icon(
+                                  Icons.check_circle,
+                                  color: context.colorScheme.primary,
+                                )
+                              : null,
+                          selected: isSelected,
+                          selectedTileColor: context.colorScheme.primary
+                              .withAlpha(context.isLightThemed ? 30 : 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              DesignTokens.radiusXl,
+                            ),
+                          ),
+                          onTap: () => Navigator.of(context).pop(server.id),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
