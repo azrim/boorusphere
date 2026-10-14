@@ -1,5 +1,6 @@
 ## 2.0.24
 
+* **Feat**: add Scan and Manual modes to the Add Server page; Scan auto-detects the engine from the homepage while Manual keeps the engine picker
 * **Fix**: surface video playback failures with a manual retry button instead of failing silently
 * **Fix**: return an empty result instead of throwing when a search response has no posts, so empty XML pages no longer show an error state
 
