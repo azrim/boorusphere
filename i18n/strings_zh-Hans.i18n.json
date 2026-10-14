@@ -12,6 +12,11 @@
   "reset_to_default": "重置回默认值",
   "scan": "扫描",
   "load_more": "加载更多",
+  "pagination": {
+    "previous": "上一页",
+    "next": "下一页",
+    "page": "第 ${page} 页"
+  },
   "clearing": "清除中...",
   "details": "详细信息",
   "location": "站内链接",

@@ -12,6 +12,11 @@
   "reset_to_default": "重設至預設值",
   "scan": "掃描",
   "load_more": "載入更多",
+  "pagination": {
+    "previous": "上一頁",
+    "next": "下一頁",
+    "page": "第 ${page} 頁"
+  },
   "clearing": "清除中...",
   "details": "詳細資訊",
   "location": "圖片連結",

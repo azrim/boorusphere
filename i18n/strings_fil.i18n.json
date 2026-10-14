@@ -12,6 +12,11 @@
   "reset_to_default": "Ireset sa default",
   "scan": "I-scan",
   "load_more": "Mag load pa",
+  "pagination": {
+    "previous": "Nakaraang pahina",
+    "next": "Susunod na pahina",
+    "page": "Pahina ${page}"
+  },
   "clearing": "Binubura...",
   "details": "Mga detalye",
   "location": "Lokasyon",

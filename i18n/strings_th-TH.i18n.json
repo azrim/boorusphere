@@ -12,6 +12,11 @@
   "reset_to_default": "รีเซ็ตเป็นค่าเริ่มต้น",
   "scan": "สแกน",
   "load_more": "โหลดเพิ่ม",
+  "pagination": {
+    "previous": "หน้าก่อนหน้า",
+    "next": "หน้าถัดไป",
+    "page": "หน้า ${page}"
+  },
   "clearing": "กำลังล้าง...",
   "details": "รายละเอียด",
   "location": "ตำแหน่ง",

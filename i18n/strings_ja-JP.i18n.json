@@ -12,6 +12,11 @@
   "reset_to_default": "デフォルトに戻す",
   "scan": "スキャン",
   "load_more": "もっと読む",
+  "pagination": {
+    "previous": "前のページ",
+    "next": "次のページ",
+    "page": "ページ ${page}"
+  },
   "clearing": "クリアランス...",
   "details": "詳細",
   "location": "所在地",

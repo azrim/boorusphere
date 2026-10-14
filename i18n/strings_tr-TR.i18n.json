@@ -12,6 +12,11 @@
   "reset_to_default": "Varsayılana sıfırla",
   "scan": "Tara",
   "load_more": "Daha fazlasını yükle",
+  "pagination": {
+    "previous": "Önceki sayfa",
+    "next": "Sonraki sayfa",
+    "page": "Sayfa ${page}"
+  },
   "clearing": "Temizleniyor...",
   "details": "Ayrıntılar",
   "location": "Konum",

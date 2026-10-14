@@ -12,6 +12,11 @@
   "reset_to_default": "Auf Standard zurücksetzen",
   "scan": "Scannen",
   "load_more": "Mehr laden",
+  "pagination": {
+    "previous": "Vorherige Seite",
+    "next": "Nächste Seite",
+    "page": "Seite ${page}"
+  },
   "clearing": "Leeren...",
   "details": "Details",
   "location": "Standort",
