@@ -152,7 +152,7 @@
   },
   "servers": {
     "title": "Server",
-    "reset_warning": "Are you sure you want to reset server list to default ?\n\nThis will erase all of your added server",
+    "reset_warning": "Are you sure you want to reset server list to default ?\n\nThis will erase all of your added servers",
     "remove_last_error": "The last server cannot be removed",
     "preset": "From Preset",
     "select": "Select Server",
