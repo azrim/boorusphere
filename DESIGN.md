@@ -115,13 +115,12 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
   - **Rating badge**: one-letter chip — S / Q / E / SN — colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
   - **Quick actions**: compact icon row (18dp icons, minimal padding, evenly spaced, onSurfaceVariant) — favorite, download, share, open source — usable without opening the viewer
 - **Loading**: Shimmer placeholders with desaturated surface color
-- **States**: Visible detector triggers lazy loading at screen edges
-- **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom navigation bar
+- **States**: A spinner while a page is loading; a notice card for empty or failed results
+- **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar
 
 ### Navigation
-- **Style**: Bottom navigation bar with 3 tabs (Timeline, Favorites, Downloads)
-- **Active state**: ColorScheme primary indicator
-- **Typography**: System label font, icon + text
+- **Style**: Navigation drawer, opened by a horizontal swipe (disabled while the search bar is open)
+- **Content**: Server switcher, theme toggle, and entries for Downloads, Favorites, Tags Blocker, and Settings — each opens a full-screen route
 
 ### Bottom Sheet (Post Details)
 - **Shape**: Rounded top corners (12px), draggable snap points (0%, 50%, 90%)
