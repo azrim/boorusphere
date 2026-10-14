@@ -308,7 +308,10 @@ class _ServerSelection extends ConsumerWidget {
                 bottomRight: Radius.circular(DesignTokens.radiusXl),
               ),
             ),
-            onTap: () => context.router.push(const ServerAddRoute()),
+            onTap: () {
+              Navigator.of(context).pop();
+              context.router.push(const ServerAddRoute());
+            },
           ),
         ),
         // Reset servers button
