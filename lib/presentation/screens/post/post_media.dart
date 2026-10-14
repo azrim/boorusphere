@@ -531,10 +531,19 @@ class _PostImageFailed extends _PostImageLoadState {
 /// stable (`completed` / `failed` / `loading`) so a percent tick does not
 /// restart the transition.
 class _PostMediaStatus extends StatelessWidget {
-  const _PostMediaStatus({required this.state, required this.onRetry});
+  const _PostMediaStatus({
+    required this.state,
+    required this.onRetry,
+    this.failedTitle,
+  });
 
   final _PostImageLoadState state;
   final VoidCallback onRetry;
+
+  /// Title shown on the failed state. Defaults to the image copy so the
+  /// image path stays byte-for-byte unchanged; video passes its own
+  /// `load_video_failed` string.
+  final String? failedTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -558,7 +567,7 @@ class _PostMediaStatus extends StatelessWidget {
         ),
         _PostImageFailed() => QuickBar.action(
           key: const ValueKey('failed'),
-          title: Text(context.t.loadImageFailed),
+          title: Text(failedTitle ?? context.t.loadImageFailed),
           actionTitle: Text(context.t.retry),
           onPressed: onRetry,
         ),
@@ -683,7 +692,8 @@ class _PostVideoContent extends HookConsumerWidget {
     final markMayNeedRebuild = useMarkMayNeedRebuild();
     final isPlaying = useState(true);
     final hideTimer = useState(Timer(const Duration(seconds: 2), () {}));
-    final source = useVideoPostSource(ref, post: post, active: isActive);
+    final video = useVideoPostSource(ref, post: post, active: isActive);
+    final source = video.source;
     final controller = isBlur.value ? null : source.controller;
 
     onVisibilityChange(bool value) {
@@ -710,19 +720,33 @@ class _PostVideoContent extends HookConsumerWidget {
     }, []);
 
     useEffect(() {
-      controller?.initialize().whenComplete(() async {
-        onFirstFrame() {
-          controller.removeListener(onFirstFrame);
+      Future<void> initialize() async {
+        final player = controller;
+        if (player == null) return;
+
+        try {
+          await player.initialize();
+        } catch (_) {
+          // Surface the failure instead of letting it escape as an
+          // unhandled async error; the viewer shows a manual retry banner.
+          video.reportFailure();
+          return;
+        }
+
+        void onFirstFrame() {
+          player.removeListener(onFirstFrame);
           markMayNeedRebuild();
         }
 
-        controller.addListener(onFirstFrame);
-        await controller.setVolume(contentSettings.videoMuted ? 0 : 1);
+        player.addListener(onFirstFrame);
+        await player.setVolume(contentSettings.videoMuted ? 0 : 1);
         if (isPlaying.value && context.mounted) {
-          await controller.play();
+          await player.play();
           scheduleHide();
         }
-      });
+      }
+
+      initialize();
     }, [controller]);
 
     return RepaintBoundary(
@@ -827,6 +851,17 @@ class _PostVideoContent extends HookConsumerWidget {
                 },
               ),
             ),
+          // Playback failure chrome, offset like the blur notice so both
+          // sit clear of the bottom toolbox.
+          if (!isBlur.value && source.hasError)
+            Positioned(
+              bottom: QuickBar.preferredBottomPosition(context) + 24,
+              child: _PostMediaStatus(
+                state: const _PostImageFailed(),
+                failedTitle: context.t.loadVideoFailed,
+                onRetry: () => unawaited(video.retry()),
+              ),
+            ),
         ],
       ),
     );
@@ -901,7 +936,7 @@ class _ToolboxOverlay extends ConsumerWidget {
             ),
           ],
         ),
-        _Progress(source: source),
+        if (!source.hasError) _Progress(source: source),
       ],
     );
   }

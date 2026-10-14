@@ -34,6 +34,7 @@
   "open_settings": "Open Settings",
   "copy_success": "Copied to clipboard",
   "load_image_failed": "Failed to load image",
+  "load_video_failed": "Failed to load video",
   "unsafe_content": "Content is not safe",
   "unblur": "Show me",
   "unsupported_media": "${file_ext} is not supported",
