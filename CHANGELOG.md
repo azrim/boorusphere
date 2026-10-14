@@ -1,6 +1,7 @@
 ## 2.0.24
 
 * **Fix**: surface video playback failures with a manual retry button instead of failing silently
+* **Fix**: return an empty result instead of throwing when a search response has no posts, so empty XML pages no longer show an error state
 
 ## 2.0.23
 
