@@ -14,6 +14,8 @@ analyzer:
     - lib/**/*.g.dart
     - lib/*.g.dart
     - lib/**/*.pi.dart
+    - build/**
+    - android/**
 
   errors:
     public_member_api_docs: ignore
