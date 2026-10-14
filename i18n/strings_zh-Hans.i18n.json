@@ -11,7 +11,6 @@
   "reset": "重置",
   "reset_to_default": "重置回默认值",
   "scan": "扫描",
-  "load_more": "加载更多",
   "pagination": {
     "previous": "上一页",
     "next": "下一页",
