@@ -4,7 +4,7 @@
 * **Fix**: surface video playback failures with a manual retry button instead of failing silently
 * **Fix**: return an empty result instead of throwing when a search response has no posts, so empty XML pages no longer show an error state
 * **Feat**: timeline cards now show the media type, top tag, dimensions and score as compact overlays
-* **Feat**: long-press on a timeline card now opens a quick-action menu (select, favorite, download, share, source) instead of selecting immediately
+* **Feat**: long-press on a timeline card opens a quick-action menu (select, favorite, download, share, source) — a floating glass card with a blurred backdrop and a spring entrance, instead of selecting immediately
 
 ## 2.0.23
 

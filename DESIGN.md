@@ -116,11 +116,19 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
   - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
   - **Bottom-left**: the most identifying tag name as a chip (`niten`, no category prefix), falling back to artist → copyright → character → general; hidden when the post has no tags
   - **Bottom-right**: original dimensions (`3840×2160`, hidden when unknown)
-- **Quick actions**: not on the card — a long-press opens a context menu (select / deselect, favorite, download, share, open source)
+- **Quick actions**: not on the card — a long-press opens the [Context Menu](#context-menu-post-actions)
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
 - **Loading**: Shimmer placeholders with desaturated surface color
 - **States**: A spinner while a page is loading; a notice card for empty or failed results
 - **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar
+
+### Context Menu (Post Actions)
+- **Trigger**: long-press a timeline card (medium haptic) — never a plain tap
+- **Presentation**: a floating glass card centered over the timeline — translucent scheme surface with `BackdropFilter` blur, 24px radius, hairline outline, soft shadow
+- **Backdrop**: full-screen `ColorScheme.scrim` scrim with a progressive blur; tap the backdrop or press back to dismiss
+- **Rows**: 48px, each a tinted icon chip (`secondaryContainer` / `onSecondaryContainer`) plus a label; grouped by intent (select / favorite · download / share · open source) with hairline dividers; disabled rows dim to 38%
+- **Motion**: the card springs in (scale + slide + blur, ~300ms) and rows fade/slide in with a short stagger; the reverse plays on dismiss
+- **Colors**: scheme-only — icon chips and labels come from `ColorScheme`, with no per-action accent colors
 
 ### Navigation
 - **Style**: Navigation drawer, opened by a horizontal swipe (disabled while the search bar is open)

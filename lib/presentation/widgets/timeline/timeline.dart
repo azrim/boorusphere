@@ -17,6 +17,7 @@ import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
+import 'package:boorusphere/presentation/widgets/timeline/post_context_menu.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/url_validator.dart';
@@ -124,9 +125,6 @@ String? _topTagOf(Post post) {
   if (post.tagsGeneral.isNotEmpty) return post.tagsGeneral.first;
   return null;
 }
-
-/// Actions offered by the long-press context menu on a timeline card.
-enum _CardMenuAction { select, favorite, download, share, source }
 
 class Timeline extends ConsumerWidget {
   const Timeline({super.key, required this.posts, this.enableSelection = true});
@@ -261,9 +259,9 @@ class _ThumbnailCard extends HookConsumerWidget {
         },
         // Long-press opens the quick-action menu (select, favorite, download,
         // share, open source).
-        onLongPressStart: (details) {
+        onLongPress: () {
           HapticFeedback.mediumImpact();
-          unawaited(_showCardMenu(context, ref, details.globalPosition));
+          unawaited(_showCardMenu(context, ref));
         },
         child: Container(
           decoration: BoxDecoration(
@@ -361,21 +359,10 @@ class _ThumbnailCard extends HookConsumerWidget {
     );
   }
 
-  /// Opens the card's quick-action menu anchored at [globalPosition] (the
-  /// long-press point).
-  Future<void> _showCardMenu(
-    BuildContext context,
-    WidgetRef ref,
-    Offset globalPosition,
-  ) async {
+  /// Opens the card's quick-action menu (select, favorite, download, share,
+  /// open source) as a floating glass card over the timeline.
+  Future<void> _showCardMenu(BuildContext context, WidgetRef ref) async {
     final (_, post) = postdata;
-    final overlayBox =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
-    final position = RelativeRect.fromRect(
-      Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
-      Offset.zero & overlayBox.size,
-    );
-
     final isSelected = ref.read(postSelectionProvider).contains(post.id);
     final isFavorite = ref.read(favoritePostStateProvider).contains(post);
     final shareLink = post.postUrl.isNotEmpty
@@ -384,14 +371,13 @@ class _ThumbnailCard extends HookConsumerWidget {
     final sourceLink = _sourceLinkOf(post);
     final canShare = isSafeUrl(shareLink);
 
-    final action = await showMenu<_CardMenuAction>(
-      context: context,
-      position: position,
-      items: [
-        if (enableSelection)
-          PopupMenuItem(
-            value: _CardMenuAction.select,
-            child: _MenuRow(
+    final action = await showPostContextMenu(
+      context,
+      groups: [
+        [
+          if (enableSelection)
+            PostContextMenuEntry(
+              action: PostContextMenuAction.select,
               icon: isSelected
                   ? Icons.check_circle
                   : Icons.check_circle_outline,
@@ -399,85 +385,61 @@ class _ThumbnailCard extends HookConsumerWidget {
                   ? context.t.postAction.deselect
                   : context.t.postAction.select,
             ),
-          ),
-        PopupMenuItem(
-          value: _CardMenuAction.favorite,
-          child: _MenuRow(
+          PostContextMenuEntry(
+            action: PostContextMenuAction.favorite,
             icon: isFavorite ? Icons.favorite : Icons.favorite_border,
             label: isFavorite
                 ? context.t.postAction.unfavorite
                 : context.t.postAction.favorite,
           ),
-        ),
-        PopupMenuItem(
-          value: _CardMenuAction.download,
-          child: _MenuRow(
+        ],
+        [
+          PostContextMenuEntry(
+            action: PostContextMenuAction.download,
             icon: Icons.download_outlined,
             label: context.t.postAction.download,
           ),
-        ),
-        PopupMenuItem(
-          value: _CardMenuAction.share,
-          enabled: canShare,
-          child: _MenuRow(
+          PostContextMenuEntry(
+            action: PostContextMenuAction.share,
             icon: Icons.share_outlined,
             label: context.t.postAction.share,
+            enabled: canShare,
           ),
-        ),
-        PopupMenuItem(
-          value: _CardMenuAction.source,
-          enabled: sourceLink != null,
-          child: _MenuRow(
+        ],
+        [
+          PostContextMenuEntry(
+            action: PostContextMenuAction.source,
             icon: Icons.link_outlined,
             label: context.t.postAction.openSource,
+            enabled: sourceLink != null,
           ),
-        ),
+        ],
       ],
     );
 
     if (action == null || !context.mounted) return;
 
     switch (action) {
-      case _CardMenuAction.select:
+      case PostContextMenuAction.select:
         ref.read(postSelectionProvider.notifier).toggle(post.id);
-      case _CardMenuAction.favorite:
+      case PostContextMenuAction.favorite:
         final favorites = ref.read(favoritePostStateProvider.notifier);
         if (isFavorite) {
           unawaited(favorites.remove(post));
         } else {
           unawaited(favorites.save(post));
         }
-      case _CardMenuAction.download:
+      case PostContextMenuAction.download:
         unawaited(DownloaderDialog.show(context, ref, post));
-      case _CardMenuAction.share:
+      case PostContextMenuAction.share:
         unawaited(StorageUtil().shareText(shareLink, null));
-      case _CardMenuAction.source:
+      case PostContextMenuAction.source:
         if (sourceLink != null) {
           unawaited(
             launchUrlString(sourceLink, mode: LaunchMode.externalApplication),
           );
         }
     }
-  }
-}
-
-/// Icon + label row shared by the context-menu entries.
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: DesignTokens.spacingSm),
-        Text(label),
-      ],
-    );
   }
 }
 
