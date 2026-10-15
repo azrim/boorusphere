@@ -110,11 +110,11 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 ### Timeline Grid
 - **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders
-- **Overlays**: Compact labels sit directly on the image, kept legible by a neutral top/bottom scrim (a fixed black gradient — the one documented exception to the adaptive-palette rule, since the underlying image content is arbitrary):
+- **Overlays**: Compact labels sit directly on the image, kept legible by a neutral top/bottom scrim (a fixed black gradient) plus a drop shadow on the tag. The scrim and the tag-category accents are the two documented exceptions to the adaptive-palette rule, since the underlying image content is arbitrary:
   - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Replaced by the selection checkbox while the post is selected.
   - **Rating badge**: one-letter chip — S / Q / E / SN — colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
   - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
-  - **Bottom-left**: the most identifying tag name as a chip (`niten`, no category prefix), falling back to artist → copyright → character → general; hidden when the post has no tags
+  - **Bottom-left**: the most identifying tag name (`niten`, no category prefix) drawn straight on the image with no chip background, falling back to artist → copyright → character → general; tinted by category — artist orange, copyright purple, character green, general blue; hidden when the post has no tags
   - **Bottom-right**: original dimensions (`3840×2160`, hidden when unknown)
 - **Quick actions**: not on the card — a long-press opens the [Context Menu](#context-menu-post-actions)
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
@@ -169,7 +169,7 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Do:
 - **Do** use `ColorScheme` tokens for all colors — never hard-code hex values
-- **Do** keep thumbnails edge-to-edge within their card; the compact on-image overlays (see Timeline Grid) are the only chrome allowed on the image, and their neutral scrim is the only non-scheme color
+- **Do** keep thumbnails edge-to-edge within their card; the compact on-image overlays (see Timeline Grid) are the only chrome allowed on the image, and their neutral scrim plus the tag-category accents are the only non-scheme colors
 - **Do** use shimmer loading for thumbnails — it communicates "loading" without blank space
 - **Do** let the staggered grid handle visual interest — varied aspect ratios are the texture
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
@@ -178,7 +178,7 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 ### Don't:
 - **Don't** add shadows, borders, or elevation to image thumbnails — they are the content, not cards
 - **Don't** use generic Material defaults without considering the content-first philosophy — every chrome element must earn its pixels
-- **Don't** hard-code colors outside of `ColorScheme` — the adaptive palette is the identity
+- **Don't** hard-code colors outside of `ColorScheme` — the adaptive palette is the identity (the on-image overlay scrim and tag-category accents are the only documented exceptions)
 - **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions) — deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens — the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations — motion serves feedback (loading, transitions), not delight for its own sake

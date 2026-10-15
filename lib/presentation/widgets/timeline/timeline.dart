@@ -35,11 +35,20 @@ import 'package:url_launcher/url_launcher_string.dart';
 const double _kSelectionBorderWidth = 3.0;
 
 /// Neutral scrim used by the on-image overlays. Image content is arbitrary, so
-/// these can't come from the [ColorScheme]; the fixed black gradient is the
-/// documented exception to the adaptive-palette rule.
+/// these can't come from the [ColorScheme]; the fixed black gradient is one of
+/// two documented exceptions to the adaptive-palette rule.
 const Color _kScrimStrong = Color(0x8A000000); // ~54% black
 const Color _kScrimClear = Color(0x00000000);
 const Color _kLabelBackground = Color(0xB3000000); // ~70% black
+
+/// Tag category accents for the on-image chip, following the booru convention
+/// (artist orange, copyright purple, character green, general blue). The chip
+/// is drawn straight on an arbitrary image, so these are fixed hues rather than
+/// scheme tokens — the other documented exception to the adaptive-palette rule.
+const Color _kTagArtist = Color(0xFFFFB74D);
+const Color _kTagCopyright = Color(0xFFBA68C8);
+const Color _kTagCharacter = Color(0xFF81C784);
+const Color _kTagGeneral = Color(0xFF64B5F6);
 
 /// Compact post score for the on-image badge: `42`, `1.4k`, `12k`, `1.2M`.
 String _compactCount(int value) {
@@ -116,13 +125,22 @@ String? _sourceLinkOf(Post post) {
   return null;
 }
 
-/// The most identifying tag for the card chip: artist first, then the
-/// copyright (manga/anime/game), character and finally general tag.
-String? _topTagOf(Post post) {
-  if (post.tagsArtist.isNotEmpty) return post.tagsArtist.first;
-  if (post.tagsCopyright.isNotEmpty) return post.tagsCopyright.first;
-  if (post.tagsCharacter.isNotEmpty) return post.tagsCharacter.first;
-  if (post.tagsGeneral.isNotEmpty) return post.tagsGeneral.first;
+/// The most identifying tag for the card chip — artist first, then the
+/// copyright (manga/anime/game), character and finally general tag — paired
+/// with the category accent that tints it.
+({String label, Color color})? _topTagOf(Post post) {
+  if (post.tagsArtist.isNotEmpty) {
+    return (label: post.tagsArtist.first, color: _kTagArtist);
+  }
+  if (post.tagsCopyright.isNotEmpty) {
+    return (label: post.tagsCopyright.first, color: _kTagCopyright);
+  }
+  if (post.tagsCharacter.isNotEmpty) {
+    return (label: post.tagsCharacter.first, color: _kTagCharacter);
+  }
+  if (post.tagsGeneral.isNotEmpty) {
+    return (label: post.tagsGeneral.first, color: _kTagGeneral);
+  }
   return null;
 }
 
@@ -544,8 +562,9 @@ class _MediaTypeLabel extends StatelessWidget {
   }
 }
 
-/// Bottom-left overlay: the most identifying tag name (e.g. `niten`). Hidden
-/// when the post has no tags. Uses the scheme's accent chip colors.
+/// Bottom-left overlay: the most identifying tag name (e.g. `niten`) drawn
+/// straight on the image and tinted by its category. Hidden when the post has
+/// no tags.
 class _TagChip extends StatelessWidget {
   const _TagChip({required this.post});
 
@@ -556,23 +575,16 @@ class _TagChip extends StatelessWidget {
     final tag = _topTagOf(post);
     if (tag == null) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DesignTokens.spacingSm,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: context.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
-      ),
-      child: Text(
-        tag,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: context.theme.textTheme.labelSmall?.copyWith(
-          color: context.colorScheme.onPrimaryContainer,
-          fontWeight: FontWeight.w600,
-        ),
+    return Text(
+      tag.label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: context.theme.textTheme.labelSmall?.copyWith(
+        color: tag.color,
+        fontWeight: FontWeight.w700,
+        // Coloured text is weaker than the white labels, so it carries a
+        // slightly stronger shadow to stay readable over bright images.
+        shadows: const [Shadow(blurRadius: 3, color: Color(0xCC000000))],
       ),
     );
   }
