@@ -18,9 +18,11 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
+import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/url_validator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -30,6 +32,24 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 /// Selection border width for multi-select mode on timeline thumbnails.
 const double _kSelectionBorderWidth = 3.0;
+
+/// Neutral scrim used by the on-image overlays. Image content is arbitrary, so
+/// these can't come from the [ColorScheme]; they match the pre-existing overlay
+/// precedent in this file (the media-type badge, the long-thumbnail indicator).
+const Color _kScrimStrong = Color(0x8A000000); // ~54% black
+const Color _kScrimClear = Color(0x00000000);
+const Color _kLabelBackground = Color(0xB3000000); // ~70% black
+
+/// Compact post score for the on-image badge: `42`, `1.4k`, `12k`, `1.2M`.
+String _compactCount(int value) {
+  final abs = value.abs();
+  if (abs < 1000) return '$value';
+  if (abs < 1000000) {
+    final scaled = value / 1000;
+    return '${scaled.toStringAsFixed(abs < 10000 ? 1 : 0)}k';
+  }
+  return '${(value / 1000000).toStringAsFixed(1)}M';
+}
 
 /// Reused as the explicit-content blur on thumbnails. Hoisted out of the
 /// per-item builder so we don't allocate one [ImageFilter] per visible
@@ -97,10 +117,36 @@ String? _sourceLinkOf(Post post) {
   return null;
 }
 
+/// The most "identifying" tag for the card chip: artist first, then the
+/// copyright (manga/anime/game), character and finally general tag.
+({String category, String tag})? _topTagOf(BuildContext context, Post post) {
+  final t = context.t;
+  if (post.tagsArtist.isNotEmpty) {
+    return (category: t.artist, tag: post.tagsArtist.first);
+  }
+  if (post.tagsCopyright.isNotEmpty) {
+    return (category: t.copyright, tag: post.tagsCopyright.first);
+  }
+  if (post.tagsCharacter.isNotEmpty) {
+    return (category: t.character, tag: post.tagsCharacter.first);
+  }
+  if (post.tagsGeneral.isNotEmpty) {
+    return (category: t.general, tag: post.tagsGeneral.first);
+  }
+  return null;
+}
+
+/// Actions offered by the long-press context menu on a timeline card.
+enum _CardMenuAction { select, favorite, download, share, source }
+
 class Timeline extends ConsumerWidget {
-  const Timeline({super.key, required this.posts});
+  const Timeline({super.key, required this.posts, this.enableSelection = true});
 
   final Iterable<Post> posts;
+
+  /// Whether cards can enter multi-select mode. Disabled on screens without a
+  /// batch action bar (e.g. Favorites), where selecting would be a dead end.
+  final bool enableSelection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -151,6 +197,7 @@ class Timeline extends ConsumerWidget {
               postdata: (index, postsList[index]),
               controller: scrollController,
               blurExplicit: blurExplicit,
+              enableSelection: enableSelection,
               onTap: () {
                 context.scaffoldMessenger.removeCurrentSnackBar();
 
@@ -184,6 +231,7 @@ class _ThumbnailCard extends HookConsumerWidget {
     required this.postdata,
     required this.controller,
     required this.blurExplicit,
+    required this.enableSelection,
     this.onTap,
     required this.gridSize,
     required this.cacheBaseWidth,
@@ -192,6 +240,7 @@ class _ThumbnailCard extends HookConsumerWidget {
   final (int, Post) postdata;
   final AutoScrollController controller;
   final bool blurExplicit;
+  final bool enableSelection;
   final void Function()? onTap;
   final int gridSize;
   final int cacheBaseWidth;
@@ -202,6 +251,11 @@ class _ThumbnailCard extends HookConsumerWidget {
     final isSelected = ref.watch(
       postSelectionProvider.select((sel) => sel.contains(post.id)),
     );
+    // Multi-select mode is active whenever anything is selected. The floating
+    // favorite button steps aside then, so it can't be mis-tapped.
+    final selectionActive = ref.watch(
+      postSelectionProvider.select((sel) => sel.isNotEmpty),
+    );
 
     return AutoScrollTag(
       key: ValueKey(post.viewId),
@@ -209,13 +263,12 @@ class _ThumbnailCard extends HookConsumerWidget {
       index: index,
       highlightColor: context.theme.colorScheme.surfaceTint,
       child: GestureDetector(
-        // Opaque so taps on the footer (labels, gaps between the action
-        // buttons) open the viewer like taps on the thumbnail do. The action
-        // buttons still win the gesture arena for their own taps, and
-        // long-press anywhere keeps toggling selection.
+        // Opaque so taps anywhere on the card (including the overlay labels)
+        // open the viewer like taps on the thumbnail do. The floating favorite
+        // button still wins the gesture arena for its own taps.
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          if (ref.read(postSelectionProvider).isNotEmpty) {
+          if (enableSelection && ref.read(postSelectionProvider).isNotEmpty) {
             // If selection mode is active, toggle selection
             ref.read(postSelectionProvider.notifier).toggle(post.id);
           } else if (onTap != null) {
@@ -223,141 +276,426 @@ class _ThumbnailCard extends HookConsumerWidget {
             onTap!();
           }
         },
-        onLongPress: () {
-          // Enter selection mode and toggle this post
-          ref.read(postSelectionProvider.notifier).toggle(post.id);
+        // Long-press opens a context menu instead of selecting immediately;
+        // selection is now an explicit choice inside that menu.
+        onLongPressStart: (details) {
+          HapticFeedback.mediumImpact();
+          unawaited(_showCardMenu(context, ref, details.globalPosition));
         },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-                border: isSelected
-                    ? Border.all(
-                        color: context.theme.colorScheme.primary,
-                        width: _kSelectionBorderWidth,
-                      )
-                    : null,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+            border: isSelected
+                ? Border.all(
+                    color: context.theme.colorScheme.primary,
+                    width: _kSelectionBorderWidth,
+                  )
+                : null,
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Stack(
+            children: [
+              Hero(
+                tag: post.viewId,
+                flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
+                child: _ThumbnailImage(
+                  post: post,
+                  blurExplicit: blurExplicit,
+                  gridSize: gridSize,
+                  cacheBaseWidth: cacheBaseWidth,
+                ),
               ),
-              clipBehavior: Clip.hardEdge,
-              child: Stack(
-                children: [
-                  Hero(
-                    tag: post.viewId,
-                    flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
-                    child: _ThumbnailImage(
-                      post: post,
-                      blurExplicit: blurExplicit,
-                      gridSize: gridSize,
-                      cacheBaseWidth: cacheBaseWidth,
+              // Neutral gradients keep the overlay labels legible on any image.
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 44,
+                child: IgnorePointer(child: _OverlayScrim(top: true)),
+              ),
+              const Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 64,
+                child: IgnorePointer(child: _OverlayScrim(top: false)),
+              ),
+              // Top-left: score + rating badge. Replaced by the selection
+              // checkbox while the card is selected.
+              if (!isSelected)
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: IgnorePointer(child: _ScoreRatingOverlay(post: post)),
+                ),
+              // Top-right: media file type (PNG / JPG / GIF / MP4 / WEBP).
+              Positioned(
+                top: 4,
+                right: 4,
+                child: IgnorePointer(child: _MediaTypeLabel(post: post)),
+              ),
+              // Bottom: tag chip on the left, favorite + dimensions on the right.
+              Positioned(
+                left: 4,
+                right: 4,
+                bottom: 4,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Flexible(child: _TagChip(post: post)),
+                    const SizedBox(width: DesignTokens.spacingXs),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (!selectionActive) ...[
+                          _FavoriteButton(post: post),
+                          const SizedBox(height: 2),
+                        ],
+                        _DimensionsLabel(post: post),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Selection checkbox overlay
+              if (isSelected)
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(DesignTokens.spacingXs),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 18,
                     ),
                   ),
-                  // Selection checkbox overlay
-                  if (isSelected)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: context.theme.colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(DesignTokens.spacingXs),
-                        child: const Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Opens the card's quick-action menu anchored at [globalPosition] (the
+  /// long-press point).
+  Future<void> _showCardMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Offset globalPosition,
+  ) async {
+    final (_, post) = postdata;
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final position = RelativeRect.fromRect(
+      Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
+      Offset.zero & overlayBox.size,
+    );
+
+    final isSelected = ref.read(postSelectionProvider).contains(post.id);
+    final isFavorite = ref.read(favoritePostStateProvider).contains(post);
+    final shareLink = post.postUrl.isNotEmpty
+        ? post.postUrl
+        : post.originalFile;
+    final sourceLink = _sourceLinkOf(post);
+    final canShare = isSafeUrl(shareLink);
+
+    final action = await showMenu<_CardMenuAction>(
+      context: context,
+      position: position,
+      items: [
+        if (enableSelection)
+          PopupMenuItem(
+            value: _CardMenuAction.select,
+            child: _MenuRow(
+              icon: isSelected
+                  ? Icons.check_circle
+                  : Icons.check_circle_outline,
+              label: isSelected
+                  ? context.t.postAction.deselect
+                  : context.t.postAction.select,
             ),
-            Padding(
-              padding: const EdgeInsets.only(
-                top: DesignTokens.spacingXs,
-                left: 2,
-                right: 2,
-              ),
-              child: _CardFooter(post: post),
-            ),
-          ],
+          ),
+        PopupMenuItem(
+          value: _CardMenuAction.favorite,
+          child: _MenuRow(
+            icon: isFavorite ? Icons.favorite : Icons.favorite_border,
+            label: isFavorite
+                ? context.t.postAction.unfavorite
+                : context.t.postAction.favorite,
+          ),
+        ),
+        PopupMenuItem(
+          value: _CardMenuAction.download,
+          child: _MenuRow(
+            icon: Icons.download_outlined,
+            label: context.t.postAction.download,
+          ),
+        ),
+        PopupMenuItem(
+          value: _CardMenuAction.share,
+          enabled: canShare,
+          child: _MenuRow(
+            icon: Icons.share_outlined,
+            label: context.t.postAction.share,
+          ),
+        ),
+        PopupMenuItem(
+          value: _CardMenuAction.source,
+          enabled: sourceLink != null,
+          child: _MenuRow(
+            icon: Icons.link_outlined,
+            label: context.t.postAction.openSource,
+          ),
+        ),
+      ],
+    );
+
+    if (action == null || !context.mounted) return;
+
+    switch (action) {
+      case _CardMenuAction.select:
+        ref.read(postSelectionProvider.notifier).toggle(post.id);
+      case _CardMenuAction.favorite:
+        final favorites = ref.read(favoritePostStateProvider.notifier);
+        if (isFavorite) {
+          unawaited(favorites.remove(post));
+        } else {
+          unawaited(favorites.save(post));
+        }
+      case _CardMenuAction.download:
+        unawaited(DownloaderDialog.show(context, ref, post));
+      case _CardMenuAction.share:
+        unawaited(StorageUtil().shareText(shareLink, null));
+      case _CardMenuAction.source:
+        if (sourceLink != null) {
+          unawaited(
+            launchUrlString(sourceLink, mode: LaunchMode.externalApplication),
+          );
+        }
+    }
+  }
+}
+
+/// Icon + label row shared by the context-menu entries.
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18),
+        const SizedBox(width: DesignTokens.spacingSm),
+        Text(label),
+      ],
+    );
+  }
+}
+
+/// Fades a neutral scrim into the top or bottom edge of a thumbnail so the
+/// overlay labels stay readable regardless of the underlying image.
+class _OverlayScrim extends StatelessWidget {
+  const _OverlayScrim({required this.top});
+
+  final bool top;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: top ? Alignment.topCenter : Alignment.bottomCenter,
+          end: top ? Alignment.bottomCenter : Alignment.topCenter,
+          colors: const [_kScrimStrong, _kScrimClear],
         ),
       ),
     );
   }
 }
 
-/// Quiet metadata + quick actions below each thumbnail. Kept separate from
-/// [_ThumbnailCard] so the favorite-state watch only rebuilds the button.
-class _CardFooter extends StatelessWidget {
-  const _CardFooter({required this.post});
+/// Top-left overlay: score (with a star) and the rating badge. Hidden for
+/// unrated posts with no score.
+class _ScoreRatingOverlay extends StatelessWidget {
+  const _ScoreRatingOverlay({required this.post});
 
   final Post post;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final badge = _ratingBadgeOf(post.rating, context.colorScheme);
+    if (badge == null && post.score == 0) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _PostMetaRow(post: post),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            Expanded(child: _FavoriteAction(post: post)),
-            Expanded(child: _DownloadAction(post: post)),
-            Expanded(child: _ShareAction(post: post)),
-            Expanded(child: _OpenSourceAction(post: post)),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// Rating badge, score and dimensions in labelSmall. A [Wrap] keeps the
-/// metadata readable on narrow cards (4-column grid) instead of
-/// overflowing or ellipsizing the dimensions.
-class _PostMetaRow extends StatelessWidget {
-  const _PostMetaRow({required this.post});
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
-    final badge = _ratingBadgeOf(post.rating, scheme);
-    final hasSize = post.width > 0 && post.height > 0;
-
-    if (badge == null && post.score == 0 && !hasSize) {
-      return const SizedBox.shrink();
-    }
-
-    final textStyle = context.theme.textTheme.labelSmall?.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
-
-    return Wrap(
-      spacing: DesignTokens.spacingSm,
-      runSpacing: DesignTokens.spacingXs,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
+        if (post.score != 0) ...[
+          const Icon(Icons.star_rounded, size: 13, color: Colors.white),
+          const SizedBox(width: 2),
+          Text(
+            _compactCount(post.score),
+            style: context.theme.textTheme.labelSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+        if (badge != null && post.score != 0)
+          const SizedBox(width: DesignTokens.spacingXs),
         if (badge != null)
           _RatingBadge(
             label: badge.label,
             color: badge.color,
             semanticLabel: post.rating.describe(context),
           ),
-        // Hidden at 0 — most boorus report 0 for unrated posts, and the
-        // footer stays quieter without a meaningless "+0".
-        if (post.score != 0)
-          Text(
-            post.score > 0 ? '+${post.score}' : '${post.score}',
-            style: textStyle,
-          ),
-        if (hasSize) Text('${post.width}×${post.height}', style: textStyle),
       ],
+    );
+  }
+}
+
+/// Top-right overlay: the media file type (`PNG`, `JPG`, `GIF`, `MP4`, ...),
+/// derived from the original file extension. Hidden when unknown.
+class _MediaTypeLabel extends StatelessWidget {
+  const _MediaTypeLabel({required this.post});
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) {
+    final ext = post.originalFile.fileExt.toUpperCase();
+    if (ext.isEmpty) return const SizedBox.shrink();
+
+    final isVideo = post.originalFile.asContent().isVideo;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: const BoxDecoration(
+        color: _kLabelBackground,
+        borderRadius: BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isVideo) ...[
+            const Icon(Icons.play_arrow, size: 12, color: Colors.white),
+            const SizedBox(width: 2),
+          ],
+          Text(
+            ext,
+            style: context.theme.textTheme.labelSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bottom-left overlay: the most identifying tag, rendered as
+/// `category:name` (e.g. `artist:niten`). Hidden when the post has no tags.
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.post});
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) {
+    final tag = _topTagOf(context, post);
+    if (tag == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingSm,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: context.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
+      ),
+      child: Text(
+        '${tag.category}:${tag.tag}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: context.theme.textTheme.labelSmall?.copyWith(
+          color: context.colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom-right overlay: the original dimensions (`3840×2160`). Hidden when
+/// the booru didn't report a size.
+class _DimensionsLabel extends StatelessWidget {
+  const _DimensionsLabel({required this.post});
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) {
+    if (post.width <= 0 || post.height <= 0) return const SizedBox.shrink();
+
+    return Text(
+      '${post.width}×${post.height}',
+      style: context.theme.textTheme.labelSmall?.copyWith(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        shadows: const [Shadow(blurRadius: 2, color: Color(0x80000000))],
+      ),
+    );
+  }
+}
+
+/// Floating favorite toggle sitting above the dimensions overlay. Only this
+/// button rebuilds when the post's favorite status flips.
+class _FavoriteButton extends ConsumerWidget {
+  const _FavoriteButton({required this.post});
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFavorite = ref.watch(
+      favoritePostStateProvider.select((it) => it.contains(post)),
+    );
+
+    return Material(
+      color: _kLabelBackground,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          final favorites = ref.read(favoritePostStateProvider.notifier);
+          if (isFavorite) {
+            unawaited(favorites.remove(post));
+          } else {
+            unawaited(favorites.save(post));
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_border,
+            size: 16,
+            color: isFavorite ? context.colorScheme.error : Colors.white,
+            semanticLabel: context.t.favorites.title,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -393,119 +731,6 @@ class _RatingBadge extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-}
-
-/// Compact icon button for the footer action row: small icon, minimal
-/// padding, no tooltip (long-press belongs to the card's selection toggle).
-class _QuickAction extends StatelessWidget {
-  const _QuickAction({
-    required this.icon,
-    required this.onPressed,
-    this.color,
-    this.semanticLabel,
-  });
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final Color? color;
-  final String? semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon, semanticLabel: semanticLabel),
-      iconSize: 18,
-      color: color,
-      padding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-    );
-  }
-}
-
-class _FavoriteAction extends ConsumerWidget {
-  const _FavoriteAction({required this.post});
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Narrow scope: only this button rebuilds when this post's favorite
-    // status flips, not every card in the grid.
-    final isFavorite = ref.watch(
-      favoritePostStateProvider.select((it) => it.contains(post)),
-    );
-
-    return _QuickAction(
-      icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-      color: isFavorite ? context.colorScheme.error : null,
-      semanticLabel: context.t.favorites.title,
-      onPressed: () {
-        final favorites = ref.read(favoritePostStateProvider.notifier);
-        if (isFavorite) {
-          unawaited(favorites.remove(post));
-        } else {
-          unawaited(favorites.save(post));
-        }
-      },
-    );
-  }
-}
-
-class _DownloadAction extends ConsumerWidget {
-  const _DownloadAction({required this.post});
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return _QuickAction(
-      icon: Icons.download_outlined,
-      semanticLabel: context.t.downloads.title,
-      onPressed: () => unawaited(DownloaderDialog.show(context, ref, post)),
-    );
-  }
-}
-
-class _ShareAction extends StatelessWidget {
-  const _ShareAction({required this.post});
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context) {
-    // Prefer the canonical post page, fall back to the raw file.
-    final link = post.postUrl.isNotEmpty ? post.postUrl : post.originalFile;
-
-    return _QuickAction(
-      icon: Icons.share_outlined,
-      onPressed: isSafeUrl(link)
-          ? () => unawaited(StorageUtil().shareText(link, null))
-          : null,
-    );
-  }
-}
-
-class _OpenSourceAction extends StatelessWidget {
-  const _OpenSourceAction({required this.post});
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context) {
-    final link = _sourceLinkOf(post);
-
-    return _QuickAction(
-      icon: Icons.link_outlined,
-      semanticLabel: context.t.openExternally,
-      onPressed: link == null
-          ? null
-          : () => unawaited(
-              launchUrlString(link, mode: LaunchMode.externalApplication),
-            ),
     );
   }
 }
@@ -566,29 +791,14 @@ class _ThumbnailImage extends ConsumerWidget {
       ),
     );
 
-    final content = post.originalFile.asContent();
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        isLong
-            ? Stack(
-                alignment: Alignment.bottomCenter,
-                children: [image, const _LongThumbnailIndicator()],
-              )
-            : image,
-        // Add overlay icons for GIF and video
-        if (content.isGif || content.isVideo)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: _MediaTypeIndicator(
-              isVideo: content.isVideo,
-              isGif: content.isGif,
-            ),
-          ),
-      ],
-    );
+    // The media-type badge now lives outside the Hero (see [_ThumbnailCard]),
+    // so it doesn't fly with the hero animation.
+    return isLong
+        ? Stack(
+            alignment: Alignment.bottomCenter,
+            children: [image, const _LongThumbnailIndicator()],
+          )
+        : image;
   }
 }
 
@@ -616,36 +826,6 @@ class _LongThumbnailIndicator extends StatelessWidget {
         ),
         child: Icon(Icons.gradient, size: 16),
       ),
-    );
-  }
-}
-
-class _MediaTypeIndicator extends StatelessWidget {
-  const _MediaTypeIndicator({required this.isVideo, required this.isGif});
-
-  final bool isVideo;
-  final bool isGif;
-
-  static const _decoration = BoxDecoration(
-    color: Color(0xB3000000), // Pre-computed 0.7 alpha black
-    borderRadius: BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: _decoration,
-      child: isVideo
-          ? const Icon(Icons.play_arrow, color: Colors.white, size: 16)
-          : const Text(
-              'GIF',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
     );
   }
 }

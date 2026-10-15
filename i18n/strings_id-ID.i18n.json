@@ -84,6 +84,15 @@
     "append": "Tambahkan tag ke pencarian saat ini",
     "search": "Cari tag"
   },
+  "post_action": {
+    "select": "Pilih",
+    "deselect": "Batal pilih",
+    "favorite": "Tambahkan ke favorit",
+    "unfavorite": "Hapus dari favorit",
+    "download": "Unduh",
+    "share": "Bagikan",
+    "open_source": "Buka sumber"
+  },
   "updater": {
     "check": "Periksa pembaruan",
     "checking": "Memeriksa pembaruan...",
@@ -240,5 +249,6 @@
       "warning": "Perhatian! tindakan ini akan menimpa data yang ada.\nApakah kamu yakin ingin melanjutkan?",
       "loading": "Memulihkan data..."
     }
-  }
+  },
+  "favorites_hint": "Tekan lama konten di timeline, lalu pilih Favorit dari menu untuk menyimpannya."
 }

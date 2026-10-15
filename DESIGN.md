@@ -110,10 +110,14 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 ### Timeline Grid
 - **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders
-- **Card footer**: A quiet metadata strip below each thumbnail — never overlaid on the image:
-  - **Metadata** (labelSmall, onSurfaceVariant): rating badge, score ("+42", hidden at 0), dimensions ("1920×1080", hidden when unknown)
+- **Overlays**: Compact labels sit directly on the image, kept legible by a neutral top/bottom scrim (a fixed black gradient — the one documented exception to the adaptive-palette rule, since the underlying image content is arbitrary):
+  - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Replaced by the selection checkbox while the post is selected.
   - **Rating badge**: one-letter chip — S / Q / E / SN — colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
-  - **Quick actions**: compact icon row (18dp icons, minimal padding, evenly spaced, onSurfaceVariant) — favorite, download, share, open source — usable without opening the viewer
+  - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
+  - **Bottom-left**: the most identifying tag as a chip (`artist:niten`), falling back to copyright, character, then general; hidden when the post has no tags
+  - **Bottom-right**: original dimensions (`3840×2160`, hidden when unknown), with a floating favorite toggle above it
+- **Quick actions**: not on the card — a long-press opens a context menu (select / deselect, favorite, download, share, open source)
+- **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
 - **Loading**: Shimmer placeholders with desaturated surface color
 - **States**: A spinner while a page is loading; a notice card for empty or failed results
 - **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar
@@ -157,7 +161,7 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Do:
 - **Do** use `ColorScheme` tokens for all colors — never hard-code hex values
-- **Do** keep thumbnails edge-to-edge within their card; the quiet metadata footer is the only chrome allowed between the image and the next card
+- **Do** keep thumbnails edge-to-edge within their card; the compact on-image overlays (see Timeline Grid) are the only chrome allowed on the image, and their neutral scrim is the only non-scheme color
 - **Do** use shimmer loading for thumbnails — it communicates "loading" without blank space
 - **Do** let the staggered grid handle visual interest — varied aspect ratios are the texture
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
@@ -167,6 +171,6 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 - **Don't** add shadows, borders, or elevation to image thumbnails — they are the content, not cards
 - **Don't** use generic Material defaults without considering the content-first philosophy — every chrome element must earn its pixels
 - **Don't** hard-code colors outside of `ColorScheme` — the adaptive palette is the identity
-- **Don't** use heavy text overlays on images — card metadata belongs in the small footer below the thumbnail; deeper detail lives in the details sheet
+- **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions, favorite) — deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens — the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations — motion serves feedback (loading, transitions), not delight for its own sake

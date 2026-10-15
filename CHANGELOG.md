@@ -3,6 +3,8 @@
 * **Feat**: add Scan and Manual modes to the Add Server page; Scan auto-detects the engine from the homepage while Manual keeps the engine picker
 * **Fix**: surface video playback failures with a manual retry button instead of failing silently
 * **Fix**: return an empty result instead of throwing when a search response has no posts, so empty XML pages no longer show an error state
+* **Feat**: timeline cards now show the media type, top tag, dimensions and score as compact overlays, plus a floating favorite button
+* **Feat**: long-press on a timeline card now opens a quick-action menu (select, favorite, download, share, source) instead of selecting immediately
 
 ## 2.0.23
 

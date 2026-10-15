@@ -159,7 +159,8 @@ class _Content extends ConsumerWidget {
         SliverSafeArea(
           sliver: SliverPadding(
             padding: const EdgeInsets.all(DesignTokens.spacingMd),
-            sliver: Timeline(posts: posts),
+            // No batch action bar here, so selection would be a dead end.
+            sliver: Timeline(posts: posts, enableSelection: false),
           ),
         ),
       ],
