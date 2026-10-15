@@ -6,6 +6,7 @@
 * **Feat**: timeline cards now show the media type, top tag, dimensions and score as compact overlays
 * **Feat**: long-press on a timeline card opens a quick-action menu (select, favorite, download, share, source) — a floating glass card with a blurred backdrop and a spring entrance, instead of selecting immediately
 * **Feat**: tint the timeline tag chip by its category (artist, copyright, character, general) and drop the solid background so the tag sits directly on the image
+* **Fix**: scale the timeline card overlays with the tile width so the tag no longer disappears in 3- and 4-column grids
 
 ## 2.0.23
 

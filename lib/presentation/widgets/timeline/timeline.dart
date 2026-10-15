@@ -50,6 +50,23 @@ const Color _kTagCopyright = Color(0xFFBA68C8);
 const Color _kTagCharacter = Color(0xFF81C784);
 const Color _kTagGeneral = Color(0xFF64B5F6);
 
+/// Tile width at which the on-image overlays render at full size, and the floor
+/// they shrink to however dense the grid gets.
+const double _kOverlayBaseWidth = 130;
+const double _kOverlayMinScale = 0.7;
+
+/// Scale for the on-image overlay type and icons, derived from the tile width
+/// so a dense grid shrinks the labels instead of clipping them away.
+double _overlayScale(double tileWidth) =>
+    (tileWidth / _kOverlayBaseWidth).clamp(_kOverlayMinScale, 1.0).toDouble();
+
+/// The theme's small label style resized for the current overlay [scale], so
+/// every on-image label shrinks by the same amount.
+TextStyle _overlayLabelStyle(BuildContext context, double scale) {
+  final base = context.theme.textTheme.labelSmall ?? const TextStyle();
+  return base.copyWith(fontSize: (base.fontSize ?? 11) * scale);
+}
+
 /// Compact post score for the on-image badge: `42`, `1.4k`, `12k`, `1.2M`.
 String _compactCount(int value) {
   final abs = value.abs();
@@ -184,49 +201,64 @@ class Timeline extends ConsumerWidget {
     // every item is already wrapped in a RepaintBoundary below, so the
     // wrappers are pure overhead. (`count` in flutter_staggered_grid_view
     // 0.7.0 exposes neither flag.)
-    return SliverMasonryGrid(
-      // No `key: ObjectKey(flexibleGrid)` here — the previous incarnation
-      // disposed every thumbnail when the grid count changed (e.g. on
-      // rotation), forcing a full re-decode of every visible image.
-      gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: flexibleGrid,
-      ),
-      mainAxisSpacing: DesignTokens.spacingSm,
-      crossAxisSpacing: DesignTokens.spacingSm,
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          return RepaintBoundary(
-            child: _ThumbnailCard(
-              gridSize: flexibleGrid,
-              cacheBaseWidth: cacheBaseWidth,
-              postdata: (index, postsList[index]),
-              controller: scrollController,
-              blurExplicit: blurExplicit,
-              enableSelection: enableSelection,
-              onTap: () {
-                context.scaffoldMessenger.removeCurrentSnackBar();
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        // The overlays are sized from the width the grid actually hands each
+        // tile, so a dense grid shrinks them instead of clipping the labels.
+        final tileWidth =
+            (constraints.crossAxisExtent -
+                DesignTokens.spacingSm * (flexibleGrid - 1)) /
+            flexibleGrid;
+        final overlayScale = _overlayScale(tileWidth);
 
-                // Use enhanced post viewer with configurable swipe mode
-                final gestureSettings = ref.read(
-                  gestureSettingStateNotifierProvider,
-                );
-                EnhancedPostViewer.open(
-                  context,
-                  index: index,
-                  posts: postsList,
-                  swipeMode: gestureSettings.swipeMode,
-                  swipeThreshold: gestureSettings.swipeDownThreshold,
-                  enableSwipeToDetails: gestureSettings.enableSwipeToDetails,
-                  enableSwipeToDismiss: gestureSettings.enableSwipeToDismiss,
-                );
-              },
-            ),
-          );
-        },
-        childCount: postsList.length,
-        addAutomaticKeepAlives: false,
-        addRepaintBoundaries: false,
-      ),
+        return SliverMasonryGrid(
+          // No `key: ObjectKey(flexibleGrid)` here — the previous incarnation
+          // disposed every thumbnail when the grid count changed (e.g. on
+          // rotation), forcing a full re-decode of every visible image.
+          gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: flexibleGrid,
+          ),
+          mainAxisSpacing: DesignTokens.spacingSm,
+          crossAxisSpacing: DesignTokens.spacingSm,
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              return RepaintBoundary(
+                child: _ThumbnailCard(
+                  gridSize: flexibleGrid,
+                  overlayScale: overlayScale,
+                  cacheBaseWidth: cacheBaseWidth,
+                  postdata: (index, postsList[index]),
+                  controller: scrollController,
+                  blurExplicit: blurExplicit,
+                  enableSelection: enableSelection,
+                  onTap: () {
+                    context.scaffoldMessenger.removeCurrentSnackBar();
+
+                    // Use enhanced post viewer with configurable swipe mode
+                    final gestureSettings = ref.read(
+                      gestureSettingStateNotifierProvider,
+                    );
+                    EnhancedPostViewer.open(
+                      context,
+                      index: index,
+                      posts: postsList,
+                      swipeMode: gestureSettings.swipeMode,
+                      swipeThreshold: gestureSettings.swipeDownThreshold,
+                      enableSwipeToDetails:
+                          gestureSettings.enableSwipeToDetails,
+                      enableSwipeToDismiss:
+                          gestureSettings.enableSwipeToDismiss,
+                    );
+                  },
+                ),
+              );
+            },
+            childCount: postsList.length,
+            addAutomaticKeepAlives: false,
+            addRepaintBoundaries: false,
+          ),
+        );
+      },
     );
   }
 }
@@ -239,6 +271,7 @@ class _ThumbnailCard extends HookConsumerWidget {
     required this.enableSelection,
     this.onTap,
     required this.gridSize,
+    required this.overlayScale,
     required this.cacheBaseWidth,
   });
 
@@ -248,6 +281,7 @@ class _ThumbnailCard extends HookConsumerWidget {
   final bool enableSelection;
   final void Function()? onTap;
   final int gridSize;
+  final double overlayScale;
   final int cacheBaseWidth;
 
   @override
@@ -305,19 +339,19 @@ class _ThumbnailCard extends HookConsumerWidget {
                 ),
               ),
               // Neutral gradients keep the overlay labels legible on any image.
-              const Positioned(
+              Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                height: 44,
-                child: IgnorePointer(child: _OverlayScrim(top: true)),
+                height: 44 * overlayScale,
+                child: const IgnorePointer(child: _OverlayScrim(top: true)),
               ),
-              const Positioned(
+              Positioned(
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: 64,
-                child: IgnorePointer(child: _OverlayScrim(top: false)),
+                height: 64 * overlayScale,
+                child: const IgnorePointer(child: _OverlayScrim(top: false)),
               ),
               // Top-left: score + rating badge. Replaced by the selection
               // checkbox while the card is selected.
@@ -325,13 +359,17 @@ class _ThumbnailCard extends HookConsumerWidget {
                 Positioned(
                   top: 4,
                   left: 4,
-                  child: IgnorePointer(child: _ScoreRatingOverlay(post: post)),
+                  child: IgnorePointer(
+                    child: _ScoreRatingOverlay(post: post, scale: overlayScale),
+                  ),
                 ),
               // Top-right: media file type (PNG / JPG / GIF / MP4 / WEBP).
               Positioned(
                 top: 4,
                 right: 4,
-                child: IgnorePointer(child: _MediaTypeLabel(post: post)),
+                child: IgnorePointer(
+                  child: _MediaTypeLabel(post: post, scale: overlayScale),
+                ),
               ),
               // Bottom: tag chip pinned left, dimensions pinned right.
               Positioned(
@@ -344,11 +382,11 @@ class _ThumbnailCard extends HookConsumerWidget {
                     Expanded(
                       child: Align(
                         alignment: Alignment.bottomLeft,
-                        child: _TagChip(post: post),
+                        child: _TagChip(post: post, scale: overlayScale),
                       ),
                     ),
                     const SizedBox(width: DesignTokens.spacingSm),
-                    _DimensionsLabel(post: post),
+                    _DimensionsLabel(post: post, scale: overlayScale),
                   ],
                 ),
               ),
@@ -485,9 +523,10 @@ class _OverlayScrim extends StatelessWidget {
 /// Top-left overlay: score (with a star) and the rating badge. Hidden for
 /// unrated posts with no score.
 class _ScoreRatingOverlay extends StatelessWidget {
-  const _ScoreRatingOverlay({required this.post});
+  const _ScoreRatingOverlay({required this.post, required this.scale});
 
   final Post post;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -498,14 +537,14 @@ class _ScoreRatingOverlay extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (post.score != 0) ...[
-          const Icon(Icons.star_rounded, size: 13, color: Colors.white),
+          Icon(Icons.star_rounded, size: 13 * scale, color: Colors.white),
           const SizedBox(width: 2),
           Text(
             _compactCount(post.score),
-            style: context.theme.textTheme.labelSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+            style: _overlayLabelStyle(
+              context,
+              scale,
+            ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
           ),
         ],
         if (badge != null && post.score != 0)
@@ -515,6 +554,7 @@ class _ScoreRatingOverlay extends StatelessWidget {
             label: badge.label,
             color: badge.color,
             semanticLabel: post.rating.describe(context),
+            scale: scale,
           ),
       ],
     );
@@ -524,9 +564,10 @@ class _ScoreRatingOverlay extends StatelessWidget {
 /// Top-right overlay: the media file type (`PNG`, `JPG`, `GIF`, `MP4`, ...),
 /// derived from the original file extension. Hidden when unknown.
 class _MediaTypeLabel extends StatelessWidget {
-  const _MediaTypeLabel({required this.post});
+  const _MediaTypeLabel({required this.post, required this.scale});
 
   final Post post;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -536,7 +577,7 @@ class _MediaTypeLabel extends StatelessWidget {
     final isVideo = post.originalFile.asContent().isVideo;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 6 * scale, vertical: 3 * scale),
       decoration: const BoxDecoration(
         color: _kLabelBackground,
         borderRadius: BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
@@ -545,12 +586,12 @@ class _MediaTypeLabel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isVideo) ...[
-            const Icon(Icons.play_arrow, size: 12, color: Colors.white),
+            Icon(Icons.play_arrow, size: 12 * scale, color: Colors.white),
             const SizedBox(width: 2),
           ],
           Text(
             ext,
-            style: context.theme.textTheme.labelSmall?.copyWith(
+            style: _overlayLabelStyle(context, scale).copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
@@ -566,9 +607,10 @@ class _MediaTypeLabel extends StatelessWidget {
 /// straight on the image and tinted by its category. Hidden when the post has
 /// no tags.
 class _TagChip extends StatelessWidget {
-  const _TagChip({required this.post});
+  const _TagChip({required this.post, required this.scale});
 
   final Post post;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -579,7 +621,7 @@ class _TagChip extends StatelessWidget {
       tag.label,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: context.theme.textTheme.labelSmall?.copyWith(
+      style: _overlayLabelStyle(context, scale).copyWith(
         color: tag.color,
         fontWeight: FontWeight.w700,
         // Coloured text is weaker than the white labels, so it carries a
@@ -593,9 +635,10 @@ class _TagChip extends StatelessWidget {
 /// Bottom-right overlay: the original dimensions (`3840×2160`). Hidden when
 /// the booru didn't report a size.
 class _DimensionsLabel extends StatelessWidget {
-  const _DimensionsLabel({required this.post});
+  const _DimensionsLabel({required this.post, required this.scale});
 
   final Post post;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
@@ -603,7 +646,7 @@ class _DimensionsLabel extends StatelessWidget {
 
     return Text(
       '${post.width}×${post.height}',
-      style: context.theme.textTheme.labelSmall?.copyWith(
+      style: _overlayLabelStyle(context, scale).copyWith(
         color: Colors.white,
         fontWeight: FontWeight.w600,
         shadows: const [Shadow(blurRadius: 2, color: Color(0x80000000))],
@@ -618,18 +661,20 @@ class _RatingBadge extends StatelessWidget {
     required this.label,
     required this.color,
     required this.semanticLabel,
+    required this.scale,
   });
 
   final String label;
   final Color color;
   final String semanticLabel;
+  final double scale;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DesignTokens.spacingXs,
-        vertical: 1,
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingXs * scale,
+        vertical: scale,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
@@ -638,10 +683,10 @@ class _RatingBadge extends StatelessWidget {
       child: Text(
         label,
         semanticsLabel: semanticLabel,
-        style: context.theme.textTheme.labelSmall?.copyWith(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
+        style: _overlayLabelStyle(
+          context,
+          scale,
+        ).copyWith(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }
