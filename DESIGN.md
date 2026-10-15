@@ -114,8 +114,8 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
   - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Replaced by the selection checkbox while the post is selected.
   - **Rating badge**: one-letter chip — S / Q / E / SN — colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
   - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
-  - **Bottom-left**: the most identifying tag as a chip (`artist:niten`), falling back to copyright, character, then general; hidden when the post has no tags
-  - **Bottom-right**: original dimensions (`3840×2160`, hidden when unknown), with a floating favorite toggle above it
+  - **Bottom-left**: the most identifying tag name as a chip (`niten`, no category prefix), falling back to artist → copyright → character → general; hidden when the post has no tags
+  - **Bottom-right**: original dimensions (`3840×2160`, hidden when unknown)
 - **Quick actions**: not on the card — a long-press opens a context menu (select / deselect, favorite, download, share, open source)
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
 - **Loading**: Shimmer placeholders with desaturated surface color
@@ -171,6 +171,6 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 - **Don't** add shadows, borders, or elevation to image thumbnails — they are the content, not cards
 - **Don't** use generic Material defaults without considering the content-first philosophy — every chrome element must earn its pixels
 - **Don't** hard-code colors outside of `ColorScheme` — the adaptive palette is the identity
-- **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions, favorite) — deeper detail lives in the details sheet
+- **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions) — deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens — the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations — motion serves feedback (loading, transitions), not delight for its own sake

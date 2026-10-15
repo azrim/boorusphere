@@ -34,8 +34,8 @@ import 'package:url_launcher/url_launcher_string.dart';
 const double _kSelectionBorderWidth = 3.0;
 
 /// Neutral scrim used by the on-image overlays. Image content is arbitrary, so
-/// these can't come from the [ColorScheme]; they match the pre-existing overlay
-/// precedent in this file (the media-type badge, the long-thumbnail indicator).
+/// these can't come from the [ColorScheme]; the fixed black gradient is the
+/// documented exception to the adaptive-palette rule.
 const Color _kScrimStrong = Color(0x8A000000); // ~54% black
 const Color _kScrimClear = Color(0x00000000);
 const Color _kLabelBackground = Color(0xB3000000); // ~70% black
@@ -51,18 +51,16 @@ String _compactCount(int value) {
   return '${(value / 1000000).toStringAsFixed(1)}M';
 }
 
-/// Reused as the explicit-content blur on thumbnails. Hoisted out of the
-/// per-item builder so we don't allocate one [ImageFilter] per visible
-/// thumbnail per build.
+/// Shared explicit-content blur for thumbnails. A single top-level
+/// [ImageFilter] avoids allocating one per visible thumbnail per build.
 final ImageFilter _kExplicitBlur = ImageFilter.blur(
   sigmaX: 5,
   sigmaY: 5,
   tileMode: TileMode.decal,
 );
 
-/// Hoisted out of the per-thumbnail [Hero] so all visible thumbnails share
-/// a single function reference; the previous closure captured `post` and
-/// allocated one builder object per visible item per build. The aspect
+/// Hero flight builder shared by every thumbnail, so a single function
+/// reference is used instead of one closure per visible item. The aspect
 /// ratio is read off the source [_ThumbnailImage] at flight time.
 Widget _thumbnailHeroShuttleBuilder(
   BuildContext flightContext,
@@ -91,7 +89,7 @@ Widget _thumbnailHeroShuttleBuilder(
   );
 }
 
-/// Rating badge content for the card footer, or `null` for unrated posts
+/// Rating badge content for the top-left overlay, or `null` for unrated posts
 /// (the badge is skipped entirely). Colors come from the active scheme so
 /// the badge follows the adaptive palette.
 ({String label, Color color})? _ratingBadgeOf(
@@ -117,22 +115,13 @@ String? _sourceLinkOf(Post post) {
   return null;
 }
 
-/// The most "identifying" tag for the card chip: artist first, then the
+/// The most identifying tag for the card chip: artist first, then the
 /// copyright (manga/anime/game), character and finally general tag.
-({String category, String tag})? _topTagOf(BuildContext context, Post post) {
-  final t = context.t;
-  if (post.tagsArtist.isNotEmpty) {
-    return (category: t.artist, tag: post.tagsArtist.first);
-  }
-  if (post.tagsCopyright.isNotEmpty) {
-    return (category: t.copyright, tag: post.tagsCopyright.first);
-  }
-  if (post.tagsCharacter.isNotEmpty) {
-    return (category: t.character, tag: post.tagsCharacter.first);
-  }
-  if (post.tagsGeneral.isNotEmpty) {
-    return (category: t.general, tag: post.tagsGeneral.first);
-  }
+String? _topTagOf(Post post) {
+  if (post.tagsArtist.isNotEmpty) return post.tagsArtist.first;
+  if (post.tagsCopyright.isNotEmpty) return post.tagsCopyright.first;
+  if (post.tagsCharacter.isNotEmpty) return post.tagsCharacter.first;
+  if (post.tagsGeneral.isNotEmpty) return post.tagsGeneral.first;
   return null;
 }
 
@@ -251,11 +240,6 @@ class _ThumbnailCard extends HookConsumerWidget {
     final isSelected = ref.watch(
       postSelectionProvider.select((sel) => sel.contains(post.id)),
     );
-    // Multi-select mode is active whenever anything is selected. The floating
-    // favorite button steps aside then, so it can't be mis-tapped.
-    final selectionActive = ref.watch(
-      postSelectionProvider.select((sel) => sel.isNotEmpty),
-    );
 
     return AutoScrollTag(
       key: ValueKey(post.viewId),
@@ -264,8 +248,7 @@ class _ThumbnailCard extends HookConsumerWidget {
       highlightColor: context.theme.colorScheme.surfaceTint,
       child: GestureDetector(
         // Opaque so taps anywhere on the card (including the overlay labels)
-        // open the viewer like taps on the thumbnail do. The floating favorite
-        // button still wins the gesture arena for its own taps.
+        // open the viewer like taps on the thumbnail do.
         behavior: HitTestBehavior.opaque,
         onTap: () {
           if (enableSelection && ref.read(postSelectionProvider).isNotEmpty) {
@@ -276,8 +259,8 @@ class _ThumbnailCard extends HookConsumerWidget {
             onTap!();
           }
         },
-        // Long-press opens a context menu instead of selecting immediately;
-        // selection is now an explicit choice inside that menu.
+        // Long-press opens the quick-action menu (select, favorite, download,
+        // share, open source).
         onLongPressStart: (details) {
           HapticFeedback.mediumImpact();
           unawaited(_showCardMenu(context, ref, details.globalPosition));
@@ -334,7 +317,7 @@ class _ThumbnailCard extends HookConsumerWidget {
                 right: 4,
                 child: IgnorePointer(child: _MediaTypeLabel(post: post)),
               ),
-              // Bottom: tag chip on the left, favorite + dimensions on the right.
+              // Bottom: tag chip pinned left, dimensions pinned right.
               Positioned(
                 left: 4,
                 right: 4,
@@ -342,19 +325,14 @@ class _ThumbnailCard extends HookConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Flexible(child: _TagChip(post: post)),
-                    const SizedBox(width: DesignTokens.spacingXs),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (!selectionActive) ...[
-                          _FavoriteButton(post: post),
-                          const SizedBox(height: 2),
-                        ],
-                        _DimensionsLabel(post: post),
-                      ],
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomLeft,
+                        child: _TagChip(post: post),
+                      ),
                     ),
+                    const SizedBox(width: DesignTokens.spacingSm),
+                    _DimensionsLabel(post: post),
                   ],
                 ),
               ),
@@ -604,8 +582,8 @@ class _MediaTypeLabel extends StatelessWidget {
   }
 }
 
-/// Bottom-left overlay: the most identifying tag, rendered as
-/// `category:name` (e.g. `artist:niten`). Hidden when the post has no tags.
+/// Bottom-left overlay: the most identifying tag name (e.g. `niten`). Hidden
+/// when the post has no tags. Uses the scheme's accent chip colors.
 class _TagChip extends StatelessWidget {
   const _TagChip({required this.post});
 
@@ -613,7 +591,7 @@ class _TagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tag = _topTagOf(context, post);
+    final tag = _topTagOf(post);
     if (tag == null) return const SizedBox.shrink();
 
     return Container(
@@ -626,7 +604,7 @@ class _TagChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
       ),
       child: Text(
-        '${tag.category}:${tag.tag}',
+        tag,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: context.theme.textTheme.labelSmall?.copyWith(
@@ -655,46 +633,6 @@ class _DimensionsLabel extends StatelessWidget {
         color: Colors.white,
         fontWeight: FontWeight.w600,
         shadows: const [Shadow(blurRadius: 2, color: Color(0x80000000))],
-      ),
-    );
-  }
-}
-
-/// Floating favorite toggle sitting above the dimensions overlay. Only this
-/// button rebuilds when the post's favorite status flips.
-class _FavoriteButton extends ConsumerWidget {
-  const _FavoriteButton({required this.post});
-
-  final Post post;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isFavorite = ref.watch(
-      favoritePostStateProvider.select((it) => it.contains(post)),
-    );
-
-    return Material(
-      color: _kLabelBackground,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          final favorites = ref.read(favoritePostStateProvider.notifier);
-          if (isFavorite) {
-            unawaited(favorites.remove(post));
-          } else {
-            unawaited(favorites.save(post));
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Icon(
-            isFavorite ? Icons.favorite : Icons.favorite_border,
-            size: 16,
-            color: isFavorite ? context.colorScheme.error : Colors.white,
-            semanticLabel: context.t.favorites.title,
-          ),
-        ),
       ),
     );
   }
@@ -791,8 +729,7 @@ class _ThumbnailImage extends ConsumerWidget {
       ),
     );
 
-    // The media-type badge now lives outside the Hero (see [_ThumbnailCard]),
-    // so it doesn't fly with the hero animation.
+    // Long thumbnails get a gradient indicator pinned to the bottom edge.
     return isLong
         ? Stack(
             alignment: Alignment.bottomCenter,
