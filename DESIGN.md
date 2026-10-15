@@ -114,7 +114,7 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
   - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Replaced by the selection checkbox while the post is selected.
   - **Rating badge**: one-letter chip — S / Q / E / SN — colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
   - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
-  - **Bottom-left**: the most identifying tag name (`niten`, no category prefix) drawn straight on the image with no chip background, falling back to artist → copyright → character → general; tinted by category — artist orange, copyright purple, character green, general blue; hidden when the post has no tags
+  - **Bottom-left**: the most identifying tag name (`niten`, no category prefix) in a translucent pill tinted by category — artist orange, copyright purple, character green, general blue. The fill is the category color at low opacity with a hairline matching border, so the image shows through; falls back artist → copyright → character → general; hidden when the post has no tags
   - **Bottom-right**: original dimensions (`3840×2160`, hidden when unknown)
   - **Sizing**: the overlay label type, icons and scrim heights scale with the tile width (full size at 130px, floored at 0.7×) so a denser grid shrinks the overlays instead of clipping the labels away
 - **Quick actions**: not on the card — a long-press opens the [Context Menu](#context-menu-post-actions)

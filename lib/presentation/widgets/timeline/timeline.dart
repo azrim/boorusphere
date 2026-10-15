@@ -50,6 +50,11 @@ const Color _kTagCopyright = Color(0xFFBA68C8);
 const Color _kTagCharacter = Color(0xFF81C784);
 const Color _kTagGeneral = Color(0xFF64B5F6);
 
+/// Opacity of the tag pill's category tint and its matching hairline border,
+/// so the pill reads as a soft capsule without hiding the image behind it.
+const double _kTagPillFill = 0.20;
+const double _kTagPillBorder = 0.45;
+
 /// Tile width at which the on-image overlays render at full size, and the floor
 /// they shrink to however dense the grid gets.
 const double _kOverlayBaseWidth = 130;
@@ -603,9 +608,9 @@ class _MediaTypeLabel extends StatelessWidget {
   }
 }
 
-/// Bottom-left overlay: the most identifying tag name (e.g. `niten`) drawn
-/// straight on the image and tinted by its category. Hidden when the post has
-/// no tags.
+/// Bottom-left overlay: the most identifying tag name (e.g. `niten`) in a
+/// translucent pill tinted by its category, so the image stays visible behind
+/// it. Hidden when the post has no tags.
 class _TagChip extends StatelessWidget {
   const _TagChip({required this.post, required this.scale});
 
@@ -617,16 +622,27 @@ class _TagChip extends StatelessWidget {
     final tag = _topTagOf(post);
     if (tag == null) return const SizedBox.shrink();
 
-    return Text(
-      tag.label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: _overlayLabelStyle(context, scale).copyWith(
-        color: tag.color,
-        fontWeight: FontWeight.w700,
-        // Coloured text is weaker than the white labels, so it carries a
-        // slightly stronger shadow to stay readable over bright images.
-        shadows: const [Shadow(blurRadius: 3, color: Color(0xCC000000))],
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingSm * scale,
+        vertical: 2 * scale,
+      ),
+      decoration: BoxDecoration(
+        color: tag.color.withValues(alpha: _kTagPillFill),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
+        border: Border.all(color: tag.color.withValues(alpha: _kTagPillBorder)),
+      ),
+      child: Text(
+        tag.label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: _overlayLabelStyle(context, scale).copyWith(
+          color: tag.color,
+          fontWeight: FontWeight.w700,
+          // Coloured text is weaker than the white labels, so it carries a
+          // slightly stronger shadow to stay readable over bright images.
+          shadows: const [Shadow(blurRadius: 3, color: Color(0xCC000000))],
+        ),
       ),
     );
   }
