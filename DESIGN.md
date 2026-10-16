@@ -131,9 +131,14 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 - **Motion**: the card springs in (scale + slide + blur, ~300ms) and rows fade/slide in with a short stagger; the reverse plays on dismiss
 - **Colors**: scheme-only — icon chips and labels come from `ColorScheme`, with no per-action accent colors
 
-### Navigation
-- **Style**: Navigation drawer, opened by a horizontal swipe (disabled while the search bar is open)
-- **Content**: Server switcher, theme toggle, and entries for Downloads, Favorites, Tags Blocker, and Settings — each opens a full-screen route
+### Navigation (Home Drawer)
+- **Style**: Navigation drawer, opened by a horizontal swipe (disabled while the search bar is open); rounded right edge, width capped to the viewport
+- **Header**: brand mark + wordmark + tagline, with the theme switcher (light / dark / system) as a trailing quick action
+- **Servers**: each server is a rounded card — favicon chip, name, and host — with the active one highlighted (`secondaryContainer` fill + `primary` border). A "Manage" action opens the server list; an outline button adds a new server
+- **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
+- **Preferences**: Settings, Reset to default, and Exit (tinted with the error color)
+- **Footer**: app version and update status (spinner while downloading), opening About
+- **Colors**: section labels are muted uppercase `onSurfaceVariant`; icon chips stay neutral (`surfaceContainerHighest` / `onSurfaceVariant`), and only the count badges and the active-server highlight carry semantic scheme colors
 
 ### Bottom Sheet (Post Details)
 - **Shape**: Rounded top corners (12px), draggable snap points (0%, 50%, 90%)
