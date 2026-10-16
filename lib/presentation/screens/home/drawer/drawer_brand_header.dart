@@ -39,14 +39,12 @@ class HomeDrawerHeader extends ConsumerWidget {
           Container(
             width: 40,
             height: 40,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: scheme.primaryContainer,
               borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
             ),
-            child: Icon(
-              Icons.photo_library_outlined,
-              color: scheme.onPrimaryContainer,
-            ),
+            child: Image.asset('assets/icons/exported/logo.png', height: 24),
           ),
           const SizedBox(width: DesignTokens.spacingMd),
           Expanded(
