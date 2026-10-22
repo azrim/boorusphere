@@ -7,14 +7,23 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/utils/extensions/booru_rating.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class HomeSearchBar extends HookConsumerWidget {
   const HomeSearchBar({super.key, required this.scrollController});
+
+  /// Rendered height of the bar, bottom safe-area inset included. Chrome that
+  /// floats above it (the pagination pill, the grid's bottom padding) reads
+  /// this instead of assuming a fixed height, so it follows font scaling.
+  static final ValueNotifier<double> height = ValueNotifier(
+    kBottomNavigationBarHeight + DesignTokens.spacingMd,
+  );
 
   final ScrollController scrollController;
 
@@ -24,16 +33,13 @@ class HomeSearchBar extends HookConsumerWidget {
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final delta = useState([0.0, 0.0]);
     final collapsed = !searchBar.isOpen && delta.value.first > 0;
-    final isBlurAllowed = ref.watch(
-      uiSettingStateProvider.select((ui) => ui.blur),
-    );
 
     // Disable scroll listener when search is open for better performance
     final onScrolling = useCallback(() {
       if (searchBar.isOpen) return; // Skip when search is open
 
       final position = scrollController.position;
-      final threshold = innerHeight;
+      final threshold = height.value;
 
       // Reset when scrolled to top
       if (position.pixels <= 0) {
@@ -88,81 +94,67 @@ class HomeSearchBar extends HookConsumerWidget {
     }, [delta.value]);
 
     return RepaintBoundary(
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.theme.scaffoldBackgroundColor.withValues(
-            alpha: context.isLightThemed
-                ? isBlurAllowed
-                      ? 0.7
-                      : 0.92
-                : isBlurAllowed
-                ? 0.85
-                : 0.97,
+      child: _MeasureSize(
+        onChange: (size) => height.value = size.height,
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.theme.scaffoldBackgroundColor,
+            border: Border(
+              top: BorderSide(color: context.colorScheme.outlineVariant),
+            ),
           ),
-          border: Border(
-            top: BorderSide(color: context.colorScheme.outlineVariant),
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          maintainBottomViewPadding: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (searchBar.isOpen) const _OptionBar(),
-              Container(
-                decoration: BoxDecoration(
-                  color: context.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
-                  ),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(DesignTokens.radiusLg),
-                  ),
-                ),
-                margin: const EdgeInsets.fromLTRB(
-                  DesignTokens.spacingMd,
-                  DesignTokens.spacingMd - DesignTokens.spacingXs,
-                  DesignTokens.spacingMd,
-                  DesignTokens.spacingMd - DesignTokens.spacingXs,
-                ),
-                child: Row(
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const _LeadingButton(),
-                        if (!searchBar.isOpen)
-                          Positioned(right: 8, child: _RatingIndicator()),
-                      ],
+          child: SafeArea(
+            top: false,
+            maintainBottomViewPadding: true,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (searchBar.isOpen) const _OptionBar(),
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.surfaceContainerHighest,
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(DesignTokens.radiusLg),
                     ),
-                    const Expanded(child: _SearchField()),
-                    if (!searchBar.isOpen)
-                      _TrailingButton(
-                        collapsed: collapsed,
-                        scrollController: scrollController,
-                      ),
-                    if (searchBar.isOpen &&
-                        searchBar.value != searchBar.initial)
-                      _Button(
-                        onTap: searchBar.reset,
-                        child: const Icon(Icons.rotate_left),
-                      ),
-                    if (searchBar.isOpen)
-                      _Button(
-                        onTap: searchBar.clear,
-                        child: const Icon(Icons.close_rounded),
-                      ),
-                  ],
+                  ),
+                  margin: const EdgeInsets.fromLTRB(
+                    DesignTokens.spacingMd,
+                    DesignTokens.spacingMd - DesignTokens.spacingXs,
+                    DesignTokens.spacingMd,
+                    DesignTokens.spacingMd - DesignTokens.spacingXs,
+                  ),
+                  child: Row(
+                    children: [
+                      const _LeadingButton(),
+                      const Expanded(child: _SearchField()),
+                      if (!searchBar.isOpen)
+                        _TrailingButton(
+                          collapsed: collapsed,
+                          scrollController: scrollController,
+                        ),
+                      if (searchBar.isOpen &&
+                          searchBar.value != searchBar.initial)
+                        _Button(
+                          onTap: searchBar.reset,
+                          tooltip: context.t.resetQuery,
+                          child: const Icon(Icons.rotate_left),
+                        ),
+                      if (searchBar.isOpen)
+                        _Button(
+                          onTap: searchBar.clear,
+                          tooltip: context.t.clearQuery,
+                          child: const Icon(Icons.close_rounded),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
-  static double innerHeight = kBottomNavigationBarHeight + 12;
 }
 
 class _SearchField extends HookConsumerWidget {
@@ -178,28 +170,30 @@ class _SearchField extends HookConsumerWidget {
     final server = ref.watch(serverStateProvider).getById(session.serverId);
 
     return RepaintBoundary(
-      child: TextField(
-        autofocus: searchBar.isOpen,
-        canRequestFocus: searchBar.isOpen,
-        enableIMEPersonalizedLearning: !imeIncognito,
-        controller: searchBar.textEditingController,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          hintText: searchBar.value.isEmpty
-              ? context.t.searchHint(serverName: server.name)
-              : searchBar.value,
-          isDense: true,
+      child: Semantics(
+        textField: true,
+        label: context.t.searchHint(serverName: server.name),
+        child: TextField(
+          autofocus: searchBar.isOpen,
+          canRequestFocus: searchBar.isOpen,
+          enableIMEPersonalizedLearning: !imeIncognito,
+          controller: searchBar.textEditingController,
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            hintText: context.t.searchHint(serverName: server.name),
+            isDense: true,
+          ),
+          textAlign: searchBar.isOpen ? TextAlign.start : TextAlign.center,
+          readOnly: !searchBar.isOpen,
+          onSubmitted: (str) {
+            searchBar.submit(context, str);
+          },
+          onTap: searchBar.isOpen ? null : searchBar.open,
+          style: DefaultTextStyle.of(context).style,
+          // Optimize text input performance
+          maxLines: 1,
+          textInputAction: TextInputAction.search,
         ),
-        textAlign: searchBar.isOpen ? TextAlign.start : TextAlign.center,
-        readOnly: !searchBar.isOpen,
-        onSubmitted: (str) {
-          searchBar.submit(context, str);
-        },
-        onTap: searchBar.isOpen ? null : searchBar.open,
-        style: DefaultTextStyle.of(context).style,
-        // Optimize text input performance
-        maxLines: 1,
-        textInputAction: TextInputAction.search,
       ),
     );
   }
@@ -212,9 +206,9 @@ class _OptionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.fromLTRB(
-        DesignTokens.spacingMd + DesignTokens.spacingXs,
-        DesignTokens.spacingMd - DesignTokens.spacingXs,
-        DesignTokens.spacingMd + DesignTokens.spacingXs,
+        DesignTokens.spacingMd,
+        DesignTokens.spacingSm,
+        DesignTokens.spacingMd,
         0,
       ),
       child: Row(
@@ -273,7 +267,9 @@ class _RatingButton extends ConsumerWidget {
     );
     final label = '${context.t.rating.title}: ${rateDesc(context, rating)}';
 
-    return OutlinedButton(
+    return ActionChip(
+      avatar: const Icon(Icons.star_outline, size: DesignTokens.iconInline),
+      label: Text(label),
       onPressed: () async {
         final selected = await selectRating(context, rating);
         if (selected != null) {
@@ -282,48 +278,36 @@ class _RatingButton extends ConsumerWidget {
               .setRating(selected);
         }
       },
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(
-          vertical: DesignTokens.spacingXs,
-          horizontal: DesignTokens.spacingMd,
-        ),
-        minimumSize: const Size(1, 1),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        side: BorderSide(
-          width: 1,
-          color: context.colorScheme.surfaceContainerHighest,
-        ),
-        elevation: 0,
-      ),
-      child: Text(
-        label.toLowerCase(),
-        style: TextStyle(color: context.colorScheme.onSurface),
-      ),
     );
   }
 }
 
 class _Button extends StatelessWidget {
-  const _Button({required this.onTap, this.child});
+  const _Button({required this.onTap, this.child, this.tooltip});
 
   final void Function() onTap;
   final Widget? child;
 
+  /// Doubles as the accessible name, so every icon button in the bar needs one.
+  final String? tooltip;
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          DesignTokens.spacingMd - DesignTokens.spacingXs,
-          6,
-          DesignTokens.spacingMd - DesignTokens.spacingXs,
-          6,
-        ),
-        child: child,
+    final button = ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: DesignTokens.controlHeightMin,
+        minHeight: DesignTokens.controlHeightMin,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+        child: Center(child: child),
       ),
     );
+
+    final tooltip = this.tooltip;
+    if (tooltip == null) return button;
+    return Tooltip(message: tooltip, child: button);
   }
 }
 
@@ -336,78 +320,78 @@ class _LeadingButton extends ConsumerWidget {
     final server = ref.watch(serverStateProvider).getById(session.serverId);
     final searchBar = ref.watch(searchBarControllerProvider(session));
 
-    return Tooltip(
-      message: searchBar.isOpen
+    return _Button(
+      tooltip: searchBar.isOpen
           ? context.t.cancel
           : context.t.sidebar.openNavigation,
-      child: _Button(
-        onTap: () {
-          if (searchBar.isOpen) {
-            searchBar.close();
-          } else {
-            Scaffold.of(context).openDrawer();
-          }
-        },
-        child: searchBar.isOpen
-            ? const Icon(Icons.arrow_back_rounded)
-            : Favicon(
+      onTap: () {
+        if (searchBar.isOpen) {
+          searchBar.close();
+        } else {
+          Scaffold.of(context).openDrawer();
+        }
+      },
+      child: SizedBox.square(
+        dimension: DesignTokens.controlHeightMin,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (searchBar.isOpen)
+              const Icon(Icons.arrow_back_rounded)
+            else
+              Favicon(
                 key: ValueKey(server.homepage),
                 url: server.homepage,
                 iconSize: DesignTokens.iconInline,
               ),
+            if (!searchBar.isOpen)
+              const Positioned(
+                top: DesignTokens.spacingXs / 2,
+                right: DesignTokens.spacingXs / 2,
+                child: _RatingIndicator(),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
+/// Corner badge carrying the active rating filter. The letter is drawn at a
+/// fixed size so the badge stays a badge under font scaling; the filter is
+/// announced through [Semantics] instead.
 class _RatingIndicator extends ConsumerWidget {
+  const _RatingIndicator();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rating = ref.watch(
       serverSettingStateProvider.select((it) => it.searchRating),
     );
+    final badge = ratingBadgeOf(rating, context.colorScheme);
+    if (badge == null) return const SizedBox.shrink();
 
-    String letter = 's';
-    switch (rating) {
-      case BooruRating.questionable:
-        letter = 'q';
-        break;
-      case BooruRating.sensitive:
-        letter = 'v';
-        break;
-      case BooruRating.explicit:
-        letter = 'e';
-        break;
-      default:
-        break;
-    }
-    final colorScheme = Theme.of(context).colorScheme;
-    Color color;
-    switch (rating) {
-      case BooruRating.safe:
-        color = colorScheme.tertiary;
-        break;
-      case BooruRating.questionable:
-        color = colorScheme.outline;
-        break;
-      case BooruRating.sensitive:
-        color = colorScheme.secondary;
-        break;
-      case BooruRating.explicit:
-        color = colorScheme.error;
-        break;
-      default:
-        color = colorScheme.tertiary;
-        break;
-    }
-    return Visibility(
-      visible: rating != BooruRating.all,
-      child: Container(
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        padding: const EdgeInsets.all(4),
-        child: Text(
-          letter,
-          style: TextStyle(fontSize: 10, color: colorScheme.onPrimary),
+    return IgnorePointer(
+      child: Semantics(
+        label: '${context.t.rating.title}: ${rating.describe(context)}',
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignTokens.spacingXs,
+            vertical: 1,
+          ),
+          decoration: BoxDecoration(
+            color: badge.color,
+            borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
+          ),
+          child: Text(
+            badge.label,
+            textScaler: TextScaler.noScaling,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: badge.onColor,
+            ),
+          ),
         ),
       ),
     );
@@ -422,7 +406,6 @@ class _TrailingButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final size = context.iconTheme.size ?? 24;
     final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
 
     backToTop() {
@@ -434,16 +417,47 @@ class _TrailingButton extends ConsumerWidget {
     }
 
     return _Button(
+      tooltip: collapsed ? context.t.backToTop : context.t.changeGrid,
       onTap: collapsed
           ? backToTop
           : ref.read(uiSettingStateProvider.notifier).cycleGrid,
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: collapsed
-            ? const Icon(Icons.arrow_upward_rounded)
-            : Icon(key: ValueKey(grid), Icons.grid_view, size: 20),
-      ),
+      child: collapsed
+          ? const Icon(Icons.arrow_upward_rounded)
+          : Icon(key: ValueKey(grid), Icons.grid_view, size: 20),
     );
+  }
+}
+
+/// Reports its child's laid-out size once per change.
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  const _MeasureSize({required this.onChange, required super.child});
+
+  final ValueChanged<Size> onChange;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _MeasureSizeRenderObject(onChange);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _MeasureSizeRenderObject renderObject,
+  ) {
+    renderObject.onChange = onChange;
+  }
+}
+
+class _MeasureSizeRenderObject extends RenderProxyBox {
+  _MeasureSizeRenderObject(this.onChange);
+
+  ValueChanged<Size> onChange;
+  Size? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    if (_reported == size) return;
+    _reported = size;
+    WidgetsBinding.instance.addPostFrameCallback((_) => onChange(size));
   }
 }

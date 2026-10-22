@@ -57,6 +57,11 @@
   "home": "Home",
   "recently": "Recently",
   "search_hint": "Search on ${server_name}...",
+  "back_to_top": "Back to top",
+  "change_grid": "Change grid columns",
+  "reset_query": "Reset query",
+  "clear_query": "Clear search",
+  "clear_selection": "Clear selection",
   "version": "Version ${version}",
   "backup": "Backup",
   "restore": "Restore",
@@ -344,7 +349,8 @@
     "failed": "Batch download failed",
     "favorited": "Added ${n} posts to favorites",
     "selected": "${n} selected",
-    "as_archive": "Save as ZIP"
+    "as_archive": "Save as ZIP",
+    "download_files": "Download files"
   },
   "settings_page": {
     "color_palette": "Color Palette",

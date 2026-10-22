@@ -90,6 +90,7 @@ class HomeContent extends HookConsumerWidget {
     final hasSelection = selection.isNotEmpty;
 
     final searchBar = ref.watch(searchBarControllerProvider(session));
+    final barHeight = useValueListenable(HomeSearchBar.height);
     final showPagination =
         !isNewSearch &&
         pageState.data.posts.isNotEmpty &&
@@ -157,7 +158,7 @@ class HomeContent extends HookConsumerWidget {
               if (!isNewSearch)
                 SliverPadding(
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.viewPaddingOf(context).bottom * 1.8 + 92,
+                    bottom: barHeight + DesignTokens.spacingLg,
                   ),
                   sliver: const SliverToBoxAdapter(child: HomeStatus()),
                 )
@@ -167,16 +168,15 @@ class HomeContent extends HookConsumerWidget {
           ),
         ),
         const _EdgeShadow(),
-        SearchScreen(scrollController: scrollController),
+        // Selection mode owns the bottom of the screen; the bar would only be
+        // covered by the action bar while staying reachable for TalkBack.
+        if (!hasSelection) SearchScreen(scrollController: scrollController),
         // Pagination control
         if (showPagination)
           Positioned(
             left: 0,
             right: 0,
-            bottom:
-                MediaQuery.viewPaddingOf(context).bottom +
-                HomeSearchBar.innerHeight +
-                DesignTokens.spacingSm,
+            bottom: barHeight + DesignTokens.spacingSm,
             child: Center(
               child: _PaginationPill(
                 pageIndex: pageState.data.pageIndex,
@@ -193,9 +193,11 @@ class HomeContent extends HookConsumerWidget {
         // Selection action bar
         if (hasSelection)
           Positioned(
-            bottom: MediaQuery.viewPaddingOf(context).bottom + 16,
-            left: 16,
-            right: 16,
+            bottom:
+                MediaQuery.viewPaddingOf(context).bottom +
+                DesignTokens.spacingMd,
+            left: DesignTokens.spacingMd,
+            right: DesignTokens.spacingMd,
             child: _SelectionActionBar(
               selectedCount: selection.length,
               onDownload: (asArchive) async {
@@ -281,7 +283,10 @@ class HomeContent extends HookConsumerWidget {
   }
 }
 
-class _SelectionActionBar extends StatefulWidget {
+/// Contextual bar shown while posts are selected. The count is a readout, not
+/// a button label, and the archive option is a menu choice instead of a
+/// switch-shaped icon, so each control names the action it performs.
+class _SelectionActionBar extends StatelessWidget {
   const _SelectionActionBar({
     required this.selectedCount,
     required this.onDownload,
@@ -295,57 +300,63 @@ class _SelectionActionBar extends StatefulWidget {
   final VoidCallback onClear;
 
   @override
-  State<_SelectionActionBar> createState() => _SelectionActionBarState();
-}
-
-class _SelectionActionBarState extends State<_SelectionActionBar> {
-  bool _asArchive = false;
-
-  @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: colorScheme.surfaceContainerHigh,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DesignTokens.spacingSm,
-          vertical: DesignTokens.spacingXs,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingXs),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextButton.icon(
-                  onPressed: () => widget.onDownload(_asArchive),
-                  icon: Icon(_asArchive ? Icons.archive : Icons.download),
-                  label: Text(context.t.downloads.title),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingSm,
+              ),
+              child: Text(
+                '$selectedCount',
+                style: context.theme.textTheme.titleMedium,
+                semanticsLabel: context.t.batch.selected(n: selectedCount),
+              ),
+            ),
+            const Spacer(),
+            PopupMenuButton<bool>(
+              tooltip: context.t.downloads.title,
+              icon: const Icon(Icons.download_rounded),
+              onSelected: onDownload,
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: false,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.download_outlined),
+                      const SizedBox(width: DesignTokens.spacingMd),
+                      Text(context.t.batch.downloadFiles),
+                    ],
+                  ),
                 ),
-                GestureDetector(
-                  onTap: () => setState(() => _asArchive = !_asArchive),
-                  child: Tooltip(
-                    message: context.t.batch.asArchive,
-                    child: Icon(
-                      _asArchive ? Icons.toggle_on : Icons.toggle_off_outlined,
-                      size: 28,
-                      color: _asArchive
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                PopupMenuItem(
+                  value: true,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.folder_zip_outlined),
+                      const SizedBox(width: DesignTokens.spacingMd),
+                      Text(context.t.batch.asArchive),
+                    ],
                   ),
                 ),
               ],
             ),
-            TextButton.icon(
-              onPressed: widget.onFavorite,
+            IconButton(
+              onPressed: onFavorite,
+              tooltip: context.t.favorites.title,
               icon: const Icon(Icons.favorite_border),
-              label: Text(context.t.favorites.title),
             ),
-            TextButton.icon(
-              onPressed: widget.onClear,
-              icon: const Icon(Icons.clear),
-              label: Text('${widget.selectedCount}'),
+            IconButton(
+              onPressed: onClear,
+              tooltip: context.t.clearSelection,
+              icon: const Icon(Icons.close_rounded),
             ),
           ],
         ),

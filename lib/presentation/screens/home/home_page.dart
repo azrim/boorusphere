@@ -27,10 +27,10 @@ class HomePage extends HookConsumerWidget {
 
   final SearchSession? session;
 
-  Rect _timelineBoundary(BuildContext context) {
-    final bottom =
-        MediaQuery.paddingOf(context).bottom + HomeSearchBar.innerHeight;
-    return Rect.fromLTRB(0, 0, 0, bottom);
+  /// Keeps the scroll target above the bottom bar, whose height is measured
+  /// rather than assumed (it grows with font scaling).
+  Rect _timelineBoundary() {
+    return Rect.fromLTRB(0, 0, 0, HomeSearchBar.height.value);
   }
 
   @override
@@ -64,7 +64,7 @@ class HomePage extends HookConsumerWidget {
         timelineControllerProvider.overrideWith(
           (_) => TimelineController(
             scrollController: AutoScrollController(
-              viewportBoundaryGetter: () => _timelineBoundary(context),
+              viewportBoundaryGetter: _timelineBoundary,
             ),
           ),
         ),
