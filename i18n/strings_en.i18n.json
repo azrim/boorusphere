@@ -49,7 +49,10 @@
     "manage": "Manage",
     "tagline": "Multi-engine art explorer",
     "add_custom_server": "Add custom server",
-    "active_count": "${count} active"
+    "open_navigation": "Open navigation",
+    "theme_system": "Theme: system",
+    "theme_light": "Theme: light",
+    "theme_dark": "Theme: dark"
   },
   "home": "Home",
   "recently": "Recently",
@@ -172,6 +175,7 @@
     "title": "Server",
     "reset_warning": "Are you sure you want to reset server list to default ?\n\nThis will erase all of your added servers",
     "remove_last_error": "The last server cannot be removed",
+    "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
     "preset": "From Preset",
     "select": "Select Server",
     "add": "Add new server",

@@ -5,11 +5,42 @@
   ],
   "de-DE": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "credentials": {
@@ -104,7 +135,7 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
@@ -114,8 +145,21 @@
     "meta": "Meta",
     "artist": "Artist",
     "copyright": "Copyright",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
     "home": "Home",
     "backup": "Backup",
     "restore": "Restore",
@@ -130,6 +174,15 @@
     },
     "action_tag": {
       "search": "Search tag"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
     },
     "changelog": {
       "title": "Changelog",
@@ -150,11 +203,20 @@
     },
     "servers": {
       "title": "Server",
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "alias": "Alias",
       "homepage": "Homepage",
       "api_addr": "API Address",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "invalid_search_query": "Invalid search query",
@@ -290,18 +352,40 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "id-ID": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "id": "ID",
@@ -397,18 +481,48 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "ja-JP": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "credentials": {
@@ -503,15 +617,28 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "ru": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
     "score": "Score",
     "always_ask": "Always ask",
     "action_continue": "Continue",
@@ -519,6 +646,15 @@
       "sensitive": "Sensitive",
       "all": "All",
       "disable_rating_safe": "Disable rating:safe"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
     },
     "changelog": {
       "whats_new": "What's new in ${version}"
@@ -530,8 +666,17 @@
       "clear_all_warning": "Are you sure you want to clear all the download record ?"
     },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "invalid_search_query": "Invalid search query",
@@ -639,18 +784,49 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "th-TH": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "credentials": {
@@ -745,16 +921,38 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "tr-TR": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
     "action_continue": "Continue",
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "changelog": {
       "whats_new": "What's new in ${version}"
     },
@@ -763,8 +961,17 @@
       "clear_all_warning": "Are you sure you want to clear all the download record ?"
     },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "incompatible": "Cannot find compatible parser for ${addr}",
@@ -865,18 +1072,49 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "uk": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "credentials": {
@@ -971,18 +1209,49 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "uwu": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "credentials": {
@@ -1077,18 +1346,49 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "zh-Hans": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "credentials": {
@@ -1183,18 +1483,49 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "zh-TW": {
     "findRelated": "Find related",
+    "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add custom server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
     "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "name_error": "Please enter a name",
       "credentials": {
@@ -1289,7 +1620,7 @@
     "error": {
       "unknown": "Something went wrong and we don't know why"
     },
-    "favorites_hint": "Long-press any post on the timeline, then tap the heart icon to save it.",
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."

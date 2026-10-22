@@ -1,13 +1,9 @@
 import 'dart:async';
-import 'dart:ui';
-
-import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
-import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -334,158 +330,32 @@ class _Button extends StatelessWidget {
 class _LeadingButton extends ConsumerWidget {
   const _LeadingButton();
 
-  Future<void> _showServerSelector(
-    BuildContext context,
-    WidgetRef ref,
-    String currentServerId,
-  ) async {
-    final servers = ref.read(serverStateProvider).toList();
-    final session = ref.read(searchSessionProvider);
-    final enableBlur = ref.read(uiSettingStateProvider.select((s) => s.blur));
-
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final backgroundColor = context.theme.scaffoldBackgroundColor;
-        final content = Container(
-          decoration: BoxDecoration(
-            color: enableBlur
-                ? backgroundColor.withValues(alpha: 0.85)
-                : backgroundColor,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(DesignTokens.radiusXl),
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  margin: const EdgeInsets.only(
-                    top: DesignTokens.spacingMd - DesignTokens.spacingXs,
-                    bottom: DesignTokens.spacingSm,
-                  ),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-                  ),
-                ),
-                // Title
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    DesignTokens.spacingMd + DesignTokens.spacingXs,
-                    DesignTokens.spacingSm,
-                    DesignTokens.spacingMd + DesignTokens.spacingXs,
-                    DesignTokens.spacingMd,
-                  ),
-                  child: Text(
-                    context.t.servers.select,
-                    style: context.theme.textTheme.titleMedium,
-                  ),
-                ),
-                // Server list
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.5,
-                  ),
-                  // The translucent surface above is painted by a decorated
-                  // Container, so the tiles need their own Material ancestor to
-                  // render their background and ink splashes.
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.only(
-                        bottom: DesignTokens.spacingMd,
-                      ),
-                      itemCount: servers.length,
-                      itemBuilder: (context, index) {
-                        final server = servers[index];
-                        final isSelected = server.id == currentServerId;
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                          ),
-                          leading: Favicon(
-                            url: server.homepage,
-                            shape: BoxShape.circle,
-                            iconSize: 24,
-                          ),
-                          title: Text(server.name),
-                          trailing: isSelected
-                              ? Icon(
-                                  Icons.check_circle,
-                                  color: context.colorScheme.primary,
-                                )
-                              : null,
-                          selected: isSelected,
-                          selectedTileColor: context.colorScheme.primary
-                              .withAlpha(context.isLightThemed ? 30 : 20),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              DesignTokens.radiusXl,
-                            ),
-                          ),
-                          onTap: () => Navigator.of(context).pop(server.id),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-
-        if (!enableBlur) return content;
-
-        return ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(DesignTokens.radiusXl),
-          ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: content,
-          ),
-        );
-      },
-    );
-
-    if (selected != null && selected != currentServerId && context.mounted) {
-      unawaited(
-        context.router.push(
-          HomeRoute(session: session.copyWith(serverId: selected)),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
     final searchBar = ref.watch(searchBarControllerProvider(session));
 
-    return _Button(
-      onTap: () {
-        if (searchBar.isOpen) {
-          searchBar.close();
-        } else {
-          _showServerSelector(context, ref, session.serverId);
-        }
-      },
-      child: searchBar.isOpen
-          ? const Icon(Icons.arrow_back_rounded)
-          : Favicon(
-              key: ValueKey(server.homepage),
-              url: server.homepage,
-              iconSize: 18,
-            ),
+    return Tooltip(
+      message: searchBar.isOpen
+          ? context.t.cancel
+          : context.t.sidebar.openNavigation,
+      child: _Button(
+        onTap: () {
+          if (searchBar.isOpen) {
+            searchBar.close();
+          } else {
+            Scaffold.of(context).openDrawer();
+          }
+        },
+        child: searchBar.isOpen
+            ? const Icon(Icons.arrow_back_rounded)
+            : Favicon(
+                key: ValueKey(server.homepage),
+                url: server.homepage,
+                iconSize: DesignTokens.iconInline,
+              ),
+      ),
     );
   }
 }

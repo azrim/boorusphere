@@ -132,9 +132,9 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 - **Colors**: scheme-only — icon chips and labels come from `ColorScheme`, with no per-action accent colors
 
 ### Navigation (Home Drawer)
-- **Style**: Navigation drawer, opened by a horizontal swipe (disabled while the search bar is open); rounded right edge, width capped to the viewport
+- **Style**: Navigation drawer, opened by the leading server chip in the search bar or by an edge swipe (the swipe is disabled while the search bar is open); rounded right edge, width capped to the viewport
 - **Header**: brand mark + wordmark + tagline, with the theme switcher (light / dark / system) as a trailing quick action
-- **Servers**: each server is a rounded card — favicon chip, name, and host — with the active one highlighted (`secondaryContainer` fill + `primary` border). A "Manage" action opens the server list; an outline button adds a new server
+- **Servers**: each server is a rounded card — favicon chip, name, and host — with the active one highlighted (`secondaryContainer` fill + `primary` border) and exposed to TalkBack as `selected`. Removing a server asks for confirmation first. A "Manage" action opens the server list; an outline button adds a new server
 - **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
 - **Preferences**: Settings, Reset to default, and Exit (tinted with the error color)
 - **Footer**: app version and update status (spinner while downloading), opening About

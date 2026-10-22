@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/home/whats_new_bottom_sheet.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
@@ -81,7 +82,11 @@ class _Home extends HookConsumerWidget {
     final session = ref.watch(searchSessionProvider);
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final scaffoldKey = useMemoized(GlobalKey<ScaffoldState>.new, const []);
-    final drawerWidth = MediaQuery.sizeOf(context).width.clamp(0.0, 410.0) - 84;
+    final drawerWidth =
+        MediaQuery.sizeOf(
+          context,
+        ).width.clamp(0.0, DesignTokens.drawerMaxWidth) -
+        DesignTokens.drawerContentPeek;
     final allowPop = useState(false);
     const maybePopTimeout = Duration(seconds: 1);
     final maybePopTimer = useMemoized(
@@ -94,9 +99,7 @@ class _Home extends HookConsumerWidget {
       key: scaffoldKey,
       extendBody: true,
       drawer: HomeDrawer(maxWidth: drawerWidth),
-      drawerEdgeDragWidth: searchBar.isOpen
-          ? 0
-          : MediaQuery.sizeOf(context).width,
+      drawerEdgeDragWidth: searchBar.isOpen ? 0 : null,
       body: StyledOverlayRegion(
         child: PopScope(
           canPop:

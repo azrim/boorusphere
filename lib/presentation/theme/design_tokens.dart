@@ -18,6 +18,15 @@ class DesignTokens {
   static const double radiusXl = 16.0;
   static const double radiusFull = 999.0;
 
+  // Sizes
+  static const double iconChipSize = 32.0;
+  static const double iconInline = 18.0;
+  static const double brandMarkSize = 40.0;
+  static const double brandLogoSize = 24.0;
+  static const double controlHeightMin = 48.0;
+  static const double drawerMaxWidth = 410.0;
+  static const double drawerContentPeek = 84.0;
+
   // Motion
   static const Duration durationFast = Duration(milliseconds: 150);
   static const Duration durationNormal = Duration(milliseconds: 300);
