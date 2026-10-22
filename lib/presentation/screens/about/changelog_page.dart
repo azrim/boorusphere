@@ -81,7 +81,12 @@ class ChangelogDataView extends StatelessWidget {
   final bool showVersion;
   @override
   Widget build(BuildContext context) {
-    final textContent = changelog.logs.join('\n');
+    // Each entry is already one bullet, so hand them to markdown as a list.
+    // Joining them as plain lines would collapse the whole version into a
+    // single paragraph.
+    final textContent = changelog.logs
+        .map((it) => '- ${it.replaceAll('\n', '\n  ')}')
+        .join('\n');
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
       child: Column(
