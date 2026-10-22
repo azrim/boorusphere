@@ -30,14 +30,19 @@ class DrawerIconChip extends StatelessWidget {
         foreground ??
         (danger ? scheme.onErrorContainer : scheme.onSurfaceVariant);
 
+    // The chip grows with the user's font scale so a large label never sits
+    // next to a chip that looks like it belongs to a smaller type size.
+    final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.3);
+    final size = DesignTokens.iconChipSize * scale;
+
     return Container(
-      width: 32,
-      height: 32,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
       ),
-      child: Icon(icon, size: 18, color: fg),
+      child: Icon(icon, size: DesignTokens.iconInline * scale, color: fg),
     );
   }
 }

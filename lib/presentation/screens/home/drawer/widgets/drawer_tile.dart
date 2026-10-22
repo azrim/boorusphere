@@ -48,7 +48,7 @@ class DrawerTile extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: context.theme.textTheme.bodyMedium?.copyWith(
                       color: labelColor,
@@ -57,7 +57,7 @@ class DrawerTile extends StatelessWidget {
                   if (subtitle != null)
                     Text(
                       subtitle!,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: context.theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
