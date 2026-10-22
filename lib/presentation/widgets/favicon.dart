@@ -20,7 +20,8 @@ class Favicon extends StatelessWidget {
   String get faviconUrl {
     final uri = url.toUri();
     if (!uri.hasAuthority) return '';
-    return 'https://icons.duckduckgo.com/ip3/${uri.host}.ico';
+    if (!uri.isScheme('http') && !uri.isScheme('https')) return '';
+    return '${uri.origin}/favicon.ico';
   }
 
   @override
