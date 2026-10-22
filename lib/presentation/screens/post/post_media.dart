@@ -1011,15 +1011,6 @@ class _Progress extends StatelessWidget {
 
   final VideoPostSource source;
 
-  double _getProgressValue(VideoPostSource src) {
-    return src.progress.downloaded / (src.progress.totalSize ?? 1);
-  }
-
-  bool _isDownloading(VideoPostSource src) {
-    final value = _getProgressValue(src);
-    return value > 0 && value < 1;
-  }
-
   @override
   Widget build(BuildContext context) {
     final controller = source.controller;
@@ -1028,23 +1019,11 @@ class _Progress extends StatelessWidget {
     if (controller == null || !controller.value.isInitialized) {
       return Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 16),
-        child: Stack(
-          children: [
-            if (_isDownloading(source))
-              LinearProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                ),
-                value: _getProgressValue(source),
-                backgroundColor: Colors.transparent,
-              ),
-            LinearProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-              backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.3,
-              ),
-            ),
-          ],
+        child: LinearProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+          backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
         ),
       );
     }

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
@@ -11,24 +9,19 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/domain/repository/version_repo.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
-import 'package:boorusphere/presentation/provider/cache.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/screens/post/post_media.dart';
-import 'package:boorusphere/presentation/utils/extensions/post.dart';
-// `DownloadProgress` is ambiguous here: the app's downloads entity shares the
-// name with the cache manager's transfer progress, so hide the latter.
+// The cache manager exposes its own `DownloadProgress`; this test wants the
+// downloads entity of the same name.
 import 'package:cached_network_image/cached_network_image.dart'
     hide DownloadProgress;
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'
-    hide DownloadProgress;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../../utils/fake_cache_manager.dart';
 import '../../../utils/hive.dart';
 
 class MockEnvRepo extends Mock implements EnvRepo {}
@@ -47,10 +40,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late HiveTestContainer hiveContainer;
-  late MockCacheManager cache;
   late MockEnvRepo envRepo;
   late MockVersionRepo versionRepo;
-  late StreamController<FileResponse> fileStream;
 
   Post makePost({
     required int id,
@@ -111,35 +102,23 @@ void main() {
     // fake clock clean.
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
 
-    cache = MockCacheManager();
     envRepo = MockEnvRepo();
     versionRepo = MockVersionRepo();
-    fileStream = StreamController<FileResponse>.broadcast();
 
     when(() => envRepo.sdkVersion).thenReturn(33);
     when(() => envRepo.appVersion).thenReturn(AppVersion.zero);
     when(() => versionRepo.current).thenReturn(AppVersion.zero);
-    when(
-      () => cache.getFileStream(
-        any(),
-        headers: any(named: 'headers'),
-        withProgress: any(named: 'withProgress'),
-      ),
-    ).thenAnswer((_) => fileStream.stream);
-    when(() => cache.removeFile(any())).thenAnswer((_) async {});
   });
 
-  tearDown(() async {
+  tearDown(() {
     VisibilityDetectorController.instance.updateInterval = const Duration(
       milliseconds: 500,
     );
-    await fileStream.close();
   });
 
   Widget harness(Post post) {
     return ProviderScope(
       overrides: [
-        cacheManagerProvider.overrideWithValue(cache),
         envRepoProvider.overrideWithValue(envRepo),
         versionRepoProvider.overrideWithValue(versionRepo),
         fullscreenStateProvider.overrideWith(_FakeFullscreenState.new),
@@ -177,43 +156,19 @@ void main() {
     expect(find.text(t.openExternally), findsOneWidget);
   });
 
-  testWidgets('surfaces video failures and retries on demand', (tester) async {
+  testWidgets('surfaces the retry banner when playback cannot start', (
+    tester,
+  ) async {
     await tester.pumpWidget(harness(videoPost));
-    // Let `createController`'s cookie lookup + stream subscription settle.
+    // Let `createController`'s cookie lookup settle.
     await tester.pump();
     await tester.pump();
 
-    // Healthy state: indeterminate progress bar, no error chrome.
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(find.text(t.loadVideoFailed), findsNothing);
-
-    // Simulate a download failure. No `FileInfo` is ever emitted, so no
-    // `VideoPlayerController` (and thus no video plugin) is constructed.
-    fileStream.addError(Exception('download failed'));
-    await tester.pump();
-    await tester.pump();
-
+    // The video plugin is unavailable in widget tests, so initialization
+    // fails and the viewer has to offer a manual retry.
     expect(find.text(t.loadVideoFailed), findsOneWidget);
     expect(find.text(t.retry), findsOneWidget);
-    // The progress bar is hidden while the error banner is up.
     expect(find.byType(LinearProgressIndicator), findsNothing);
-
-    await tester.tap(find.text(t.retry));
-    await tester.pump();
-    await tester.pump();
-
-    // Retry evicts the cached file and re-requests the stream.
-    verify(() => cache.removeFile(videoPost.content.url)).called(1);
-    verify(
-      () => cache.getFileStream(
-        videoPost.content.url,
-        headers: any(named: 'headers'),
-        withProgress: any(named: 'withProgress'),
-      ),
-    ).called(2);
-
-    // The fresh stream carries no error, so the banner clears.
-    expect(find.text(t.loadVideoFailed), findsNothing);
 
     // Drain the overlay auto-hide timer so no timers outlive the test.
     await tester.pump(const Duration(seconds: 2));

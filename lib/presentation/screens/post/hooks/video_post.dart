@@ -3,38 +3,29 @@ import 'dart:async';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
-import 'package:boorusphere/presentation/provider/cache.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoPostSource {
-  VideoPostSource({
-    this.progress = const DownloadProgress('', 0, 0),
-    this.controller,
-    this.hasError = false,
-  });
+  VideoPostSource({this.controller, this.hasError = false});
 
-  final DownloadProgress progress;
   final VideoPlayerController? controller;
 
-  /// True once playback setup has failed — either the download stream
-  /// errored or the player failed to initialize. The viewer surfaces a
-  /// manual retry banner while set. Cleared when [destroyController]
+  /// True once playback setup has failed — either the player could not be
+  /// created or [VideoPlayerController.initialize] threw. The viewer surfaces
+  /// a manual retry banner while set. Cleared when [destroyController]
   /// resets the source.
   final bool hasError;
 
   VideoPostSource copyWith({
-    DownloadProgress? progress,
     VideoPlayerController? controller,
     bool? hasError,
   }) {
     return VideoPostSource(
-      progress: progress ?? this.progress,
       controller: controller ?? this.controller,
       hasError: hasError ?? this.hasError,
     );
@@ -44,13 +35,11 @@ class VideoPostSource {
   bool operator ==(covariant VideoPostSource other) {
     if (identical(this, other)) return true;
 
-    return other.progress == progress &&
-        other.controller == controller &&
-        other.hasError == hasError;
+    return other.controller == controller && other.hasError == hasError;
   }
 
   @override
-  int get hashCode => Object.hash(progress, controller, hasError);
+  int get hashCode => Object.hash(controller, hasError);
 }
 
 /// Handle returned by [useVideoPostSource]: the current [VideoPostSource]
@@ -81,35 +70,9 @@ class _VideoPostHook extends Hook<VideoPostHandle> {
 }
 
 class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
-  _VideoPostState();
-
   VideoPostSource source = VideoPostSource();
-  StreamSubscription? _cacheSubscription;
-
-  void onFileStream(FileResponse event) {
-    if (!context.mounted) return;
-
-    if (event is DownloadProgress) {
-      setState(() {
-        source = source.copyWith(progress: event);
-      });
-    } else if (event is FileInfo) {
-      final controller = VideoPlayerController.file(
-        event.file,
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-      )..setLooping(true);
-      final size = event.file.statSync().size;
-      final prog = DownloadProgress(event.originalUrl, size, size);
-
-      setState(() {
-        source = source.copyWith(controller: controller, progress: prog);
-      });
-    }
-  }
 
   /// Flags the source as failed so the viewer shows its retry banner.
-  /// Fired both when the download stream errors and when
-  /// [VideoPlayerController.initialize] throws.
   void reportFailure() {
     if (!context.mounted) return;
 
@@ -118,10 +81,13 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
     });
   }
 
+  /// Streams the media straight from the server so playback can start before
+  /// the whole file arrives. Servers that hotlink-protect their CDN (Gelbooru
+  /// among them) only accept the request with the same Referer/User-Agent
+  /// headers the image requests already use.
   Future<void> createController() async {
     if (!hook.active) return;
 
-    final cache = hook.ref.read(cacheManagerProvider);
     final cookieJar = hook.ref.read(cookieJarProvider);
     final cookies = await cookieJar.loadForRequest(
       hook.post.content.url.toUri(),
@@ -130,31 +96,35 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
       postHeadersFactoryProvider(hook.post, cookies: cookies),
     );
 
-    _cacheSubscription = cache
-        .getFileStream(
-          hook.post.content.url,
-          headers: headers,
-          withProgress: true,
-        )
-        .listen(onFileStream, onError: (Object _) => reportFailure());
+    final controller = VideoPlayerController.networkUrl(
+      hook.post.content.url.toUri(),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      httpHeaders: headers,
+    );
+    unawaited(controller.setLooping(true));
+
+    if (!context.mounted) {
+      unawaited(controller.dispose());
+      return;
+    }
+
+    setState(() {
+      source = source.copyWith(controller: controller);
+    });
   }
 
-  /// Manual retry: drop the failed controller, evict the cached file and
-  /// re-request the stream. The fresh controller instance re-triggers the
-  /// viewer's `useEffect([controller])`, so no extra nonce is required.
+  /// Manual retry: drop the failed controller and request the media again. The
+  /// fresh controller instance re-triggers the viewer's
+  /// `useEffect([controller])`, so no extra nonce is required.
   Future<void> retry() async {
-    final cache = hook.ref.read(cacheManagerProvider);
     destroyController();
     // Force a rebuild so the disposed controller is dropped from the tree
-    // before the replacement stream produces a new one.
+    // before the replacement is created.
     setState(() {});
-    await cache.removeFile(hook.post.content.url);
     await createController();
   }
 
   void destroyController() {
-    _cacheSubscription?.cancel();
-    _cacheSubscription = null;
     unawaited(source.controller?.pause());
     source.controller?.dispose();
     source = VideoPostSource();
