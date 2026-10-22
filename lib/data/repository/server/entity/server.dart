@@ -44,7 +44,7 @@ class Server with _$Server {
     }
     tags = Uri.encodeComponent(tags.trim());
 
-    var url = '$homepage/$searchUrl'
+    var url = '$apiAddress/$searchUrl'
         .replaceAll('{tags}', tags)
         .replaceAll('{page-id}', '$page')
         .replaceAll('{post-offset}', (page * option.limit).toString())
@@ -71,7 +71,7 @@ class Server with _$Server {
   }
 
   String suggestionUrlsOf(String query) {
-    var url = '$homepage/$tagSuggestionUrl'
+    var url = '$apiAddress/$tagSuggestionUrl'
         .replaceAll('{post-limit}', '$tagSuggestionLimit')
         .replaceAll('{tag-limit}', '$tagSuggestionLimit');
 

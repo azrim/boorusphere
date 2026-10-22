@@ -77,6 +77,34 @@ void main() {
       expect(url, isNot(contains('api_key=')));
     });
 
+    test('requests use the api address when configured', () {
+      const server = Server(
+        id: 'Rule34',
+        homepage: 'https://rule34.xxx',
+        apiAddr: 'https://api.rule34.xxx',
+        searchUrl:
+            'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}',
+        tagSuggestionUrl:
+            'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%&limit={post-limit}',
+        postUrl: 'index.php?page=post&s=view&id={post-id}',
+      );
+      const option = PageOption(query: 'test', searchRating: BooruRating.safe);
+
+      expect(
+        server.searchUrlOf(option, page: 1),
+        startsWith('https://api.rule34.xxx/index.php?'),
+      );
+      expect(
+        server.suggestionUrlsOf('cat'),
+        startsWith('https://api.rule34.xxx/index.php?'),
+      );
+      // Post links stay on the homepage, the API host does not serve them.
+      expect(
+        server.postUrlOf(1),
+        'https://rule34.xxx/index.php?page=post&s=view&id=1',
+      );
+    });
+
     test('szurubooru questionable maps to sketchy', () {
       const server = Server(
         homepage: 'https://szurubooru.test',
