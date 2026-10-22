@@ -9,6 +9,8 @@
 * **Feat**: tint the timeline tag chip by its category (artist, copyright, character, general) and give it a translucent pill so the image shows through instead of the solid blue chip
 * **Fix**: scale the timeline card overlays with the tile width so the tag no longer disappears in 3- and 4-column grids
 * **Fix**: point Rule34 at its own API host, which the site now requires (user ID and API key needed), so posts and tag suggestions load again
+* **Fix**: stream videos instead of downloading the whole file before playback, so they start right away and large ones no longer stall
+* **Fix**: skip the `*` wildcard when the query is empty, which made Gelbooru scan its entire tag table (15s) before answering
 
 ## 2.0.23
 
