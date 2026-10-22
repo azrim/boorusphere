@@ -161,10 +161,23 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 - **Position**: Docked to the bottom, clearing the system inset
 - **Duration**: Short (2s) for info, indefinite for actions
 
-### Search
-- **Style**: Expanding search bar with tag autocomplete dropdown
-- **Autocomplete**: Dropdown below search field, tag suggestions with post counts
-- **Rating filter**: Segmented button row (Safe / Questionable / Explicit)
+### Bottom Bar (Search)
+
+The one piece of chrome every timeline screen carries. It is a surface, not glass: the bar paints `scaffoldBackgroundColor` at full opacity (black in midnight) with a hairline `outlineVariant` top border, and the query field sits on `surfaceContainerHighest` at `radiusLg`.
+
+- **Collapsed**: leading drawer chip (server favicon, with the active rating as a corner badge), the query as centered text, and a trailing control that toggles grid columns — or becomes *back to top* once the timeline is scrolled
+- **Expanded** (tap the field): a rating chip row appears above the field, the field goes left-aligned and editable, and a reset control joins the trailing close button; the suggestion panel (`BlurBackdrop`) rises behind it
+- **Rating badge**: one-letter pill — S / Q / E / SN — filled with the scheme role (safe → primary, questionable → tertiary, sensitive → secondary, explicit → error) and drawn at a fixed size so it stays a badge under font scaling; the rating is announced through semantics, not the glyph
+- **Touch targets**: every control in the bar is at least 48 dp, including the rating chip and the icon buttons
+- **Height**: measured at runtime (`HomeSearchBar.height`), never assumed — the pagination pill's offset and the grid's bottom padding both read it so they track font scaling
+- **Selection mode**: while posts are selected the bar is removed and the [selection action bar](#selection-action-bar) takes the bottom of the screen
+
+### Selection Action Bar
+- **Trigger**: choosing *Select* in the [Context Menu](#context-menu-post-actions)
+- **Layout**: floating card on `surfaceContainerHigh`, full width minus `spacingMd`, docked above the system inset — a count readout on the left, then download (menu: files or ZIP), favorite, and clear
+- **Count**: a readout, not a button label; announced as "N selected"
+- **Download**: opens a menu choosing between individual files and a ZIP archive, so no hidden mode is carried between actions
+- **Controls**: icon buttons with tooltips, 48 dp targets
 
 ### Download Entry
 - **Layout**: Horizontal card with thumbnail, progress bar, status icon, actions

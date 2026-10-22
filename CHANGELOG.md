@@ -1,4 +1,9 @@
 ## 2.0.24
+* **Fix**: give the bottom search bar 48 dp touch targets and accessible names for its icon buttons, so TalkBack can announce what they do
+* **Fix**: paint the bottom bar as an opaque surface so the search hint no longer sits on top of scrolling thumbnails
+* **Fix**: hide the search bar while posts are selected, so the selection action bar no longer covers it
+* **Fix**: size the pagination pill and the grid's bottom padding from the bar's measured height, so they stay clear of it at large font sizes
+
 
 * **Feat**: restructure the home drawer into a brand header, server cards, and Library/Preferences sections with live count badges and a pinned version/update footer
 * **Feat**: add Scan and Manual modes to the Add Server page; Scan auto-detects the engine from the homepage while Manual keeps the engine picker
