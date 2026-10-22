@@ -9,6 +9,17 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 class HomeDrawerHeader extends ConsumerWidget {
   const HomeDrawerHeader({super.key});
 
+  String _themeLabelOf(BuildContext context, ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.dark:
+        return context.t.sidebar.themeDark;
+      case ThemeMode.light:
+        return context.t.sidebar.themeLight;
+      default:
+        return context.t.sidebar.themeSystem;
+    }
+  }
+
   IconData _themeIconOf(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.dark:
@@ -37,14 +48,17 @@ class HomeDrawerHeader extends ConsumerWidget {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: DesignTokens.brandMarkSize,
+            height: DesignTokens.brandMarkSize,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: scheme.primaryContainer,
               borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
             ),
-            child: Image.asset('assets/icons/exported/logo.png', height: 24),
+            child: Image.asset(
+              'assets/icons/exported/logo.png',
+              height: DesignTokens.brandLogoSize,
+            ),
           ),
           const SizedBox(width: DesignTokens.spacingMd),
           Expanded(
@@ -71,6 +85,7 @@ class HomeDrawerHeader extends ConsumerWidget {
           ),
           IconButton(
             icon: Icon(_themeIconOf(themeMode)),
+            tooltip: _themeLabelOf(context, themeMode),
             onPressed: () =>
                 ref.read(uiSettingStateProvider.notifier).cycleThemeMode(),
           ),
