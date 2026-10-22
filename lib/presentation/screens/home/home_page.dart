@@ -99,7 +99,12 @@ class _Home extends HookConsumerWidget {
       key: scaffoldKey,
       extendBody: true,
       drawer: HomeDrawer(maxWidth: drawerWidth),
-      drawerEdgeDragWidth: searchBar.isOpen ? 0 : null,
+      // A narrow edge zone loses the gesture race to the system back gesture on
+      // gesture-nav devices, so the whole screen is draggable while the search
+      // bar is closed.
+      drawerEdgeDragWidth: searchBar.isOpen
+          ? 0
+          : MediaQuery.sizeOf(context).width,
       body: StyledOverlayRegion(
         child: PopScope(
           canPop:
