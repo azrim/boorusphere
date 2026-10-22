@@ -8,12 +8,12 @@ import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dar
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
-import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
+import 'package:boorusphere/presentation/utils/extensions/booru_rating.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
@@ -119,23 +119,6 @@ Widget _thumbnailHeroShuttleBuilder(
       ),
     ],
   );
-}
-
-/// Rating badge content for the top-left overlay, or `null` for unrated posts
-/// (the badge is skipped entirely). Colors come from the active scheme so
-/// the badge follows the adaptive palette.
-({String label, Color color})? _ratingBadgeOf(
-  BooruRating rating,
-  ColorScheme scheme,
-) {
-  return switch (rating) {
-    BooruRating.safe => (label: 'S', color: scheme.primary),
-    BooruRating.questionable => (label: 'Q', color: scheme.tertiary),
-    BooruRating.explicit => (label: 'E', color: scheme.error),
-    // "SN" so it can't be mistaken for the safe "S".
-    BooruRating.sensitive => (label: 'SN', color: scheme.secondary),
-    BooruRating.all => null,
-  };
 }
 
 /// First safe http(s) target for the "open source" action: the post's own
@@ -535,7 +518,7 @@ class _ScoreRatingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badge = _ratingBadgeOf(post.rating, context.colorScheme);
+    final badge = ratingBadgeOf(post.rating, context.colorScheme);
     if (badge == null && post.score == 0) return const SizedBox.shrink();
 
     return Row(
