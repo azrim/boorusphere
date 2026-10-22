@@ -32,7 +32,9 @@ class Server with _$Server {
 
   String searchUrlOf(PageOption option, {required int page}) {
     final query = option.query.trim();
-    var tags = query.isEmpty ? Server.defaultTag : query;
+    // An empty query means "no tag filter". Sending a wildcard instead makes
+    // some engines (Gelbooru) scan the whole tag table before answering.
+    var tags = query;
     if (searchUrl.toUri().queryParameters.containsKey('offset')) {
       // Szurubooru has exclusive-way (but still same shit) of rating
       tags += ' ${_szuruRateString(option.searchRating)}';
@@ -116,7 +118,6 @@ class Server with _$Server {
   bool get hasCredentials => login.isNotEmpty || apiKey.isNotEmpty;
 
   static const Server empty = Server();
-  static const String defaultTag = '*';
   static const tagSuggestionLimit = 20;
 }
 

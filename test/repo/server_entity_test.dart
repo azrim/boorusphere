@@ -43,14 +43,17 @@ void main() {
       expect(url, contains('test'));
     });
 
-    test('empty query uses default tag', () {
+    test('empty query sends no tag filter', () {
       const server = Server(
         homepage: 'https://danbooru.donmai.us',
         searchUrl: 'posts.json?tags={tags}&page={page-id}&limit={post-limit}',
       );
-      const option = PageOption(query: '', searchRating: BooruRating.safe);
+      const option = PageOption(query: '', searchRating: BooruRating.all);
       final url = server.searchUrlOf(option, page: 1);
-      expect(url, contains(Server.defaultTag));
+      // A wildcard makes slow engines (Gelbooru) scan every tag before
+      // answering, while an empty tag already means "everything".
+      expect(url, contains('tags=&'));
+      expect(url, isNot(contains('*')));
     });
 
     test('appends credentials when configured', () {
