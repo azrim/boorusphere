@@ -149,7 +149,7 @@ class _PostImage extends HookConsumerWidget {
     final retryNonce = useState(0);
     final createdAt = useState(DateTime.now().millisecondsSinceEpoch);
     final loadState = useState<_PostImageLoadState>(
-      const _PostImageLoadState.loading(0),
+      const _PostImageLoadState.loading(null),
     );
 
     final deviceRatio = MediaQuery.sizeOf(context).aspectRatio;
@@ -309,7 +309,7 @@ class _PostImage extends HookConsumerWidget {
                   progressIndicatorBuilder: (context, url, progress) {
                     _scheduleLoadState(
                       loadState,
-                      _PostImageLoadState.loading(progress.progress ?? 0),
+                      _PostImageLoadState.loading(progress.progress),
                     );
                     return PostPlaceholderImage(
                       post: post,
@@ -381,7 +381,7 @@ class _PostImage extends HookConsumerWidget {
                   onRetry: () {
                     CachedNetworkImage.evictFromCache(imageUrl);
                     retryNonce.value += 1;
-                    loadState.value = const _PostImageLoadState.loading(0);
+                    loadState.value = const _PostImageLoadState.loading(null);
                   },
                 ),
               ),
@@ -487,7 +487,7 @@ void _scheduleLoadState(
 sealed class _PostImageLoadState {
   const _PostImageLoadState();
 
-  const factory _PostImageLoadState.loading(double progress) =
+  const factory _PostImageLoadState.loading(double? progress) =
       _PostImageLoading;
   const factory _PostImageLoadState.completed() = _PostImageCompleted;
   const factory _PostImageLoadState.failed() = _PostImageFailed;
@@ -496,7 +496,9 @@ sealed class _PostImageLoadState {
 class _PostImageLoading extends _PostImageLoadState {
   const _PostImageLoading(this.progress);
 
-  final double progress;
+  /// Fraction of the download completed, or `null` while the response has no
+  /// known total size — an indeterminate load, not a stalled one.
+  final double? progress;
 
   @override
   bool operator ==(Object other) =>
@@ -586,17 +588,21 @@ class _PostMediaStatus extends StatelessWidget {
 class _PostImageLoadingPill extends StatelessWidget {
   const _PostImageLoadingPill({super.key, required this.progress});
 
-  final double progress;
+  /// Fraction completed, or `null` while the response has no known total size.
+  /// The pill then spins without a percentage instead of claiming 0%.
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
-    final loadPercent = (progress * 100).round();
+    final progress = this.progress;
     return QuickBar.progress(
-      title: Text(
-        '$loadPercent%',
-        style: const TextStyle(fontWeight: FontWeight.w400),
-      ),
-      progress: loadPercent / 100,
+      title: progress == null
+          ? null
+          : Text(
+              '${(progress * 100).round()}%',
+              style: const TextStyle(fontWeight: FontWeight.w400),
+            ),
+      progress: progress,
     );
   }
 }
