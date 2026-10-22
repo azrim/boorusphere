@@ -54,18 +54,7 @@ class DrawerServerSection extends ConsumerWidget {
                 Navigator.of(context).pop();
                 context.router.push(ServerEditorRoute(server: server));
               },
-              onRemove: () {
-                if (servers.length == 1) {
-                  context.scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      duration: const Duration(seconds: 1),
-                      content: Text(context.t.servers.removeLastError),
-                    ),
-                  );
-                  return;
-                }
-                ref.read(serverStateProvider.notifier).remove(server);
-              },
+              onRemove: () => _removeServer(context, ref, server),
             ),
           );
         }),
@@ -76,12 +65,12 @@ class DrawerServerSection extends ConsumerWidget {
               Navigator.of(context).pop();
               context.router.push(const ServerAddRoute());
             },
-            icon: const Icon(Icons.add, size: 18),
+            icon: const Icon(Icons.add, size: DesignTokens.iconInline),
             label: Text(context.t.sidebar.addCustomServer),
             style: OutlinedButton.styleFrom(
               foregroundColor: context.colorScheme.onSurfaceVariant,
               side: BorderSide(color: context.colorScheme.outlineVariant),
-              minimumSize: const Size.fromHeight(44),
+              minimumSize: const Size.fromHeight(DesignTokens.controlHeightMin),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
               ),
@@ -89,6 +78,43 @@ class DrawerServerSection extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Confirms the removal before dropping a server's configuration, and reports
+/// the one failure the repo raises: removing the last remaining server.
+Future<void> _removeServer(
+  BuildContext context,
+  WidgetRef ref,
+  Server server,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      icon: const Icon(Icons.delete_outline),
+      title: Text(context.t.remove),
+      content: Text(context.t.servers.removeWarning(name: server.name)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(context.t.cancel),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(context.t.remove),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+
+  try {
+    await ref.read(serverStateProvider.notifier).remove(server);
+  } on Exception {
+    if (!context.mounted) return;
+    context.scaffoldMessenger.showSnackBar(
+      SnackBar(content: Text(context.t.servers.removeLastError)),
     );
   }
 }
@@ -107,8 +133,7 @@ class _ManageServersButton extends StatelessWidget {
       },
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingSm),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        minimumSize: const Size(0, DesignTokens.controlHeightMin),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -146,111 +171,124 @@ class _ServerCard extends StatelessWidget {
     final uri = server.homepage.toUri();
     final subtitle = uri.host.isNotEmpty ? uri.host : server.homepage;
 
-    return Material(
-      color: active
-          ? scheme.secondaryContainer
-          : scheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-        side: active
-            ? BorderSide(color: scheme.primary, width: 1.5)
-            : BorderSide.none,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingSm,
-            vertical: DesignTokens.spacingSm,
+    return MergeSemantics(
+      child: Semantics(
+        selected: active,
+        child: Material(
+          color: active
+              ? scheme.secondaryContainer
+              : scheme.surfaceContainerHighest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+            side: active
+                ? BorderSide(color: scheme.primary, width: 1.5)
+                : BorderSide.none,
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-                ),
-                child: Favicon(
-                  url: server.homepage,
-                  shape: BoxShape.circle,
-                  size: 32,
-                  iconSize: 20,
-                ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingSm,
+                vertical: DesignTokens.spacingSm,
               ),
-              const SizedBox(width: DesignTokens.spacingMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      server.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.theme.textTheme.bodyMedium?.copyWith(
-                        color: nameColor,
-                        fontWeight: FontWeight.w600,
+              child: Row(
+                children: [
+                  Container(
+                    width: DesignTokens.iconChipSize,
+                    height: DesignTokens.iconChipSize,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(
+                        DesignTokens.radiusSm,
                       ),
                     ),
-                    if (subtitle.isNotEmpty)
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.theme.textTheme.bodySmall?.copyWith(
-                          color: subtitleColor,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  switch (value) {
-                    case 'edit':
-                      onEdit();
-                      break;
-                    case 'remove':
-                      onRemove();
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
+                    child: Favicon(
+                      url: server.homepage,
+                      shape: BoxShape.circle,
+                      size: DesignTokens.iconChipSize,
+                      iconSize: 20,
+                    ),
+                  ),
+                  const SizedBox(width: DesignTokens.spacingMd),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.edit, size: 18),
-                        const SizedBox(width: 8),
-                        Text(context.t.edit),
+                        Text(
+                          server.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.theme.textTheme.bodyMedium?.copyWith(
+                            color: nameColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.theme.textTheme.bodySmall?.copyWith(
+                              color: subtitleColor,
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                  PopupMenuItem(
-                    value: 'remove',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.delete, size: 18),
-                        const SizedBox(width: 8),
-                        Text(context.t.remove),
-                      ],
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          onEdit();
+                          break;
+                        case 'remove':
+                          onRemove();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.edit,
+                              size: DesignTokens.iconInline,
+                            ),
+                            const SizedBox(width: DesignTokens.spacingSm),
+                            Text(context.t.edit),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'remove',
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.delete,
+                              size: DesignTokens.iconInline,
+                            ),
+                            const SizedBox(width: DesignTokens.spacingSm),
+                            Text(context.t.remove),
+                          ],
+                        ),
+                      ),
+                    ],
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: DesignTokens.iconInline,
+                      color: active
+                          ? scheme.onSecondaryContainer
+                          : scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
-                padding: EdgeInsets.zero,
-                icon: Icon(
-                  Icons.more_vert,
-                  size: 18,
-                  color: active
-                      ? scheme.onSecondaryContainer
-                      : scheme.onSurfaceVariant,
-                ),
               ),
-            ],
+            ),
           ),
         ),
       ),
