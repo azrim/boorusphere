@@ -35,8 +35,8 @@ class DrawerFooter extends ConsumerWidget {
         if (updateProgress.status.isDownloading) {
           return DrawerTile(
             leading: const SizedBox(
-              width: 32,
-              height: 32,
+              width: DesignTokens.iconChipSize,
+              height: DesignTokens.iconChipSize,
               child: Padding(
                 padding: EdgeInsets.all(6),
                 child: CircularProgressIndicator(strokeWidth: 3),
@@ -50,10 +50,7 @@ class DrawerFooter extends ConsumerWidget {
           );
         }
         return DrawerTile(
-          leading: DrawerIconChip(
-            Icons.info_outline,
-            foreground: scheme.tertiary,
-          ),
+          leading: const DrawerIconChip(Icons.info_outline),
           label: context.t.updater.available(version: '${data.latest}'),
           subtitle: updateProgress.status.isDownloaded
               ? context.t.updater.install
