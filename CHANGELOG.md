@@ -8,6 +8,7 @@
 * **Feat**: long-press on a timeline card opens a quick-action menu (select, favorite, download, share, source) — a floating glass card with a blurred backdrop and a spring entrance, instead of selecting immediately
 * **Feat**: tint the timeline tag chip by its category (artist, copyright, character, general) and give it a translucent pill so the image shows through instead of the solid blue chip
 * **Fix**: scale the timeline card overlays with the tile width so the tag no longer disappears in 3- and 4-column grids
+* **Fix**: point Rule34 at its own API host, which the site now requires (user ID and API key needed), so posts and tag suggestions load again
 
 ## 2.0.23
 

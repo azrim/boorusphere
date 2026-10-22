@@ -59,6 +59,40 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
+  /// Rule34 serves its API from its own host, which also rejects anonymous
+  /// requests. Entries still pointing at the homepage only ever get a challenge
+  /// page back.
+  Future<void> _migrateRule34ApiHost() async {
+    const homepage = 'https://rule34.xxx';
+    const apiAddr = 'https://api.rule34.xxx';
+    const searchUrl =
+        'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}';
+    const tagSuggestionUrl =
+        'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%&orderby=count&limit={post-limit}';
+
+    final mapped = Map<String, Server>.from(box.toMap());
+    for (final entry in mapped.entries) {
+      final server = entry.value;
+      final isRule34 =
+          server.homepage.replaceFirst(RegExp(r'/+$'), '') == homepage;
+      if (!isRule34 || server.apiAddr.isNotEmpty) {
+        continue;
+      }
+
+      await box.put(
+        entry.key,
+        server.copyWith(
+          apiAddr: apiAddr,
+          searchUrl: searchUrl,
+          tagSuggestionUrl: tagSuggestionUrl,
+          searchParserId: '', // Reset to auto-detect
+          suggestionParserId: '',
+        ),
+      );
+    }
+    await box.flush();
+  }
+
   @override
   Future<void> populate() async {
     if (_defaults.isEmpty) return;
@@ -68,6 +102,7 @@ class UserServerRepo implements ServerRepo {
     } else {
       await _migrateKeys();
       await _migrateGelbooruSuggestionUrl();
+      await _migrateRule34ApiHost();
     }
   }
 
@@ -114,6 +149,7 @@ class UserServerRepo implements ServerRepo {
       }
       // Run migrations after import to fix any outdated server configs
       await _migrateGelbooruSuggestionUrl();
+      await _migrateRule34ApiHost();
     } catch (e) {
       // Import failed, leave existing data intact
     }

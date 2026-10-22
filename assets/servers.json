@@ -37,8 +37,9 @@
   {
     "id": "Rule34",
     "homepage": "https://rule34.xxx",
-    "searchUrl": "index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}&json=1",
-    "tagSuggestionUrl": "index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}",
+    "apiAddr": "https://api.rule34.xxx",
+    "searchUrl": "index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}",
+    "tagSuggestionUrl": "index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%&orderby=count&limit={post-limit}",
     "postUrl": "index.php?page=post&s=view&id={post-id}"
   }
 ]
