@@ -9,10 +9,16 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/booru_rating.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+/// Backdrop blur radius of the bar. The grid scrolls under it, so the bar
+/// is a glass surface: strong enough to settle the field against art, light
+/// enough that the art still reads through.
+const double _kBarBlur = 20;
 
 class HomeSearchBar extends HookConsumerWidget {
   const HomeSearchBar({super.key});
@@ -32,64 +38,76 @@ class HomeSearchBar extends HookConsumerWidget {
     final rating = ref.watch(
       serverSettingStateProvider.select((it) => it.searchRating),
     );
+    // Same switch that gates the details sheet blur: with it off the bar
+    // stays opaque, which is also the cheaper path on slow devices.
+    final enableBlur = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.blur),
+    );
 
     return RepaintBoundary(
       child: _MeasureSize(
         onChange: (size) => height.value = size.height,
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.theme.scaffoldBackgroundColor,
-            border: Border(
-              top: BorderSide(color: context.colorScheme.outlineVariant),
+        child: BlurBackdrop(
+          blur: enableBlur,
+          sigmaX: _kBarBlur,
+          sigmaY: _kBarBlur,
+          child: Container(
+            decoration: BoxDecoration(
+              color: enableBlur
+                  ? context.colorScheme.surface.withValues(alpha: 0.72)
+                  : context.theme.scaffoldBackgroundColor,
+              border: Border(
+                top: BorderSide(color: context.colorScheme.outlineVariant),
+              ),
             ),
-          ),
-          // No maintained bottom padding: when the IME is up the bar should
-          // sit on the keyboard instead of keeping the nav-bar gap above it.
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (searchBar.isOpen) const _OptionBar(),
-                Container(
-                  decoration: BoxDecoration(
-                    color: context.colorScheme.surfaceContainerHighest,
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(DesignTokens.radiusLg),
+            // No maintained bottom padding: when the IME is up the bar should
+            // sit on the keyboard instead of keeping the nav-bar gap above it.
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (searchBar.isOpen) const _OptionBar(),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: context.colorScheme.surfaceContainerHighest,
+                      borderRadius: const BorderRadius.all(
+                        Radius.circular(DesignTokens.radiusLg),
+                      ),
+                    ),
+                    margin: const EdgeInsets.fromLTRB(
+                      DesignTokens.spacingMd,
+                      DesignTokens.spacingMd - DesignTokens.spacingXs,
+                      DesignTokens.spacingMd,
+                      DesignTokens.spacingMd - DesignTokens.spacingXs,
+                    ),
+                    child: Row(
+                      children: [
+                        const _LeadingButton(),
+                        const Expanded(child: _SearchField()),
+                        // An active non-default rating is a state, so it gets a
+                        // chip here instead of a 9 sp corner badge.
+                        if (!searchBar.isOpen && rating != BooruRating.all)
+                          const _CollapsedRatingChip(),
+                        if (!searchBar.isOpen) const _TrailingButton(),
+                        if (searchBar.isOpen &&
+                            searchBar.value != searchBar.initial)
+                          _Button(
+                            onTap: searchBar.reset,
+                            tooltip: context.t.resetQuery,
+                            child: const Icon(Icons.rotate_left),
+                          ),
+                        if (searchBar.isOpen)
+                          _Button(
+                            onTap: searchBar.clear,
+                            tooltip: context.t.clearQuery,
+                            child: const Icon(Icons.close_rounded),
+                          ),
+                      ],
                     ),
                   ),
-                  margin: const EdgeInsets.fromLTRB(
-                    DesignTokens.spacingMd,
-                    DesignTokens.spacingMd - DesignTokens.spacingXs,
-                    DesignTokens.spacingMd,
-                    DesignTokens.spacingMd - DesignTokens.spacingXs,
-                  ),
-                  child: Row(
-                    children: [
-                      const _LeadingButton(),
-                      const Expanded(child: _SearchField()),
-                      // An active non-default rating is a state, so it gets a
-                      // chip here instead of a 9 sp corner badge.
-                      if (!searchBar.isOpen && rating != BooruRating.all)
-                        const _CollapsedRatingChip(),
-                      if (!searchBar.isOpen) const _TrailingButton(),
-                      if (searchBar.isOpen &&
-                          searchBar.value != searchBar.initial)
-                        _Button(
-                          onTap: searchBar.reset,
-                          tooltip: context.t.resetQuery,
-                          child: const Icon(Icons.rotate_left),
-                        ),
-                      if (searchBar.isOpen)
-                        _Button(
-                          onTap: searchBar.clear,
-                          tooltip: context.t.clearQuery,
-                          child: const Icon(Icons.close_rounded),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
