@@ -1,4 +1,10 @@
 ## 2.0.24
+* **Fix**: translate the search history empty state and the backup frequency labels, which still shipped English text inside translated screens
+* **Fix**: raise the contrast of field hints, helper lines and section counts in the light theme, where the muted role at 60-70% measured below the 4.5:1 floor
+* **Fix**: give every row the same 8 dp gap between its title and subtitle, so the settings, backup, gesture, language and license pages stop disagreeing
+* **Fix**: drop the post details labels to the small label size above their values, so the sheet reads as a hierarchy instead of two equal lines
+* **Fix**: keep the loading pill, the license package name and the update percentage inside their boxes when the system font is enlarged
+* **Fix**: name the downloads empty state for a filter that matched nothing instead of claiming the library is empty, and rebuild the tags blocker page on the shared section blocks
 * **Fix**: rebuild Gesture Settings on the shared settings row system, so the swipe threshold label no longer breaks mid-word and the page stops using a second visual language
 * **Fix**: show which language, color palette, and swipe mode are active
 * **Fix**: keep the midnight app bar pure black when content scrolls under it
