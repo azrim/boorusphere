@@ -143,6 +143,11 @@ void _showExitDialog(BuildContext context) {
           child: Text(context.t.cancel),
         ),
         TextButton(
+          // The row that opened this dialog is tinted with the error colour,
+          // so the confirm has to carry the same weight.
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.error,
+          ),
           onPressed: () {
             Navigator.of(context).pop();
             SystemNavigator.pop();

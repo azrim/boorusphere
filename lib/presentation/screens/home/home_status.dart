@@ -127,6 +127,10 @@ class _ErrorStatus extends ConsumerWidget {
                     },
                     child: Text(context.t.rating.disableRatingSafe),
                   ),
+                OutlinedButton(
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  child: Text(context.t.pageStatus.changeServer),
+                ),
                 ElevatedButton(
                   onPressed: ref.read(pageStateProvider.notifier).load,
                   child: Text(context.t.retry),
