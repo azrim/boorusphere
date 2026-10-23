@@ -143,7 +143,9 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Accessibility**: each card is one screen-reader node — the overlays are folded into a single label (tag, rating, score, file type, dimensions), the tap and long-press actions ride on that node, and the selected state is announced rather than drawn as an unlabelled check. A post with none of those falls back to its id so the node is never nameless
 - **Loading**: Shimmer placeholders with desaturated surface color
 - **States**: A spinner while a page is loading; a notice card for empty or failed results
-- **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar
+- **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar. While the list is moving the pill drops to 30% opacity, so it reads as a hint instead of asking for a decision mid-scroll
+- **Back to top**: a circular button appears at the trailing edge of the same band once the grid is 600 dp down, and leaves again at the top. It is the only control that changes with scroll position
+- **Long-press hint**: a one-shot pill above the bar teaches the gesture behind every post action. It disappears on dismiss or on entering selection mode and is never shown again
 
 ### Context Menu (Post Actions)
 - **Trigger**: long-press a timeline card (medium haptic) — never a plain tap
@@ -155,11 +157,12 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 
 ### Navigation (Home Drawer)
 - **Style**: Navigation drawer, opened by the leading server chip in the search bar or by an edge swipe (the swipe is disabled while the search bar is open); rounded right edge, width capped to the viewport
+- **Search bar**: the leading chip opens the drawer (and cancels the search while it is open); the trailing button only cycles grid density, so a control never changes meaning mid-scroll. An active non-default rating shows as a tinted chip with a filter icon beside the field, so a filtered feed is a visible state
 - **Header**: the wordmark, closed by a `primary` dot, with the small-caps tagline beneath it; the theme switcher (light / dark / system) sits on the trailing edge inside a hairline-bordered square
 - **Sections**: each section is one grouped surface — a rounded `surface` block with a hairline `outlineVariant` border — and the rows inside stay flat and transparent, so the container carries the only border. Painting `surface` keeps the block pure black in midnight instead of lifting it off the black drawer. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
 - **Servers**: one compact row per server — favicon chip with a hairline border and the server name. The active server fills `secondaryContainer` with a `primary` hairline, and is exposed to TalkBack as `selected`. Removing a server asks for confirmation first; the add-server row closes the group with a `primary` plus
 - **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
-- **Preferences**: Settings and Reset to default
+- **Preferences**: Settings, Gestures & tags (a reference sheet for the gestures and the rating letters), and Reset to default
 - **Footer**: Exit (tinted with the error color), the update status when a newer version exists (spinner while downloading), and a version readout preceded by a `primary` status dot that opens About
 - **Colors**: section labels are muted uppercase `onSurfaceVariant`; row icons stay neutral `onSurfaceVariant`, and only the count badges, the active-server highlight, the add-server plus, and the footer status dot carry semantic scheme colors
 - **Type**: drawer rows run one step denser than content rows — a 14 sp `bodyMedium` label — so more destinations fit without touching the brand header, which keeps its `headlineSmall` wordmark

@@ -8,9 +8,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class SearchScreen extends HookConsumerWidget {
-  const SearchScreen({super.key, required this.scrollController});
-
-  final ScrollController scrollController;
+  const SearchScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,7 +40,7 @@ class SearchScreen extends HookConsumerWidget {
             child: SearchSuggestion(animator: animator, searchBar: searchBar),
           ),
         ),
-        HomeSearchBar(scrollController: scrollController),
+        const HomeSearchBar(),
       ],
     );
   }

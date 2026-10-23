@@ -12,11 +12,10 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class HomeSearchBar extends HookConsumerWidget {
-  const HomeSearchBar({super.key, required this.scrollController});
+  const HomeSearchBar({super.key});
 
   /// Rendered height of the bar, bottom safe-area inset included. Chrome that
   /// floats above it (the pagination pill, the grid's bottom padding) reads
@@ -25,73 +24,13 @@ class HomeSearchBar extends HookConsumerWidget {
     kBottomNavigationBarHeight + DesignTokens.spacingMd,
   );
 
-  final ScrollController scrollController;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final searchBar = ref.watch(searchBarControllerProvider(session));
-    final delta = useState([0.0, 0.0]);
-    final collapsed = !searchBar.isOpen && delta.value.first > 0;
-
-    // Disable scroll listener when search is open for better performance
-    final onScrolling = useCallback(() {
-      if (searchBar.isOpen) return; // Skip when search is open
-
-      final position = scrollController.position;
-      final threshold = height.value;
-
-      // Reset when scrolled to top
-      if (position.pixels <= 0) {
-        if (delta.value.first != 0 || delta.value.last != 0) {
-          delta.value = [0, 0];
-        }
-        return;
-      }
-
-      if (delta.value.first > 0 &&
-          position.viewportDimension > position.maxScrollExtent) {
-        delta.value = [0, 0];
-        return;
-      }
-
-      if (position.extentBefore < threshold ||
-          position.extentAfter < threshold) {
-        return;
-      }
-
-      final current = position.pixels;
-      final offset = (delta.value.first + current - delta.value.last);
-      final boundary = offset.clamp(-threshold, threshold);
-
-      if ((boundary - delta.value.first).abs() > 10) {
-        // Increased threshold
-        delta.value = [boundary, current];
-      }
-    }, [searchBar.isOpen]);
-
-    useEffect(() {
-      scrollController.addListener(onScrolling);
-      return () {
-        scrollController.removeListener(onScrolling);
-      };
-    }, [searchBar.isOpen]);
-
-    // Reset delta when there's no scrollable widget attached.
-    // Scheduling work from `build` itself produces a callback per rebuild,
-    // which previously fired every keystroke. The post-frame check now lives
-    // in a `useEffect` keyed on `delta` so it only schedules when the value
-    // could plausibly need resetting.
-    useEffect(() {
-      if (delta.value.first == 0 && delta.value.last == 0) return null;
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        if (scrollController.hasClients) return;
-        if (delta.value.reduce((a, b) => a + b) != 0) {
-          delta.value = [0, 0];
-        }
-      });
-      return null;
-    }, [delta.value]);
+    final rating = ref.watch(
+      serverSettingStateProvider.select((it) => it.searchRating),
+    );
 
     return RepaintBoundary(
       child: _MeasureSize(
@@ -128,11 +67,11 @@ class HomeSearchBar extends HookConsumerWidget {
                     children: [
                       const _LeadingButton(),
                       const Expanded(child: _SearchField()),
-                      if (!searchBar.isOpen)
-                        _TrailingButton(
-                          collapsed: collapsed,
-                          scrollController: scrollController,
-                        ),
+                      // An active non-default rating is a state, so it gets a
+                      // chip here instead of a 9 sp corner badge.
+                      if (!searchBar.isOpen && rating != BooruRating.all)
+                        const _CollapsedRatingChip(),
+                      if (!searchBar.isOpen) const _TrailingButton(),
                       if (searchBar.isOpen &&
                           searchBar.value != searchBar.initial)
                         _Button(
@@ -232,56 +171,17 @@ class _OptionBar extends StatelessWidget {
 class _RatingButton extends ConsumerWidget {
   const _RatingButton();
 
-  String rateDesc(BuildContext context, BooruRating rating) {
-    final desc = rating.describe(context);
-    return desc.isEmpty ? context.t.rating.all : desc;
-  }
-
-  Future<BooruRating?> selectRating(BuildContext context, BooruRating current) {
-    return showDialog<BooruRating>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(context.t.rating.title),
-          icon: const Icon(Icons.star),
-          contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: RadioGroup<BooruRating>(
-            groupValue: current,
-            onChanged: (x) {
-              context.navigator.pop(x);
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: BooruRating.values
-                  .map(
-                    (e) => ListTile(
-                      leading: Radio<BooruRating>(value: e),
-                      title: Text(rateDesc(context, e)),
-                      onTap: () {
-                        context.navigator.pop(e);
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rating = ref.watch(
       serverSettingStateProvider.select((it) => it.searchRating),
     );
-    final label = '${context.t.rating.title}: ${rateDesc(context, rating)}';
 
     return ActionChip(
       avatar: const Icon(Icons.star_outline, size: DesignTokens.iconInline),
-      label: Text(label),
+      label: Text(_ratingLabel(context, rating)),
       onPressed: () async {
-        final selected = await selectRating(context, rating);
+        final selected = await _pickRating(context, rating);
         if (selected != null) {
           await ref
               .read(serverSettingStateProvider.notifier)
@@ -290,6 +190,46 @@ class _RatingButton extends ConsumerWidget {
       },
     );
   }
+}
+
+/// Rating name, with the unrated value spelled out.
+String _ratingLabel(BuildContext context, BooruRating rating) {
+  final desc = rating.describe(context);
+  return desc.isEmpty ? context.t.rating.all : desc;
+}
+
+/// Rating picker shared by the option bar and the collapsed bar chip.
+Future<BooruRating?> _pickRating(BuildContext context, BooruRating current) {
+  return showDialog<BooruRating>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(context.t.rating.title),
+        icon: const Icon(Icons.star),
+        contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
+        content: RadioGroup<BooruRating>(
+          groupValue: current,
+          onChanged: (x) {
+            context.navigator.pop(x);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: BooruRating.values
+                .map(
+                  (e) => ListTile(
+                    leading: Radio<BooruRating>(value: e),
+                    title: Text(_ratingLabel(context, e)),
+                    onTap: () {
+                      context.navigator.pop(e);
+                    },
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _Button extends StatelessWidget {
@@ -341,37 +281,21 @@ class _LeadingButton extends ConsumerWidget {
           Scaffold.of(context).openDrawer();
         }
       },
-      child: SizedBox.square(
-        dimension: DesignTokens.controlHeightMin,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (searchBar.isOpen)
-              const Icon(Icons.arrow_back_rounded)
-            else
-              Favicon(
-                key: ValueKey(server.homepage),
-                url: server.homepage,
-                iconSize: DesignTokens.iconInline,
-              ),
-            if (!searchBar.isOpen)
-              const Positioned(
-                top: DesignTokens.spacingXs / 2,
-                right: DesignTokens.spacingXs / 2,
-                child: _RatingIndicator(),
-              ),
-          ],
-        ),
-      ),
+      child: searchBar.isOpen
+          ? const Icon(Icons.arrow_back_rounded)
+          : Favicon(
+              key: ValueKey(server.homepage),
+              url: server.homepage,
+              iconSize: DesignTokens.iconInline,
+            ),
     );
   }
 }
 
-/// Corner badge carrying the active rating filter. The letter is drawn at a
-/// fixed size so the badge stays a badge under font scaling; the filter is
-/// announced through [Semantics] instead.
-class _RatingIndicator extends ConsumerWidget {
-  const _RatingIndicator();
+/// Active non-default rating, shown in the collapsed bar. A filtered feed is
+/// a state the user has to be able to see, not a badge to decode.
+class _CollapsedRatingChip extends ConsumerWidget {
+  const _CollapsedRatingChip();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -381,25 +305,47 @@ class _RatingIndicator extends ConsumerWidget {
     final badge = ratingBadgeOf(rating, context.colorScheme);
     if (badge == null) return const SizedBox.shrink();
 
-    return IgnorePointer(
+    final label = '${context.t.rating.title}: ${_ratingLabel(context, rating)}';
+
+    return Tooltip(
+      message: label,
       child: Semantics(
-        label: '${context.t.rating.title}: ${rating.describe(context)}',
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingXs,
-            vertical: 1,
+        button: true,
+        label: label,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: DesignTokens.controlHeightMin,
+            minHeight: DesignTokens.controlHeightMin,
           ),
-          decoration: BoxDecoration(
-            color: badge.color,
-            borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
-          ),
-          child: Text(
-            badge.label,
-            textScaler: TextScaler.noScaling,
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              color: badge.onColor,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+            onTap: () async {
+              final selected = await _pickRating(context, rating);
+              if (selected != null) {
+                await ref
+                    .read(serverSettingStateProvider.notifier)
+                    .setRating(selected);
+              }
+            },
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.filter_alt_outlined,
+                    size: DesignTokens.iconInline,
+                    color: badge.color,
+                  ),
+                  const SizedBox(width: DesignTokens.spacingXs),
+                  Text(
+                    badge.label,
+                    style: context.theme.textTheme.labelMedium?.copyWith(
+                      color: badge.color,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -408,32 +354,19 @@ class _RatingIndicator extends ConsumerWidget {
   }
 }
 
+/// Grid density. One slot, one job: the back-to-top control lives over the
+/// grid, so this button never changes meaning mid-scroll.
 class _TrailingButton extends ConsumerWidget {
-  const _TrailingButton({this.collapsed = false, this.scrollController});
-
-  final bool collapsed;
-  final ScrollController? scrollController;
+  const _TrailingButton();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
 
-    backToTop() {
-      scrollController?.animateTo(
-        0,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOutCubic,
-      );
-    }
-
     return _Button(
-      tooltip: collapsed ? context.t.backToTop : context.t.changeGrid,
-      onTap: collapsed
-          ? backToTop
-          : ref.read(uiSettingStateProvider.notifier).cycleGrid,
-      child: collapsed
-          ? const Icon(Icons.arrow_upward_rounded)
-          : Icon(key: ValueKey(grid), Icons.grid_view, size: 20),
+      tooltip: context.t.changeGrid,
+      onTap: ref.read(uiSettingStateProvider.notifier).cycleGrid,
+      child: Icon(key: ValueKey(grid), Icons.grid_view, size: 20),
     );
   }
 }

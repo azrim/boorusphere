@@ -15,6 +15,7 @@ enum Setting {
   uiBlur,
   uiThemeMode,
   uiTimelineGrid,
+  uiLongPressHintSeen,
   uiLanguage,
   videoPlayerMuted,
   imeIncognito,

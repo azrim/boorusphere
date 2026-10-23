@@ -48,7 +48,7 @@
     "preferences": "Preferences",
     "manage": "Manage",
     "tagline": "Multi-engine art explorer",
-    "add_custom_server": "Add custom server",
+    "add_custom_server": "Add server",
     "open_navigation": "Open navigation",
     "theme_system": "Theme: system",
     "theme_light": "Theme: light",
@@ -62,6 +62,7 @@
   "reset_query": "Reset query",
   "clear_query": "Clear search",
   "clear_selection": "Clear selection",
+  "undo": "Undo",
   "version": "Version ${version}",
   "backup": "Backup",
   "restore": "Restore",
@@ -79,17 +80,28 @@
     "all": "All",
     "disable_rating_safe": "Disable rating:safe"
   },
+  "help": {
+    "title": "Gestures & tags",
+    "long_press_hint": "Long-press a post for actions",
+    "tap": "Tap a post to open it",
+    "long_press": "Long-press to select, favorite, download or share",
+    "double_tap": "Double-tap to zoom",
+    "swipe_up": "Swipe up for details",
+    "swipe_down": "Swipe down to close the viewer",
+    "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+  },
   "page_status": {
     "http_error": "Cannot get result from ${server_name}",
     "no_result": {
       "zero": "No result found",
-      "other": "No more result"
+      "other": "No more results"
     },
     "no_result_for_query": {
       "zero": "No result found for ${query}",
-      "other": "No more result for ${query}"
+      "other": "No more results for ${query}"
     },
-    "blocked": "'${query}' is blocked by Tags Blocker"
+    "blocked": "'${query}' is blocked by Tags Blocker",
+    "change_server": "Change server"
   },
   "suggestion": {
     "not_supported": "${server_name} did not support search suggestion",
@@ -192,12 +204,12 @@
   },
   "servers": {
     "title": "Server",
-    "reset_warning": "Are you sure you want to reset server list to default ?\n\nThis will erase all of your added servers",
+    "reset_warning": "Reset the server list to default?\n\nThis will erase all the servers you added.",
     "remove_last_error": "The last server cannot be removed",
     "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
     "preset": "From Preset",
     "select": "Select Server",
-    "add": "Add new server",
+    "add": "Add server",
     "edit": "Edit ${name}",
     "alias": "Alias",
     "homepage": "Homepage",
@@ -357,7 +369,7 @@
     "welcome_title": "Welcome to Boorusphere",
     "welcome_desc": "Add a booru server to start discovering and collecting images",
     "add_first_server": "Add your first server",
-    "browse_presets": "Browse popular servers",
+    "browse_presets": "Browse presets",
     "start_browsing": "Start browsing"
   },
   "batch": {

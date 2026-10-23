@@ -6,6 +6,7 @@ import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_sect
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/gesture_help_sheet.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -35,6 +36,16 @@ class DrawerPreferencesSection extends ConsumerWidget {
                 Navigator.of(context).pop();
                 context.router.push(const SettingsRoute());
               },
+            ),
+            DrawerTile(
+              icon: Icons.help_outline,
+              label: context.t.help.title,
+              trailing: Icon(
+                Icons.chevron_right,
+                size: DesignTokens.iconInline,
+                color: context.colorScheme.onSurfaceVariant,
+              ),
+              onTap: () => showGestureHelp(context),
             ),
             DrawerTile(
               icon: Icons.restore,
