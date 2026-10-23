@@ -88,7 +88,7 @@ class _Home extends HookConsumerWidget {
         ).width.clamp(0.0, DesignTokens.drawerMaxWidth) -
         DesignTokens.drawerContentPeek;
     final allowPop = useState(false);
-    const maybePopTimeout = Duration(seconds: 1);
+    const maybePopTimeout = Duration(seconds: 3);
     final maybePopTimer = useMemoized(
       () => RestartableTimer(maybePopTimeout, () {
         if (context.mounted) allowPop.value = false;
@@ -99,12 +99,10 @@ class _Home extends HookConsumerWidget {
       key: scaffoldKey,
       extendBody: true,
       drawer: HomeDrawer(maxWidth: drawerWidth),
-      // A narrow edge zone loses the gesture race to the system back gesture on
-      // gesture-nav devices, so the whole screen is draggable while the search
-      // bar is closed.
-      drawerEdgeDragWidth: searchBar.isOpen
-          ? 0
-          : MediaQuery.sizeOf(context).width,
+      // Edge-anchored, per Material: the drawer has its own affordance in the
+      // search bar, so a full-width drag zone only stole horizontal drags from
+      // the content. Zero while the search bar is open.
+      drawerEdgeDragWidth: searchBar.isOpen ? 0 : null,
       body: StyledOverlayRegion(
         child: PopScope(
           canPop:

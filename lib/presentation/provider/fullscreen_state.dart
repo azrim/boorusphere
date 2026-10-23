@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boorusphere/domain/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -45,7 +47,7 @@ class FullscreenState extends _$FullscreenState {
   }
 
   void reset() {
-    SystemChrome.setPreferredOrientations([]);
-    unfullscreen();
+    unawaited(SystemChrome.setPreferredOrientations([]));
+    unawaited(unfullscreen());
   }
 }
