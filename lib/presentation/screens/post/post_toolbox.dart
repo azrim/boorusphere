@@ -73,10 +73,16 @@ class PostToolbox extends HookConsumerWidget {
     // Aspect-scoped: only inset changes rebuild this bar, not every
     // MediaQuery change (keyboard frames, brightness, locale).
     final viewPadding = MediaQuery.viewPaddingOf(context);
+    // Latched so the bar keeps its clearance once immersive mode reports a
+    // zero inset. The latch is updated in an effect so build stays free of
+    // state writes.
     final safePaddingBottom = useState(viewPadding.bottom);
-    if (viewPadding.bottom > safePaddingBottom.value) {
-      safePaddingBottom.value = viewPadding.bottom;
-    }
+    useEffect(() {
+      if (viewPadding.bottom > safePaddingBottom.value) {
+        safePaddingBottom.value = viewPadding.bottom;
+      }
+      return null;
+    }, [viewPadding.bottom]);
 
     return Container(
       decoration: const BoxDecoration(

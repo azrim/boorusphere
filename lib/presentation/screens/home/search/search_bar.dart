@@ -18,8 +18,9 @@ class HomeSearchBar extends HookConsumerWidget {
   const HomeSearchBar({super.key});
 
   /// Rendered height of the bar, bottom safe-area inset included. Chrome that
-  /// floats above it (the pagination pill, the grid's bottom padding) reads
-  /// this instead of assuming a fixed height, so it follows font scaling.
+  /// floats above it (the pagination pill, back to top, the long-press hint,
+  /// the grid's bottom padding) reads this instead of assuming a fixed
+  /// height, so all of it follows font scaling.
   static final ValueNotifier<double> height = ValueNotifier(
     kBottomNavigationBarHeight + DesignTokens.spacingMd,
   );

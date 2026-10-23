@@ -570,7 +570,7 @@ class _SuggestionEntryTile extends StatelessWidget {
                 child: Center(
                   child: Icon(
                     Icons.add,
-                    semanticLabel: context.t.add,
+                    semanticLabel: context.t.actionTag.append,
                     size: 20,
                     color: Theme.of(context).colorScheme.primary,
                   ),

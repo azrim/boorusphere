@@ -63,6 +63,7 @@
   "clear_query": "Clear search",
   "clear_selection": "Clear selection",
   "undo": "Undo",
+  "dismiss": "Dismiss",
   "version": "Version ${version}",
   "backup": "Backup",
   "restore": "Restore",

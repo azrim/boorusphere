@@ -155,7 +155,7 @@ class _Content extends ConsumerWidget {
                   );
                 }),
                 ListTile(
-                  title: Text(context.t.add),
+                  title: Text(context.t.servers.add),
                   leading: Icon(Icons.add, color: context.colorScheme.primary),
                   onTap: () => context.router.push(const ServerAddRoute()),
                 ),

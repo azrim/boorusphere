@@ -72,37 +72,41 @@ class ErrorInfo extends HookWidget {
 
     return Padding(
       padding: padding,
-      child: InkWell(
-        onTap: traceable ? toggleStacktrace : null,
-        child: Column(
-          crossAxisAlignment: crossAxisAlignment,
-          children: [
-            DefaultTextStyle(
-              style: style ?? DefaultTextStyle.of(context).style,
-              child: Text(describeError(context), textAlign: textAlign),
-            ),
-            if (showTrace.value && stackTrace != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16, bottom: 8),
-                    child: Text(
-                      TranslationProvider.of(
-                        context,
-                      ).translations.error.stacktrace,
-                    ),
-                  ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 128),
-                    child: SingleChildScrollView(
-                      child: Text(stackTrace.toString()),
-                    ),
-                  ),
-                ],
+      // Merged so the message itself becomes the name of the stack-trace
+      // toggle; the tap is otherwise invisible to a screen reader.
+      child: MergeSemantics(
+        child: InkWell(
+          onTap: traceable ? toggleStacktrace : null,
+          child: Column(
+            crossAxisAlignment: crossAxisAlignment,
+            children: [
+              DefaultTextStyle(
+                style: style ?? DefaultTextStyle.of(context).style,
+                child: Text(describeError(context), textAlign: textAlign),
               ),
-          ],
+              if (showTrace.value && stackTrace != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16, bottom: 8),
+                      child: Text(
+                        TranslationProvider.of(
+                          context,
+                        ).translations.error.stacktrace,
+                      ),
+                    ),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 128),
+                      child: SingleChildScrollView(
+                        child: Text(stackTrace.toString()),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

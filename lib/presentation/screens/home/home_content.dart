@@ -247,13 +247,18 @@ class HomeContent extends HookConsumerWidget {
             right: 0,
             bottom: barHeight + DesignTokens.spacingSm,
             child: Center(
-              child: _LongPressHint(
-                onDismiss: () {
-                  hintSeen.value = true;
-                  unawaited(
-                    settingsRepo.put(Setting.uiLongPressHintSeen, true),
-                  );
-                },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingMd,
+                ),
+                child: _LongPressHint(
+                  onDismiss: () {
+                    hintSeen.value = true;
+                    unawaited(
+                      settingsRepo.put(Setting.uiLongPressHintSeen, true),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -455,7 +460,7 @@ class _LongPressHint extends StatelessWidget {
               ),
               IconButton(
                 onPressed: onDismiss,
-                tooltip: context.t.clear,
+                tooltip: context.t.dismiss,
                 iconSize: DesignTokens.iconInline,
                 icon: const Icon(Icons.close_rounded),
               ),
