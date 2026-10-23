@@ -221,17 +221,6 @@ class _ServerRow extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (active) ...[
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: scheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: DesignTokens.spacingSm),
-                    ],
                     PopupMenuButton<String>(
                       onSelected: (value) {
                         switch (value) {
