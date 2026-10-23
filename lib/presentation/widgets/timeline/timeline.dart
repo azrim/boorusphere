@@ -149,6 +149,20 @@ String? _sourceLinkOf(Post post) {
   return null;
 }
 
+/// Accessible name for a timeline card: the identifying tag, the rating and
+/// the score. Everything the card draws on the image is folded in here, so the
+/// card reads as one item instead of a set of loose chips.
+String _cardSemanticsLabel(BuildContext context, Post post) {
+  final tag = _topTagOf(post);
+  final rating = post.rating.describe(context);
+
+  return [
+    if (tag != null) tag.label,
+    if (rating.isNotEmpty) rating,
+    if (post.score != 0) '${context.t.score} ${post.score}',
+  ].join(', ');
+}
+
 class Timeline extends ConsumerWidget {
   const Timeline({super.key, required this.posts, this.enableSelection = true});
 
@@ -279,124 +293,145 @@ class _ThumbnailCard extends HookConsumerWidget {
       postSelectionProvider.select((sel) => sel.contains(post.id)),
     );
 
+    void handleTap() {
+      if (enableSelection && ref.read(postSelectionProvider).isNotEmpty) {
+        // If selection mode is active, toggle selection
+        ref.read(postSelectionProvider.notifier).toggle(post.id);
+      } else if (onTap != null) {
+        // Otherwise, open the post viewer
+        onTap!();
+      }
+    }
+
+    void handleLongPress() {
+      HapticFeedback.mediumImpact();
+      unawaited(_showCardMenu(context, ref));
+    }
+
     return AutoScrollTag(
       key: ValueKey(post.viewId),
       controller: controller,
       index: index,
       highlightColor: context.theme.colorScheme.surfaceTint,
-      child: GestureDetector(
-        // Opaque so taps anywhere on the card (including the overlay labels)
-        // open the viewer like taps on the thumbnail do.
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          if (enableSelection && ref.read(postSelectionProvider).isNotEmpty) {
-            // If selection mode is active, toggle selection
-            ref.read(postSelectionProvider.notifier).toggle(post.id);
-          } else if (onTap != null) {
-            // Otherwise, open the post viewer
-            onTap!();
-          }
-        },
-        // Long-press opens the quick-action menu (select, favorite, download,
-        // share, open source).
-        onLongPress: () {
-          HapticFeedback.mediumImpact();
-          unawaited(_showCardMenu(context, ref));
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-            border: isSelected
-                ? Border.all(
-                    color: context.theme.colorScheme.primary,
-                    width: _kSelectionBorderWidth,
-                  )
-                : null,
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: Stack(
-            children: [
-              Hero(
-                tag: post.viewId,
-                flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
-                child: _ThumbnailImage(
-                  post: post,
-                  blurExplicit: blurExplicit,
-                  gridSize: gridSize,
-                  cacheBaseWidth: cacheBaseWidth,
-                ),
+      // One node per card. The visible overlays are excluded from the
+      // semantics tree (their text is folded into the label below), so a
+      // screen reader announces the post and its state once instead of
+      // reading a handful of unlabelled chips.
+      child: Semantics(
+        container: true,
+        button: true,
+        selected: enableSelection ? isSelected : null,
+        label: _cardSemanticsLabel(context, post),
+        onTap: handleTap,
+        onLongPress: handleLongPress,
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            // Opaque so taps anywhere on the card (including the overlay
+            // labels) open the viewer like taps on the thumbnail do.
+            behavior: HitTestBehavior.opaque,
+            onTap: handleTap,
+            onLongPress: handleLongPress,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+                border: isSelected
+                    ? Border.all(
+                        color: context.theme.colorScheme.primary,
+                        width: _kSelectionBorderWidth,
+                      )
+                    : null,
               ),
-              // Neutral gradients keep the overlay labels legible on any image.
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 44 * overlayScale,
-                child: const IgnorePointer(child: _OverlayScrim(top: true)),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 64 * overlayScale,
-                child: const IgnorePointer(child: _OverlayScrim(top: false)),
-              ),
-              // Top-left: score + rating badge. Replaced by the selection
-              // checkbox while the card is selected.
-              if (!isSelected)
-                Positioned(
-                  top: 4,
-                  left: 4,
-                  child: IgnorePointer(
-                    child: _ScoreRatingOverlay(post: post, scale: overlayScale),
+              clipBehavior: Clip.hardEdge,
+              child: Stack(
+                children: [
+                  Hero(
+                    tag: post.viewId,
+                    flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
+                    child: _ThumbnailImage(
+                      post: post,
+                      blurExplicit: blurExplicit,
+                      gridSize: gridSize,
+                      cacheBaseWidth: cacheBaseWidth,
+                    ),
                   ),
-                ),
-              // Top-right: media file type (PNG / JPG / GIF / MP4 / WEBP).
-              Positioned(
-                top: 4,
-                right: 4,
-                child: IgnorePointer(
-                  child: _MediaTypeLabel(post: post, scale: overlayScale),
-                ),
-              ),
-              // Bottom: tag chip pinned left, dimensions pinned right.
-              Positioned(
-                left: 4,
-                right: 4,
-                bottom: 4,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.bottomLeft,
-                        child: _TagChip(post: post, scale: overlayScale),
+                  // Neutral gradients keep the overlay labels legible on any image.
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 44 * overlayScale,
+                    child: const IgnorePointer(child: _OverlayScrim(top: true)),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 64 * overlayScale,
+                    child: const IgnorePointer(
+                      child: _OverlayScrim(top: false),
+                    ),
+                  ),
+                  // Top-left: score + rating badge. Replaced by the selection
+                  // checkbox while the card is selected.
+                  if (!isSelected)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: IgnorePointer(
+                        child: _ScoreRatingOverlay(
+                          post: post,
+                          scale: overlayScale,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: DesignTokens.spacingSm),
-                    _DimensionsLabel(post: post, scale: overlayScale),
-                  ],
-                ),
-              ),
-              // Selection checkbox overlay
-              if (isSelected)
-                Positioned(
-                  top: 6,
-                  left: 6,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: context.theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(DesignTokens.spacingXs),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 18,
+                  // Top-right: media file type (PNG / JPG / GIF / MP4 / WEBP).
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: IgnorePointer(
+                      child: _MediaTypeLabel(post: post, scale: overlayScale),
                     ),
                   ),
-                ),
-            ],
+                  // Bottom: tag chip pinned left, dimensions pinned right.
+                  Positioned(
+                    left: 4,
+                    right: 4,
+                    bottom: 4,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomLeft,
+                            child: _TagChip(post: post, scale: overlayScale),
+                          ),
+                        ),
+                        const SizedBox(width: DesignTokens.spacingSm),
+                        _DimensionsLabel(post: post, scale: overlayScale),
+                      ],
+                    ),
+                  ),
+                  // Selection checkbox overlay
+                  if (isSelected)
+                    Positioned(
+                      top: 6,
+                      left: 6,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: context.theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(DesignTokens.spacingXs),
+                        child: const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -817,6 +852,9 @@ class _Placeholder extends StatelessWidget {
         stops: const <double>[0.0, 0.35, 0.5, 0.65, 1.0],
       ),
       period: DesignTokens.durationSlow,
+      // A shimmer is looping decorative motion; under reduced motion the
+      // placeholder keeps its tint and stops sweeping.
+      enabled: !context.reducedMotion,
       child: Container(color: Colors.black, child: const SizedBox.expand()),
     );
   }
