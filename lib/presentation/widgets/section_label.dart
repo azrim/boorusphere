@@ -34,7 +34,14 @@ class SectionLabel extends StatelessWidget {
     );
 
     return header
-        ? Semantics(header: true, container: true, child: text)
+        ? Semantics(
+            header: true,
+            // Sections sit directly under the screen title, so they are the
+            // first level of the document.
+            headingLevel: 2,
+            container: true,
+            child: text,
+          )
         : text;
   }
 }

@@ -118,6 +118,15 @@
     "share": "Share",
     "open_source": "Open source"
   },
+  "viewer": {
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "fullscreen": "Fullscreen",
+    "exit_fullscreen": "Exit fullscreen",
+    "play": "Play",
+    "pause": "Pause",
+    "open_link": "Open link"
+  },
   "updater": {
     "check": "Check for update",
     "checking": "Checking for update...",

@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
@@ -104,7 +105,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
       maxChildSize: _kMaxSheetSize,
       snapSizes: const [_kMinSheetSize, _kSnapSheetSize, _kMaxSheetSize],
       snap: true,
-      snapAnimationDuration: const Duration(milliseconds: 200),
+      snapAnimationDuration: context.motionDuration(
+        const Duration(milliseconds: 200),
+      ),
       builder: (context, scrollController) {
         return RepaintBoundary(
           child: ValueListenableBuilder<Post>(
@@ -509,6 +512,7 @@ class _CopyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       iconSize: 18,
+      tooltip: context.t.actionTag.copy,
       onPressed: () {
         Clipboard.setData(ClipboardData(text: text));
         ScaffoldMessenger.of(context).showSnackBar(

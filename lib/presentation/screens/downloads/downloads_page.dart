@@ -56,6 +56,7 @@ class DownloadsPage extends HookConsumerWidget {
           actions: [
             if (downloadEntries.isNotEmpty)
               PopupMenuButton(
+                tooltip: MaterialLocalizations.of(context).showMenuTooltip,
                 onSelected: (value) {
                   switch (value) {
                     case 'filter':

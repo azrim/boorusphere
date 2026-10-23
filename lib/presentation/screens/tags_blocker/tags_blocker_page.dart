@@ -94,6 +94,7 @@ class _TagsBlockerContent extends HookConsumerWidget {
                   title: Text(tag.value.name),
                   leading: const Icon(Icons.block),
                   trailing: IconButton(
+                    tooltip: context.t.remove,
                     onPressed: () {
                       ref
                           .read(tagsBlockerStateProvider.notifier)

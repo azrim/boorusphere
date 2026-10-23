@@ -48,6 +48,13 @@ double _steppedBackdropBlur(double t) {
   return _kBackdropBlur * step.clamp(0.0, 1.0);
 }
 
+/// Same idea for the card: a quantised sigma lets the engine reuse a cached
+/// filter during the entrance instead of re-rasterising every frame.
+double _quantizedBlur(double value) {
+  const steps = 5;
+  return (value * steps).round() / steps;
+}
+
 /// Shows the post context menu as a floating glass card over a blurred,
 /// tap-to-dismiss backdrop, resolving to the tapped action (or `null` when
 /// dismissed).
@@ -60,7 +67,9 @@ Future<PostContextMenuAction?> showPostContextMenu(
 }) {
   return showGeneralDialog<PostContextMenuAction>(
     context: context,
-    barrierDismissible: false,
+    // Dismissible so the barrier exposes a dismiss action to screen readers;
+    // the blurred backdrop below still handles the pointer tap.
+    barrierDismissible: true,
     barrierColor: Colors.transparent,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
     transitionDuration: context.motionDuration(DesignTokens.durationNormal),
@@ -104,7 +113,7 @@ class _ContextMenuView extends StatelessWidget {
             animation: card,
             builder: (context, child) {
               final t = card.value;
-              final blur = math.max(0.0, 1 - t) * 10;
+              final blur = _quantizedBlur(math.max(0.0, 1 - t) * 10);
               return Opacity(
                 opacity: _clamp01(t),
                 child: Transform.translate(
@@ -289,43 +298,49 @@ class _MenuRowTile extends StatelessWidget {
           ),
         );
       },
-      child: InkWell(
-        borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-        onTap: enabled ? onTap : null,
-        child: SizedBox(
-          height: _kRowHeight,
-          child: Row(
-            children: [
-              const SizedBox(
-                width: DesignTokens.spacingSm + DesignTokens.spacingXs,
-              ),
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: iconBackground,
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+          onTap: enabled ? onTap : null,
+          // A minimum instead of a fixed height, so a large font scale grows
+          // the row instead of clipping the label.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _kRowHeight),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: DesignTokens.spacingSm + DesignTokens.spacingXs,
                 ),
-                child: Icon(entry.icon, size: 16, color: iconColor),
-              ),
-              const SizedBox(
-                width: DesignTokens.spacingSm + DesignTokens.spacingXs,
-              ),
-              Expanded(
-                child: Text(
-                  entry.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.theme.textTheme.labelLarge?.copyWith(
-                    color: labelColor,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+                  ),
+                  child: Icon(entry.icon, size: 16, color: iconColor),
+                ),
+                const SizedBox(
+                  width: DesignTokens.spacingSm + DesignTokens.spacingXs,
+                ),
+                Expanded(
+                  child: Text(
+                    entry.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.theme.textTheme.labelLarge?.copyWith(
+                      color: labelColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(
-                width: DesignTokens.spacingSm + DesignTokens.spacingXs,
-              ),
-            ],
+                const SizedBox(
+                  width: DesignTokens.spacingSm + DesignTokens.spacingXs,
+                ),
+              ],
+            ),
           ),
         ),
       ),

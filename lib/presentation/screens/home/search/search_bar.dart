@@ -103,9 +103,10 @@ class HomeSearchBar extends HookConsumerWidget {
               top: BorderSide(color: context.colorScheme.outlineVariant),
             ),
           ),
+          // No maintained bottom padding: when the IME is up the bar should
+          // sit on the keyboard instead of keeping the nav-bar gap above it.
           child: SafeArea(
             top: false,
-            maintainBottomViewPadding: true,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -169,32 +170,41 @@ class _SearchField extends HookConsumerWidget {
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final server = ref.watch(serverStateProvider).getById(session.serverId);
 
-    return RepaintBoundary(
-      child: Semantics(
-        textField: true,
-        label: context.t.searchHint(serverName: server.name),
-        child: TextField(
-          autofocus: searchBar.isOpen,
-          canRequestFocus: searchBar.isOpen,
-          enableIMEPersonalizedLearning: !imeIncognito,
-          controller: searchBar.textEditingController,
-          decoration: InputDecoration(
-            border: InputBorder.none,
-            hintText: context.t.searchHint(serverName: server.name),
-            isDense: true,
-          ),
-          textAlign: searchBar.isOpen ? TextAlign.start : TextAlign.center,
-          readOnly: !searchBar.isOpen,
-          onSubmitted: (str) {
-            searchBar.submit(context, str);
-          },
-          onTap: searchBar.isOpen ? null : searchBar.open,
-          style: DefaultTextStyle.of(context).style,
-          // Optimize text input performance
-          maxLines: 1,
-          textInputAction: TextInputAction.search,
-        ),
+    final hint = context.t.searchHint(serverName: server.name);
+    final field = TextField(
+      autofocus: searchBar.isOpen,
+      canRequestFocus: searchBar.isOpen,
+      enableIMEPersonalizedLearning: !imeIncognito,
+      controller: searchBar.textEditingController,
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        hintText: hint,
+        isDense: true,
       ),
+      textAlign: searchBar.isOpen ? TextAlign.start : TextAlign.center,
+      readOnly: !searchBar.isOpen,
+      onSubmitted: (str) {
+        searchBar.submit(context, str);
+      },
+      onTap: searchBar.isOpen ? null : searchBar.open,
+      style: DefaultTextStyle.of(context).style,
+      // Optimize text input performance
+      maxLines: 1,
+      textInputAction: TextInputAction.search,
+    );
+
+    return RepaintBoundary(
+      // Closed, the field is a button that opens search. Announcing it as a
+      // read-only text field made the hint and the label repeat, and hid the
+      // fact that it does something.
+      child: searchBar.isOpen
+          ? field
+          : Semantics(
+              button: true,
+              label: hint,
+              onTap: searchBar.open,
+              child: ExcludeSemantics(child: field),
+            ),
     );
   }
 }

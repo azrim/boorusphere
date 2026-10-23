@@ -226,6 +226,7 @@ class _EntryPopupMenu extends ConsumerWidget {
         .fileExists(entry.dest);
 
     return PopupMenuButton(
+      tooltip: MaterialLocalizations.of(context).showMenuTooltip,
       onSelected: (value) {
         final downloader = ref.read(downloaderProvider);
         switch (value) {

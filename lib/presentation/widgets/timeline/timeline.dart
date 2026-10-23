@@ -156,11 +156,23 @@ String _cardSemanticsLabel(BuildContext context, Post post) {
   final tag = _topTagOf(post);
   final rating = post.rating.describe(context);
 
-  return [
+  final ext = post.originalFile.fileExt.toUpperCase();
+  final dimensions = post.width > 0 && post.height > 0
+      ? '\${post.width}×\${post.height}'
+      : '';
+
+  // Everything the card draws is folded in here, so the overlays can stay out
+  // of the semantics tree. A post with no tag, rating or score still needs a
+  // name, hence the id fallback.
+  final parts = [
     if (tag != null) tag.label,
     if (rating.isNotEmpty) rating,
-    if (post.score != 0) '${context.t.score} ${post.score}',
-  ].join(', ');
+    if (post.score != 0) '\${context.t.score} \${post.score}',
+    if (ext.isNotEmpty) ext,
+    if (dimensions.isNotEmpty) dimensions,
+  ];
+
+  return parts.isEmpty ? '#\${post.id}' : parts.join(', ');
 }
 
 class Timeline extends ConsumerWidget {
@@ -195,7 +207,7 @@ class Timeline extends ConsumerWidget {
     // Hoist DPR-scaled width out of the per-item closure so it isn't
     // recomputed for every visible thumbnail. The cache height is
     // post-specific (uses aspect ratio) and stays in `_ThumbnailImage`.
-    final cacheBaseWidth = (screenWidth * dpr / (flexibleGrid * 1.3)).round();
+    final cacheBaseWidth = (screenWidth * dpr / flexibleGrid).round();
 
     // The base constructor is used instead of `SliverMasonryGrid.count` so
     // the child delegate can turn off the automatic keep-alive and repaint
@@ -765,7 +777,11 @@ class _ThumbnailImage extends ConsumerWidget {
     // limit timeline thumbnail to 18:9
     final isLong = post.aspectRatio < 0.5;
     final cacheWidth = cacheBaseWidth;
-    final cacheHeight = (cacheWidth / post.aspectRatio).round();
+    // Tall posts are drawn clamped to 0.5, so the decode follows the rendered
+    // box rather than the source ratio — otherwise a 1:10 strip decodes ten
+    // times the pixels it can show.
+    final renderedRatio = isLong ? 0.5 : post.aspectRatio;
+    final cacheHeight = (cacheWidth / renderedRatio).round();
 
     // Reuse the pre-computed blur filter; allocating a new ImageFilter per
     // paint forced the engine to thrash the rasterizer cache.

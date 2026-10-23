@@ -274,6 +274,7 @@ class _Downloader extends ConsumerWidget {
             ),
           ),
           IconButton(
+            tooltip: context.t.cancel,
             onPressed: () {
               ref.read(appUpdaterProvider).clear();
             },

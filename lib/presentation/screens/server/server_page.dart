@@ -43,6 +43,7 @@ class _Content extends ConsumerWidget {
         title: Text(context.t.servers.title),
         actions: [
           PopupMenuButton(
+            tooltip: MaterialLocalizations.of(context).showMenuTooltip,
             onSelected: (value) {
               switch (value) {
                 case 'reset':
@@ -111,6 +112,9 @@ class _Content extends ConsumerWidget {
                     subtitle: RowSubtitle(Text(it.homepage)),
                     leading: Favicon(url: it.homepage),
                     trailing: PopupMenuButton(
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).showMenuTooltip,
                       onSelected: (value) {
                         switch (value) {
                           case 'edit':

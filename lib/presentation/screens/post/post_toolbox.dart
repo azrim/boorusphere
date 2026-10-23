@@ -70,7 +70,9 @@ class PostToolbox extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final viewPadding = context.mediaQuery.viewPadding;
+    // Aspect-scoped: only inset changes rebuild this bar, not every
+    // MediaQuery change (keyboard frames, brightness, locale).
+    final viewPadding = MediaQuery.viewPaddingOf(context);
     final safePaddingBottom = useState(viewPadding.bottom);
     if (viewPadding.bottom > safePaddingBottom.value) {
       safePaddingBottom.value = viewPadding.bottom;
@@ -86,7 +88,13 @@ class PostToolbox extends HookConsumerWidget {
       ),
       height: safePaddingBottom.value + 86,
       alignment: Alignment.bottomRight,
-      padding: EdgeInsets.only(bottom: safePaddingBottom.value + 8, right: 8),
+      // Left/right insets matter in landscape, where a cutout can sit under
+      // the trailing button.
+      padding: EdgeInsets.only(
+        left: viewPadding.left + DesignTokens.spacingSm,
+        right: viewPadding.right + DesignTokens.spacingSm,
+        bottom: safePaddingBottom.value + DesignTokens.spacingSm,
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -135,6 +143,7 @@ class PostOpenLinkButton extends StatelessWidget {
     return IconButton(
       padding: const EdgeInsets.all(DesignTokens.spacingMd),
       color: Colors.white,
+      tooltip: context.t.viewer.openLink,
       icon: const Icon(Icons.link_outlined),
       onPressed: () {
         if (isSafeUrl(post.originalFile)) {
@@ -157,7 +166,7 @@ class PostFavoriteButton extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final favorites = ref.watch(favoritePostStateProvider);
     final animator = useAnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: context.motionDuration(const Duration(milliseconds: 300)),
     );
     final animation = useAnimation(
       ColorTween(
@@ -175,19 +184,27 @@ class PostFavoriteButton extends HookConsumerWidget {
       return null;
     }, [isFav]);
 
-    return IconButton(
-      padding: const EdgeInsets.all(DesignTokens.spacingMd),
-      color: Colors.white,
-      icon: isFav
-          ? Icon(Icons.favorite, color: animation)
-          : Icon(Icons.favorite_border, color: animation),
-      onPressed: () {
-        if (isFav) {
-          ref.read(favoritePostStateProvider.notifier).remove(post);
-        } else {
-          ref.read(favoritePostStateProvider.notifier).save(post);
-        }
-      },
+    return Semantics(
+      // The filled/outline icon is the only visual cue, so the state has to be
+      // announced as well as the name.
+      toggled: isFav,
+      child: IconButton(
+        padding: const EdgeInsets.all(DesignTokens.spacingMd),
+        color: Colors.white,
+        tooltip: isFav
+            ? context.t.postAction.unfavorite
+            : context.t.postAction.favorite,
+        icon: isFav
+            ? Icon(Icons.favorite, color: animation)
+            : Icon(Icons.favorite_border, color: animation),
+        onPressed: () {
+          if (isFav) {
+            ref.read(favoritePostStateProvider.notifier).remove(post);
+          } else {
+            ref.read(favoritePostStateProvider.notifier).save(post);
+          }
+        },
+      ),
     );
   }
 }
@@ -208,20 +225,30 @@ class PostDownloadButton extends HookConsumerWidget {
       ),
     );
     final pending = useState(false);
+    final label = progress.status.isDownloaded
+        ? context.t.downloads.status.downloaded
+        : progress.status.isDownloading || progress.status.isPending
+        ? '\${context.t.downloads.status.downloading} \${progress.progress}%'
+        : context.t.postAction.download;
 
     return Stack(
       alignment: Alignment.center,
       children: [
-        CircularProgressIndicator(
-          value: pending.value
-              ? null
-              : progress.status.isDownloading
-              ? progress.progress.ratio
-              : 0,
+        // The ring is decorative; the button carries the label and the
+        // progress readout.
+        ExcludeSemantics(
+          child: CircularProgressIndicator(
+            value: pending.value
+                ? null
+                : progress.status.isDownloading
+                ? progress.progress.ratio
+                : 0,
+          ),
         ),
         IconButton(
           padding: const EdgeInsets.all(DesignTokens.spacingMd),
           color: Colors.white,
+          tooltip: label,
           icon: Icon(
             progress.status.isDownloaded ? Icons.download_done : Icons.download,
           ),
