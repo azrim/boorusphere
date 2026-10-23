@@ -70,7 +70,7 @@ The palette is adaptive — Material You generates the full scheme from a single
 
 ### Neutral
 - **On-Surface** (#1C1B1F / #E6E1E5 dark): Primary text color. Follows Material 3 tonal mapping.
-- **Outline Variant** (30% opacity): Subtle borders and dividers. Harmonized with the active color scheme.
+- **Outline Variant** (45% opacity): Subtle borders and dividers. Harmonized with the active color scheme. The hairline is often the only delimiter a section block has, so it has to stay visible on both the day surface and pure black.
 
 ### Named Rules
 
@@ -140,7 +140,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
   - **Sizing**: the overlay label type, icons and scrim heights scale with the tile width (full size at 130px, floored at 0.7×) so a denser grid shrinks the overlays instead of clipping the labels away. They ignore the system font scale: the tile is the unit, so a 2× font setting must not push the labels past the image
 - **Quick actions**: not on the card — a long-press opens the [Context Menu](#context-menu-post-actions)
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
-- **Accessibility**: each card is one screen-reader node — the overlays are folded into a single label (tag, rating, score), the tap and long-press actions ride on that node, and the selected state is announced rather than drawn as an unlabelled check
+- **Accessibility**: each card is one screen-reader node — the overlays are folded into a single label (tag, rating, score, file type, dimensions), the tap and long-press actions ride on that node, and the selected state is announced rather than drawn as an unlabelled check. A post with none of those falls back to its id so the node is never nameless
 - **Loading**: Shimmer placeholders with desaturated surface color
 - **States**: A spinner while a page is loading; a notice card for empty or failed results
 - **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar

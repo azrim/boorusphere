@@ -10,9 +10,12 @@ class AppThemeBuilder extends HookConsumerWidget {
   final Widget Function(BuildContext context, AppThemeData appTheme) builder;
 
   @override
-  @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorPalette = ref.watch(uiSettingStateProvider).colorPalette;
+    // Only the palette rebuilds the theme: watching the whole setting object
+    // rebuilt two seeded schemes for every grid-size or blur toggle.
+    final colorPalette = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.colorPalette),
+    );
 
     return DynamicColorBuilder(
       builder: (light, dark) => builder(

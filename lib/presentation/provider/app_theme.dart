@@ -16,21 +16,32 @@ class AppThemeData {
     ColorScheme? dark,
     ColorPalette colorPalette = ColorPalette.system,
   }) {
-    final accent = colorPalette.accentColor ?? defaultAccent;
-
-    final lightScheme = ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: Brightness.light,
-    );
-    final darkScheme = ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: Brightness.dark,
-    );
+    final accent = colorPalette.accentColor;
+    // An explicit palette owns the scheme. Only the system palette follows the
+    // wallpaper: on Android 12+ the platform always hands back a dynamic
+    // scheme, so preferring it would leave the presets with no effect.
+    final lightScheme = accent == null
+        ? light
+        : ColorScheme.fromSeed(seedColor: accent, brightness: Brightness.light);
+    final darkScheme = accent == null
+        ? dark
+        : ColorScheme.fromSeed(seedColor: accent, brightness: Brightness.dark);
+    // Harmonizing blends the scheme toward the wallpaper palette, which is
+    // right for dynamic color and wrong for a palette the user picked by name.
+    final harmonize = accent == null;
 
     return AppThemeData(
-      day: _createThemeData(light ?? lightScheme, Brightness.light),
-      night: _createThemeData(dark ?? darkScheme, Brightness.dark),
-      midnight: _createThemeDataMidnight(dark ?? darkScheme),
+      day: _createThemeData(
+        lightScheme,
+        Brightness.light,
+        harmonize: harmonize,
+      ),
+      night: _createThemeData(
+        darkScheme,
+        Brightness.dark,
+        harmonize: harmonize,
+      ),
+      midnight: _createThemeDataMidnight(darkScheme, harmonize: harmonize),
     );
   }
 
@@ -51,15 +62,22 @@ class AppThemeData {
   );
 }
 
-ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
+ThemeData _createThemeData(
+  ColorScheme? scheme,
+  Brightness brightness, {
+  bool harmonize = true,
+}) {
   final isDark = brightness == Brightness.dark;
   final defScheme = isDark
       ? AppThemeData.defDarkScheme
       : AppThemeData.defLightScheme;
-  final harmonized = scheme?.harmonized() ?? defScheme;
+  final base = scheme ?? defScheme;
+  final harmonized = harmonize ? base.harmonized() : base;
   final colorScheme = harmonized.copyWith(
     surface: harmonized.surface.shade(isDark ? 30 : 3),
-    outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.3),
+    // The hairline is the only delimiter a section block has on the page, so
+    // it has to stay visible instead of dissolving into the surface.
+    outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.45),
   );
   final origin = isDark ? ThemeData.dark() : ThemeData.light();
   return origin.copyWith(
@@ -121,8 +139,15 @@ ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
   );
 }
 
-ThemeData _createThemeDataMidnight(ColorScheme? scheme) {
-  final origin = _createThemeData(scheme, Brightness.dark);
+ThemeData _createThemeDataMidnight(
+  ColorScheme? scheme, {
+  bool harmonize = true,
+}) {
+  final origin = _createThemeData(
+    scheme,
+    Brightness.dark,
+    harmonize: harmonize,
+  );
   return origin.copyWith(
     // The midnight rule is pure black with no tinting, so the app bar must not
     // pick up the surface tint when content scrolls under it.
