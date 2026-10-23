@@ -49,7 +49,7 @@ class HomeDrawerHeader extends ConsumerWidget {
         DesignTokens.spacingLg,
         DesignTokens.spacingMd,
         DesignTokens.spacingMd,
-        DesignTokens.spacingSm,
+        DesignTokens.spacingXs,
       ),
       child: Row(
         children: [

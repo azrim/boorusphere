@@ -22,7 +22,7 @@ class DrawerSectionHeader extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(
-        top: DesignTokens.spacingLg,
+        top: DesignTokens.spacingMd,
         bottom: DesignTokens.spacingSm,
       ),
       child: Row(
