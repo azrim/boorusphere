@@ -1,4 +1,5 @@
 ## 2.0.24
+* **Fix**: run the drawer rows one step denser so more destinations fit, while the wordmark header keeps its size
 * **Fix**: keep every form label above its field instead of letting it sit where the value goes, and move the examples into the hint, so an empty field no longer reads as a filled one or as a second title
 * **Fix**: translate the search history empty state and the backup frequency labels, which still shipped English text inside translated screens
 * **Fix**: raise the contrast of field hints, helper lines and section counts in the light theme, where the muted role at 60-70% measured below the 4.5:1 floor

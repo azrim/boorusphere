@@ -162,6 +162,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Preferences**: Settings and Reset to default
 - **Footer**: Exit (tinted with the error color), the update status when a newer version exists (spinner while downloading), and a version readout preceded by a `primary` status dot that opens About
 - **Colors**: section labels are muted uppercase `onSurfaceVariant`; row icons stay neutral `onSurfaceVariant`, and only the count badges, the active-server highlight, the add-server plus, and the footer status dot carry semantic scheme colors
+- **Type**: drawer rows run one step denser than content rows — a 14 sp `bodyMedium` label — so more destinations fit without touching the brand header, which keeps its `headlineSmall` wordmark
 
 ### Bottom Sheet (Post Details)
 - **Shape**: Rounded top corners (12px), draggable snap points (0%, 50%, 90%)
