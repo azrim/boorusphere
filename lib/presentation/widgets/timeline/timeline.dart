@@ -375,8 +375,9 @@ class _ThumbnailCard extends HookConsumerWidget {
                   // checkbox while the card is selected.
                   if (!isSelected)
                     Positioned(
-                      top: 4,
-                      left: 4,
+                      top: DesignTokens.spacingXs,
+                      left: DesignTokens.spacingXs,
+                      right: DesignTokens.spacingXs,
                       child: IgnorePointer(
                         child: _ScoreRatingOverlay(
                           post: post,
@@ -386,17 +387,17 @@ class _ThumbnailCard extends HookConsumerWidget {
                     ),
                   // Top-right: media file type (PNG / JPG / GIF / MP4 / WEBP).
                   Positioned(
-                    top: 4,
-                    right: 4,
+                    top: DesignTokens.spacingXs,
+                    right: DesignTokens.spacingXs,
                     child: IgnorePointer(
                       child: _MediaTypeLabel(post: post, scale: overlayScale),
                     ),
                   ),
                   // Bottom: tag chip pinned left, dimensions pinned right.
                   Positioned(
-                    left: 4,
-                    right: 4,
-                    bottom: 4,
+                    left: DesignTokens.spacingXs,
+                    right: DesignTokens.spacingXs,
+                    bottom: DesignTokens.spacingXs,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -407,7 +408,12 @@ class _ThumbnailCard extends HookConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: DesignTokens.spacingSm),
-                        _DimensionsLabel(post: post, scale: overlayScale),
+                        Flexible(
+                          child: _DimensionsLabel(
+                            post: post,
+                            scale: overlayScale,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -562,12 +568,17 @@ class _ScoreRatingOverlay extends StatelessWidget {
         if (post.score != 0) ...[
           Icon(Icons.star_rounded, size: 13 * scale, color: Colors.white),
           const SizedBox(width: 2),
-          Text(
-            _compactCount(post.score),
-            style: _overlayLabelStyle(
-              context,
-              scale,
-            ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+          Flexible(
+            child: Text(
+              _compactCount(post.score),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textScaler: TextScaler.noScaling,
+              style: _overlayLabelStyle(
+                context,
+                scale,
+              ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
         if (badge != null && post.score != 0)
@@ -614,6 +625,8 @@ class _MediaTypeLabel extends StatelessWidget {
           ],
           Text(
             ext,
+            maxLines: 1,
+            textScaler: TextScaler.noScaling,
             style: _overlayLabelStyle(context, scale).copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -654,6 +667,7 @@ class _TagChip extends StatelessWidget {
         tag.label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+        textScaler: TextScaler.noScaling,
         style: _overlayLabelStyle(context, scale).copyWith(
           color: tag.color,
           fontWeight: FontWeight.w700,
@@ -680,6 +694,10 @@ class _DimensionsLabel extends StatelessWidget {
 
     return Text(
       '${post.width}×${post.height}',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.end,
+      textScaler: TextScaler.noScaling,
       style: _overlayLabelStyle(context, scale).copyWith(
         color: Colors.white,
         fontWeight: FontWeight.w600,
@@ -717,6 +735,8 @@ class _RatingBadge extends StatelessWidget {
       child: Text(
         label,
         semanticsLabel: semanticLabel,
+        maxLines: 1,
+        textScaler: TextScaler.noScaling,
         style: _overlayLabelStyle(
           context,
           scale,

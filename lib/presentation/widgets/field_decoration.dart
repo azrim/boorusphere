@@ -21,9 +21,7 @@ InputDecoration flatFieldDecoration(BuildContext context, {String? label}) {
     labelText: label,
     labelStyle: labelStyle,
     floatingLabelStyle: labelStyle,
-    hintStyle: textTheme.bodyLarge?.copyWith(
-      color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
-    ),
+    hintStyle: textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
     errorStyle: textTheme.bodySmall?.copyWith(color: scheme.error),
     isDense: true,
     contentPadding: const EdgeInsets.only(

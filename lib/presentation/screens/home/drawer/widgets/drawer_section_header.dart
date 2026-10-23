@@ -15,7 +15,7 @@ class DrawerSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     final countStyle = context.theme.textTheme.labelSmall?.copyWith(
-      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+      color: scheme.onSurfaceVariant,
       fontWeight: FontWeight.w700,
       letterSpacing: 1.4,
     );

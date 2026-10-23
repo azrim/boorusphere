@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:cached_network_image/cached_network_image.dart'
@@ -53,7 +54,7 @@ class DownloadEntryView extends ConsumerWidget {
   ) {
     switch (progress.status) {
       case DownloadStatus.downloaded:
-        return isFileExists ? scheme.primary : scheme.onSurface.withAlpha(125);
+        return isFileExists ? scheme.primary : scheme.onSurfaceVariant;
       case DownloadStatus.canceled:
       case DownloadStatus.failed:
         return scheme.error;
@@ -105,12 +106,12 @@ class DownloadEntryView extends ConsumerWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Wrap(
+      subtitle: RowSubtitle(
+        Wrap(
           children: [
             SeparatedRow(
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: DesignTokens.spacingXs),
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (progress.status.isDownloading ||
@@ -147,7 +148,10 @@ class DownloadEntryView extends ConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(width: 18, child: Center(child: Text('•'))),
+                const SizedBox(
+                  width: DesignTokens.iconInline,
+                  child: Center(child: Text('•')),
+                ),
                 Text(servers.getById(entry.post.serverId).name),
               ],
             ),

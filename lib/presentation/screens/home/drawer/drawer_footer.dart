@@ -92,29 +92,36 @@ class DrawerFooter extends ConsumerWidget {
           child: InkWell(
             onTap: () => context.router.push(const AboutRoute()),
             borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DesignTokens.spacingSm,
-                vertical: DesignTokens.spacingXs,
+            child: ConstrainedBox(
+              // The readout is a link, so it gets a full-height tap target
+              // instead of the height of its 11 sp line.
+              constraints: const BoxConstraints(
+                minHeight: DesignTokens.controlHeightMin,
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: scheme.primary,
-                      shape: BoxShape.circle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingSm,
+                  vertical: DesignTokens.spacingXs,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: scheme.primary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: DesignTokens.spacingSm),
-                  Text(
-                    version == null ? 'Boorusphere' : 'Boorusphere $version',
-                    style: context.theme.textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                    const SizedBox(width: DesignTokens.spacingSm),
+                    Text(
+                      version == null ? 'Boorusphere' : 'Boorusphere $version',
+                      style: context.theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

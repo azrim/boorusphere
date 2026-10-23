@@ -364,23 +364,35 @@ class ParserLabel extends StatelessWidget {
       return Text(context.t.auto);
     }
 
+    final scheme = context.colorScheme;
+    final isJson = id.fileExt.toLowerCase() == 'json';
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(id.fileNameNoExt),
-        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            id.fileNameNoExt,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: DesignTokens.spacingXs),
         Card(
-          color: switch (id.fileExt.toLowerCase()) {
-            'json' => context.colorScheme.primary,
-            _ => context.colorScheme.tertiary,
-          },
+          margin: EdgeInsets.zero,
+          // The fill and its foreground come from the same scheme role, so the
+          // chip keeps its contrast when the accent palette changes.
+          color: isJson ? scheme.primary : scheme.tertiary,
           child: Padding(
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingXs,
+              vertical: 1,
+            ),
             child: Text(
               id.fileExt.toUpperCase(),
-              style: TextStyle(
-                color: context.colorScheme.onPrimary,
-                fontSize: 10,
+              style: context.theme.textTheme.labelSmall?.copyWith(
+                color: isJson ? scheme.onPrimary : scheme.onTertiary,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
