@@ -23,4 +23,15 @@ extension BuildContextExt on BuildContext {
   ColorScheme get colorScheme => theme.colorScheme;
   bool get isDarkThemed => brightness == Brightness.dark;
   bool get isLightThemed => brightness == Brightness.light;
+
+  /// Whether the platform asks for reduced motion ("Remove animations" on
+  /// Android, Reduce Motion on iOS). Transitions that only translate or scale
+  /// should collapse to an instant change; a short fade may stay, because it
+  /// still communicates the state change without moving the view.
+  bool get reducedMotion => MediaQuery.maybeDisableAnimationsOf(this) ?? false;
+
+  /// [duration], or zero when [reducedMotion] is set. Use it for movement;
+  /// keep a short explicit duration for opacity fades.
+  Duration motionDuration(Duration duration) =>
+      reducedMotion ? Duration.zero : duration;
 }

@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 
 enum SlidePageType { open, close, both, slideUp }
@@ -61,6 +62,10 @@ class SlidePageRoute<T> extends PageRoute<T> {
         child: child,
       ),
     );
+
+    // The slide is pure movement, so it collapses when the platform asks for
+    // reduced motion; the crossfade still carries the state change.
+    if (context.reducedMotion) return fade;
 
     Widget open(Widget child) {
       return SlideTransition(

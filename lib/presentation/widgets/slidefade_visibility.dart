@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/widgets.dart';
 
 enum HidingDirection { toStart, toTop, toEnd, toBottom }
@@ -31,13 +32,17 @@ class SlideFadeVisibility extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reduced motion drops the slide and keeps a short fade, so the chrome
+    // still announces that it appeared or went away without moving.
+    final reduced = context.reducedMotion;
+
     return RepaintBoundary(
       child: AnimatedSlide(
         curve: Curves.easeInCubic,
-        duration: duration,
+        duration: reduced ? Duration.zero : duration,
         offset: visible ? Offset.zero : endOffset,
         child: AnimatedOpacity(
-          duration: duration,
+          duration: reduced ? const Duration(milliseconds: 120) : duration,
           opacity: visible ? 1 : 0,
           child: IgnorePointer(ignoring: !visible, child: child),
         ),
