@@ -218,7 +218,7 @@ Server management reuses the same block language as the drawer and settings: a s
 
 - **Manage**: the saved servers are one block — favicon, name, and homepage per row, with edit / remove in the row menu — closed by an add row whose plus carries `primary`. Reset to default lives in the app bar menu
 - **Add and Edit are one page**: the add-server row, the drawer action, and the search-bar shortcut all open the same flow, which detects the engine by scanning or lets the user pick one manually
-- **Fields**: flat inputs with no fill and a hairline `outlineVariant` underline, with the label in small caps; a form reads as rows inside its block instead of slabs drawn on top of it
+- **Fields**: flat inputs with no fill and a hairline `outlineVariant` underline, with the label in small caps; a form reads as rows inside its block instead of slabs drawn on top of it. The label always sits above the field at the 11 sp label role, in every state, so it never takes the slot the value belongs to; an example belongs in the hint (`e.g. https://…`), never in the label
 - **Edit sections**: server (engine, homepage, alias, optional custom API address), server query (parser pickers plus the search / suggestion / post templates, with "From Preset" as the section action), and credentials
 - **Credentials**: optional user id and API key, attached to the search, suggestion, and post URLs, and sent along with the scan probe — some boorus answer nothing without them
 - **Save**: one filled button pinned under the form

@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/screens/server/server_add_page.dart';
 import 'package:boorusphere/presentation/screens/server/server_details.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
@@ -134,7 +135,8 @@ class _ServerEditor extends HookConsumerWidget {
                             enableIMEPersonalizedLearning: !imeIncognito,
                             decoration: flatFieldDecoration(
                               context,
-                              label: context.t.servers.homepageHint,
+                              label: context.t.servers.homepage,
+                              hint: context.t.servers.homepageHint,
                             ),
                             validator: validateAddress,
                           ),
@@ -154,7 +156,9 @@ class _ServerEditor extends HookConsumerWidget {
                             ),
                             value: useApiAddr.value,
                             title: Text(context.t.servers.useCustomApi),
-                            subtitle: Text(context.t.servers.useCustomApiDesc),
+                            subtitle: RowSubtitle(
+                              Text(context.t.servers.useCustomApiDesc),
+                            ),
                             onChanged: (isChecked) {
                               if (isChecked != null) {
                                 useApiAddr.value = isChecked;
@@ -162,13 +166,14 @@ class _ServerEditor extends HookConsumerWidget {
                             },
                           ),
                           if (useApiAddr.value) ...[
-                            const SizedBox(height: DesignTokens.spacingXs),
+                            const SizedBox(height: DesignTokens.spacingSm),
                             TextFormField(
                               controller: apiAddr,
                               enableIMEPersonalizedLearning: !imeIncognito,
                               decoration: flatFieldDecoration(
                                 context,
-                                label: context.t.servers.apiAddrHint,
+                                label: context.t.servers.apiAddr,
+                                hint: context.t.servers.apiAddrHint,
                               ),
                               validator: validateAddress,
                             ),
