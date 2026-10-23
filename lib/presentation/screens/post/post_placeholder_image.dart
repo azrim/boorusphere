@@ -37,6 +37,8 @@ class PostPlaceholderImage extends StatelessWidget {
       fit: BoxFit.contain,
       memCacheWidth: cacheWidth,
       memCacheHeight: cacheHeight,
+      maxWidthDiskCache: cacheWidth,
+      maxHeightDiskCache: cacheHeight,
       imageBuilder: shouldBlur
           ? (context, provider) => ImageFiltered(
               imageFilter: _blurFilter,

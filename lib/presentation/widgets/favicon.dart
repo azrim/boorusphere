@@ -39,6 +39,10 @@ class Favicon extends StatelessWidget {
                 imageUrl: faviconUrl,
                 width: iconSize ?? context.iconTheme.size,
                 height: iconSize ?? context.iconTheme.size,
+                // A favicon is a 32 px chip; never keep a larger decode for it.
+                memCacheWidth:
+                    ((iconSize ?? context.iconTheme.size ?? 24) * context.mqDpr)
+                        .round(),
                 fit: BoxFit.contain,
                 imageBuilder: shape == null
                     ? null

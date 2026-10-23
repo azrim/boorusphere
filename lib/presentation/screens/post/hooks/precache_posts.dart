@@ -37,9 +37,16 @@ class _PrecachePostsState extends HookState<_Precacher, _PrecachePostsHook> {
     if (!(post.content.isPhoto || post.content.isGif) || !context.mounted) {
       return;
     }
+    // The neighbour is drawn full-bleed in the viewer, so the viewport is the
+    // ceiling for its decode. Without it a 4000 px original decodes at source
+    // size and a handful of preloads evicts every visible page.
+    final size = MediaQuery.sizeOf(context);
+    final dpr = MediaQuery.devicePixelRatioOf(context);
     final image = CachedNetworkImageProvider(
       og ? post.originalFile : post.content.url,
       headers: hook.ref.read(postHeadersFactoryProvider(post)),
+      maxWidth: (size.width * dpr).round(),
+      maxHeight: (size.height * dpr).round(),
     );
     if (context.mounted) {
       await precacheImage(image, context);
