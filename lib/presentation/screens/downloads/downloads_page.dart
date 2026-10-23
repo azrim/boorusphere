@@ -115,14 +115,17 @@ class DownloadsPage extends HookConsumerWidget {
                               ? Icons.cloud_download
                               : Icons.filter_list_off,
                         ),
-                        margin: const EdgeInsets.only(top: 64),
+                        margin: const EdgeInsets.only(
+                          top: DesignTokens.spacingXl * 2,
+                        ),
                         children: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               downloadEntries.isEmpty
                                   ? context.t.downloads.placeholder
-                                  : context.t.downloads.placeholder,
+                                  : context.t.downloads.noMatch,
+                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: DesignTokens.spacingSm),
                             Text(
@@ -142,7 +145,10 @@ class DownloadsPage extends HookConsumerWidget {
               : ExpandableGroupListView<DownloadEntry, String>(
                   items: filteredEntries,
                   groupedBy: (item) => item.post.serverId,
-                  groupTitle: (id) => Text(servers.getById(id).name),
+                  groupTitle: (id) => Text(
+                    servers.getById(id).name,
+                    style: context.theme.textTheme.bodyLarge,
+                  ),
                   itemBuilder: (item) => DownloadEntryView(
                     entry: item,
                     groupByServer: groupByServer,

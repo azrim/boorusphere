@@ -2,6 +2,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
 import 'package:boorusphere/presentation/screens/about/changelog_page.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:flutter/material.dart';
@@ -20,12 +21,17 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
 
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        padding: const EdgeInsets.fromLTRB(
+          DesignTokens.spacingMd,
+          DesignTokens.spacingMd,
+          DesignTokens.spacingMd,
+          DesignTokens.spacingXl,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(DesignTokens.spacingMd),
               child: Column(
                 children: [
                   Text(
@@ -60,7 +66,7 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
                 children: [Center(child: RefreshProgressIndicator())],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DesignTokens.spacingMd),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 elevation: 0,

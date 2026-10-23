@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/screens/settings/widgets/settings_secti
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -41,7 +42,7 @@ class GestureSettingsPage extends ConsumerWidget {
                     ),
                     child: Text(
                       context.t.settingsPage.swipeModeDesc,
-                      style: context.theme.textTheme.bodyMedium?.copyWith(
+                      style: context.theme.textTheme.bodySmall?.copyWith(
                         color: context.colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -58,13 +59,17 @@ class GestureSettingsPage extends ConsumerWidget {
                         RadioListTile<SwipeMode>(
                           value: SwipeMode.horizontal,
                           title: Text(context.t.settingsPage.horizontal),
-                          subtitle: Text(context.t.settingsPage.horizontalDesc),
+                          subtitle: RowSubtitle(
+                            Text(context.t.settingsPage.horizontalDesc),
+                          ),
                           secondary: const Icon(Icons.swap_horiz),
                         ),
                         RadioListTile<SwipeMode>(
                           value: SwipeMode.vertical,
                           title: Text(context.t.settingsPage.vertical),
-                          subtitle: Text(context.t.settingsPage.verticalDesc),
+                          subtitle: RowSubtitle(
+                            Text(context.t.settingsPage.verticalDesc),
+                          ),
                           secondary: const Icon(Icons.swap_vert),
                         ),
                       ],
@@ -77,13 +82,17 @@ class GestureSettingsPage extends ConsumerWidget {
                 children: [
                   SwitchListTile(
                     title: Text(context.t.settingsPage.swipeToDetails),
-                    subtitle: Text(context.t.settingsPage.swipeToDetailsDesc),
+                    subtitle: RowSubtitle(
+                      Text(context.t.settingsPage.swipeToDetailsDesc),
+                    ),
                     value: gestureSettings.enableSwipeToDetails,
                     onChanged: (_) => gestureNotifier.toggleSwipeToDetails(),
                   ),
                   SwitchListTile(
                     title: Text(context.t.settingsPage.swipeToDismiss),
-                    subtitle: Text(context.t.settingsPage.swipeToDismissDesc),
+                    subtitle: RowSubtitle(
+                      Text(context.t.settingsPage.swipeToDismissDesc),
+                    ),
                     value: gestureSettings.enableSwipeToDismiss,
                     onChanged: (_) => gestureNotifier.toggleSwipeToDismiss(),
                   ),

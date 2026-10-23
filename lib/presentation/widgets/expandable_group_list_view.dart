@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class ExpandableGroupListView<T, E> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 48),
+      padding: const EdgeInsets.only(bottom: DesignTokens.controlHeightMin),
       itemCount: ungroup ? items.length : grouped.length,
       itemBuilder: (context, index) {
         if (!ungroup) {
@@ -37,7 +38,19 @@ class ExpandableGroupListView<T, E> extends StatelessWidget {
             child: ExpansionTile(
               title: groupTitle(group.key),
               initiallyExpanded: expanded,
+              // Reads as a row of the grouped surface instead of Material's
+              // default tile: same inset as every other row, and no divider or
+              // elevation around the header.
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingCardInset,
+              ),
+              childrenPadding: EdgeInsets.zero,
+              shape: const Border(),
+              collapsedShape: const Border(),
               textColor: context.colorScheme.onSurface,
+              collapsedTextColor: context.colorScheme.onSurface,
+              iconColor: context.colorScheme.onSurfaceVariant,
+              collapsedIconColor: context.colorScheme.onSurfaceVariant,
               children: group.value.map(itemBuilder).toList(),
             ),
           );

@@ -137,7 +137,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
   - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
   - **Bottom-left**: the most identifying tag name (`niten`, no category prefix) in a translucent pill tinted by category — artist orange, copyright purple, character green, general blue. The fill is the category color at low opacity with a hairline matching border, so the image shows through; falls back artist → copyright → character → general; hidden when the post has no tags
   - **Bottom-right**: original dimensions (`3840×2160`, hidden when unknown)
-  - **Sizing**: the overlay label type, icons and scrim heights scale with the tile width (full size at 130px, floored at 0.7×) so a denser grid shrinks the overlays instead of clipping the labels away
+  - **Sizing**: the overlay label type, icons and scrim heights scale with the tile width (full size at 130px, floored at 0.7×) so a denser grid shrinks the overlays instead of clipping the labels away. They ignore the system font scale: the tile is the unit, so a 2× font setting must not push the labels past the image
 - **Quick actions**: not on the card — a long-press opens the [Context Menu](#context-menu-post-actions)
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
 - **Accessibility**: each card is one screen-reader node — the overlays are folded into a single label (tag, rating, score), the tap and long-press actions ride on that node, and the selected state is announced rather than drawn as an unlabelled check

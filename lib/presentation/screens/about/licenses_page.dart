@@ -1,7 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -60,7 +62,9 @@ class LicensesPage extends ConsumerWidget {
                 final count = packageLicenses.length;
                 return ListTile(
                   title: Text(packageName),
-                  subtitle: Text(context.t.license.counted(n: count)),
+                  subtitle: RowSubtitle(
+                    Text(context.t.license.counted(n: count)),
+                  ),
                   onTap: () {
                     PackageLicenses.display(
                       context: context,
@@ -84,6 +88,14 @@ class LicensesPage extends ConsumerWidget {
   }
 }
 
+/// Height the package name needs under the title, scaled with the system font
+/// size so the line never clips inside the app bar.
+double _subtitleBarHeight(BuildContext context) {
+  final style = context.theme.textTheme.bodySmall;
+  final line = (style?.fontSize ?? 12) * (style?.height ?? 1.4);
+  return MediaQuery.textScalerOf(context).scale(line) + DesignTokens.spacingSm;
+}
+
 class PackageLicenses extends StatelessWidget {
   const PackageLicenses({
     super.key,
@@ -102,16 +114,23 @@ class PackageLicenses extends StatelessWidget {
         title: Text(context.t.license.title(n: count)),
         centerTitle: true,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(32),
+          preferredSize: Size.fromHeight(_subtitleBarHeight(context)),
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 18),
-            child: Text(context.t.license.package(name: packageName)),
+            padding: const EdgeInsets.only(bottom: DesignTokens.spacingSm),
+            child: Text(
+              context.t.license.package(name: packageName),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.theme.textTheme.bodySmall?.copyWith(
+                color: context.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         ),
       ),
       body: ListView.separated(
         itemCount: packageLicenses.length,
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(DesignTokens.spacingLg),
         itemBuilder: (context, index) {
           final license = packageLicenses.elementAt(index);
           return Column(
@@ -120,14 +139,14 @@ class PackageLicenses extends StatelessWidget {
               for (final p in license.paragraphs)
                 if (p.indent == LicenseParagraph.centeredIndent)
                   Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
+                    padding: const EdgeInsets.only(top: DesignTokens.spacingMd),
                     child: Text(p.text, textAlign: TextAlign.center),
                   )
                 else
                   Padding(
                     padding: EdgeInsetsDirectional.only(
-                      top: 8.0,
-                      start: 16.0 * p.indent,
+                      top: DesignTokens.spacingSm,
+                      start: DesignTokens.spacingMd * p.indent,
                     ),
                     child: Text(p.text),
                   ),
@@ -136,7 +155,9 @@ class PackageLicenses extends StatelessWidget {
         },
         separatorBuilder: (context, index) {
           return Container(
-            margin: const EdgeInsets.symmetric(vertical: 32),
+            margin: const EdgeInsets.symmetric(
+              vertical: DesignTokens.spacingXl,
+            ),
             child: SizedBox(
               width: 72,
               height: 1,

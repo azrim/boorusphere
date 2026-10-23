@@ -14,6 +14,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -79,10 +80,7 @@ class _HideMedia extends HookConsumerWidget {
 
     return SwitchListTile(
       title: Text(context.t.settings.hideMedia.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.hideMedia.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.hideMedia.desc)),
       value: sharedStorageHandle.isHidden,
       onChanged: (value) async {
         await sharedStorageHandle.hide(value);
@@ -138,10 +136,7 @@ class _DownloadQuality extends ConsumerWidget {
     );
     return ListTile(
       title: Text(context.t.downloads.quality),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(quality.describe(context)),
-      ),
+      subtitle: RowSubtitle(Text(quality.describe(context))),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         final result = await selectQuality(context, quality);
@@ -171,10 +166,7 @@ class _MidnightMode extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return SwitchListTile(
       title: Text(context.t.settings.midnightTheme.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.midnightTheme.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.midnightTheme.desc)),
       value: ref.watch(uiSettingStateProvider.select((ui) => ui.midnightMode)),
       onChanged: (value) {
         ref.read(uiSettingStateProvider.notifier).setMidnightMode(value);
@@ -192,7 +184,7 @@ class _ColorPalette extends ConsumerWidget {
 
     return ListTile(
       title: Text(context.t.settingsPage.colorPalette),
-      subtitle: Text(currentPalette.displayName),
+      subtitle: RowSubtitle(Text(currentPalette.displayName)),
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
         showModalBottomSheet(
@@ -238,10 +230,7 @@ class _UiBlur extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return SwitchListTile(
       title: Text(context.t.settings.uiBlur.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.uiBlur.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.uiBlur.desc)),
       value: ref.watch(uiSettingStateProvider.select((ui) => ui.blur)),
       onChanged: (value) {
         ref.read(uiSettingStateProvider.notifier).showBlur(value);
@@ -257,10 +246,7 @@ class _BlurContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return SwitchListTile(
       title: Text(context.t.settings.blurContent.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.blurContent.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.blurContent.desc)),
       value: ref.watch(
         contentSettingStateProvider.select((it) => it.blurExplicit),
       ),
@@ -286,10 +272,7 @@ class _BlurTimelineOnly extends ConsumerWidget {
 
     return SwitchListTile(
       title: Text(context.t.settings.blurTimelineOnly.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.blurTimelineOnly.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.blurTimelineOnly.desc)),
       value: contentSettings.blurTimelineOnly,
       onChanged: contentSettings.blurExplicit ? setBlurTimelineOnly : null,
     );
@@ -303,10 +286,7 @@ class _ImeIncognito extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return SwitchListTile(
       title: Text(context.t.settings.imeIncognito.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.imeIncognito.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.imeIncognito.desc)),
       value: ref.watch(uiSettingStateProvider.select((ui) => ui.imeIncognito)),
       onChanged: (value) {
         ref.read(uiSettingStateProvider.notifier).setImeIncognito(value);
@@ -322,10 +302,7 @@ class _Language extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(context.t.settings.lang.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: _CurrentLanguage(),
-      ),
+      subtitle: RowSubtitle(_CurrentLanguage()),
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
         context.router.push(const LanguageSettingsRoute());
@@ -345,9 +322,8 @@ class _GestureSettings extends ConsumerWidget {
 
     return ListTile(
       title: Text(context.t.settingsPage.gestureSettings),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(
+      subtitle: RowSubtitle(
+        Text(
           swipeMode == SwipeMode.horizontal
               ? context.t.settingsPage.swipeHorizontal
               : context.t.settingsPage.swipeVertical,
@@ -368,10 +344,7 @@ class _LoadOriginal extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return SwitchListTile(
       title: Text(context.t.settings.loadOg.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.loadOg.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.loadOg.desc)),
       value: ref.watch(
         contentSettingStateProvider.select((it) => it.loadOriginal),
       ),
@@ -391,10 +364,7 @@ class _PostLimit extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       title: Text(context.t.settings.postLimit.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.postLimit.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.postLimit.desc)),
       trailing: DropdownButton(
         menuMaxHeight: 178,
         value: ref.watch(
@@ -426,10 +396,7 @@ class _BackupRestore extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(context.t.dataBackup.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.dataBackup.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.dataBackup.desc)),
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
         context.router.push(const DataBackupRoute());
@@ -445,10 +412,7 @@ class _ClearCache extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
       title: Text(context.t.settings.clearCache.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-        child: Text(context.t.settings.clearCache.desc),
-      ),
+      subtitle: RowSubtitle(Text(context.t.settings.clearCache.desc)),
       onTap: () async {
         context.scaffoldMessenger.showSnackBar(
           SnackBar(

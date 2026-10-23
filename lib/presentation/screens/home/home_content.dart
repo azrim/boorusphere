@@ -332,7 +332,7 @@ class _SelectionActionBar extends StatelessWidget {
                     children: [
                       const Icon(Icons.download_outlined),
                       const SizedBox(width: DesignTokens.spacingMd),
-                      Text(context.t.batch.downloadFiles),
+                      Flexible(child: Text(context.t.batch.downloadFiles)),
                     ],
                   ),
                 ),
@@ -342,7 +342,7 @@ class _SelectionActionBar extends StatelessWidget {
                     children: [
                       const Icon(Icons.folder_zip_outlined),
                       const SizedBox(width: DesignTokens.spacingMd),
-                      Text(context.t.batch.asArchive),
+                      Flexible(child: Text(context.t.batch.asArchive)),
                     ],
                   ),
                 ),

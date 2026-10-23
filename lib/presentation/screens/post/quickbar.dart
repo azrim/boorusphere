@@ -46,27 +46,30 @@ class QuickBar extends StatelessWidget {
     final actionTitle = this.actionTitle;
     return ConstrainedBox(
       constraints: const BoxConstraints(
-        minWidth: 50,
-        minHeight: 50,
-        maxHeight: 50,
+        minWidth: DesignTokens.controlHeightMin,
+        minHeight: DesignTokens.controlHeightMin,
       ),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
           color: context.colorScheme.surface,
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingSm),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (title != null)
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingMd,
+                  vertical: DesignTokens.spacingSm,
+                ),
                 child: DefaultTextStyle(
-                  style: TextStyle(
-                    fontSize: context.theme.textTheme.bodySmall?.fontSize ?? 12,
-                    color: context.colorScheme.onSurface,
-                  ),
+                  style:
+                      context.theme.textTheme.bodySmall?.copyWith(
+                        color: context.colorScheme.onSurface,
+                      ) ??
+                      const TextStyle(),
                   child: title,
                 ),
               ),
@@ -84,7 +87,7 @@ class QuickBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
                   color: context.theme.colorScheme.surface,
                 ),
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(DesignTokens.spacingSm),
                 margin: const EdgeInsets.all(2),
                 child: SizedBox(
                   width: 21,
@@ -107,6 +110,6 @@ class QuickBar extends StatelessWidget {
   static double preferredBottomPosition(BuildContext context) {
     return context.mediaQuery.viewPadding.bottom +
         kBottomNavigationBarHeight +
-        24;
+        DesignTokens.spacingLg;
   }
 }

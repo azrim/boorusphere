@@ -3,6 +3,7 @@ import 'package:boorusphere/data/repository/changelog/entity/changelog_data.dart
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -34,14 +35,14 @@ class ChangelogPage extends ConsumerWidget {
         child: changelog.when(
           data: (data) => data.length == 1
               ? Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
                   child: ChangelogDataView(
                     changelog: data.first,
                     showVersion: false,
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
                   itemCount: data.length,
                   itemBuilder: (context, index) {
                     return ChangelogDataView(changelog: data[index]);
@@ -88,13 +89,20 @@ class ChangelogDataView extends StatelessWidget {
         .map((it) => '- ${it.replaceAll('\n', '\n  ')}')
         .join('\n');
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+      padding: const EdgeInsets.fromLTRB(
+        DesignTokens.spacingSm,
+        0,
+        DesignTokens.spacingSm,
+        DesignTokens.spacingMd,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showVersion)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                vertical: DesignTokens.spacingSm,
+              ),
               child: Text(
                 '${changelog.version}',
                 style: Theme.of(
@@ -103,7 +111,7 @@ class ChangelogDataView extends StatelessWidget {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(DesignTokens.spacingSm),
             child: MarkdownBody(
               data: textContent,
               styleSheet: MarkdownStyleSheet(

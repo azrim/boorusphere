@@ -54,13 +54,15 @@ class AboutPage extends ConsumerWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: DesignTokens.spacingCardInset,
+                ),
                 child: appVersions.maybeWhen(
                   data: (data) {
                     return Text(
                       context.t.version(version: '${data.current} - $kAppArch'),
-                      style: context.theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w400,
+                      style: context.theme.textTheme.labelSmall?.copyWith(
+                        color: context.colorScheme.onSurfaceVariant,
                       ),
                     );
                   },
@@ -149,7 +151,7 @@ class _Updater extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(DesignTokens.spacingSm),
           child: Text(context.t.updater.onNewVersion),
         ),
         // Inline changelog for the new version. Sourced via
@@ -185,7 +187,10 @@ class _InlineChangelog extends ConsumerWidget {
           return const SizedBox.shrink();
         }
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignTokens.spacingMd,
+            vertical: DesignTokens.spacingSm,
+          ),
           child: Card(
             margin: EdgeInsets.zero,
             elevation: 0,
@@ -193,7 +198,12 @@ class _InlineChangelog extends ConsumerWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 320),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+                padding: const EdgeInsets.fromLTRB(
+                  DesignTokens.spacingSm,
+                  DesignTokens.spacingCardInset,
+                  DesignTokens.spacingSm,
+                  DesignTokens.spacingCardInset,
+                ),
                 child: ChangelogDataView(
                   changelog: entries.first,
                   showVersion: false,
@@ -247,13 +257,12 @@ class _Downloader extends ConsumerWidget {
             child: Text(context.t.updater.download(version: version)),
           ),
         if (progress.status.isDownloading) ...[
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 48,
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text('${progress.progress}%', textAlign: TextAlign.end),
+          const SizedBox(width: DesignTokens.spacingMd),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingSm,
             ),
+            child: Text('${progress.progress}%', textAlign: TextAlign.end),
           ),
           Expanded(
             child: ClipRRect(

@@ -505,7 +505,14 @@ class _PostAppBar extends StatelessWidget {
                 ],
               ),
             ),
-            Text(subtitle, style: const TextStyle(fontSize: 11)),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.theme.textTheme.labelSmall?.copyWith(
+                color: Colors.white,
+              ),
+            ),
           ],
         ),
       ),

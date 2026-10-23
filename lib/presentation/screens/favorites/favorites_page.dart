@@ -112,15 +112,19 @@ class _Pager extends ConsumerWidget {
           child: SafeArea(
             child: TabBar(
               dividerColor: Colors.transparent,
-              labelStyle: const TextStyle(fontSize: 12),
-              padding: const EdgeInsets.all(8),
+              labelStyle: context.theme.textTheme.labelMedium,
+              padding: const EdgeInsets.all(DesignTokens.spacingSm),
               isScrollable: true,
-              labelPadding: const EdgeInsets.only(left: 8, right: 8),
+              labelPadding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingSm,
+              ),
               splashFactory: InkSparkle.splashFactory,
               tabs: [
                 for (final page in pages)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DesignTokens.spacingSm,
+                    ),
                     child: Tab(
                       text: page.key.name,
                       icon: Favicon(
@@ -133,7 +137,7 @@ class _Pager extends ConsumerWidget {
               ],
               indicator: BoxDecoration(
                 color: context.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
               ),
             ),
           ),

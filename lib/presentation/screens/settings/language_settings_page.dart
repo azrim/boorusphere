@@ -3,6 +3,7 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -25,8 +26,6 @@ class _Content extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const subtitlePadding = EdgeInsets.only(top: 8);
-
     updateLocale(AppLocale? locale) async {
       await ref.read(uiSettingStateProvider.notifier).setLocale(locale);
       Future.delayed(const Duration(milliseconds: 120), () {
@@ -46,10 +45,7 @@ class _Content extends ConsumerWidget {
           children: [
             ListTile(
               title: Text(context.t.auto),
-              subtitle: Padding(
-                padding: subtitlePadding,
-                child: Text(context.t.settings.lang.auto),
-              ),
+              subtitle: RowSubtitle(Text(context.t.settings.lang.auto)),
               selected: current == null,
               trailing: current == null
                   ? Icon(Icons.check, color: context.colorScheme.primary)
@@ -66,9 +62,7 @@ class _Content extends ConsumerWidget {
                 title: Text(name),
                 // The alias repeats the name for several locales; only show it
                 // when it adds a second spelling.
-                subtitle: alias == name
-                    ? null
-                    : Padding(padding: subtitlePadding, child: Text(alias)),
+                subtitle: alias == name ? null : RowSubtitle(Text(alias)),
                 selected: selected,
                 trailing: selected
                     ? Icon(Icons.check, color: context.colorScheme.primary)

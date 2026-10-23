@@ -132,7 +132,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                         // Drag handle
                         const SliverToBoxAdapter(
                           child: DragHandle(
-                            margin: EdgeInsets.symmetric(vertical: 12),
+                            margin: EdgeInsets.symmetric(
+                              vertical: DesignTokens.spacingCardInset,
+                            ),
                           ),
                         ),
                         // Content
@@ -264,11 +266,14 @@ class _TagActionBar extends ConsumerWidget {
           ),
           child: Row(
             children: [
-              Text(
-                context.t.batch.selected(n: selectedTags.length),
-                style: Theme.of(context).textTheme.bodySmall,
+              Expanded(
+                child: Text(
+                  context.t.batch.selected(n: selectedTags.length),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
-              const Spacer(),
               IconButton(
                 icon: const Icon(Icons.copy, size: 20),
                 tooltip: context.t.actionTag.copy,
@@ -436,7 +441,7 @@ class _InfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: DesignTokens.spacingSm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -446,11 +451,11 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: DesignTokens.spacingSm),
                 content,
               ],
             ),
@@ -537,10 +542,13 @@ class _TagsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          padding: const EdgeInsets.only(
+            top: DesignTokens.spacingSm,
+            bottom: DesignTokens.spacingXs,
+          ),
           child: Text(
             label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),

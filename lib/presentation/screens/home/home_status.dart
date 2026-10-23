@@ -110,8 +110,10 @@ class _ErrorStatus extends ConsumerWidget {
                   ),
                 ),
               ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: DesignTokens.spacingSm,
+              runSpacing: DesignTokens.spacingSm,
               children: [
                 if (data.option.searchRating == BooruRating.safe)
                   ElevatedButton(

@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
@@ -107,7 +108,7 @@ class _Content extends ConsumerWidget {
                 ...servers.map((it) {
                   return ListTile(
                     title: Text(it.name),
-                    subtitle: Text(it.homepage),
+                    subtitle: RowSubtitle(Text(it.homepage)),
                     leading: Favicon(url: it.homepage),
                     trailing: PopupMenuButton(
                       onSelected: (value) {
