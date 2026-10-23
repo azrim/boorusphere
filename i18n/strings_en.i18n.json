@@ -96,7 +96,11 @@
     "suggested": "Suggested at ${server_name}",
     "desc": "at ${server_name}",
     "empty": "No tags that matches '${query}'",
-    "http_error": "Cannot get result for '${query}' on ${server_name}"
+    "http_error": "Cannot get result for '${query}' on ${server_name}",
+    "history_empty": "No search history yet",
+    "history_no_match": "No matching history found",
+    "history_hint": "Your recent searches will appear here",
+    "history_hint_query": "Try a different search term"
   },
   "action_tag": {
     "copy": "Copy tag",
@@ -148,6 +152,7 @@
     "redownload": "Redownload",
     "detail": "Show detail",
     "placeholder": "Your downloaded files will appear here",
+    "no_match": "No downloads match this filter",
     "ungroup": "Ungroup",
     "group_by_server": "Group by server",
     "no_permission": "Cannot download a file; missing notification permission",
@@ -295,6 +300,9 @@
     "title": "Periodic Backups",
     "enable": "Enable periodic backups",
     "frequency": "Backup frequency",
+    "frequency_daily": "Every day",
+    "frequency_weekly": "Every week",
+    "frequency_monthly": "Every month",
     "deleteOld": "Delete old backups",
     "deleteOldDesc": "Automatically delete old backup files to save storage space",
     "maxBackups": "Max number of backups",

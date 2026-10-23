@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/settings/periodic_backup_state
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -110,7 +111,7 @@ class _Content extends HookConsumerWidget {
             ListTile(
               leading: const Icon(Icons.backup),
               title: Text(context.t.dataBackup.backup.title),
-              subtitle: Text(context.t.dataBackup.backup.desc),
+              subtitle: RowSubtitle(Text(context.t.dataBackup.backup.desc)),
               onTap: () async {
                 final result = await showDialog<BackupOption?>(
                   context: context,
@@ -128,7 +129,7 @@ class _Content extends HookConsumerWidget {
             ListTile(
               leading: const Icon(Icons.restore),
               title: Text(context.t.dataBackup.restore.title),
-              subtitle: Text(context.t.dataBackup.restore.desc),
+              subtitle: RowSubtitle(Text(context.t.dataBackup.restore.desc)),
               onTap: () {
                 ref
                     .read(dataBackupStateProvider.notifier)
@@ -152,7 +153,9 @@ class _Content extends HookConsumerWidget {
             ),
             SwitchListTile(
               title: Text(context.t.periodicBackup.deleteOld),
-              subtitle: Text(context.t.periodicBackup.deleteOldDesc),
+              subtitle: RowSubtitle(
+                Text(context.t.periodicBackup.deleteOldDesc),
+              ),
               value: periodicState.deleteOldBackups,
               onChanged: periodicState.enabled
                   ? periodicNotifier.setDeleteOldBackups
@@ -219,13 +222,18 @@ class _LoadingDialog extends HookConsumerWidget {
       child: Row(
         children: [
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(DesignTokens.spacingMd),
             child: CircularProgressIndicator(),
           ),
-          Text(
-            type == DataBackupType.backup
-                ? context.t.dataBackup.backup.loading
-                : context.t.dataBackup.restore.loading,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: DesignTokens.spacingMd),
+              child: Text(
+                type == DataBackupType.backup
+                    ? context.t.dataBackup.backup.loading
+                    : context.t.dataBackup.restore.loading,
+              ),
+            ),
           ),
         ],
       ),
@@ -240,6 +248,7 @@ class _BackupSelectionDialog extends HookWidget {
     return AlertDialog(
       title: Text(context.t.dataBackup.backup.title),
       icon: const Icon(Icons.backup),
+      scrollable: true,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -291,6 +300,14 @@ class _BackupSelectionDialog extends HookWidget {
   }
 }
 
+String frequencyLabel(BuildContext context, BackupFrequency frequency) {
+  return switch (frequency) {
+    BackupFrequency.daily => context.t.periodicBackup.frequencyDaily,
+    BackupFrequency.weekly => context.t.periodicBackup.frequencyWeekly,
+    BackupFrequency.monthly => context.t.periodicBackup.frequencyMonthly,
+  };
+}
+
 class _FrequencyTile extends StatelessWidget {
   const _FrequencyTile({
     required this.state,
@@ -307,7 +324,7 @@ class _FrequencyTile extends StatelessWidget {
     return ListTile(
       enabled: enabled,
       title: Text(context.t.periodicBackup.frequency),
-      subtitle: Text(state.frequency.label),
+      subtitle: RowSubtitle(Text(frequencyLabel(context, state.frequency))),
       onTap: enabled
           ? () async {
               final result = await showDialog<BackupFrequency>(
@@ -320,7 +337,7 @@ class _FrequencyTile extends StatelessWidget {
                       onChanged: (value) => Navigator.pop(dialogContext, value),
                       child: ListTile(
                         leading: Radio<BackupFrequency>(value: freq),
-                        title: Text(freq.label),
+                        title: Text(frequencyLabel(context, freq)),
                         onTap: () => Navigator.pop(dialogContext, freq),
                       ),
                     );
@@ -388,7 +405,7 @@ class _LastBackupInfo extends StatelessWidget {
     return ListTile(
       leading: const Icon(Icons.info_outline),
       title: Text(context.t.periodicBackup.lastBackup),
-      subtitle: Text(_formatLastBackup(context, lastBackupTime)),
+      subtitle: RowSubtitle(Text(_formatLastBackup(context, lastBackupTime))),
     );
   }
 }
@@ -523,7 +540,9 @@ class _OpenTelegramBotTile extends StatelessWidget {
     return ListTile(
       enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.openBot),
-      subtitle: Text(context.t.periodicBackup.telegram.openBotDesc),
+      subtitle: RowSubtitle(
+        Text(context.t.periodicBackup.telegram.openBotDesc),
+      ),
       trailing: const Icon(Icons.open_in_new),
       onTap: enabled
           ? () async {
@@ -603,7 +622,9 @@ class _BackupNowTile extends HookConsumerWidget {
     return ListTile(
       enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.backupNow),
-      subtitle: Text(context.t.periodicBackup.telegram.backupNowDesc),
+      subtitle: RowSubtitle(
+        Text(context.t.periodicBackup.telegram.backupNowDesc),
+      ),
       trailing: isLoading.value
           ? const SizedBox(
               width: 24,

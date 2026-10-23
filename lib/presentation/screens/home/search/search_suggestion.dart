@@ -90,9 +90,14 @@ class SearchSuggestion extends HookConsumerWidget {
                   }
                 },
                 child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                    vertical: DesignTokens.spacingSm,
+                  ),
                   child: DragHandle(
-                    margin: EdgeInsets.only(top: 4, bottom: 12),
+                    margin: EdgeInsets.only(
+                      top: DesignTokens.spacingXs,
+                      bottom: DesignTokens.spacingCardInset,
+                    ),
                   ),
                 ),
               ),
@@ -187,12 +192,18 @@ class _SearchHistoryHeader extends HookConsumerWidget {
       ),
       sliver: SliverToBoxAdapter(
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              query.trim().isEmpty
-                  ? context.t.recently
-                  : '${context.t.recently}: $query',
+            Expanded(
+              child: Text(
+                query.trim().isEmpty
+                    ? context.t.recently
+                    : '${context.t.recently}: $query',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
             TextButton(
               onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
@@ -244,8 +255,8 @@ class _SearchHistory extends HookConsumerWidget {
               const SizedBox(height: DesignTokens.spacingMd),
               Text(
                 query.trim().isEmpty
-                    ? 'No search history yet'
-                    : 'No matching history found',
+                    ? context.t.suggestion.historyEmpty
+                    : context.t.suggestion.historyNoMatch,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -254,12 +265,10 @@ class _SearchHistory extends HookConsumerWidget {
               const SizedBox(height: DesignTokens.spacingSm),
               Text(
                 query.trim().isEmpty
-                    ? 'Your recent searches will appear here'
-                    : 'Try a different search term',
+                    ? context.t.suggestion.historyHint
+                    : context.t.suggestion.historyHintQuery,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -469,7 +478,7 @@ class _ErrorSuggestion extends StatelessWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(DesignTokens.spacingMd),
       sliver: SliverToBoxAdapter(child: ErrorInfo(error: msg)),
     );
   }
@@ -517,7 +526,7 @@ class _SuggestionEntryTile extends StatelessWidget {
               size: 20,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: DesignTokens.spacingCardInset),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,7 +534,7 @@ class _SuggestionEntryTile extends StatelessWidget {
                 children: [
                   Text(
                     data.text,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    style: Theme.of(context).textTheme.bodyLarge,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -548,17 +557,22 @@ class _SuggestionEntryTile extends StatelessWidget {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: DesignTokens.spacingSm),
             ],
-            InkWell(
-              onTap: () => onAdded.call(data.text),
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Icon(
-                  Icons.add,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.primary,
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: DesignTokens.controlHeightMin,
+                minHeight: DesignTokens.controlHeightMin,
+              ),
+              child: InkWell(
+                onTap: () => onAdded.call(data.text),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
+                child: Center(
+                  child: Icon(
+                    Icons.add,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
             ),

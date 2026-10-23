@@ -11,17 +11,6 @@ enum BackupFrequency {
   weekly,
   monthly;
 
-  String get label {
-    switch (this) {
-      case BackupFrequency.daily:
-        return 'Every day';
-      case BackupFrequency.weekly:
-        return 'Every week';
-      case BackupFrequency.monthly:
-        return 'Every month';
-    }
-  }
-
   Duration get duration {
     switch (this) {
       case BackupFrequency.daily:
