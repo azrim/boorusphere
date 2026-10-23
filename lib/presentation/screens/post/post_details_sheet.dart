@@ -569,14 +569,12 @@ class _TagsWrap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+      spacing: DesignTokens.spacingSm,
+      runSpacing: DesignTokens.spacingSm,
       children: tags.map((tag) {
         final isSelected = selectedTags.contains(tag);
         return FilterChip(
           label: Text(tag),
-          labelPadding: EdgeInsets.zero,
-          visualDensity: VisualDensity.compact,
           selected: isSelected,
           showCheckmark: false,
           onSelected: (_) => onTagPressed(tag),

@@ -74,7 +74,6 @@ class QuickBar extends StatelessWidget {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   textStyle: context.theme.textTheme.bodySmall,
-                  visualDensity: VisualDensity.compact,
                 ),
                 onPressed: onPressed,
                 child: actionTitle,

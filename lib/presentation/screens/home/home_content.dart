@@ -434,7 +434,6 @@ class _PaginationPill extends StatelessWidget {
               onPressed: hasPrev && !loading ? onPrev : null,
               tooltip: context.t.pagination.previous,
               iconSize: 20,
-              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.chevron_left),
             ),
             ConstrainedBox(
@@ -455,7 +454,6 @@ class _PaginationPill extends StatelessWidget {
               onPressed: hasNext && !loading ? onNext : null,
               tooltip: context.t.pagination.next,
               iconSize: 20,
-              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.chevron_right),
             ),
           ],
