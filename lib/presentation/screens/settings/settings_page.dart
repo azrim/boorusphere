@@ -28,6 +28,9 @@ class SettingsPage extends StatelessWidget {
       appBar: AppBar(title: Text(context.t.settings.title)),
       body: SafeArea(
         child: ListView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignTokens.spacingMd,
+          ),
           children: [
             SettingsSection(
               title: context.t.downloads.title,

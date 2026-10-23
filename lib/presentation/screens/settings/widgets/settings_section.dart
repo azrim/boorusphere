@@ -1,12 +1,42 @@
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/utils/extensions/strings.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
 
-/// Uppercase section label followed by its rows. Settings pages reuse the
-/// drawer's section label language so navigation and settings read as one
-/// system, and the label is exposed as a heading so screen readers can jump
-/// between sections.
+/// Rounded block of setting rows without a label, for rows that name
+/// themselves.
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionSurface(
+      children: [
+        ListTileTheme(
+          data: ListTileThemeData(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingCardInset,
+            ),
+            minVerticalPadding: DesignTokens.spacingSm,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Section label followed by its grouped rows.
 class SettingsSection extends StatelessWidget {
   const SettingsSection({
     super.key,
@@ -20,28 +50,21 @@ class SettingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
-            DesignTokens.spacingMd,
+            DesignTokens.spacingXs,
             DesignTokens.spacingLg,
-            DesignTokens.spacingMd,
+            DesignTokens.spacingXs,
             DesignTokens.spacingSm,
           ),
-          child: Semantics(
-            header: true,
-            container: true,
-            child: Text(
-              title.toUpperLocale(context),
-              style: context.theme.textTheme.titleSmall?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
-                letterSpacing: 0.8,
-              ),
-            ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: SectionLabel(title),
           ),
         ),
-        ...children,
+        if (children.isNotEmpty) SettingsGroup(children: children),
       ],
     );
   }
@@ -83,7 +106,9 @@ class SettingsSliderTile extends StatelessWidget {
     final helper = this.helper;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingCardInset,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

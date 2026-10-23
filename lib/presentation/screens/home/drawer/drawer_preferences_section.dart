@@ -2,11 +2,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
-import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_group.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_header.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -21,7 +21,7 @@ class DrawerPreferencesSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DrawerSectionHeader(context.t.sidebar.preferences),
-        DrawerSectionGroup(
+        SectionSurface(
           children: [
             DrawerTile(
               icon: Icons.settings_outlined,

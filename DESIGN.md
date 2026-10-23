@@ -182,10 +182,11 @@ The one piece of chrome every timeline screen carries. It is a surface, not glas
 - **Controls**: icon buttons with tooltips, 48 dp targets
 
 ### Settings
-Every settings screen (Settings, Gesture Settings, Language, Data Backup) uses one row system: flat `ListTile` rows on the page background, no cards, no shadows, no dividers.
+Every settings screen (Settings, Gesture Settings, Language, Data Backup) uses one row system: rows are grouped into rounded section surfaces, the same block language as the drawer.
 
-- **Section label**: uppercase, `onSurfaceVariant`, `titleSmall` with 0.8 letter spacing — the same label language as the drawer — and exposed to screen readers as a heading. The label owns its own line; it never merges into the row below it
-- **Rows**: title plus optional subtitle, 8 dp between them; switches, dropdowns and sliders sit on the trailing edge and carry their own state
+- **Section label**: small caps, `onSurfaceVariant`, `labelSmall` bold with 1.4 letter spacing and a hairline underline that hugs the text, exposed to screen readers as a heading. The label owns its own line; it never merges into the row below it
+- **Section surface**: rows of one section sit inside a rounded `surface` block with a hairline `outlineVariant` border; painting `surface` keeps it pure black in midnight. The page keeps 16 dp side padding and each block owns the only border
+- **Rows**: flat rows inside the block, 12 dp inset, no dividers, no shadows; title plus optional subtitle, 8 dp between them; switches, dropdowns and sliders sit on the trailing edge and carry their own state
 - **Trailing affordance**: a `chevron_right` marks every row that opens a page, sheet, or dialog. Rows that act immediately (clear cache) and rows with an inline control (switch, dropdown, slider) carry none
 - **Sliders**: label on the left, current value on the right, slider across the full row width underneath, optional helper line below. Never a fixed-width slider in the trailing slot — it squeezes the label into a column
 - **Selection**: lists of options (language, color palette, swipe mode) mark the active one with `selected` and a trailing check, so the state is visible and announced

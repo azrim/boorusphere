@@ -11,6 +11,9 @@ class DesignTokens {
   static const double spacingLg = 24.0;
   static const double spacingXl = 32.0;
 
+  // Inset for a row that sits inside a grouped surface.
+  static const double spacingCardInset = 12.0;
+
   // Border Radius
   static const double radiusSm = 4.0;
   static const double radiusMd = 8.0;

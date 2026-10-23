@@ -5,10 +5,10 @@ import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_badge.dart';
-import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_group.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_header.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -27,7 +27,7 @@ class DrawerLibrarySection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DrawerSectionHeader(context.t.sidebar.library),
-        DrawerSectionGroup(
+        SectionSurface(
           children: [
             DrawerTile(
               icon: Icons.cloud_download_outlined,

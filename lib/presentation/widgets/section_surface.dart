@@ -2,12 +2,12 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 
-/// Rounded surface that groups the rows of one drawer section.
+/// Rounded surface that groups related rows into one block.
 ///
-/// Rows inside it stay flat; the container carries the only border so the
-/// section reads as one block instead of a stack of separate cards.
-class DrawerSectionGroup extends StatelessWidget {
-  const DrawerSectionGroup({super.key, required this.children});
+/// The container owns the only border and paints the page `surface`, so the
+/// block stays pure black in midnight; rows inside stay flat and transparent.
+class SectionSurface extends StatelessWidget {
+  const SectionSurface({super.key, required this.children});
 
   final List<Widget> children;
 
@@ -15,11 +15,12 @@ class DrawerSectionGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surface,
+    return Material(
+      color: scheme.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
-        border: Border.all(color: scheme.outlineVariant),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(DesignTokens.spacingXs),

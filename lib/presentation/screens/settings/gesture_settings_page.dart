@@ -25,15 +25,18 @@ class GestureSettingsPage extends ConsumerWidget {
       body: StyledOverlayRegion(
         child: SafeArea(
           child: ListView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingMd,
+            ),
             children: [
               SettingsSection(
                 title: context.t.settingsPage.swipeMode,
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingMd,
+                      DesignTokens.spacingCardInset,
                       0,
-                      DesignTokens.spacingMd,
+                      DesignTokens.spacingCardInset,
                       DesignTokens.spacingSm,
                     ),
                     child: Text(
@@ -107,10 +110,10 @@ class GestureSettingsPage extends ConsumerWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingMd,
+                      DesignTokens.spacingCardInset,
                       DesignTokens.spacingSm,
+                      DesignTokens.spacingCardInset,
                       DesignTokens.spacingMd,
-                      DesignTokens.spacingLg,
                     ),
                     child: Align(
                       alignment: Alignment.centerLeft,

@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/provider/data_backup/entity/backup_resu
 import 'package:boorusphere/presentation/provider/data_backup/telegram_backup_service.dart';
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -98,89 +99,104 @@ class _Content extends HookConsumerWidget {
     });
 
     return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd),
       children: [
+        const SizedBox(height: DesignTokens.spacingMd),
         // The backup and restore rows name themselves, so they need no
         // section label of their own.
-        ListTile(
-          leading: const Icon(Icons.backup),
-          title: Text(context.t.dataBackup.backup.title),
-          subtitle: Text(context.t.dataBackup.backup.desc),
-          onTap: () async {
-            final result = await showDialog<BackupOption?>(
-              context: context,
-              builder: (context) => _BackupSelectionDialog(),
-            );
-            if (result != null) {
-              unawaited(
+        SettingsGroup(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.backup),
+              title: Text(context.t.dataBackup.backup.title),
+              subtitle: Text(context.t.dataBackup.backup.desc),
+              onTap: () async {
+                final result = await showDialog<BackupOption?>(
+                  context: context,
+                  builder: (context) => _BackupSelectionDialog(),
+                );
+                if (result != null) {
+                  unawaited(
+                    ref
+                        .read(dataBackupStateProvider.notifier)
+                        .backup(option: result),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.restore),
+              title: Text(context.t.dataBackup.restore.title),
+              subtitle: Text(context.t.dataBackup.restore.desc),
+              onTap: () {
                 ref
                     .read(dataBackupStateProvider.notifier)
-                    .backup(option: result),
-              );
-            }
-          },
+                    .restore(onConfirm: () => _warningDialog(context));
+              },
+            ),
+          ],
         ),
-        ListTile(
-          leading: const Icon(Icons.restore),
-          title: Text(context.t.dataBackup.restore.title),
-          subtitle: Text(context.t.dataBackup.restore.desc),
-          onTap: () {
-            ref
-                .read(dataBackupStateProvider.notifier)
-                .restore(onConfirm: () => _warningDialog(context));
-          },
+        SettingsSection(
+          title: context.t.periodicBackup.title,
+          children: [
+            SwitchListTile(
+              title: Text(context.t.periodicBackup.enable),
+              value: periodicState.enabled,
+              onChanged: periodicNotifier.setEnabled,
+            ),
+            _FrequencyTile(
+              state: periodicState,
+              notifier: periodicNotifier,
+              enabled: periodicState.enabled,
+            ),
+            SwitchListTile(
+              title: Text(context.t.periodicBackup.deleteOld),
+              subtitle: Text(context.t.periodicBackup.deleteOldDesc),
+              value: periodicState.deleteOldBackups,
+              onChanged: periodicState.enabled
+                  ? periodicNotifier.setDeleteOldBackups
+                  : null,
+            ),
+            _MaxBackupSlider(
+              state: periodicState,
+              notifier: periodicNotifier,
+              enabled: periodicState.enabled && periodicState.deleteOldBackups,
+            ),
+            _LastBackupInfo(lastBackupTime: periodicState.lastBackupTime),
+          ],
         ),
-        SettingsSection(title: context.t.periodicBackup.title),
-        SwitchListTile(
-          title: Text(context.t.periodicBackup.enable),
-          value: periodicState.enabled,
-          onChanged: periodicNotifier.setEnabled,
+        SettingsSection(
+          title: context.t.periodicBackup.telegram.title,
+          children: [
+            SwitchListTile(
+              title: Text(context.t.periodicBackup.telegram.enable),
+              value: periodicState.telegramEnabled,
+              onChanged: periodicState.enabled
+                  ? periodicNotifier.setTelegramEnabled
+                  : null,
+            ),
+            _TelegramChatIdTile(
+              state: periodicState,
+              notifier: periodicNotifier,
+              enabled: periodicState.enabled && periodicState.telegramEnabled,
+            ),
+            _TelegramBotTokenTile(
+              state: periodicState,
+              notifier: periodicNotifier,
+              enabled: periodicState.enabled && periodicState.telegramEnabled,
+            ),
+            _OpenTelegramBotTile(
+              enabled: periodicState.enabled && periodicState.telegramEnabled,
+            ),
+            _TestConnectionTile(
+              enabled: periodicState.enabled && periodicState.telegramEnabled,
+            ),
+            _BackupNowTile(
+              enabled: periodicState.enabled && periodicState.telegramEnabled,
+            ),
+          ],
         ),
-        _FrequencyTile(
-          state: periodicState,
-          notifier: periodicNotifier,
-          enabled: periodicState.enabled,
-        ),
-        SwitchListTile(
-          title: Text(context.t.periodicBackup.deleteOld),
-          subtitle: Text(context.t.periodicBackup.deleteOldDesc),
-          value: periodicState.deleteOldBackups,
-          onChanged: periodicState.enabled
-              ? periodicNotifier.setDeleteOldBackups
-              : null,
-        ),
-        _MaxBackupSlider(
-          state: periodicState,
-          notifier: periodicNotifier,
-          enabled: periodicState.enabled && periodicState.deleteOldBackups,
-        ),
-        _LastBackupInfo(lastBackupTime: periodicState.lastBackupTime),
-        SettingsSection(title: context.t.periodicBackup.telegram.title),
-        SwitchListTile(
-          title: Text(context.t.periodicBackup.telegram.enable),
-          value: periodicState.telegramEnabled,
-          onChanged: periodicState.enabled
-              ? periodicNotifier.setTelegramEnabled
-              : null,
-        ),
-        _TelegramChatIdTile(
-          state: periodicState,
-          notifier: periodicNotifier,
-          enabled: periodicState.enabled && periodicState.telegramEnabled,
-        ),
-        _TelegramBotTokenTile(
-          state: periodicState,
-          notifier: periodicNotifier,
-          enabled: periodicState.enabled && periodicState.telegramEnabled,
-        ),
-        _OpenTelegramBotTile(
-          enabled: periodicState.enabled && periodicState.telegramEnabled,
-        ),
-        _TestConnectionTile(
-          enabled: periodicState.enabled && periodicState.telegramEnabled,
-        ),
-        _BackupNowTile(
-          enabled: periodicState.enabled && periodicState.telegramEnabled,
-        ),
+        const SizedBox(height: DesignTokens.spacingLg),
       ],
     );
   }
