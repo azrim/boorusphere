@@ -75,3 +75,6 @@ CODEBUDDY.md
 
 # Superdesign design context (repo-local cache)
 .superdesign/
+
+# Impeccable critique snapshots (repo-local cache)
+.impeccable/
