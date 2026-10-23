@@ -37,6 +37,17 @@ const double _kCardMaxWidth = 320;
 const double _kBackdropBlur = 20;
 const double _kBackdropOpacity = 0.6;
 
+/// The backdrop blur is quantised into this many steps. The engine caches a
+/// blurred backdrop per filter, so a continuously changing sigma re-blurs the
+/// whole screen on every frame of the entrance; six steps still read as a
+/// progressive blur and cost six rasterisations instead of ~18.
+const int _kBackdropBlurSteps = 6;
+
+double _steppedBackdropBlur(double t) {
+  final step = (t * _kBackdropBlurSteps).round() / _kBackdropBlurSteps;
+  return _kBackdropBlur * step.clamp(0.0, 1.0);
+}
+
 /// Shows the post context menu as a floating glass card over a blurred,
 /// tap-to-dismiss backdrop, resolving to the tapped action (or `null` when
 /// dismissed).
@@ -52,7 +63,7 @@ Future<PostContextMenuAction?> showPostContextMenu(
     barrierDismissible: false,
     barrierColor: Colors.transparent,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-    transitionDuration: DesignTokens.durationNormal,
+    transitionDuration: context.motionDuration(DesignTokens.durationNormal),
     pageBuilder: (context, animation, secondaryAnimation) {
       return _ContextMenuView(animation: animation, groups: groups);
     },
@@ -130,18 +141,22 @@ class _MenuBackdrop extends StatelessWidget {
       animation: animation,
       builder: (context, child) {
         final t = _clamp01(animation.value);
+        final veil = ColoredBox(
+          color: scrim.withValues(alpha: _kBackdropOpacity * t),
+        );
+        final blur = _steppedBackdropBlur(t);
+
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: _kBackdropBlur * t,
-              sigmaY: _kBackdropBlur * t,
-            ),
-            child: ColoredBox(
-              color: scrim.withValues(alpha: _kBackdropOpacity * t),
-            ),
-          ),
+          // Skip the blur pass entirely at the endpoints, where it would be a
+          // no-op layer that still costs a full-screen rasterisation.
+          child: blur <= 0
+              ? veil
+              : BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                  child: veil,
+                ),
         );
       },
     );
