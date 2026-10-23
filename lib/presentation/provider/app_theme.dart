@@ -94,9 +94,13 @@ ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
 ThemeData _createThemeDataMidnight(ColorScheme? scheme) {
   final origin = _createThemeData(scheme, Brightness.dark);
   return origin.copyWith(
+    // The midnight rule is pure black with no tinting, so the app bar must not
+    // pick up the surface tint when content scrolls under it.
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.black,
       foregroundColor: origin.colorScheme.onSurface,
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
     ),
     primaryColor: Colors.black,
     canvasColor: Colors.black,
