@@ -154,17 +154,7 @@ class DownloadEntryView extends ConsumerWidget {
           ],
         ),
       ),
-      leading: ClipRRect(
-        borderRadius: const BorderRadius.all(
-          Radius.circular(DesignTokens.radiusSm),
-        ),
-        child: CachedNetworkImage(
-          imageUrl: entry.post.previewFile,
-          httpHeaders: headers,
-          width: 42,
-          fit: BoxFit.cover,
-        ),
-      ),
+      leading: DownloadImagePreview(entry: entry, headers: headers),
       trailing: _EntryPopupMenu(
         entry: entry,
         progress: progress,
@@ -185,11 +175,19 @@ class DownloadImagePreview extends HookWidget {
     required this.headers,
   });
 
+  /// Display width of the thumbnail, in dp.
+  static const double size = 42;
+
   final DownloadEntry entry;
   final Map<String, String>? headers;
 
   @override
   Widget build(BuildContext context) {
+    // Decode at the size the thumbnail is drawn at: a booru preview is
+    // several megapixels, and a row that keeps the full decode in memory
+    // costs megabytes for a 42 dp square.
+    final cacheWidth = (size * context.mqDpr).round();
+
     return ClipRRect(
       borderRadius: const BorderRadius.all(
         Radius.circular(DesignTokens.radiusSm),
@@ -197,7 +195,9 @@ class DownloadImagePreview extends HookWidget {
       child: CachedNetworkImage(
         imageUrl: entry.post.previewFile,
         httpHeaders: headers,
-        width: 42,
+        width: size,
+        memCacheWidth: cacheWidth,
+        maxWidthDiskCache: cacheWidth,
         fit: BoxFit.cover,
       ),
     );
