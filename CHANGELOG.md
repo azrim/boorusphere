@@ -1,4 +1,8 @@
 ## 2.0.24
+* **Fix**: rebuild Gesture Settings on the shared settings row system, so the swipe threshold label no longer breaks mid-word and the page stops using a second visual language
+* **Fix**: show which language, color palette, and swipe mode are active
+* **Fix**: keep the midnight app bar pure black when content scrolls under it
+* **Refactor**: share one section and slider widget across the settings pages, and mark section labels as headings for screen readers
 * **Fix**: show an indeterminate spinner in the post viewer while the download size is unknown, instead of a pill stuck at 0%
 * **Fix**: give the bottom search bar 48 dp touch targets and accessible names for its icon buttons, so TalkBack can announce what they do
 * **Fix**: paint the bottom bar as an opaque surface so the search hint no longer sits on top of scrolling thumbnails

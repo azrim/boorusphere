@@ -179,6 +179,16 @@ The one piece of chrome every timeline screen carries. It is a surface, not glas
 - **Download**: opens a menu choosing between individual files and a ZIP archive, so no hidden mode is carried between actions
 - **Controls**: icon buttons with tooltips, 48 dp targets
 
+### Settings
+Every settings screen (Settings, Gesture Settings, Language, Data Backup) uses one row system: flat `ListTile` rows on the page background, no cards, no shadows, no dividers.
+
+- **Section label**: uppercase, `onSurfaceVariant`, `titleSmall` with 0.8 letter spacing — the same label language as the drawer — and exposed to screen readers as a heading. The label owns its own line; it never merges into the row below it
+- **Rows**: title plus optional subtitle, 8 dp between them; switches, dropdowns and sliders sit on the trailing edge and carry their own state
+- **Trailing affordance**: a `chevron_right` marks every row that opens a page, sheet, or dialog. Rows that act immediately (clear cache) and rows with an inline control (switch, dropdown, slider) carry none
+- **Sliders**: label on the left, current value on the right, slider across the full row width underneath, optional helper line below. Never a fixed-width slider in the trailing slot — it squeezes the label into a column
+- **Selection**: lists of options (language, color palette, swipe mode) mark the active one with `selected` and a trailing check, so the state is visible and announced
+- **Sub-pages**: share the section and row widgets with the main page; a settings sub-page that invents its own card layout is a regression
+
 ### Download Entry
 - **Layout**: Horizontal card with thumbnail, progress bar, status icon, actions
 - **Progress**: Linear progress indicator with percentage label
