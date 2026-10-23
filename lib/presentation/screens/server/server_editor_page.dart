@@ -5,29 +5,27 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/server/server_add_page.dart';
 import 'package:boorusphere/presentation/screens/server/server_details.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/widgets/filled_field.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 @RoutePage()
 class ServerEditorPage extends StatelessWidget {
-  const ServerEditorPage({super.key, this.server = Server.empty});
+  const ServerEditorPage({super.key, required this.server});
 
   final Server server;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          server != Server.empty
-              ? context.t.servers.edit(name: server.name)
-              : context.t.servers.add,
-        ),
-      ),
+      appBar: AppBar(title: Text(context.t.servers.edit(name: server.name))),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.only(bottom: DesignTokens.spacingLg),
           child: _ServerEditor(server: server),
         ),
       ),
@@ -36,11 +34,9 @@ class ServerEditorPage extends StatelessWidget {
 }
 
 class _ServerEditor extends HookConsumerWidget {
-  const _ServerEditor({this._server = Server.empty});
+  const _ServerEditor({required this.server});
 
-  final Server _server;
-
-  bool get isEditing => _server != Server.empty;
+  final Server server;
 
   BooruEngine? _detectEngine(Server server) {
     for (final engine in booruEngines) {
@@ -58,15 +54,16 @@ class _ServerEditor extends HookConsumerWidget {
     final imeIncognito = ref.watch(
       uiSettingStateProvider.select((it) => it.imeIncognito),
     );
-    final server = useState(_server);
-    final useApiAddr = useState(_server.apiAddr.isNotEmpty);
-    final homepage = useTextEditingController(
-      text: isEditing ? _server.homepage : 'https://',
+    final current = useState(server);
+    final useApiAddr = useState(server.apiAddr.isNotEmpty);
+    final homepage = useTextEditingController(text: server.homepage);
+    final alias = useTextEditingController(
+      text: server.alias.isEmpty ? server.id : server.alias,
     );
     final apiAddr = useTextEditingController(
-      text: _server.apiAddr.isEmpty ? 'https://' : _server.apiAddr,
+      text: server.apiAddr.isEmpty ? 'https://' : server.apiAddr,
     );
-    final selectedEngine = useState<BooruEngine?>(_detectEngine(_server));
+    final selectedEngine = useState<BooruEngine?>(_detectEngine(server));
 
     validateAddress(String? value) {
       if (value?.contains(RegExp(r'https?://.+\..+')) == false) {
@@ -79,7 +76,7 @@ class _ServerEditor extends HookConsumerWidget {
     void updateServerFromEngine(BooruEngine? engine) {
       if (engine == null) return;
 
-      server.value = server.value.copyWith(
+      current.value = current.value.copyWith(
         searchUrl: engine.searchQuery,
         tagSuggestionUrl: engine.suggestionQuery,
         postUrl: engine.postUrl,
@@ -89,97 +86,114 @@ class _ServerEditor extends HookConsumerWidget {
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Form(
-          key: formKey,
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignTokens.spacingMd,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: DropdownButtonFormField<BooruEngine>(
-                  initialValue: selectedEngine.value,
-                  decoration: InputDecoration(
-                    labelText: context.t.servers.engineType,
-                    border: const UnderlineInputBorder(),
-                  ),
-                  items: booruEngines.map((engine) {
-                    return DropdownMenuItem(
-                      value: engine,
-                      child: Text(engine.name),
-                    );
-                  }).toList(),
-                  onChanged: (engine) {
-                    selectedEngine.value = engine;
-                    updateServerFromEngine(engine);
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return context.t.servers.engineRequired;
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16),
-                child: TextFormField(
-                  controller: homepage,
-                  enableIMEPersonalizedLearning: !imeIncognito,
-                  decoration: InputDecoration(
-                    border: const UnderlineInputBorder(),
-                    labelText: context.t.servers.homepageHint,
-                  ),
-                  validator: validateAddress,
-                ),
-              ),
-              CheckboxListTile(
-                value: useApiAddr.value,
-                title: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(context.t.servers.useCustomApi),
-                ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(context.t.servers.useCustomApiDesc),
-                ),
-                onChanged: (isChecked) {
-                  if (isChecked != null) {
-                    useApiAddr.value = isChecked;
-                  }
-                },
-              ),
-              if (useApiAddr.value)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: TextFormField(
-                    controller: apiAddr,
-                    enableIMEPersonalizedLearning: !imeIncognito,
-                    decoration: InputDecoration(
-                      border: const UnderlineInputBorder(),
-                      labelText: context.t.servers.apiAddrHint,
+              SectionHeading(context.t.servers.title),
+              SectionSurface(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          DropdownButtonFormField<BooruEngine>(
+                            initialValue: selectedEngine.value,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.servers.engineType,
+                            ),
+                            items: booruEngines.map((engine) {
+                              return DropdownMenuItem(
+                                value: engine,
+                                child: Text(engine.name),
+                              );
+                            }).toList(),
+                            onChanged: (engine) {
+                              selectedEngine.value = engine;
+                              updateServerFromEngine(engine);
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return context.t.servers.engineRequired;
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          TextFormField(
+                            controller: homepage,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.servers.homepageHint,
+                            ),
+                            validator: validateAddress,
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          TextFormField(
+                            controller: alias,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.servers.alias,
+                            ),
+                          ),
+                          const SizedBox(height: DesignTokens.spacingXs),
+                          CheckboxListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: DesignTokens.spacingCardInset,
+                            ),
+                            value: useApiAddr.value,
+                            title: Text(context.t.servers.useCustomApi),
+                            subtitle: Text(context.t.servers.useCustomApiDesc),
+                            onChanged: (isChecked) {
+                              if (isChecked != null) {
+                                useApiAddr.value = isChecked;
+                              }
+                            },
+                          ),
+                          if (useApiAddr.value) ...[
+                            const SizedBox(height: DesignTokens.spacingXs),
+                            TextFormField(
+                              controller: apiAddr,
+                              enableIMEPersonalizedLearning: !imeIncognito,
+                              decoration: filledFieldDecoration(
+                                context,
+                                label: context.t.servers.apiAddrHint,
+                              ),
+                              validator: validateAddress,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    validator: validateAddress,
                   ),
-                ),
+                ],
+              ),
             ],
           ),
         ),
         ServerDetails(
-          server: server.value,
-          isEditing: isEditing,
+          server: current.value,
           onSubmitted: (newServer) {
             final serverPod = ref.read(serverStateProvider.notifier);
-            newServer = newServer.copyWith(
-              homepage: homepage.text,
-              apiAddr: useApiAddr.value ? apiAddr.text : '',
+            serverPod.edit(
+              server,
+              newServer.copyWith(
+                homepage: homepage.text,
+                alias: alias.text.trim(),
+                apiAddr: useApiAddr.value ? apiAddr.text : '',
+              ),
             );
-
-            if (isEditing) {
-              serverPod.edit(_server, newServer);
-            } else {
-              serverPod.add(newServer);
-            }
 
             context.router.maybePop();
           },

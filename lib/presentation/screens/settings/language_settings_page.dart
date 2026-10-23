@@ -1,9 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
-import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -42,7 +42,7 @@ class _Content extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd),
       children: [
         const SizedBox(height: DesignTokens.spacingMd),
-        SettingsGroup(
+        TileGroup(
           children: [
             ListTile(
               title: Text(context.t.auto),

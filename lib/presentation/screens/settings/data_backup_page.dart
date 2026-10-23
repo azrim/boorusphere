@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/settings/periodic_backup_state
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -104,7 +105,7 @@ class _Content extends HookConsumerWidget {
         const SizedBox(height: DesignTokens.spacingMd),
         // The backup and restore rows name themselves, so they need no
         // section label of their own.
-        SettingsGroup(
+        TileGroup(
           children: [
             ListTile(
               leading: const Icon(Icons.backup),

@@ -8,6 +8,9 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/filled_field.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -119,6 +122,8 @@ class ServerAddPage extends HookConsumerWidget {
     final siteUrl = useTextEditingController(text: 'https://');
     final useApiAddr = useState(false);
     final apiAddr = useTextEditingController(text: 'https://');
+    final login = useTextEditingController();
+    final apiKey = useTextEditingController();
     final server = useState(Server.empty);
     // Result of the last successful scan, or null when a (re)scan is needed.
     final scanResult = useState<Server?>(null);
@@ -174,19 +179,31 @@ class ServerAddPage extends HookConsumerWidget {
       return null;
     }
 
+    /// Credentials are part of the request itself: a booru that gates its API
+    /// answers nothing until the key is attached, so they ride along with the
+    /// server used for scanning too.
+    Server withCredentials(Server value) {
+      return value.copyWith(
+        login: login.text.trim(),
+        apiKey: apiKey.text.trim(),
+      );
+    }
+
     void updateServer() {
       final engine = selectedEngine.value;
       if (engine == null) return;
 
-      server.value = Server(
-        id: profileName.text.trim(),
-        homepage: siteUrl.text.trim(),
-        apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
-        searchUrl: engine.searchQuery,
-        tagSuggestionUrl: engine.suggestionQuery,
-        postUrl: engine.postUrl,
-        searchParserId: engine.searchParserId,
-        suggestionParserId: engine.suggestionParserId,
+      server.value = withCredentials(
+        Server(
+          id: profileName.text.trim(),
+          homepage: siteUrl.text.trim(),
+          apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
+          searchUrl: engine.searchQuery,
+          tagSuggestionUrl: engine.suggestionQuery,
+          postUrl: engine.postUrl,
+          searchParserId: engine.searchParserId,
+          suggestionParserId: engine.suggestionParserId,
+        ),
       );
     }
 
@@ -211,10 +228,12 @@ class ServerAddPage extends HookConsumerWidget {
       scanResult.value = null;
       scanFailed.value = false;
 
-      final base = Server(
-        id: name,
-        homepage: url,
-        apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
+      final base = withCredentials(
+        Server(
+          id: name,
+          homepage: url,
+          apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
+        ),
       );
 
       try {
@@ -224,7 +243,9 @@ class ServerAddPage extends HookConsumerWidget {
           return;
         }
 
-        final result = scanned.copyWith(id: name, homepage: url);
+        final result = withCredentials(
+          scanned.copyWith(id: name, homepage: url),
+        );
         server.value = result;
         scanResult.value = result;
       } catch (_) {
@@ -241,336 +262,383 @@ class ServerAddPage extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t.servers.add)),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Mode selector
-                Padding(
-                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
-                  child: SegmentedButton<_AddMode>(
-                    segments: [
-                      ButtonSegment(
-                        value: _AddMode.scan,
-                        icon: const Icon(Icons.radar),
-                        label: Text(context.t.servers.mode.scan),
-                      ),
-                      ButtonSegment(
-                        value: _AddMode.manual,
-                        icon: const Icon(Icons.tune),
-                        label: Text(context.t.servers.mode.manual),
-                      ),
-                    ],
-                    selected: {mode.value},
-                    onSelectionChanged: (selection) {
-                      mode.value = selection.first;
-                    },
-                  ),
-                ),
-
-                // Mode-specific control
-                if (mode.value == _AddMode.manual)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingMd,
-                      0,
-                      DesignTokens.spacingMd,
-                      DesignTokens.spacingMd,
-                    ),
-                    child: DropdownButtonFormField<BooruEngine>(
-                      decoration: InputDecoration(
-                        labelText: context.t.servers.engineType,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: booruEngines.map((engine) {
-                        return DropdownMenuItem(
-                          value: engine,
-                          child: Text(engine.name),
-                        );
-                      }).toList(),
-                      onChanged: (engine) {
-                        selectedEngine.value = engine;
-                        updateServer();
-                      },
-                      validator: (value) {
-                        if (value == null) {
-                          return context.t.servers.engineRequired;
-                        }
-                        return null;
-                      },
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingMd,
-                      0,
-                      DesignTokens.spacingMd,
-                      DesignTokens.spacingMd,
-                    ),
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: scanner.isScanning,
-                      builder: (context, isScanning, _) {
-                        final result = scanResult.value;
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              context.t.servers.scanHint,
-                              style: context.theme.textTheme.bodySmall,
-                            ),
-                            const SizedBox(height: DesignTokens.spacingSm),
-                            FilledButton.tonalIcon(
-                              onPressed: isScanning ? null : onScan,
-                              icon: const Icon(Icons.search),
-                              label: Text(
-                                isScanning
-                                    ? context.t.servers.scanning
-                                    : context.t.scan,
-                              ),
-                            ),
-                            if (isScanning) ...[
-                              const Padding(
-                                padding: EdgeInsets.only(
-                                  top: DesignTokens.spacingMd,
-                                ),
-                                child: LinearProgressIndicator(),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: DesignTokens.spacingSm,
-                                ),
-                                child: ValueListenableBuilder<List<String>>(
-                                  valueListenable: scanner.logs,
-                                  builder: (context, logs, _) {
-                                    if (logs.isEmpty) {
-                                      return const SizedBox.shrink();
-                                    }
-
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: logs
-                                          .map(
-                                            (line) => Text(
-                                              line,
-                                              style: context
-                                                  .theme
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    fontFamily: 'monospace',
-                                                  ),
-                                            ),
-                                          )
-                                          .toList(),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                            if (result != null) ...[
-                              const SizedBox(height: DesignTokens.spacingMd),
-                              Container(
-                                padding: const EdgeInsets.all(
-                                  DesignTokens.spacingMd,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(
-                                    DesignTokens.radiusMd,
-                                  ),
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle_outline,
-                                      color: context
-                                          .colorScheme
-                                          .onPrimaryContainer,
-                                    ),
-                                    const SizedBox(
-                                      width: DesignTokens.spacingSm,
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        context.t.servers.scanResult(
-                                          search: result.searchParserId.isEmpty
-                                              ? context.t.auto
-                                              : result.searchParserId,
-                                          suggestion:
-                                              result.suggestionParserId.isEmpty
-                                              ? context.t.auto
-                                              : result.suggestionParserId,
-                                        ),
-                                        style: context
-                                            .theme
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              color: context
-                                                  .colorScheme
-                                                  .onPrimaryContainer,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            if (scanFailed.value) ...[
-                              const SizedBox(height: DesignTokens.spacingMd),
-                              Container(
-                                padding: const EdgeInsets.all(
-                                  DesignTokens.spacingMd,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.colorScheme.errorContainer,
-                                  borderRadius: BorderRadius.circular(
-                                    DesignTokens.radiusMd,
-                                  ),
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      color:
-                                          context.colorScheme.onErrorContainer,
-                                    ),
-                                    const SizedBox(
-                                      width: DesignTokens.spacingSm,
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        context.t.servers.scanFailed,
-                                        style: context
-                                            .theme
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              color: context
-                                                  .colorScheme
-                                                  .onErrorContainer,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-
-                // Profile name
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spacingMd,
-                  ),
-                  child: TextFormField(
-                    controller: profileName,
-                    enableIMEPersonalizedLearning: !imeIncognito,
-                    decoration: InputDecoration(
-                      labelText: context.t.servers.profileName,
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: validateName,
-                    onChanged: (_) {
-                      resetScan();
-                      updateServer();
-                    },
-                  ),
-                ),
-
-                const SizedBox(height: DesignTokens.spacingMd),
-
-                // Site URL
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DesignTokens.spacingMd,
-                  ),
-                  child: TextFormField(
-                    controller: siteUrl,
-                    enableIMEPersonalizedLearning: !imeIncognito,
-                    decoration: InputDecoration(
-                      labelText: context.t.servers.homepageHint,
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: validateAddress,
-                    onChanged: (_) {
-                      resetScan();
-                      updateServer();
-                    },
-                  ),
-                ),
-
-                // Custom API address
-                CheckboxListTile(
-                  value: useApiAddr.value,
-                  title: Padding(
-                    padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-                    child: Text(context.t.servers.useCustomApi),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
-                    child: Text(context.t.servers.useCustomApiDesc),
-                  ),
-                  onChanged: (isChecked) {
-                    if (isChecked != null) {
-                      useApiAddr.value = isChecked;
-                      updateServer();
-                    }
-                  },
-                ),
-
-                if (useApiAddr.value)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingMd,
-                      0,
-                      DesignTokens.spacingMd,
-                      DesignTokens.spacingMd,
-                    ),
-                    child: TextFormField(
-                      controller: apiAddr,
-                      enableIMEPersonalizedLearning: !imeIncognito,
-                      decoration: InputDecoration(
-                        labelText: context.t.servers.apiAddrHint,
-                        border: const OutlineInputBorder(),
-                      ),
-                      validator: validateAddress,
-                      onChanged: (_) => updateServer(),
-                    ),
-                  ),
-
-                const Divider(),
-
-                // Add button
-                Padding(
-                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
-                  child: FilledButton(
-                    onPressed: mode.value == _AddMode.manual
-                        ? () {
-                            if (formKey.currentState?.validate() != true) {
-                              return;
-                            }
-
-                            updateServer();
-                            submit();
-                          }
-                        : (scanResult.value == null ? null : submit),
-                    child: Text(context.t.servers.add),
-                  ),
-                ),
-              ],
+        child: Form(
+          key: formKey,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingMd,
             ),
+            children: [
+              const SizedBox(height: DesignTokens.spacingMd),
+              SectionSurface(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                    child: SegmentedButton<_AddMode>(
+                      segments: [
+                        ButtonSegment(
+                          value: _AddMode.scan,
+                          icon: const Icon(Icons.radar),
+                          label: Text(context.t.servers.mode.scan),
+                        ),
+                        ButtonSegment(
+                          value: _AddMode.manual,
+                          icon: const Icon(Icons.tune),
+                          label: Text(context.t.servers.mode.manual),
+                        ),
+                      ],
+                      selected: {mode.value},
+                      onSelectionChanged: (selection) {
+                        mode.value = selection.first;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: DesignTokens.spacingSm),
+              if (mode.value == _AddMode.manual)
+                SectionSurface(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                      child: DropdownButtonFormField<BooruEngine>(
+                        decoration: filledFieldDecoration(
+                          context,
+                          label: context.t.servers.engineType,
+                        ),
+                        items: booruEngines.map((engine) {
+                          return DropdownMenuItem(
+                            value: engine,
+                            child: Text(engine.name),
+                          );
+                        }).toList(),
+                        onChanged: (engine) {
+                          selectedEngine.value = engine;
+                          updateServer();
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return context.t.servers.engineRequired;
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                )
+              else
+                SectionSurface(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: scanner.isScanning,
+                        builder: (context, isScanning, _) {
+                          final result = scanResult.value;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                context.t.servers.scanHint,
+                                style: context.theme.textTheme.bodySmall
+                                    ?.copyWith(
+                                      color:
+                                          context.colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                              const SizedBox(height: DesignTokens.spacingSm),
+                              FilledButton.tonalIcon(
+                                onPressed: isScanning ? null : onScan,
+                                icon: const Icon(Icons.search),
+                                label: Text(
+                                  isScanning
+                                      ? context.t.servers.scanning
+                                      : context.t.scan,
+                                ),
+                              ),
+                              if (isScanning) ...[
+                                const Padding(
+                                  padding: EdgeInsets.only(
+                                    top: DesignTokens.spacingMd,
+                                  ),
+                                  child: LinearProgressIndicator(),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: DesignTokens.spacingSm,
+                                  ),
+                                  child: ValueListenableBuilder<List<String>>(
+                                    valueListenable: scanner.logs,
+                                    builder: (context, logs, _) {
+                                      if (logs.isEmpty) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: logs
+                                            .map(
+                                              (line) => Text(
+                                                line,
+                                                style: context
+                                                    .theme
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      fontFamily: 'monospace',
+                                                    ),
+                                              ),
+                                            )
+                                            .toList(),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                              if (result != null) ...[
+                                const SizedBox(height: DesignTokens.spacingMd),
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                    DesignTokens.spacingMd,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: context.colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(
+                                      DesignTokens.radiusMd,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_outline,
+                                        color: context
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                      ),
+                                      const SizedBox(
+                                        width: DesignTokens.spacingSm,
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          context.t.servers.scanResult(
+                                            search:
+                                                result.searchParserId.isEmpty
+                                                ? context.t.auto
+                                                : result.searchParserId,
+                                            suggestion:
+                                                result
+                                                    .suggestionParserId
+                                                    .isEmpty
+                                                ? context.t.auto
+                                                : result.suggestionParserId,
+                                          ),
+                                          style: context
+                                              .theme
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: context
+                                                    .colorScheme
+                                                    .onPrimaryContainer,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (scanFailed.value) ...[
+                                const SizedBox(height: DesignTokens.spacingMd),
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                    DesignTokens.spacingMd,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: context.colorScheme.errorContainer,
+                                    borderRadius: BorderRadius.circular(
+                                      DesignTokens.radiusMd,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline,
+                                        color: context
+                                            .colorScheme
+                                            .onErrorContainer,
+                                      ),
+                                      const SizedBox(
+                                        width: DesignTokens.spacingSm,
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          context.t.servers.scanFailed,
+                                          style: context
+                                              .theme
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: context
+                                                    .colorScheme
+                                                    .onErrorContainer,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              SectionHeading(context.t.servers.title),
+              SectionSurface(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: profileName,
+                          enableIMEPersonalizedLearning: !imeIncognito,
+                          decoration: filledFieldDecoration(
+                            context,
+                            label: context.t.servers.profileName,
+                          ),
+                          validator: validateName,
+                          onChanged: (_) {
+                            resetScan();
+                            updateServer();
+                          },
+                        ),
+                        const SizedBox(height: DesignTokens.spacingSm),
+                        TextFormField(
+                          controller: siteUrl,
+                          enableIMEPersonalizedLearning: !imeIncognito,
+                          decoration: filledFieldDecoration(
+                            context,
+                            label: context.t.servers.homepageHint,
+                          ),
+                          validator: validateAddress,
+                          onChanged: (_) {
+                            resetScan();
+                            updateServer();
+                          },
+                        ),
+                        const SizedBox(height: DesignTokens.spacingXs),
+                        CheckboxListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: DesignTokens.spacingCardInset,
+                          ),
+                          value: useApiAddr.value,
+                          title: Text(context.t.servers.useCustomApi),
+                          subtitle: Text(context.t.servers.useCustomApiDesc),
+                          onChanged: (isChecked) {
+                            if (isChecked != null) {
+                              useApiAddr.value = isChecked;
+                              updateServer();
+                            }
+                          },
+                        ),
+                        if (useApiAddr.value) ...[
+                          const SizedBox(height: DesignTokens.spacingXs),
+                          TextFormField(
+                            controller: apiAddr,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.servers.apiAddrHint,
+                            ),
+                            validator: validateAddress,
+                            onChanged: (_) => updateServer(),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SectionHeading(context.t.servers.credentials.title),
+              SectionSurface(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: DesignTokens.spacingXs,
+                            vertical: DesignTokens.spacingXs,
+                          ),
+                          child: Text(
+                            context.t.servers.credentials.desc,
+                            style: context.theme.textTheme.bodySmall?.copyWith(
+                              color: context.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: DesignTokens.spacingSm),
+                        TextFormField(
+                          controller: login,
+                          enableIMEPersonalizedLearning: !imeIncognito,
+                          decoration: filledFieldDecoration(
+                            context,
+                            label: context.t.servers.credentials.login,
+                          ),
+                          onChanged: (_) {
+                            resetScan();
+                            updateServer();
+                          },
+                        ),
+                        const SizedBox(height: DesignTokens.spacingSm),
+                        TextFormField(
+                          controller: apiKey,
+                          enableIMEPersonalizedLearning: !imeIncognito,
+                          obscureText: true,
+                          decoration: filledFieldDecoration(
+                            context,
+                            label: context.t.servers.credentials.apiKey,
+                          ),
+                          onChanged: (_) {
+                            resetScan();
+                            updateServer();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: DesignTokens.spacingMd,
+                ),
+                child: FilledButton(
+                  onPressed: mode.value == _AddMode.manual
+                      ? () {
+                          if (formKey.currentState?.validate() != true) {
+                            return;
+                          }
+
+                          updateServer();
+                          submit();
+                        }
+                      : (scanResult.value == null ? null : submit),
+                  child: Text(context.t.servers.add),
+                ),
+              ),
+            ],
           ),
         ),
       ),

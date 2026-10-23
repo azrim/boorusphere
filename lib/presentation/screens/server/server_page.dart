@@ -4,8 +4,11 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -82,62 +85,79 @@ class _Content extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              ...servers.map((it) {
-                return ListTile(
-                  title: Text(it.name),
-                  subtitle: Text(it.homepage),
-                  leading: Favicon(url: it.homepage),
-                  trailing: PopupMenuButton(
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          context.router.push(ServerEditorRoute(server: it));
-                          break;
-                        case 'remove':
-                          if (servers.length == 1) {
-                            context.scaffoldMessenger.showSnackBar(
-                              SnackBar(
-                                duration: const Duration(seconds: 1),
-                                content: Text(
-                                  context.t.servers.removeLastError,
-                                ),
-                              ),
-                            );
-                            break;
-                          }
-
-                          ref.read(serverStateProvider.notifier).remove(it);
-                          break;
-                        default:
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) {
-                      return [
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Text(context.t.edit),
-                        ),
-                        PopupMenuItem(
-                          value: 'remove',
-                          child: Text(context.t.remove),
-                        ),
-                      ];
-                    },
-                  ),
-                  dense: true,
-                );
-              }),
-              ListTile(
-                title: Text(context.t.add),
-                leading: const Icon(Icons.add),
-                onTap: () => context.router.push(ServerEditorRoute()),
-              ),
-            ],
+        child: ListView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: DesignTokens.spacingMd,
           ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                DesignTokens.spacingXs,
+                DesignTokens.spacingMd,
+                DesignTokens.spacingXs,
+                DesignTokens.spacingSm,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SectionLabel(context.t.servers.title),
+              ),
+            ),
+            TileGroup(
+              children: [
+                ...servers.map((it) {
+                  return ListTile(
+                    title: Text(it.name),
+                    subtitle: Text(it.homepage),
+                    leading: Favicon(url: it.homepage),
+                    trailing: PopupMenuButton(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'edit':
+                            context.router.push(ServerEditorRoute(server: it));
+                            break;
+                          case 'remove':
+                            if (servers.length == 1) {
+                              context.scaffoldMessenger.showSnackBar(
+                                SnackBar(
+                                  duration: const Duration(seconds: 1),
+                                  content: Text(
+                                    context.t.servers.removeLastError,
+                                  ),
+                                ),
+                              );
+                              break;
+                            }
+
+                            ref.read(serverStateProvider.notifier).remove(it);
+                            break;
+                          default:
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) {
+                        return [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Text(context.t.edit),
+                          ),
+                          PopupMenuItem(
+                            value: 'remove',
+                            child: Text(context.t.remove),
+                          ),
+                        ];
+                      },
+                    ),
+                  );
+                }),
+                ListTile(
+                  title: Text(context.t.add),
+                  leading: Icon(Icons.add, color: context.colorScheme.primary),
+                  onTap: () => context.router.push(const ServerAddRoute()),
+                ),
+              ],
+            ),
+            const SizedBox(height: DesignTokens.spacingLg),
+          ],
         ),
       ),
     );

@@ -3,26 +3,28 @@ import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/provider.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
-import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/filled_field.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+/// Query templates and API credentials of a saved server.
 class ServerDetails extends HookConsumerWidget {
   const ServerDetails({
     super.key,
     required this.server,
     required this.onSubmitted,
-    required this.isEditing,
   });
 
   final Server server;
   final Function(Server) onSubmitted;
-  final bool isEditing;
 
   bool hasProperServerQuery(String? value) {
     if (value == null) {
@@ -36,20 +38,10 @@ class ServerDetails extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (server.id.isEmpty) {
-      // No server.id means adding a new server
-      return const SizedBox.shrink();
-    }
-
-    final servers = ref.watch(serverStateProvider);
     final imeIncognito = ref.watch(
       uiSettingStateProvider.select((it) => it.imeIncognito),
     );
     final formKey = useMemoized(GlobalKey<FormState>.new);
-    final cName = useTextEditingController(text: server.id);
-    final cAlias = useTextEditingController(
-      text: server.alias.isEmpty ? server.id : server.alias,
-    );
     final cSearchUrl = useTextEditingController(text: server.searchUrl);
     final cSuggestUrl = useTextEditingController(text: server.tagSuggestionUrl);
     final cPostUrl = useTextEditingController(text: server.postUrl);
@@ -59,8 +51,6 @@ class ServerDetails extends HookConsumerWidget {
     final cApiKey = useTextEditingController(text: server.apiKey);
 
     useEffect(() {
-      cName.text = server.id;
-      cAlias.text = server.alias.isEmpty ? server.id : server.alias;
       cSearchUrl.text = server.searchUrl;
       cSuggestUrl.text = server.tagSuggestionUrl;
       cPostUrl.text = server.postUrl;
@@ -89,177 +79,169 @@ class ServerDetails extends HookConsumerWidget {
         return;
       }
 
-      var newData = isEditing
-          ? server.copyWith(alias: cAlias.text)
-          : server.copyWith(id: cName.text);
-      newData = newData.copyWith(
-        searchUrl: cSearchUrl.text,
-        tagSuggestionUrl: cSuggestUrl.text,
-        postUrl: cPostUrl.text,
-        searchParserId: cSearchParser.value,
-        suggestionParserId: cSuggestionParser.value,
-        login: cLogin.text.trim(),
-        apiKey: cApiKey.text.trim(),
+      onSubmitted.call(
+        server.copyWith(
+          searchUrl: cSearchUrl.text,
+          tagSuggestionUrl: cSuggestUrl.text,
+          postUrl: cPostUrl.text,
+          searchParserId: cSearchParser.value,
+          suggestionParserId: cSuggestionParser.value,
+          login: cLogin.text.trim(),
+          apiKey: cApiKey.text.trim(),
+        ),
       );
-
-      onSubmitted.call(newData);
     }
 
     final parsers = ref.read(booruParsersProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Form(
-          key: formKey,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+    return Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingMd,
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (!isEditing)
-                  TextFormField(
-                    controller: cName,
-                    enableIMEPersonalizedLearning: !imeIncognito,
-                    decoration: InputDecoration(
-                      border: const UnderlineInputBorder(),
-                      labelText: context.t.servers.id,
-                    ),
-                    validator: (value) {
-                      final serverName = servers.map((it) => it.id);
-                      if (!isEditing && serverName.contains(value)) {
-                        return context.t.servers.alreadyExists(
-                          name: value ?? '',
-                        );
-                      }
+                SectionHeading(
+                  context.t.serverQuery.title,
+                  action: TextButton(
+                    onPressed: openPresetPage,
+                    child: Text(context.t.servers.preset),
+                  ),
+                ),
+                SectionSurface(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ParserSelector(
+                            label: context.t.servers.parserType.search,
+                            type: BooruParserType.search,
+                            parsers: parsers,
+                            value: cSearchParser.value,
+                            onChanged: (newValue) {
+                              if (newValue != null) {
+                                cSearchParser.value = newValue;
+                              }
+                            },
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          ParserSelector(
+                            label: context.t.servers.parserType.suggestion,
+                            type: BooruParserType.suggestion,
+                            parsers: parsers,
+                            value: cSuggestionParser.value,
+                            onChanged: (newValue) {
+                              if (newValue != null) {
+                                cSuggestionParser.value = newValue;
+                              }
+                            },
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          TextFormField(
+                            minLines: 1,
+                            maxLines: 3,
+                            controller: cSearchUrl,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.serverQuery.search,
+                            ),
+                            validator: (value) {
+                              if (hasProperServerQuery(value)) {
+                                return null;
+                              }
 
-                      return null;
-                    },
-                  )
-                else
-                  TextFormField(
-                    controller: cAlias,
-                    enableIMEPersonalizedLearning: !imeIncognito,
-                    decoration: InputDecoration(
-                      border: const UnderlineInputBorder(),
-                      labelText: context.t.servers.alias,
+                              return context.t.servers.invalidSearchQuery;
+                            },
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          TextFormField(
+                            minLines: 1,
+                            maxLines: 3,
+                            controller: cSuggestUrl,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.serverQuery.suggestion,
+                            ),
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          TextFormField(
+                            minLines: 1,
+                            maxLines: 3,
+                            controller: cPostUrl,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.serverQuery.post,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        context.t.serverQuery.title,
-                        style: context.theme.textTheme.titleMedium,
+                  ],
+                ),
+                SectionHeading(context.t.servers.credentials.title),
+                SectionSurface(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: DesignTokens.spacingXs,
+                              vertical: DesignTokens.spacingXs,
+                            ),
+                            child: Text(
+                              context.t.servers.credentials.desc,
+                              style: context.theme.textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: context.colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          TextFormField(
+                            controller: cLogin,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.servers.credentials.login,
+                            ),
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                          TextFormField(
+                            controller: cApiKey,
+                            enableIMEPersonalizedLearning: !imeIncognito,
+                            obscureText: true,
+                            decoration: filledFieldDecoration(
+                              context,
+                              label: context.t.servers.credentials.apiKey,
+                            ),
+                          ),
+                        ],
                       ),
-                      ElevatedButton(
-                        onPressed: openPresetPage,
-                        child: Text(context.t.servers.preset),
-                      ),
-                    ],
-                  ),
-                ),
-                ParserSelector(
-                  label: context.t.servers.parserType.search,
-                  type: BooruParserType.search,
-                  parsers: parsers,
-                  value: cSearchParser.value,
-                  onChanged: (newValue) {
-                    if (newValue != null) {
-                      cSearchParser.value = newValue;
-                    }
-                  },
-                ),
-                ParserSelector(
-                  label: context.t.servers.parserType.suggestion,
-                  type: BooruParserType.suggestion,
-                  parsers: parsers,
-                  value: cSuggestionParser.value,
-                  onChanged: (newValue) {
-                    if (newValue != null) {
-                      cSuggestionParser.value = newValue;
-                    }
-                  },
-                ),
-                TextFormField(
-                  minLines: 1,
-                  maxLines: 3,
-                  controller: cSearchUrl,
-                  enableIMEPersonalizedLearning: !imeIncognito,
-                  decoration: InputDecoration(
-                    border: const UnderlineInputBorder(),
-                    labelText: context.t.serverQuery.search,
-                  ),
-                  validator: (value) {
-                    if (hasProperServerQuery(value)) {
-                      return null;
-                    }
-
-                    return context.t.servers.invalidSearchQuery;
-                  },
-                ),
-                TextFormField(
-                  minLines: 1,
-                  maxLines: 3,
-                  controller: cSuggestUrl,
-                  enableIMEPersonalizedLearning: !imeIncognito,
-                  decoration: InputDecoration(
-                    border: const UnderlineInputBorder(),
-                    labelText: context.t.serverQuery.suggestion,
-                  ),
-                ),
-                TextFormField(
-                  minLines: 1,
-                  maxLines: 3,
-                  controller: cPostUrl,
-                  enableIMEPersonalizedLearning: !imeIncognito,
-                  decoration: InputDecoration(
-                    border: const UnderlineInputBorder(),
-                    labelText: context.t.serverQuery.post,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 16, bottom: 8),
-                  child: Text(
-                    context.t.servers.credentials.title,
-                    style: context.theme.textTheme.titleMedium,
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    context.t.servers.credentials.desc,
-                    style: context.theme.textTheme.bodySmall,
-                  ),
-                ),
-                TextFormField(
-                  controller: cLogin,
-                  enableIMEPersonalizedLearning: !imeIncognito,
-                  decoration: InputDecoration(
-                    border: const UnderlineInputBorder(),
-                    labelText: context.t.servers.credentials.login,
-                  ),
-                ),
-                TextFormField(
-                  controller: cApiKey,
-                  enableIMEPersonalizedLearning: !imeIncognito,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    border: const UnderlineInputBorder(),
-                    labelText: context.t.servers.credentials.apiKey,
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16),
-          child: ElevatedButton(onPressed: onSave, child: Text(context.t.save)),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.all(DesignTokens.spacingMd),
+            child: FilledButton(onPressed: onSave, child: Text(context.t.save)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -324,33 +306,47 @@ class ParserSelector extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          padding: const EdgeInsets.only(
+            left: DesignTokens.spacingXs,
+            bottom: DesignTokens.spacingXs,
+          ),
           child: Text(
             label,
-            style: context.theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+            style: context.theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ),
         InkWell(
-          child: Container(
-            color: context.colorScheme.surface,
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                ParserLabel(id: value),
-                const Spacer(),
-                const Icon(Icons.arrow_drop_down),
-              ],
-            ),
-          ),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
           onTap: () async {
             FocusScope.of(context).unfocus();
 
             onChanged.call(await selectParser(context, label, parsers, value));
           },
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingCardInset,
+              vertical: DesignTokens.spacingCardInset,
+            ),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+            ),
+            child: Row(
+              children: [
+                ParserLabel(id: value),
+                const Spacer(),
+                Icon(Icons.arrow_drop_down, color: scheme.onSurfaceVariant),
+              ],
+            ),
+          ),
         ),
       ],
     );

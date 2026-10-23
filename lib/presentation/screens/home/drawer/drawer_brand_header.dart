@@ -2,12 +2,11 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// Brand header: an eyebrow tagline above the wordmark, and the theme
-/// quick-action on the trailing edge.
+/// Brand header: the wordmark with the theme quick-action on the trailing
+/// edge.
 class HomeDrawerHeader extends ConsumerWidget {
   const HomeDrawerHeader({super.key});
 
@@ -55,35 +54,18 @@ class HomeDrawerHeader extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text.rich(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: 'Boorusphere', style: wordmark),
                   TextSpan(
-                    children: [
-                      TextSpan(text: 'Boorusphere', style: wordmark),
-                      TextSpan(
-                        text: '.',
-                        style: wordmark?.copyWith(color: scheme.primary),
-                      ),
-                    ],
+                    text: '.',
+                    style: wordmark?.copyWith(color: scheme.primary),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: DesignTokens.spacingXs),
-                Text(
-                  context.t.sidebar.tagline.toUpperLocale(context),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: DesignTokens.spacingSm),

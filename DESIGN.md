@@ -192,6 +192,16 @@ Every settings screen (Settings, Gesture Settings, Language, Data Backup) uses o
 - **Selection**: lists of options (language, color palette, swipe mode) mark the active one with `selected` and a trailing check, so the state is visible and announced
 - **Sub-pages**: share the section and row widgets with the main page; a settings sub-page that invents its own card layout is a regression
 
+### Server Pages
+Server management reuses the same block language as the drawer and settings: a small-caps section label over a rounded `surface` block.
+
+- **Manage**: the saved servers are one block — favicon, name, and homepage per row, with edit / remove in the row menu — closed by an add row whose plus carries `primary`. Reset to default lives in the app bar menu
+- **Add and Edit are one page**: the add-server row, the drawer action, and the search-bar shortcut all open the same flow, which detects the engine by scanning or lets the user pick one manually
+- **Fields**: borderless filled inputs on `surfaceContainerHighest` at `radiusLg`, so a form reads as content inside its block instead of a box drawn on top of it
+- **Edit sections**: server (engine, homepage, alias, optional custom API address), server query (parser pickers plus the search / suggestion / post templates, with "From Preset" as the section action), and credentials
+- **Credentials**: optional user id and API key, attached to the search, suggestion, and post URLs, and sent along with the scan probe — some boorus answer nothing without them
+- **Save**: one filled button pinned under the form
+
 ### Download Entry
 - **Layout**: Horizontal card with thumbnail, progress bar, status icon, actions
 - **Progress**: Linear progress indicator with percentage label

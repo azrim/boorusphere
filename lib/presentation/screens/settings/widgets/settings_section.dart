@@ -1,40 +1,8 @@
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
-import 'package:boorusphere/presentation/widgets/section_surface.dart';
+import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
-
-/// Rounded block of setting rows without a label, for rows that name
-/// themselves.
-class SettingsGroup extends StatelessWidget {
-  const SettingsGroup({super.key, required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionSurface(
-      children: [
-        ListTileTheme(
-          data: ListTileThemeData(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacingCardInset,
-            ),
-            minVerticalPadding: DesignTokens.spacingSm,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: children,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 /// Section label followed by its grouped rows.
 class SettingsSection extends StatelessWidget {
@@ -52,19 +20,8 @@ class SettingsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            DesignTokens.spacingXs,
-            DesignTokens.spacingLg,
-            DesignTokens.spacingXs,
-            DesignTokens.spacingSm,
-          ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: SectionLabel(title),
-          ),
-        ),
-        if (children.isNotEmpty) SettingsGroup(children: children),
+        SectionHeading(title),
+        if (children.isNotEmpty) TileGroup(children: children),
       ],
     );
   }

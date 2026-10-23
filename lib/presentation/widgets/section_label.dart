@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 
 /// Small-caps label with a hairline underline that hugs the text.
 ///
-/// Shared by the drawer and the settings pages so both read as one system.
+/// Shared by the drawer, the settings pages, and the server forms so they all
+/// read as one system.
 class SectionLabel extends StatelessWidget {
   const SectionLabel(this.label, {super.key, this.header = true});
 
@@ -35,5 +36,33 @@ class SectionLabel extends StatelessWidget {
     return header
         ? Semantics(header: true, container: true, child: text)
         : text;
+  }
+}
+
+/// A [SectionLabel] with the spacing a section needs above and below it, and
+/// an optional trailing action on the same line.
+class SectionHeading extends StatelessWidget {
+  const SectionHeading(this.label, {super.key, this.action});
+
+  final String label;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        DesignTokens.spacingXs,
+        DesignTokens.spacingLg,
+        DesignTokens.spacingXs,
+        DesignTokens.spacingSm,
+      ),
+      child: Row(
+        children: [
+          SectionLabel(label),
+          const Spacer(),
+          if (action != null) action!,
+        ],
+      ),
+    );
   }
 }
