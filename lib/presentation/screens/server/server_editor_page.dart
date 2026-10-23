@@ -6,7 +6,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/screens/server/server_add_page.dart';
 import 'package:boorusphere/presentation/screens/server/server_details.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/widgets/filled_field.dart';
+import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
@@ -107,7 +107,7 @@ class _ServerEditor extends HookConsumerWidget {
                         children: [
                           DropdownButtonFormField<BooruEngine>(
                             initialValue: selectedEngine.value,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.servers.engineType,
                             ),
@@ -132,7 +132,7 @@ class _ServerEditor extends HookConsumerWidget {
                           TextFormField(
                             controller: homepage,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.servers.homepageHint,
                             ),
@@ -142,7 +142,7 @@ class _ServerEditor extends HookConsumerWidget {
                           TextFormField(
                             controller: alias,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.servers.alias,
                             ),
@@ -166,7 +166,7 @@ class _ServerEditor extends HookConsumerWidget {
                             TextFormField(
                               controller: apiAddr,
                               enableIMEPersonalizedLearning: !imeIncognito,
-                              decoration: filledFieldDecoration(
+                              decoration: flatFieldDecoration(
                                 context,
                                 label: context.t.servers.apiAddrHint,
                               ),

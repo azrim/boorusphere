@@ -71,6 +71,27 @@ ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
     canvasColor: colorScheme.surface,
     scaffoldBackgroundColor: colorScheme.surface,
     dialogTheme: DialogThemeData(backgroundColor: colorScheme.surface),
+    popupMenuTheme: PopupMenuThemeData(
+      color: colorScheme.surface,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: colorScheme.surface,
+      modalBackgroundColor: colorScheme.surface,
+      elevation: 0,
+      modalElevation: 0,
+      dragHandleColor: colorScheme.onSurfaceVariant,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(DesignTokens.radiusXl),
+        ),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+    ),
     drawerTheme: origin.drawerTheme.copyWith(
       backgroundColor: colorScheme.surfaceContainerLow,
     ),

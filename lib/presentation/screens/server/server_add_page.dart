@@ -8,7 +8,7 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/widgets/filled_field.dart';
+import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
@@ -296,37 +296,7 @@ class ServerAddPage extends HookConsumerWidget {
                 ],
               ),
               const SizedBox(height: DesignTokens.spacingSm),
-              if (mode.value == _AddMode.manual)
-                SectionSurface(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(DesignTokens.spacingSm),
-                      child: DropdownButtonFormField<BooruEngine>(
-                        decoration: filledFieldDecoration(
-                          context,
-                          label: context.t.servers.engineType,
-                        ),
-                        items: booruEngines.map((engine) {
-                          return DropdownMenuItem(
-                            value: engine,
-                            child: Text(engine.name),
-                          );
-                        }).toList(),
-                        onChanged: (engine) {
-                          selectedEngine.value = engine;
-                          updateServer();
-                        },
-                        validator: (value) {
-                          if (value == null) {
-                            return context.t.servers.engineRequired;
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                )
-              else
+              if (mode.value == _AddMode.scan)
                 SectionSurface(
                   children: [
                     Padding(
@@ -508,10 +478,35 @@ class ServerAddPage extends HookConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (mode.value == _AddMode.manual) ...[
+                          DropdownButtonFormField<BooruEngine>(
+                            decoration: flatFieldDecoration(
+                              context,
+                              label: context.t.servers.engineType,
+                            ),
+                            items: booruEngines.map((engine) {
+                              return DropdownMenuItem(
+                                value: engine,
+                                child: Text(engine.name),
+                              );
+                            }).toList(),
+                            onChanged: (engine) {
+                              selectedEngine.value = engine;
+                              updateServer();
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return context.t.servers.engineRequired;
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: DesignTokens.spacingSm),
+                        ],
                         TextFormField(
                           controller: profileName,
                           enableIMEPersonalizedLearning: !imeIncognito,
-                          decoration: filledFieldDecoration(
+                          decoration: flatFieldDecoration(
                             context,
                             label: context.t.servers.profileName,
                           ),
@@ -525,7 +520,7 @@ class ServerAddPage extends HookConsumerWidget {
                         TextFormField(
                           controller: siteUrl,
                           enableIMEPersonalizedLearning: !imeIncognito,
-                          decoration: filledFieldDecoration(
+                          decoration: flatFieldDecoration(
                             context,
                             label: context.t.servers.homepageHint,
                           ),
@@ -555,7 +550,7 @@ class ServerAddPage extends HookConsumerWidget {
                           TextFormField(
                             controller: apiAddr,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.servers.apiAddrHint,
                             ),
@@ -592,7 +587,7 @@ class ServerAddPage extends HookConsumerWidget {
                         TextFormField(
                           controller: login,
                           enableIMEPersonalizedLearning: !imeIncognito,
-                          decoration: filledFieldDecoration(
+                          decoration: flatFieldDecoration(
                             context,
                             label: context.t.servers.credentials.login,
                           ),
@@ -606,7 +601,7 @@ class ServerAddPage extends HookConsumerWidget {
                           controller: apiKey,
                           enableIMEPersonalizedLearning: !imeIncognito,
                           obscureText: true,
-                          decoration: filledFieldDecoration(
+                          decoration: flatFieldDecoration(
                             context,
                             label: context.t.servers.credentials.apiKey,
                           ),

@@ -7,7 +7,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
-import 'package:boorusphere/presentation/widgets/filled_field.dart';
+import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
@@ -149,7 +149,7 @@ class ServerDetails extends HookConsumerWidget {
                             maxLines: 3,
                             controller: cSearchUrl,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.serverQuery.search,
                             ),
@@ -167,7 +167,7 @@ class ServerDetails extends HookConsumerWidget {
                             maxLines: 3,
                             controller: cSuggestUrl,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.serverQuery.suggestion,
                             ),
@@ -178,7 +178,7 @@ class ServerDetails extends HookConsumerWidget {
                             maxLines: 3,
                             controller: cPostUrl,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.serverQuery.post,
                             ),
@@ -213,7 +213,7 @@ class ServerDetails extends HookConsumerWidget {
                           TextFormField(
                             controller: cLogin,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.servers.credentials.login,
                             ),
@@ -223,7 +223,7 @@ class ServerDetails extends HookConsumerWidget {
                             controller: cApiKey,
                             enableIMEPersonalizedLearning: !imeIncognito,
                             obscureText: true,
-                            decoration: filledFieldDecoration(
+                            decoration: flatFieldDecoration(
                               context,
                               label: context.t.servers.credentials.apiKey,
                             ),
