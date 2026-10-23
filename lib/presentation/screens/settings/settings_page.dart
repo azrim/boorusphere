@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
@@ -28,12 +29,12 @@ class SettingsPage extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           children: [
-            _Section(
-              title: Text(context.t.downloads.title),
+            SettingsSection(
+              title: context.t.downloads.title,
               children: const [_HideMedia(), _DownloadQuality()],
             ),
-            _Section(
-              title: Text(context.t.settings.interface),
+            SettingsSection(
+              title: context.t.settings.interface,
               children: const [
                 _Language(),
                 _GestureSettings(),
@@ -42,57 +43,25 @@ class SettingsPage extends StatelessWidget {
                 _UiBlur(),
               ],
             ),
-            _Section(
-              title: Text(context.t.settings.safeMode),
+            SettingsSection(
+              title: context.t.settings.safeMode,
               children: const [
                 _BlurContent(),
                 _BlurTimelineOnly(),
                 _ImeIncognito(),
               ],
             ),
-            _Section(
-              title: Text(context.t.servers.title),
+            SettingsSection(
+              title: context.t.servers.title,
               children: const [_LoadOriginal(), _PostLimit()],
             ),
-            _Section(
-              title: Text(context.t.settings.misc),
+            SettingsSection(
+              title: context.t.settings.misc,
               children: const [_BackupRestore(), _ClearCache()],
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, this.children = const []});
-
-  final Widget title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    const sectionPadding = EdgeInsets.fromLTRB(
-      DesignTokens.spacingMd,
-      12,
-      DesignTokens.spacingMd,
-      12,
-    );
-    final sectionStyle =
-        (context.theme.textTheme.titleSmall ?? const TextStyle()).copyWith(
-          color: context.colorScheme.primary,
-        );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: sectionPadding,
-          child: DefaultTextStyle(style: sectionStyle, child: title),
-        ),
-        ...children,
-      ],
     );
   }
 }
@@ -170,6 +139,7 @@ class _DownloadQuality extends ConsumerWidget {
         padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(quality.describe(context)),
       ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         final result = await selectQuality(context, quality);
         if (result != null) {
@@ -224,14 +194,16 @@ class _ColorPalette extends ConsumerWidget {
       onTap: () {
         showModalBottomSheet(
           context: context,
+          showDragHandle: true,
           builder: (context) => ListView(
             children: ColorPalette.values.map((palette) {
               return ListTile(
                 title: Text(palette.displayName),
+                selected: currentPalette == palette,
                 leading: palette.accentColor != null
                     ? Container(
-                        width: 24,
-                        height: 24,
+                        width: DesignTokens.iconChipSize,
+                        height: DesignTokens.iconChipSize,
                         decoration: BoxDecoration(
                           color: palette.accentColor,
                           shape: BoxShape.circle,
@@ -351,6 +323,7 @@ class _Language extends StatelessWidget {
         padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: _CurrentLanguage(),
       ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: () {
         context.router.push(const LanguageSettingsRoute());
       },
@@ -377,6 +350,7 @@ class _GestureSettings extends ConsumerWidget {
               : context.t.settingsPage.swipeVertical,
         ),
       ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: () {
         context.router.push(const GestureSettingsRoute());
       },
@@ -453,6 +427,7 @@ class _BackupRestore extends StatelessWidget {
         padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
         child: Text(context.t.dataBackup.desc),
       ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: () {
         context.router.push(const DataBackupRoute());
       },

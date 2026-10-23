@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/provider/data_backup/entity/backup_opti
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_result.dart';
 import 'package:boorusphere/presentation/provider/data_backup/telegram_backup_service.dart';
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
+import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -98,8 +99,8 @@ class _Content extends HookConsumerWidget {
 
     return ListView(
       children: [
-        // Manual Backup Section
-        _SectionHeader(title: context.t.dataBackup.backup.title),
+        // The backup and restore rows name themselves, so they need no
+        // section label of their own.
         ListTile(
           leading: const Icon(Icons.backup),
           title: Text(context.t.dataBackup.backup.title),
@@ -128,10 +129,7 @@ class _Content extends HookConsumerWidget {
                 .restore(onConfirm: () => _warningDialog(context));
           },
         ),
-        const Divider(height: 32),
-
-        // Periodic Backup Section
-        _SectionHeader(title: context.t.periodicBackup.title),
+        SettingsSection(title: context.t.periodicBackup.title),
         SwitchListTile(
           title: Text(context.t.periodicBackup.enable),
           value: periodicState.enabled,
@@ -156,10 +154,7 @@ class _Content extends HookConsumerWidget {
           enabled: periodicState.enabled && periodicState.deleteOldBackups,
         ),
         _LastBackupInfo(lastBackupTime: periodicState.lastBackupTime),
-        const Divider(height: 32),
-
-        // Telegram Section
-        _SectionHeader(title: context.t.periodicBackup.telegram.title),
+        SettingsSection(title: context.t.periodicBackup.telegram.title),
         SwitchListTile(
           title: Text(context.t.periodicBackup.telegram.enable),
           value: periodicState.telegramEnabled,
@@ -187,25 +182,6 @@ class _Content extends HookConsumerWidget {
           enabled: periodicState.enabled && periodicState.telegramEnabled,
         ),
       ],
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
     );
   }
 }
@@ -358,21 +334,16 @@ class _MaxBackupSlider extends HookWidget {
   Widget build(BuildContext context) {
     final sliderValue = useState(state.maxBackupCount.toDouble());
 
-    return ListTile(
+    return SettingsSliderTile(
+      title: context.t.periodicBackup.maxBackups,
+      value: sliderValue.value,
+      valueLabel: '${sliderValue.value.round()}',
+      min: 1,
+      max: 10,
+      divisions: 9,
       enabled: enabled,
-      title: Text(context.t.periodicBackup.maxBackups),
-      subtitle: Slider(
-        value: sliderValue.value,
-        min: 1,
-        max: 10,
-        divisions: 9,
-        label: sliderValue.value.round().toString(),
-        onChanged: enabled ? (value) => sliderValue.value = value : null,
-        onChangeEnd: enabled
-            ? (value) => notifier.setMaxBackupCount(value.round())
-            : null,
-      ),
-      trailing: Text('${sliderValue.value.round()}'),
+      onChanged: (value) => sliderValue.value = value,
+      onChangeEnd: (value) => notifier.setMaxBackupCount(value.round()),
     );
   }
 }

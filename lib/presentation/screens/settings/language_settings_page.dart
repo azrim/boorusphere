@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -33,6 +34,8 @@ class _Content extends ConsumerWidget {
       });
     }
 
+    final current = ref.watch(uiSettingStateProvider.select((ui) => ui.locale));
+
     return ListView(
       children: [
         ListTile(
@@ -41,17 +44,29 @@ class _Content extends ConsumerWidget {
             padding: subtitlePadding,
             child: Text(context.t.settings.lang.auto),
           ),
+          selected: current == null,
+          trailing: current == null
+              ? Icon(Icons.check, color: context.colorScheme.primary)
+              : null,
           onTap: () {
             updateLocale(null);
           },
         ),
         ...AppLocale.values.map((locale) {
+          final selected = current == locale;
+          final name = locale.translations.languageName;
+          final alias = locale.translations.languageAlias;
           return ListTile(
-            title: Text(locale.translations.languageName),
-            subtitle: Padding(
-              padding: subtitlePadding,
-              child: Text(locale.translations.languageAlias),
-            ),
+            title: Text(name),
+            // The alias repeats the name for several locales; only show it
+            // when it adds a second spelling.
+            subtitle: alias == name
+                ? null
+                : Padding(padding: subtitlePadding, child: Text(alias)),
+            selected: selected,
+            trailing: selected
+                ? Icon(Icons.check, color: context.colorScheme.primary)
+                : null,
             onTap: () {
               updateLocale(locale);
             },
