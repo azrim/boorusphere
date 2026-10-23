@@ -99,10 +99,13 @@ class _Home extends HookConsumerWidget {
       key: scaffoldKey,
       extendBody: true,
       drawer: HomeDrawer(maxWidth: drawerWidth),
-      // Edge-anchored, per Material: the drawer has its own affordance in the
-      // search bar, so a full-width drag zone only stole horizontal drags from
-      // the content. Zero while the search bar is open.
-      drawerEdgeDragWidth: searchBar.isOpen ? 0 : null,
+      // The whole width is draggable while the search bar is closed. A narrow
+      // edge zone loses the gesture race to the system back gesture on
+      // gesture-nav devices, so the drawer could not be swiped open at all;
+      // the grid has no competing horizontal drag to lose here.
+      drawerEdgeDragWidth: searchBar.isOpen
+          ? 0
+          : MediaQuery.sizeOf(context).width,
       body: StyledOverlayRegion(
         child: PopScope(
           canPop:

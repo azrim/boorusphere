@@ -156,7 +156,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Colors**: scheme-only — icon chips and labels come from `ColorScheme`, with no per-action accent colors
 
 ### Navigation (Home Drawer)
-- **Style**: Navigation drawer, opened by the leading server chip in the search bar or by an edge swipe (the swipe is disabled while the search bar is open); rounded right edge, width capped to the viewport
+- **Style**: Navigation drawer, opened by the leading server chip in the search bar or by a swipe anywhere on the grid (a narrow edge zone loses the gesture race to the system back gesture on gesture-nav phones, so the drag zone is the full width while the search bar is closed); rounded right edge, width capped to the viewport
 - **Search bar**: the leading chip opens the drawer (and cancels the search while it is open); the trailing button only cycles grid density, so a control never changes meaning mid-scroll. An active non-default rating shows as a tinted chip with a filter icon beside the field, so a filtered feed is a visible state
 - **Header**: the wordmark, closed by a `primary` dot, with the small-caps tagline beneath it; the theme switcher (light / dark / system) sits on the trailing edge inside a hairline-bordered square
 - **Sections**: each section is one grouped surface — a rounded `surface` block with a hairline `outlineVariant` border — and the rows inside stay flat and transparent, so the container carries the only border. Painting `surface` keeps the block pure black in midnight instead of lifting it off the black drawer. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
