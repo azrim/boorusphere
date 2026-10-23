@@ -59,17 +59,6 @@ class HomeDrawerHeader extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  context.t.sidebar.tagline.toUpperLocale(context),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.theme.textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: DesignTokens.spacingSm),
                 Text.rich(
                   TextSpan(
                     children: [
@@ -82,6 +71,17 @@ class HomeDrawerHeader extends ConsumerWidget {
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: DesignTokens.spacingXs),
+                Text(
+                  context.t.sidebar.tagline.toUpperLocale(context),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ],
             ),
