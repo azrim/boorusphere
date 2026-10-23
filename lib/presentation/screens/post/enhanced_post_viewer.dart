@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
@@ -212,7 +213,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
           );
           return;
         }
-        ref.watch(fullscreenStateProvider.notifier).reset();
+        ref.read(fullscreenStateProvider.notifier).reset();
         context.scaffoldMessenger.removeCurrentSnackBar();
       },
       child: Scaffold(
@@ -413,10 +414,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
           child: Center(
             child: Visibility(
               visible: !controller.isLastPage,
-              child: FloatingActionButton(
-                mini: true,
+              child: IconButton.filledTonal(
+                tooltip: context.t.pagination.next,
+                iconSize: 28,
                 onPressed: () => controller.nextPage(),
-                child: Icon(
+                icon: Icon(
                   isVerticalMode
                       ? Icons.keyboard_arrow_down
                       : Icons.keyboard_arrow_right,
@@ -435,10 +437,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
           child: Center(
             child: Visibility(
               visible: !controller.isFirstPage,
-              child: FloatingActionButton(
-                mini: true,
+              child: IconButton.filledTonal(
+                tooltip: context.t.pagination.previous,
+                iconSize: 28,
                 onPressed: () => controller.previousPage(),
-                child: Icon(
+                icon: Icon(
                   isVerticalMode
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_left,
@@ -452,7 +455,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
   }
 }
 
-class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
+class _PostAppBar extends StatelessWidget {
   const _PostAppBar({
     required this.title,
     required this.subtitle,
@@ -476,6 +479,9 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        // The title carries two lines, so the toolbar grows with the system
+        // font scale instead of clipping them at the default height.
+        toolbarHeight: MediaQuery.textScalerOf(context).scale(kToolbarHeight),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -505,9 +511,6 @@ class _PostAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 64);
 }
 
 /// PageView physics that requires a more deliberate gesture before
