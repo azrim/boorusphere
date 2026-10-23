@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_badge.dart';
+import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_group.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_header.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
@@ -26,32 +27,36 @@ class DrawerLibrarySection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DrawerSectionHeader(context.t.sidebar.library),
-        DrawerTile(
-          icon: Icons.cloud_download_outlined,
-          label: context.t.downloads.title,
-          trailing: downloads > 0 ? DrawerBadge('$downloads') : null,
-          onTap: () {
-            Navigator.of(context).pop();
-            context.router.push(DownloadsRoute(session: session));
-          },
-        ),
-        DrawerTile(
-          icon: Icons.favorite_border,
-          label: context.t.favorites.title,
-          trailing: favorites > 0 ? DrawerBadge('$favorites') : null,
-          onTap: () {
-            Navigator.of(context).pop();
-            context.router.push(FavoritesRoute(session: session));
-          },
-        ),
-        DrawerTile(
-          icon: Icons.block,
-          label: context.t.tagsBlocker.title,
-          trailing: blockedTags > 0 ? DrawerBadge('$blockedTags') : null,
-          onTap: () {
-            Navigator.of(context).pop();
-            context.router.push(const TagsBlockerRoute());
-          },
+        DrawerSectionGroup(
+          children: [
+            DrawerTile(
+              icon: Icons.cloud_download_outlined,
+              label: context.t.downloads.title,
+              trailing: downloads > 0 ? DrawerBadge('$downloads') : null,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.router.push(DownloadsRoute(session: session));
+              },
+            ),
+            DrawerTile(
+              icon: Icons.favorite_border,
+              label: context.t.favorites.title,
+              trailing: favorites > 0 ? DrawerBadge('$favorites') : null,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.router.push(FavoritesRoute(session: session));
+              },
+            ),
+            DrawerTile(
+              icon: Icons.block,
+              label: context.t.tagsBlocker.title,
+              trailing: blockedTags > 0 ? DrawerBadge('$blockedTags') : null,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.router.push(const TagsBlockerRoute());
+              },
+            ),
+          ],
         ),
       ],
     );

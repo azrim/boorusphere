@@ -4,17 +4,18 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_group.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_header.dart';
+import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
-import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// Server switcher: header with count and Manage action, the server cards,
-/// and the add-server button.
+/// Server switcher: header with count and Manage action, then one row per
+/// server and the add-server row.
 class DrawerServerSection extends ConsumerWidget {
   const DrawerServerSection({super.key});
 
@@ -32,50 +33,44 @@ class DrawerServerSection extends ConsumerWidget {
           count: servers.length,
           action: _ManageServersButton(session: session),
         ),
-        ...servers.map((server) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: DesignTokens.spacingSm),
-            child: _ServerCard(
-              server: server,
-              active: server.id == activeServer.id,
+        DrawerSectionGroup(
+          children: [
+            ...servers.map((server) {
+              return _ServerRow(
+                server: server,
+                active: server.id == activeServer.id,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  if (server.id != activeServer.id) {
+                    context.router.push(
+                      HomeRoute(session: session.copyWith(serverId: server.id)),
+                    );
+                  } else {
+                    ref
+                        .read(pageStateProvider.notifier)
+                        .update((it) => it.copyWith(clear: true));
+                  }
+                },
+                onEdit: () {
+                  Navigator.of(context).pop();
+                  context.router.push(ServerEditorRoute(server: server));
+                },
+                onRemove: () => _removeServer(context, ref, server),
+              );
+            }),
+            DrawerTile(
+              leading: Icon(
+                Icons.add,
+                size: DesignTokens.iconInline,
+                color: context.colorScheme.primary,
+              ),
+              label: context.t.sidebar.addCustomServer,
               onTap: () {
                 Navigator.of(context).pop();
-                if (server.id != activeServer.id) {
-                  context.router.push(
-                    HomeRoute(session: session.copyWith(serverId: server.id)),
-                  );
-                } else {
-                  ref
-                      .read(pageStateProvider.notifier)
-                      .update((it) => it.copyWith(clear: true));
-                }
+                context.router.push(const ServerAddRoute());
               },
-              onEdit: () {
-                Navigator.of(context).pop();
-                context.router.push(ServerEditorRoute(server: server));
-              },
-              onRemove: () => _removeServer(context, ref, server),
             ),
-          );
-        }),
-        Padding(
-          padding: const EdgeInsets.only(top: DesignTokens.spacingXs),
-          child: OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              context.router.push(const ServerAddRoute());
-            },
-            icon: const Icon(Icons.add, size: DesignTokens.iconInline),
-            label: Text(context.t.sidebar.addCustomServer),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colorScheme.onSurfaceVariant,
-              side: BorderSide(color: context.colorScheme.outlineVariant),
-              minimumSize: const Size.fromHeight(DesignTokens.controlHeightMin),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-              ),
-            ),
-          ),
+          ],
         ),
       ],
     );
@@ -134,6 +129,8 @@ class _ManageServersButton extends StatelessWidget {
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingSm),
         minimumSize: const Size(0, DesignTokens.controlHeightMin),
+        foregroundColor: context.colorScheme.onSurfaceVariant,
+        textStyle: context.theme.textTheme.labelMedium,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -146,8 +143,9 @@ class _ManageServersButton extends StatelessWidget {
   }
 }
 
-class _ServerCard extends StatelessWidget {
-  const _ServerCard({
+/// One server: favicon, name, and a status dot while it is the active server.
+class _ServerRow extends StatelessWidget {
+  const _ServerRow({
     required this.server,
     required this.active,
     required this.onTap,
@@ -164,129 +162,126 @@ class _ServerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final nameColor = active ? scheme.onSecondaryContainer : scheme.onSurface;
-    final subtitleColor = active
-        ? scheme.onSecondaryContainer.withValues(alpha: 0.75)
-        : scheme.onSurfaceVariant;
-    final uri = server.homepage.toUri();
-    final subtitle = uri.host.isNotEmpty ? uri.host : server.homepage;
+    final foreground = active ? scheme.onSecondaryContainer : scheme.onSurface;
 
     return MergeSemantics(
       child: Semantics(
         selected: active,
         child: Material(
-          color: active
-              ? scheme.secondaryContainer
-              : scheme.surfaceContainerHighest,
+          color: active ? scheme.secondaryContainer : Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
             side: active
-                ? BorderSide(color: scheme.primary, width: 1.5)
+                ? BorderSide(color: scheme.primary.withValues(alpha: 0.45))
                 : BorderSide.none,
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DesignTokens.spacingSm,
-                vertical: DesignTokens.spacingSm,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: DesignTokens.iconChipSize,
-                    height: DesignTokens.iconChipSize,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: scheme.surface,
-                      borderRadius: BorderRadius.circular(
-                        DesignTokens.radiusSm,
-                      ),
-                    ),
-                    child: Favicon(
-                      url: server.homepage,
-                      shape: BoxShape.circle,
-                      size: DesignTokens.iconChipSize,
-                      iconSize: 20,
-                    ),
-                  ),
-                  const SizedBox(width: DesignTokens.spacingMd),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          server.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.theme.textTheme.bodyMedium?.copyWith(
-                            color: nameColor,
-                            fontWeight: FontWeight.w600,
-                          ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingSm,
+                  vertical: DesignTokens.spacingXs,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: DesignTokens.iconChipSize,
+                      height: DesignTokens.iconChipSize,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: scheme.surface,
+                        borderRadius: BorderRadius.circular(
+                          DesignTokens.radiusMd,
                         ),
-                        if (subtitle.isNotEmpty)
-                          Text(
-                            subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.theme.textTheme.bodySmall?.copyWith(
-                              color: subtitleColor,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          onEdit();
-                          break;
-                        case 'remove':
-                          onRemove();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.edit,
-                              size: DesignTokens.iconInline,
-                            ),
-                            const SizedBox(width: DesignTokens.spacingSm),
-                            Text(context.t.edit),
-                          ],
+                        border: Border.all(
+                          color: active
+                              ? scheme.primary.withValues(alpha: 0.4)
+                              : scheme.outlineVariant,
                         ),
                       ),
-                      PopupMenuItem(
-                        value: 'remove',
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.delete,
-                              size: DesignTokens.iconInline,
-                            ),
-                            const SizedBox(width: DesignTokens.spacingSm),
-                            Text(context.t.remove),
-                          ],
+                      child: Favicon(
+                        url: server.homepage,
+                        shape: BoxShape.circle,
+                        size: DesignTokens.iconChipSize,
+                        iconSize: 20,
+                      ),
+                    ),
+                    const SizedBox(width: DesignTokens.spacingMd),
+                    Expanded(
+                      child: Text(
+                        server.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.theme.textTheme.bodyMedium?.copyWith(
+                          color: foreground,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
+                    ),
+                    if (active) ...[
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: DesignTokens.spacingSm),
                     ],
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      Icons.more_vert,
-                      size: DesignTokens.iconInline,
-                      color: active
-                          ? scheme.onSecondaryContainer
-                          : scheme.onSurfaceVariant,
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'edit':
+                            onEdit();
+                            break;
+                          case 'remove':
+                            onRemove();
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.edit,
+                                size: DesignTokens.iconInline,
+                              ),
+                              const SizedBox(width: DesignTokens.spacingSm),
+                              Text(context.t.edit),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'remove',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.delete,
+                                size: DesignTokens.iconInline,
+                              ),
+                              const SizedBox(width: DesignTokens.spacingSm),
+                              Text(context.t.remove),
+                            ],
+                          ),
+                        ),
+                      ],
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.more_horiz,
+                        size: DesignTokens.iconInline,
+                        color: active
+                            ? scheme.onSecondaryContainer
+                            : scheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

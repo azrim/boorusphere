@@ -1,10 +1,13 @@
-import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_badge.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:flutter/material.dart';
 
-/// Uppercase section label with an optional count badge and trailing action.
+/// Small-caps section label with a hairline underline, an optional count, and
+/// a trailing action.
+///
+/// The underline hugs the label instead of the row so a tall trailing action
+/// never stretches it.
 class DrawerSectionHeader extends StatelessWidget {
   const DrawerSectionHeader(this.label, {super.key, this.count, this.action});
 
@@ -15,26 +18,34 @@ class DrawerSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final labelStyle = context.theme.textTheme.labelSmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 1.4,
+    );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        0,
-        DesignTokens.spacingMd,
-        0,
-        DesignTokens.spacingSm,
+      padding: const EdgeInsets.only(
+        top: DesignTokens.spacingLg,
+        bottom: DesignTokens.spacingSm,
       ),
       child: Row(
         children: [
-          Text(
-            label.toUpperLocale(context),
-            style: context.theme.textTheme.titleSmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              letterSpacing: 0.8,
+          Container(
+            padding: const EdgeInsets.only(bottom: DesignTokens.spacingXs + 2),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
             ),
+            child: Text(label.toUpperLocale(context), style: labelStyle),
           ),
           if (count != null) ...[
             const SizedBox(width: DesignTokens.spacingSm),
-            DrawerBadge('$count'),
+            Text(
+              '$count',
+              style: labelStyle?.copyWith(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
           ],
           const Spacer(),
           if (action != null) action!,

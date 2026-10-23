@@ -1,5 +1,3 @@
-import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_badge.dart';
-import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_icon_chip.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_header.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -69,35 +67,13 @@ void main() {
     });
   });
 
-  group('DrawerIconChip', () {
-    testWidgets('grows with the text scale', (tester) async {
-      await tester.pumpWidget(
-        _host(
-          const DrawerIconChip(Icons.settings_outlined),
-          textScaler: const TextScaler.linear(1.3),
-        ),
-      );
-
-      final chip = tester.getSize(
-        find.descendant(
-          of: find.byType(DrawerIconChip),
-          matching: find.byType(Container),
-        ),
-      );
-      expect(chip.width, greaterThan(DesignTokens.iconChipSize));
-    });
-  });
-
   group('DrawerSectionHeader', () {
-    testWidgets('uppercases the label and shows the count badge', (
-      tester,
-    ) async {
+    testWidgets('uppercases the label and shows the count', (tester) async {
       await tester.pumpWidget(
         _host(const DrawerSectionHeader('Servers', count: 3)),
       );
 
       expect(find.text('SERVERS'), findsOneWidget);
-      expect(find.byType(DrawerBadge), findsOneWidget);
       expect(find.text('3'), findsOneWidget);
     });
 

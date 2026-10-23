@@ -134,12 +134,13 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Navigation (Home Drawer)
 - **Style**: Navigation drawer, opened by the leading server chip in the search bar or by an edge swipe (the swipe is disabled while the search bar is open); rounded right edge, width capped to the viewport
-- **Header**: brand mark + wordmark + tagline, with the theme switcher (light / dark / system) as a trailing quick action
-- **Servers**: each server is a rounded card — favicon chip, name, and host — with the active one highlighted (`secondaryContainer` fill + `primary` border) and exposed to TalkBack as `selected`. Removing a server asks for confirmation first. A "Manage" action opens the server list; an outline button adds a new server
+- **Header**: an eyebrow tagline above a lowercase wordmark closed by a `primary` dot; the theme switcher (light / dark / system) sits on the trailing edge inside a hairline-bordered square
+- **Sections**: each section is one grouped surface — a rounded `surfaceContainer` block with a hairline `outlineVariant` border — and the rows inside stay flat and transparent, so the container carries the only border. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
+- **Servers**: one compact row per server — favicon chip with a hairline border and the server name. The active server fills `secondaryContainer` with a `primary` hairline and a `primary` status dot, and is exposed to TalkBack as `selected`. Removing a server asks for confirmation first; the add-server row closes the group with a `primary` plus
 - **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
-- **Preferences**: Settings, Reset to default, and Exit (tinted with the error color)
-- **Footer**: app version and update status (spinner while downloading), opening About
-- **Colors**: section labels are muted uppercase `onSurfaceVariant`; icon chips stay neutral (`surfaceContainerHighest` / `onSurfaceVariant`), and only the count badges and the active-server highlight carry semantic scheme colors
+- **Preferences**: Settings and Reset to default
+- **Footer**: Exit (tinted with the error color), the update status when a newer version exists (spinner while downloading), and a version readout preceded by a `primary` status dot that opens About
+- **Colors**: section labels are muted uppercase `onSurfaceVariant`; row icons stay neutral `onSurfaceVariant`, and only the count badges, the active-server highlight, the add-server plus, and the footer status dot carry semantic scheme colors
 
 ### Bottom Sheet (Post Details)
 - **Shape**: Rounded top corners (12px), draggable snap points (0%, 50%, 90%)

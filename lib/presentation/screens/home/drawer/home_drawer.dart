@@ -4,13 +4,12 @@ import 'package:boorusphere/presentation/screens/home/drawer/drawer_library_sect
 import 'package:boorusphere/presentation/screens/home/drawer/drawer_preferences_section.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/drawer_server_section.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 
 /// Navigation drawer for the home screen.
 ///
-/// A brand header, a scrollable body (servers, library, preferences), and a
-/// pinned footer carrying the version and update status.
+/// A brand header, a scrollable body of grouped sections (servers, library,
+/// preferences), and a pinned footer carrying exit and the version readout.
 class HomeDrawer extends StatelessWidget {
   const HomeDrawer({super.key, required this.maxWidth});
 
@@ -32,18 +31,16 @@ class HomeDrawer extends StatelessWidget {
             const HomeDrawerHeader(),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DesignTokens.spacingLg,
+                padding: const EdgeInsets.fromLTRB(
+                  DesignTokens.spacingMd,
+                  0,
+                  DesignTokens.spacingMd,
+                  DesignTokens.spacingMd,
                 ),
-                children: [
-                  const DrawerServerSection(),
-                  const DrawerLibrarySection(),
-                  Divider(
-                    height: DesignTokens.spacingLg,
-                    color: context.colorScheme.outlineVariant,
-                  ),
-                  const DrawerPreferencesSection(),
-                  const SizedBox(height: DesignTokens.spacingMd),
+                children: const [
+                  DrawerServerSection(),
+                  DrawerLibrarySection(),
+                  DrawerPreferencesSection(),
                 ],
               ),
             ),

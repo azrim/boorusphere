@@ -3,14 +3,15 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/app_versions/app_versions_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
-import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_icon_chip.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// Pinned footer: app version, update status, and the About entry point.
+/// Pinned footer: exit, the update status when one is available, and the
+/// version readout that opens About.
 class DrawerFooter extends ConsumerWidget {
   const DrawerFooter({super.key});
 
@@ -19,19 +20,14 @@ class DrawerFooter extends ConsumerWidget {
     final scheme = context.colorScheme;
     final appVersions = ref.watch(appVersionsStateProvider);
     final updateProgress = ref.watch(appUpdateProgressProvider);
-
-    final currentTile = DrawerTile(
-      icon: Icons.info_outline,
-      label: appVersions.maybeWhen(
-        data: (data) => 'Boorusphere ${data.current}',
-        orElse: () => 'Boorusphere',
-      ),
-      onTap: () => context.router.push(const AboutRoute()),
+    final version = appVersions.maybeWhen(
+      data: (data) => data.current,
+      orElse: () => null,
     );
 
-    final tile = appVersions.maybeWhen(
+    final updateTile = appVersions.maybeWhen(
       data: (data) {
-        if (!data.latest.isNewerThan(data.current)) return currentTile;
+        if (!data.latest.isNewerThan(data.current)) return null;
         if (updateProgress.status.isDownloading) {
           return DrawerTile(
             leading: const SizedBox(
@@ -50,7 +46,7 @@ class DrawerFooter extends ConsumerWidget {
           );
         }
         return DrawerTile(
-          leading: const DrawerIconChip(Icons.info_outline),
+          icon: Icons.info_outline,
           label: context.t.updater.available(version: '${data.latest}'),
           subtitle: updateProgress.status.isDownloaded
               ? context.t.updater.install
@@ -58,7 +54,7 @@ class DrawerFooter extends ConsumerWidget {
           onTap: () => context.router.push(const AboutRoute()),
         );
       },
-      orElse: () => currentTile,
+      orElse: () => null,
     );
 
     return Column(
@@ -67,13 +63,86 @@ class DrawerFooter extends ConsumerWidget {
       children: [
         Divider(height: 1, color: scheme.outlineVariant),
         Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingLg,
-            vertical: DesignTokens.spacingSm,
+          padding: const EdgeInsets.fromLTRB(
+            DesignTokens.spacingMd,
+            DesignTokens.spacingSm,
+            DesignTokens.spacingMd,
+            0,
           ),
-          child: tile,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (updateTile != null) updateTile,
+              DrawerTile(
+                icon: Icons.logout,
+                label: context.t.exit,
+                danger: true,
+                onTap: () => _showExitDialog(context),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DesignTokens.spacingMd,
+            DesignTokens.spacingXs,
+            DesignTokens.spacingMd,
+            DesignTokens.spacingMd,
+          ),
+          child: InkWell(
+            onTap: () => context.router.push(const AboutRoute()),
+            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingSm,
+                vertical: DesignTokens.spacingXs,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: scheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: DesignTokens.spacingSm),
+                  Text(
+                    version == null ? 'Boorusphere' : 'Boorusphere $version',
+                    style: context.theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
+}
+
+void _showExitDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(context.t.exit),
+      content: Text(context.t.exitConfirmation),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.t.cancel),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            SystemNavigator.pop();
+          },
+          child: Text(context.t.exit),
+        ),
+      ],
+    ),
+  );
 }
