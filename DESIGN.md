@@ -134,8 +134,8 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Navigation (Home Drawer)
 - **Style**: Navigation drawer, opened by the leading server chip in the search bar or by an edge swipe (the swipe is disabled while the search bar is open); rounded right edge, width capped to the viewport
-- **Header**: an eyebrow tagline above a lowercase wordmark closed by a `primary` dot; the theme switcher (light / dark / system) sits on the trailing edge inside a hairline-bordered square
-- **Sections**: each section is one grouped surface — a rounded `surfaceContainer` block with a hairline `outlineVariant` border — and the rows inside stay flat and transparent, so the container carries the only border. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
+- **Header**: an eyebrow tagline above the wordmark, closed by a `primary` dot; the theme switcher (light / dark / system) sits on the trailing edge inside a hairline-bordered square
+- **Sections**: each section is one grouped surface — a rounded `surface` block with a hairline `outlineVariant` border — and the rows inside stay flat and transparent, so the container carries the only border. Painting `surface` keeps the block pure black in midnight instead of lifting it off the black drawer. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
 - **Servers**: one compact row per server — favicon chip with a hairline border and the server name. The active server fills `secondaryContainer` with a `primary` hairline and a `primary` status dot, and is exposed to TalkBack as `selected`. Removing a server asks for confirmation first; the add-server row closes the group with a `primary` plus
 - **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
 - **Preferences**: Settings and Reset to default

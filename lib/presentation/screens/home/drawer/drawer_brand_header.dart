@@ -48,9 +48,9 @@ class HomeDrawerHeader extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         DesignTokens.spacingLg,
-        DesignTokens.spacingLg,
         DesignTokens.spacingMd,
         DesignTokens.spacingMd,
+        DesignTokens.spacingSm,
       ),
       child: Row(
         children: [
@@ -73,7 +73,7 @@ class HomeDrawerHeader extends ConsumerWidget {
                 Text.rich(
                   TextSpan(
                     children: [
-                      TextSpan(text: 'boorosphere', style: wordmark),
+                      TextSpan(text: 'Boorusphere', style: wordmark),
                       TextSpan(
                         text: '.',
                         style: wordmark?.copyWith(color: scheme.primary),

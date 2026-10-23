@@ -17,7 +17,7 @@ class DrawerSectionGroup extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
         border: Border.all(color: scheme.outlineVariant),
       ),
