@@ -275,7 +275,7 @@ class _Downloader extends ConsumerWidget {
         if (hasUpdateApk)
           ElevatedButton(
             onPressed: () {
-              ref.watch(appUpdaterProvider).install(version);
+              ref.read(appUpdaterProvider).install(version);
             },
             child: Text(context.t.updater.install),
           ),
