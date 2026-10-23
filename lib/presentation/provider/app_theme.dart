@@ -108,7 +108,10 @@ ThemeData _createThemeDataMidnight(ColorScheme? scheme) {
     drawerTheme: origin.drawerTheme.copyWith(backgroundColor: Colors.black),
     colorScheme: origin.colorScheme.copyWith(
       brightness: Brightness.dark,
-      surface: origin.colorScheme.surface,
+      // The midnight rule is pure black surfaces. The container roles keep
+      // their tonal lift so depth still reads, but anything painting plain
+      // surface has to land on black instead of the night tint.
+      surface: Colors.black,
     ),
   );
 }
