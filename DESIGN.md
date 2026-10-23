@@ -51,6 +51,7 @@ Boorusphere is a content-first mobile image browser. The design philosophy is ra
 - Three-mode darkness: night (Material dark) and midnight (true AMOLED black) for image viewing
 - Gesture-driven: swipe navigation, drag-to-zoom, bottom-sheet details
 - Tactile micro-interactions: shimmer loading, staggered grid, parallax transitions
+- Section blocks: every chrome list — drawer, settings, server pages — groups its rows into one rounded surface under a small-caps label, so structure comes from a few quiet blocks instead of many cards
 
 ## 2. Colors
 
@@ -109,7 +110,8 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Shadow Vocabulary
 - **Snackbars**: Top-rounded (12px radius), primary container background. No shadow — depth from color contrast.
-- **Bottom sheets**: Standard Material 3 bottom sheet behavior. Backdrop blur (sigma 10) behind the details sheet.
+- **Bottom sheets**: Standard Material 3 bottom sheet behavior. Backdrop blur (sigma 10) behind the details sheet. Picker sheets paint `surface` with a hairline outline and 16px top radius — no elevation.
+- **Popup menus**: `surface` fill, hairline `outlineVariant` outline, 16px radius, no elevation. Menus are flat cards, not floating shadows.
 - **Grid items**: No shadows on thumbnails. Content is flat; depth comes from the staggered layout itself.
 
 ### Named Rules
@@ -117,6 +119,14 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 **The Flat Content Rule.** Image thumbnails never have shadows, borders, or elevation. They are the content. The only elevated surfaces are interactive chrome (FABs, snackbars, bottom sheets).
 
 ## 5. Components
+
+### Section Block
+The one primitive shared by the drawer, the settings pages, and the server pages.
+
+- **Surface**: `SectionSurface` — rounded (`radiusXl`) block painting `surface` with a hairline `outlineVariant` border and 4 dp inner padding. Painting `surface` keeps the block pure black in midnight
+- **Label**: `SectionLabel` — small caps, hairline underline hugging the text; `SectionHeading` adds the 24 dp space above, the 8 dp below, and an optional trailing action
+- **Rows**: `TileGroup` wraps `ListTile`s in the shared `ListTileTheme` (12 dp inset, rounded ink); custom rows (`DrawerTile`) match the same inset
+- **Why**: the container carries the only border, so a section reads as one block instead of a stack of separate cards
 
 ### Timeline Grid
 - **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
@@ -227,6 +237,7 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Do** let the staggered grid handle visual interest — varied aspect ratios are the texture
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
 - **Do** use curved transitions (easeOutCubic) for sheet expansion and page navigation
+- **Do** group related chrome rows into a section block with a small-caps label instead of scattering them as standalone cards
 
 ### Don't:
 - **Don't** add shadows, borders, or elevation to image thumbnails — they are the content, not cards
@@ -235,3 +246,5 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions) — deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens — the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations — motion serves feedback (loading, transitions), not delight for its own sake
+- **Don't** nest a filled, elevated, or bordered card inside a section block — the block owns the only surface and border, and rows stay flat inside it
+- **Don't** invent a second label or row style per screen — the section label, row title, and supporting text come from the shared scale
