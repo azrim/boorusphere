@@ -97,10 +97,6 @@ class Boorusphere extends HookConsumerWidget {
       return null;
     }, [sdkVersion]);
 
-    if (!initialized.value) {
-      return const SizedBox.shrink();
-    }
-
     return AppThemeBuilder(
       builder: (context, appTheme) => MaterialApp.router(
         debugShowCheckedModeBanner: false,
@@ -114,7 +110,30 @@ class Boorusphere extends HookConsumerWidget {
         locale: TranslationProvider.of(context).locale.digestedFlutterLocale,
         supportedLocales: AppLocaleUtils.supportedLocales,
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        builder: (context, child) => child ?? Container(),
+        // The boot gate lives inside the app, so the frame that waits for
+        // the servers carries the theme instead of a blank window.
+        builder: (context, child) => initialized.value
+            ? (child ?? const SizedBox.shrink())
+            : const _BootScreen(),
+      ),
+    );
+  }
+}
+
+/// First frame: the themed surface with a single progress ring, so the gap
+/// between the native launch screen and the timeline is not a blank window.
+class _BootScreen extends StatelessWidget {
+  const _BootScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: const Center(
+        child: SizedBox.square(
+          dimension: 28,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
+        ),
       ),
     );
   }

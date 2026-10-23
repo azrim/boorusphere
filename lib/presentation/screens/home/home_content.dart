@@ -29,26 +29,37 @@ class HomeContent extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pageState = ref.watch(pageStateProvider);
+    // Aspect-scoped reads: a selection tap or a fetch-status change must not
+    // rebuild the screen, and the derived values below stay memoized.
+    final data = ref.watch(pageStateProvider.select((it) => it.data));
+    final isData = ref.watch(
+      pageStateProvider.select((it) => it is DataFetchResult),
+    );
+    final isLoading = ref.watch(
+      pageStateProvider.select((it) => it is LoadingFetchResult),
+    );
     final session = ref.watch(searchSessionProvider);
     final servers = ref.watch(serverStateProvider);
 
-    // Optimize blocked tags lookup with Set for O(1) contains check
-    final blockedTagsSet = ref.watch(
-      tagsBlockerStateProvider.select(
-        (state) => state.values
-            .where(
-              (it) => it.serverId.isEmpty || it.serverId == session.serverId,
-            )
-            .map((it) => it.name)
-            .toSet(), // Convert to Set for faster lookup
-      ),
+    // The blocked set is derived, not selected: a fresh Set per read never
+    // compares equal, so select would rebuild on every blocker emission.
+    final blockers = ref.watch(tagsBlockerStateProvider);
+    final blockedTagsSet = useMemoized(
+      () => blockers.values
+          .where((it) => it.serverId.isEmpty || it.serverId == session.serverId)
+          .map((it) => it.name)
+          .toSet(),
+      [blockers, session.serverId],
     );
 
-    // Use more efficient filtering with Set lookup
-    final filteredPosts = pageState.data.posts
-        .where((it) => !it.allTags.any(blockedTagsSet.contains))
-        .toList(); // Convert to list once for better performance
+    // Filtering walks every post and allocates a list, so it runs only when
+    // the posts or the blocked set change.
+    final filteredPosts = useMemoized(
+      () => data.posts
+          .where((it) => !it.allTags.any(blockedTagsSet.contains))
+          .toList(),
+      [data.posts, blockedTagsSet],
+    );
 
     useEffect(() {
       if (servers.isNotEmpty) {
@@ -68,7 +79,7 @@ class HomeContent extends HookConsumerWidget {
 
     // React to a successful page change: scroll back to the top and drop any
     // selection that belonged to the previous page.
-    final pageIndex = pageState.data.pageIndex;
+    final pageIndex = data.pageIndex;
     final lastPageIndex = useMemoized(() => <int>[pageIndex]);
     useEffect(() {
       final previous = lastPageIndex[0];
@@ -82,18 +93,22 @@ class HomeContent extends HookConsumerWidget {
       return null;
     }, [pageIndex, scrollController]);
 
-    final isNewSearch =
-        pageState is! DataFetchResult && pageState.data.option.clear;
+    final isNewSearch = !isData && data.option.clear;
 
-    // Watch selection state for bottom action bar
-    final selection = ref.watch(postSelectionProvider);
-    final hasSelection = selection.isNotEmpty;
+    // The bar only needs the count; the selected set is read on demand so a
+    // tap does not rebuild the whole screen.
+    final hasSelection = ref.watch(
+      postSelectionProvider.select((it) => it.isNotEmpty),
+    );
+    final selectedCount = ref.watch(
+      postSelectionProvider.select((it) => it.length),
+    );
 
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final barHeight = useValueListenable(HomeSearchBar.height);
     final showPagination =
         !isNewSearch &&
-        pageState.data.posts.isNotEmpty &&
+        data.posts.isNotEmpty &&
         !hasSelection &&
         !searchBar.isOpen;
 
@@ -179,10 +194,10 @@ class HomeContent extends HookConsumerWidget {
             bottom: barHeight + DesignTokens.spacingSm,
             child: Center(
               child: _PaginationPill(
-                pageIndex: pageState.data.pageIndex,
-                hasPrev: pageState.data.hasPrev,
-                hasNext: pageState.data.hasNext,
-                loading: pageState is LoadingFetchResult,
+                pageIndex: data.pageIndex,
+                hasPrev: data.hasPrev,
+                hasNext: data.hasNext,
+                loading: isLoading,
                 onPrev: () =>
                     unawaited(ref.read(pageStateProvider.notifier).prevPage()),
                 onNext: () =>
@@ -199,8 +214,9 @@ class HomeContent extends HookConsumerWidget {
             left: DesignTokens.spacingMd,
             right: DesignTokens.spacingMd,
             child: _SelectionActionBar(
-              selectedCount: selection.length,
+              selectedCount: selectedCount,
               onDownload: (asArchive) async {
+                final selection = ref.read(postSelectionProvider);
                 final selectedPosts = filteredPosts
                     .where((post) => selection.contains(post.id))
                     .toList();
@@ -256,6 +272,7 @@ class HomeContent extends HookConsumerWidget {
               },
               onFavorite: () async {
                 // Batch favorite: add selected posts to favorites
+                final selection = ref.read(postSelectionProvider);
                 final selectedPosts = filteredPosts
                     .where((post) => selection.contains(post.id))
                     .toList();
