@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/screens/post/hooks/video_post.dart';
 import 'package:boorusphere/presentation/screens/post/post_placeholder_image.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -43,6 +44,7 @@ class PostMedia extends StatelessWidget {
     this.onShowDetails,
     this.onSwipeUp,
     this.onSwipeDown,
+    this.zoomResetSignal,
   });
 
   final Post post;
@@ -71,6 +73,10 @@ class PostMedia extends StatelessWidget {
   /// this to dismiss the route.
   final VoidCallback? onSwipeDown;
 
+  /// Fires when the viewer wants the image back at fit-to-screen, e.g. when
+  /// Back is pressed while zoomed. Ignored by non-image kinds.
+  final Listenable? zoomResetSignal;
+
   @override
   Widget build(BuildContext context) {
     return switch (post.content.type) {
@@ -80,6 +86,7 @@ class PostMedia extends StatelessWidget {
         onTap: onTap,
         onSwipeUp: onSwipeUp,
         onSwipeDown: onSwipeDown,
+        zoomResetSignal: zoomResetSignal,
       ),
       PostType.video => _PostVideo(
         post: post,
@@ -107,6 +114,7 @@ class _PostImage extends HookConsumerWidget {
     this.onTap,
     this.onSwipeUp,
     this.onSwipeDown,
+    this.zoomResetSignal,
   });
 
   final Post post;
@@ -132,6 +140,9 @@ class _PostImage extends HookConsumerWidget {
   /// rest (scale == 1). The post viewer uses this to dismiss the route.
   final VoidCallback? onSwipeDown;
 
+  /// Animates the image back to fit-to-screen when the viewer asks for it.
+  final Listenable? zoomResetSignal;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contentSetting = ref.watch(contentSettingStateProvider);
@@ -141,7 +152,7 @@ class _PostImage extends HookConsumerWidget {
     final isBlur = useState(post.rating.isExplicit && shouldBlurExplicit);
     final transformController = useTransformationController();
     final zoomAnimator = useAnimationController(
-      duration: const Duration(milliseconds: 150),
+      duration: context.motionDuration(const Duration(milliseconds: 150)),
     );
     final wasZoomed = useRef(false);
     final activePointers = useRef(0);
@@ -176,6 +187,35 @@ class _PostImage extends HookConsumerWidget {
       transformController.addListener(onTransformChange);
       return () => transformController.removeListener(onTransformChange);
     }, [transformController]);
+
+    // Back while zoomed returns the image to fit-to-screen instead of
+    // leaving the viewer, matching the platform photo-viewer model.
+    final resetSignal = zoomResetSignal;
+    useEffect(() {
+      if (resetSignal == null) return null;
+
+      Future<void> resetZoom() async {
+        final current = transformController.value.clone();
+        if (current.getMaxScaleOnAxis() <= 1.01) return;
+
+        final animation = Matrix4Tween(
+          begin: current,
+          end: Matrix4.identity(),
+        ).animate(zoomAnimator);
+
+        void onAnimating() => transformController.value = animation.value;
+
+        if (zoomAnimator.isCompleted) {
+          zoomAnimator.reset();
+        }
+        animation.addListener(onAnimating);
+        await zoomAnimator.forward();
+        animation.removeListener(onAnimating);
+      }
+
+      resetSignal.addListener(resetZoom);
+      return () => resetSignal.removeListener(resetZoom);
+    }, [resetSignal, transformController, zoomAnimator]);
 
     final imageUrl = useMemoized(
       () => contentSetting.loadOriginal ? post.originalFile : post.content.url,
@@ -644,8 +684,10 @@ class _PostVideoState extends State<_PostVideo> {
       key: ValueKey('video_${widget.post.id}_${widget.post.serverId}'),
       onVisibilityChanged: (info) {
         if (!mounted) return;
+        final visible = info.visibleFraction > 0;
+        if (visible == _visible) return;
         setState(() {
-          _visible = info.visibleFraction > 0;
+          _visible = visible;
         });
       },
       child: _PostVideoContent(
@@ -897,53 +939,75 @@ class _ToolboxOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            if (onShowDetails != null)
-              PostDetailsButton(onPressed: onShowDetails!),
-            PostFavoriteButton(
-              key: ValueKey('fav_${post.id}_${post.serverId}'),
-              post: post,
-            ),
-            PostDownloadButton(
-              key: ValueKey('dl_${post.id}_${post.serverId}'),
-              post: post,
-            ),
-            IconButton(
-              padding: const EdgeInsets.all(16),
-              color: Colors.white,
-              onPressed: () async {
-                final mute = await ref
-                    .read(contentSettingStateProvider.notifier)
-                    .toggleVideoPlayerMute();
-                await source.controller?.setVolume(mute ? 0 : 1);
-              },
-              icon: Icon(isMuted ? Icons.volume_mute : Icons.volume_up),
-            ),
-            IconButton(
-              color: Colors.white,
-              icon: Icon(
-                isFullscreen
-                    ? Icons.fullscreen_exit
-                    : Icons.fullscreen_outlined,
-              ),
-              padding: const EdgeInsets.all(16),
-              onPressed: () {
-                ref
-                    .read(fullscreenStateProvider.notifier)
-                    .toggle(shouldLandscape: post.width > post.height);
-                onAutoHideRequest?.call();
-              },
-            ),
-          ],
+    final viewPadding = context.mqViewPadding;
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Colors.black54, Colors.transparent],
         ),
-        if (!source.hasError) _Progress(source: source),
-      ],
+      ),
+      padding: EdgeInsets.only(
+        left: viewPadding.left + DesignTokens.spacingSm,
+        right: viewPadding.right + DesignTokens.spacingSm,
+        bottom: viewPadding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (onShowDetails != null)
+                PostDetailsButton(onPressed: onShowDetails!),
+              PostFavoriteButton(
+                key: ValueKey('fav_${post.id}_${post.serverId}'),
+                post: post,
+              ),
+              PostDownloadButton(
+                key: ValueKey('dl_${post.id}_${post.serverId}'),
+                post: post,
+              ),
+              IconButton(
+                padding: const EdgeInsets.all(16),
+                color: Colors.white,
+                tooltip: isMuted
+                    ? context.t.viewer.unmute
+                    : context.t.viewer.mute,
+                onPressed: () async {
+                  final mute = await ref
+                      .read(contentSettingStateProvider.notifier)
+                      .toggleVideoPlayerMute();
+                  await source.controller?.setVolume(mute ? 0 : 1);
+                },
+                icon: Icon(isMuted ? Icons.volume_mute : Icons.volume_up),
+              ),
+              IconButton(
+                color: Colors.white,
+                tooltip: isFullscreen
+                    ? context.t.viewer.exitFullscreen
+                    : context.t.viewer.fullscreen,
+                icon: Icon(
+                  isFullscreen
+                      ? Icons.fullscreen_exit
+                      : Icons.fullscreen_outlined,
+                ),
+                padding: const EdgeInsets.all(16),
+                onPressed: () {
+                  ref
+                      .read(fullscreenStateProvider.notifier)
+                      .toggle(shouldLandscape: post.width > post.height);
+                  onAutoHideRequest?.call();
+                },
+              ),
+            ],
+          ),
+          if (!source.hasError) _Progress(source: source),
+        ],
+      ),
     );
   }
 }
@@ -1005,6 +1069,7 @@ class _PlayPauseOverlay extends StatelessWidget {
         padding: const EdgeInsets.all(8.0),
         color: Colors.white,
         iconSize: 72,
+        tooltip: isPlaying ? context.t.viewer.pause : context.t.viewer.play,
         icon: Icon(isPlaying ? Icons.pause_outlined : Icons.play_arrow),
         onPressed: onPressed,
       ),

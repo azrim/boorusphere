@@ -93,6 +93,10 @@ class EnhancedPostViewer extends HookConsumerWidget {
     // Sheet controller for details
     final sheetController = useMemoized(DraggableScrollableController.new);
     final sheetExpanded = useState(false);
+    // Whether the visible image is zoomed in. Back has to undo that before
+    // it leaves the viewer, so the state lives here as well as in PostMedia.
+    final zoomed = useState(false);
+    final zoomResetTick = useMemoized(() => ValueNotifier<int>(0));
 
     // Post notifier for details sheet. Empty deps because the notifier
     // must survive parent rebuilds — `onPageChanged` updates its .value
@@ -130,7 +134,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
     final precachePosts = usePrecachePosts(ref, posts);
 
     final isVerticalMode = swipeMode == SwipeMode.vertical;
-    final isLargeScreen = MediaQuery.of(context).size.width > 600;
+    final isLargeScreen = MediaQuery.sizeOf(context).width > 600;
+
+    useEffect(() => zoomResetTick.dispose, [zoomResetTick]);
 
     useEffect(() {
       showAppbar.value = !fullscreen;
@@ -202,9 +208,16 @@ class EnhancedPostViewer extends HookConsumerWidget {
     }
 
     return PopScope(
-      canPop: !sheetExpanded.value,
+      // Back closes the sheet, then resets a zoom, then leaves the viewer.
+      canPop: !sheetExpanded.value && !zoomed.value,
       onPopInvokedWithResult: (didPop, result) async {
-        if (!didPop && sheetExpanded.value) {
+        if (didPop) {
+          ref.read(fullscreenStateProvider.notifier).reset();
+          context.scaffoldMessenger.removeCurrentSnackBar();
+          return;
+        }
+
+        if (sheetExpanded.value) {
           // Close sheet instead of popping
           await sheetController.animateTo(
             0,
@@ -213,8 +226,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
           );
           return;
         }
-        ref.read(fullscreenStateProvider.notifier).reset();
-        context.scaffoldMessenger.removeCurrentSnackBar();
+
+        zoomResetTick.value++;
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -286,7 +299,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                 'media_${post.id}_${post.serverId}',
                               ),
                               post: post,
+                              zoomResetSignal: zoomResetTick,
                               onZoomChanged: (isZoomed) {
+                                zoomed.value = isZoomed;
                                 // Disable PageView swipe while the image
                                 // is zoomed in so panning the zoomed
                                 // image cannot accidentally page to the
