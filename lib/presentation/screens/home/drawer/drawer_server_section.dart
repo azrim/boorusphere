@@ -215,7 +215,7 @@ class _ServerRow extends StatelessWidget {
                         server.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: context.theme.textTheme.bodyMedium?.copyWith(
+                        style: context.theme.textTheme.bodyLarge?.copyWith(
                           color: foreground,
                           fontWeight: FontWeight.w500,
                         ),

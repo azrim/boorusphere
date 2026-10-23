@@ -92,6 +92,17 @@ The palette is adaptive — Material You generates the full scheme from a single
 
 **The Invisible Typography Rule.** Typography should never be the loudest element on screen. Images are the hero. Text exists to label, navigate, and inform — never to decorate.
 
+### Surface Type Scale
+Every row inside a grouped surface — drawer, settings, server lists, forms — uses the same roles:
+
+- **Section label**: 11 sp, bold, 1.4 tracking, uppercase, `onSurfaceVariant`, hairline underline
+- **Row title**: 16 sp `bodyLarge`, `onSurface` — the only primary text in a row
+- **Row supporting text**: 12 sp `bodySmall`, `onSurfaceVariant`, 1.4 line height
+- **Field label**: 11 sp `labelSmall`, `onSurfaceVariant`; the value stays 16 sp
+- **Section description / helper**: 12 sp `bodySmall`, `onSurfaceVariant`
+
+**The One Scale Rule.** These roles come from the theme (`ListTileTheme`, the field decoration), never from a per-widget `copyWith` on a different size, so a title is 16 sp in settings and in the server form alike. Spacing follows the same rhythm: 12 dp row inset, 8 dp between a label and its text, 8 dp between fields, 24 dp above a section label and 8 dp below it.
+
 ## 4. Elevation
 
 The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightness (light mode) or reduce brightness (dark mode) as elevation increases, creating depth through color temperature rather than drop shadows.

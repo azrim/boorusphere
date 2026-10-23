@@ -198,7 +198,7 @@ class ServerDetails extends HookConsumerWidget {
                         children: [
                           Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: DesignTokens.spacingXs,
+                              horizontal: DesignTokens.spacingCardInset,
                               vertical: DesignTokens.spacingXs,
                             ),
                             child: Text(

@@ -105,9 +105,18 @@ ThemeData _createThemeData(ColorScheme? scheme, Brightness brightness) {
       backgroundColor: colorScheme.primaryContainer,
       contentTextStyle: TextStyle(color: colorScheme.onPrimaryContainer),
     ),
+    // One type scale for every row: a 16 sp title over a 12 sp muted
+    // description, so settings, server lists and drawers read the same.
     listTileTheme: origin.listTileTheme.copyWith(
-      minVerticalPadding: 12,
+      minVerticalPadding: DesignTokens.spacingCardInset,
       iconColor: colorScheme.onSurfaceVariant,
+      titleTextStyle: origin.textTheme.bodyLarge?.copyWith(
+        color: colorScheme.onSurface,
+      ),
+      subtitleTextStyle: origin.textTheme.bodySmall?.copyWith(
+        color: colorScheme.onSurfaceVariant,
+        height: 1.4,
+      ),
     ),
   );
 }
