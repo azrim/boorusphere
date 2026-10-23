@@ -72,3 +72,6 @@ releasenote.md
 
 # CodeBuddy Code guidance
 CODEBUDDY.md
+
+# Superdesign design context (repo-local cache)
+.superdesign/
