@@ -26,26 +26,27 @@ class ErrorInfo extends HookWidget {
   final EdgeInsets padding;
 
   String describeError(BuildContext context) {
+    final t = TranslationProvider.of(context).translations;
     dynamic e = error;
     String? host;
     if (e == null) {
-      final t = TranslationProvider.of(context).translations;
       return t.error.unknown;
     }
 
     while (true) {
       if (e is HandshakeException) {
-        final hostInfo = host != null ? ' to $host' : '';
-        return 'Cannot establish a secure connection$hostInfo';
+        return host != null
+            ? t.error.insecureConnectionHost(host: host)
+            : t.error.insecureConnection;
       } else if (e is HttpException || e is SocketException) {
         if (host == null && e is SocketException) {
           host = e.address?.host;
         }
         return host != null
-            ? 'Failed to connect to $host'
-            : 'Connection failed';
+            ? t.error.connectionFailedHost(host: host)
+            : t.error.connectionFailed;
       } else if (e is TimeoutException) {
-        return 'Connection timeout';
+        return t.error.connectionTimeout;
       } else if (e is! DioException) {
         try {
           // let's try to obtain exception message
@@ -85,9 +86,13 @@ class ErrorInfo extends HookWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16, bottom: 8),
-                    child: Text('Stacktrace:'),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16, bottom: 8),
+                    child: Text(
+                      TranslationProvider.of(
+                        context,
+                      ).translations.error.stacktrace,
+                    ),
                   ),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 128),

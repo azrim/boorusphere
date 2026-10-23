@@ -286,10 +286,10 @@ class _SearchHistory extends HookConsumerWidget {
               ref.read(searchHistoryStateProvider.notifier).delete(entry.key);
             },
             background: Container(
-              color: Colors.red,
+              color: context.colorScheme.error,
               alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 16),
-              child: const Icon(Icons.delete, color: Colors.white),
+              padding: const EdgeInsets.only(right: DesignTokens.spacingMd),
+              child: Icon(Icons.delete, color: context.colorScheme.onError),
             ),
             child: _SuggestionEntryTile(
               data: _SuggestionEntry(
@@ -401,12 +401,9 @@ class _Suggestion extends HookConsumerWidget {
     }
 
     return switch (suggestion) {
-      IdleFetchResult() => const SliverToBoxAdapter(
-        child: SizedBox(
-          height: 48,
-          child: Center(child: Text('Start typing to see suggestions...')),
-        ),
-      ),
+      // Nothing to say yet: the list only appears once a query has been
+      // submitted, so an idle state renders no panel at all.
+      IdleFetchResult() => const SliverToBoxAdapter(),
       DataFetchResult(:final data) => SliverList.builder(
         itemCount: data.length.clamp(0, 20), // Show more suggestions
         itemBuilder: (context, index) {

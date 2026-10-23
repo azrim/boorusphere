@@ -375,7 +375,13 @@
     "vertical_desc": "Swipe up/down to navigate between posts"
   },
   "error": {
-    "unknown": "Something went wrong and we don't know why"
+    "unknown": "Something went wrong and we don't know why",
+    "connection_failed": "Connection failed",
+    "connection_failed_host": "Failed to connect to ${host}",
+    "connection_timeout": "Connection timeout",
+    "insecure_connection": "Cannot establish a secure connection",
+    "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+    "stacktrace": "Stacktrace"
   },
   "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
   "downloads_hint": "Open any post and tap download to save it to your device.",
