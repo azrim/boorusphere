@@ -34,7 +34,16 @@ class ServerState extends _$ServerState {
     }
   }
 
+  /// Adds a server, refusing a name that resolves to an existing key.
+  ///
+  /// The key is derived from the name, so "My Site", "My-Site" and "my_site"
+  /// all address the same entry, so saving one of them would replace the
+  /// existing server, credentials included, without a word.
   Future<void> add(Server data) async {
+    if (state.any((it) => it.key == data.key)) {
+      throw ServerAlreadyExistsException(data);
+    }
+
     final repo = ref.read(serverRepoProvider);
     await repo.add(data);
     state = repo.servers;
@@ -72,6 +81,16 @@ class ServerState extends _$ServerState {
       await settings.setLastActiveId(state.first.id);
     }
   }
+}
+
+/// Raised when a server name collides with an existing entry.
+class ServerAlreadyExistsException implements Exception {
+  const ServerAlreadyExistsException(this.server);
+
+  final Server server;
+
+  @override
+  String toString() => 'ServerAlreadyExistsException(${server.key})';
 }
 
 extension ServerDataListExt on Iterable<Server> {

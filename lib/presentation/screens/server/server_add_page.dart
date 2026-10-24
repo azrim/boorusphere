@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -239,6 +240,10 @@ class ServerAddPage extends HookConsumerWidget {
 
       try {
         final scanned = await scanner.scan(base);
+        // The page can be gone by the time a scan settles; its hooks are
+        // disposed with it.
+        if (!context.mounted) return;
+
         if (scanned.searchParserId.isEmpty) {
           scanFailed.value = true;
           return;
@@ -250,14 +255,39 @@ class ServerAddPage extends HookConsumerWidget {
         server.value = result;
         scanResult.value = result;
       } catch (_) {
+        if (!context.mounted) return;
         scanFailed.value = true;
       }
     }
 
-    void submit() {
+    /// Saves the server and leaves the page.
+    ///
+    /// A name that resolves to an existing key is refused: saving it would
+    /// replace that server's configuration, credentials included.
+    Future<void> submit() async {
       final serverPod = ref.read(serverStateProvider.notifier);
-      serverPod.add(server.value);
-      context.router.maybePop();
+      try {
+        await serverPod.add(server.value);
+      } on ServerAlreadyExistsException {
+        if (!context.mounted) return;
+        context.scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              context.t.servers.alreadyExists(name: server.value.name),
+            ),
+          ),
+        );
+        return;
+      } catch (e, stack) {
+        mainLog.e('Servers: failed to save ${server.value.key}', e, stack);
+        if (!context.mounted) return;
+        context.scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text(context.t.error.unknown)),
+        );
+        return;
+      }
+
+      if (context.mounted) await context.router.maybePop();
     }
 
     return Scaffold(
