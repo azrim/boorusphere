@@ -138,7 +138,7 @@ class Downloader {
   }) async {
     final fileUrl = url ?? post.originalFile;
     // sanitize forbidden characters on the file name
-    final fileName = Uri.decodeComponent(
+    final fileName = decodeComponentSafely(
       fileUrl.fileName,
     ).replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_]+)'), '_');
 
