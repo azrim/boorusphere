@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
+import 'package:boorusphere/presentation/theme/color_palettes.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
@@ -195,16 +196,7 @@ class _ColorPalette extends ConsumerWidget {
               return ListTile(
                 title: Text(palette.displayName),
                 selected: currentPalette == palette,
-                leading: palette.accentColor != null
-                    ? Container(
-                        width: DesignTokens.iconChipSize,
-                        height: DesignTokens.iconChipSize,
-                        decoration: BoxDecoration(
-                          color: palette.accentColor,
-                          shape: BoxShape.circle,
-                        ),
-                      )
-                    : const Icon(Icons.brightness_auto),
+                leading: _PaletteSwatch(palette: palette),
                 trailing: currentPalette == palette
                     ? Icon(Icons.check, color: context.colorScheme.primary)
                     : null,
@@ -219,6 +211,49 @@ class _ColorPalette extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Previews a palette with its own page and accent colours, so the list reads
+/// as themes rather than as a row of dots.
+class _PaletteSwatch extends StatelessWidget {
+  const _PaletteSwatch({required this.palette});
+
+  final ColorPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = paletteColorsFor(palette, Theme.of(context).brightness);
+    final accent = palette.accentColor;
+
+    if (colors == null) {
+      return accent == null
+          ? const Icon(Icons.brightness_auto)
+          : Container(
+              width: DesignTokens.iconChipSize,
+              height: DesignTokens.iconChipSize,
+              decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+            );
+    }
+
+    return Container(
+      width: DesignTokens.iconChipSize,
+      height: DesignTokens.iconChipSize,
+      decoration: BoxDecoration(
+        color: colors.background,
+        shape: BoxShape.circle,
+        border: Border.all(color: colors.border),
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: DesignTokens.iconChipSize / 2,
+        height: DesignTokens.iconChipSize / 2,
+        decoration: BoxDecoration(
+          color: colors.primary,
+          shape: BoxShape.circle,
+        ),
+      ),
     );
   }
 }

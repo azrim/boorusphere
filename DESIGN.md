@@ -43,11 +43,11 @@ spacing:
 
 **Creative North Star: "The Curated Vault"**
 
-Boorusphere is a content-first mobile image browser. The design philosophy is radical minimalism in chrome, maximum expression in content. Every screen should feel like opening a window onto a well-organized collection — the UI recedes so images can breathe. Three theme modes (day, night, midnight AMOLED) give users control over their viewing environment, with dynamic Material You color adapting to the device wallpaper or a curated palette of 10 accent colors.
+Boorusphere is a content-first mobile image browser. The design philosophy is radical minimalism in chrome, maximum expression in content. Every screen should feel like opening a window onto a well-organized collection — the UI recedes so images can breathe. Three theme modes (day, night, midnight AMOLED) give users control over their viewing environment, with dynamic Material You color adapting to the device wallpaper, or one of eight curated editor palettes that recolour every surface.
 
 **Key Characteristics:**
 - Content-first: images dominate every screen; chrome is minimal and purposeful
-- Adaptive: dynamic color theming with 10 curated palette presets
+- Adaptive: wallpaper-driven dynamic color, or eight curated editor palettes that recolour every surface
 - Three-mode darkness: night (Material dark) and midnight (true AMOLED black) for image viewing
 - Gesture-driven: swipe navigation, drag-to-zoom, bottom-sheet details
 - Tactile micro-interactions: shimmer loading, staggered grid, parallax transitions
@@ -55,28 +55,34 @@ Boorusphere is a content-first mobile image browser. The design philosophy is ra
 
 ## 2. Colors
 
-The palette is adaptive — Material You generates the full scheme from a single seed color. Ten curated accent palettes are available as alternatives.
+A scheme is produced one of two ways. The **System** palette takes the wallpaper scheme on Android 12+ and harmonizes it; **Material You** generates a scheme from the brand seed. The eight named palettes — Dracula, Catppuccin, Nord, Solarized, Gruvbox, One Dark, Monokai, GitHub — are curated: each owns its page, cards, text, hairlines and accents the way a code editor theme does, so picking one recolours the whole app instead of only shifting the accent hue.
 
-### Primary
-- **Dynamic Accent** (#9516E5 default / adapts to wallpaper): Primary action color, FABs, active indicators, progress bars. Generated from seed via `ColorScheme.fromSeed()`.
+### What a curated palette decides
 
-### Surface
-- **Day Surface** (#FFFBFE): Light mode background. Slightly tinted via `shade(3)`.
-- **Night Surface** (#1C1B1F): Dark mode background. Tinted via `shade(30)`.
+- **Page**: the surface every screen paints behind its content.
+- **Panel**: cards, sheets, inputs and menus — the surface that sits on the page.
+- **Text / Muted**: primary and secondary text, both held at or above 4.5:1 on the page and on the panel.
+- **Primary / Secondary / Tertiary**: accents, each at or above 3:1 on the page.
+- **Border**: hairlines and section dividers.
+
+Containers, inverse roles and the intermediate surface steps are derived from those in `PaletteColors.toScheme`, so every palette keeps the same structure.
+
+### Generated palettes
+
+- **Dynamic Accent** (#9516E5 default / adapts to wallpaper): Primary action color, FABs, active indicators, progress bars.
+- **Day Surface** (#FFFBFE): Light mode background, tinted via `shade(3)`.
+- **Night Surface** (#1C1B1F): Dark mode background, tinted via `shade(30)`.
 - **Midnight Surface** (#000000): True AMOLED black. Pure black for OLED power savings.
-
-### Container
-- **Primary Container** (#F0DBFF light / #4A0080 dark): Snackbar backgrounds, chip fills, badges. Generated from seed.
-
-### Neutral
-- **On-Surface** (#1C1B1F / #E6E1E5 dark): Primary text color. Follows Material 3 tonal mapping.
-- **Outline Variant** (45% opacity): Subtle borders and dividers. Harmonized with the active color scheme. The hairline is often the only delimiter a section block has, so it has to stay visible on both the day surface and pure black.
+- **Outline Variant** (45% opacity): the hairline for generated schemes.
+- **Primary Container** (#F0DBFF light / #4A0080 dark): Snackbar backgrounds, chip fills, badges.
 
 ### Named Rules
 
-**The Adaptive Rule.** No color is ever hard-coded. All colors flow through `ColorScheme.fromSeed()` or the dynamic color system. The accent palette presets swap the seed color; the scheme harmonizes the rest.
+**The Adaptive Rule.** No widget hard-codes a color. Widgets read `ColorScheme`; hex values live only in `lib/presentation/theme/color_palettes.dart` and the theme builder.
 
-**The Midnight Rule.** Midnight mode uses pure black (#000) surfaces — no tinting, no elevation shadows. Depth is conveyed by surface hierarchy alone.
+**The Palette Rule.** A curated palette is never harmonized and its surfaces are never re-shaded — the theme is shown as designed, down to its own page color.
+
+**The Midnight Rule.** Midnight mode uses pure black (#000) surfaces — no tinting, no elevation shadows. Curated accents survive; only the surface collapses to black.
 
 ## 3. Typography
 
