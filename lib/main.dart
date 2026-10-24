@@ -62,13 +62,13 @@ void main() async {
   Hive.registerAdapter(DownloadProgressAdapter());
 
   await Future.wait([
-    UserServerRepo.prepare(),
-    BooruTagsBlockerRepo.prepare(),
-    UserFavoritePostRepo.prepare(),
-    UserSearchHistoryRepo.prepare(),
-    UserSettingsRepo.prepare(),
-    UserDownloadsRepo.prepare(),
-    CurrentAppStateRepo.prepare(),
+    _prepare('servers', UserServerRepo.prepare),
+    _prepare('blocked tags', BooruTagsBlockerRepo.prepare),
+    _prepare('favorites', UserFavoritePostRepo.prepare),
+    _prepare('search history', UserSearchHistoryRepo.prepare),
+    _prepare('settings', UserSettingsRepo.prepare),
+    _prepare('downloads', UserDownloadsRepo.prepare),
+    _prepare('app state', CurrentAppStateRepo.prepare),
   ]);
 
   LocaleHelper.setupPluralResolver();
@@ -96,4 +96,17 @@ void main() async {
       child: TranslationProvider(child: const Boorusphere()),
     ),
   );
+}
+
+/// Runs a repository's start-up work without letting a failure stop the app.
+///
+/// A box that cannot be opened only breaks the feature that owns it, while a
+/// rejected [Future.wait] would take the whole boot down and leave the process
+/// without a UI, on this launch and on every launch after it.
+Future<void> _prepare(String name, Future<void> Function() prepare) async {
+  try {
+    await prepare();
+  } catch (e, stack) {
+    mainLog.e('Boot: failed to prepare $name', e, stack);
+  }
 }

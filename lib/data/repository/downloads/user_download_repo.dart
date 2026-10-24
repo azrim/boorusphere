@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/repository/downloads_repo.dart';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
+import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:path/path.dart' as path;
@@ -42,19 +46,51 @@ class UserDownloadsRepo implements DownloadsRepo {
 
   @override
   Future<void> clearEntries() async {
-    final tasks = await FlutterDownloader.loadTasks();
-    if (tasks != null) {
-      await Future.wait(
-        tasks.map(
-          (e) async => await FlutterDownloader.remove(
-            taskId: e.taskId,
-            shouldDeleteContent: false,
+    final entries = entryBox.values.toList();
+
+    // The plugin database is shared with the rest of the app and still holds
+    // tasks this repo never recorded. Removing those would leave their owner
+    // pointing at a row that no longer exists, so only the ids with an entry
+    // here are removed.
+    final owned = entryBox.keys.toSet();
+    // The update APK is tracked here as well, and its entry is hidden from the
+    // downloads list. APK tasks belong to the updater, which clears them on
+    // its own (see `AppUpdater.clear`), so they are left alone here: removing
+    // one would cancel an update the user cannot see.
+    final kept = <String>{};
+    try {
+      final tasks = await FlutterDownloader.loadTasks();
+      if (tasks != null) {
+        final removable = <DownloadTask>[];
+        for (final task in tasks) {
+          if (!owned.contains(task.taskId)) {
+            continue;
+          }
+          if (_isUpdaterTask(task.filename)) {
+            kept.add(task.taskId);
+            mainLog.d('Downloads: keeping ${task.taskId} (${task.filename})');
+            continue;
+          }
+          removable.add(task);
+        }
+        await Future.wait(
+          removable.map(
+            (task) => FlutterDownloader.remove(
+              taskId: task.taskId,
+              shouldDeleteContent: false,
+            ),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e, stack) {
+      mainLog.e('Downloads: failed to clear native tasks', e, stack);
     }
 
-    await entryBox.deleteAll(entryBox.keys);
+    // The records are the only handle the app has on the files, so they are
+    // dropped last: without them nothing is left to delete the files from.
+    await _deleteFiles(entries.where((entry) => !kept.contains(entry.id)));
+
+    await entryBox.deleteAll(entryBox.keys.where((key) => !kept.contains(key)));
   }
 
   @override
@@ -68,10 +104,35 @@ class UserDownloadsRepo implements DownloadsRepo {
   static Future<void> prepare() async {
     final entryBox = await Hive.openBox<DownloadEntry>(entryKey);
     final progressBox = await Hive.openBox<DownloadProgress>(progressKey);
-    await _adaptEntryDest(entryBox);
-    await _migrateProgresses(progressBox);
-    await FlutterDownloader.initialize();
-    await _syncProgresses(entryBox, progressBox);
+    // The boxes above carry everything the rest of the app reads, while the
+    // steps below only enrich them. A locked or corrupt native task database,
+    // an unreachable storage path or a failing plugin channel has to leave a
+    // bootable app behind instead of taking the whole start-up down.
+    await _guard(
+      'adapt stored download paths',
+      () => _adaptEntryDest(entryBox),
+    );
+    await _guard(
+      'import native download tasks',
+      () => _migrateProgresses(progressBox),
+    );
+    await _guard(
+      'initialize the download plugin',
+      FlutterDownloader.initialize,
+    );
+    await _guard(
+      'reconcile download progress',
+      () => _syncProgresses(entryBox, progressBox),
+    );
+  }
+}
+
+/// Runs a start-up step that is optional for the app to work.
+Future<void> _guard(String step, Future<void> Function() action) async {
+  try {
+    await action();
+  } catch (e, stack) {
+    mainLog.e('Downloads: failed to $step', e, stack);
   }
 }
 
@@ -79,8 +140,7 @@ Future<void> _adaptEntryDest(Box<DownloadEntry> box) async {
   if (box.isEmpty) {
     return;
   }
-  var downloadPath = await StorageUtil().getDownloadPath();
-  downloadPath = path.join(downloadPath, 'Boorusphere');
+  final downloadPath = await _downloadDir();
   final newEntries = <MapEntry<String, DownloadEntry>>[];
   for (final entry in box.values) {
     if (!path.isAbsolute(entry.dest)) {
@@ -90,6 +150,53 @@ Future<void> _adaptEntryDest(Box<DownloadEntry> box) async {
     newEntries.add(MapEntry(entry.id, entry.copyWith(dest: newDest)));
   }
   await box.putAll(Map.fromEntries(newEntries));
+}
+
+/// Deletes the file behind every entry, one by one: a single unusable path
+/// must not leave the rest of the folder behind.
+Future<void> _deleteFiles(Iterable<DownloadEntry> entries) async {
+  final String downloadDir;
+  try {
+    downloadDir = await _downloadDir();
+  } catch (e, stack) {
+    mainLog.e('Downloads: failed to resolve the download folder', e, stack);
+    return;
+  }
+
+  for (final entry in entries) {
+    if (entry.dest.isEmpty) {
+      continue;
+    }
+    try {
+      final file = File(_resolveDest(entry.dest, downloadDir));
+      if (file.existsSync()) {
+        await file.delete();
+      }
+    } catch (e, stack) {
+      mainLog.e('Downloads: failed to delete ${entry.dest}', e, stack);
+    }
+  }
+}
+
+/// Whether the task is the update APK. Those belong to the updater, which
+/// clears them itself (see `AppUpdater.clear`).
+bool _isUpdaterTask(String? fileName) {
+  return (fileName ?? '').toLowerCase().endsWith('.apk');
+}
+
+/// [dest] is a name inside the download folder for every file this app wrote;
+/// entries stored before that change kept the absolute path they were saved
+/// to, which is still the file to delete.
+String _resolveDest(String dest, String downloadDir) {
+  if (path.isAbsolute(dest)) {
+    return dest;
+  }
+  return path.join(downloadDir, decodeComponentSafely(dest));
+}
+
+Future<String> _downloadDir() async {
+  final downloadPath = await StorageUtil().getDownloadPath();
+  return path.join(downloadPath, 'Boorusphere');
 }
 
 /// Reconciles the persisted progress rows with the native task database.
@@ -110,18 +217,43 @@ Future<void> _syncProgresses(
 
   for (final progress in progressBox.values) {
     final task = byId.remove(progress.id);
+    final hasEntry = entryBox.containsKey(progress.id);
+
     if (task == null) {
-      // No native task behind the row: drop it once its entry is gone too,
-      // otherwise a row left in flight by a dead process would never settle.
-      if (!entryBox.containsKey(progress.id)) {
-        orphans.add(progress.id);
-      } else if (progress.status.isPending || progress.status.isDownloading) {
-        updates[progress.id] = progress.copyWith(
-          status: DownloadStatus.failed,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-        );
+      // Terminal statuses are the app's own last word on the row, and without
+      // a native task there is nothing left to compare them against: a
+      // cancel, a failure and a file already on disk all stay as they are.
+      if (progress.status.isDownloaded ||
+          progress.status.isCanceled ||
+          progress.status.isFailed) {
+        continue;
+      }
+
+      // A row still reporting work the plugin no longer knows about: settle it
+      // as failed while its entry is around, and drop it as an orphan once
+      // nothing refers to it any more.
+      if (progress.status.isPending ||
+          progress.status.isDownloading ||
+          progress.status.isPaused) {
+        if (hasEntry) {
+          updates[progress.id] = progress.copyWith(
+            status: DownloadStatus.failed,
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+          );
+        } else {
+          orphans.add(progress.id);
+        }
       }
       continue;
+    }
+
+    if (!hasEntry && _isInFlight(task.status)) {
+      // A task that outlived the process which enqueued it, with its entry
+      // never written: the file is still on its way to disk, so the row stays
+      // instead of being dropped as an orphan.
+      mainLog.w(
+        'Downloads: task ${progress.id} is still in flight without an entry',
+      );
     }
 
     final status = _statusOf(task.status);
@@ -136,6 +268,14 @@ Future<void> _syncProgresses(
 
   if (updates.isNotEmpty) await progressBox.putAll(updates);
   if (orphans.isNotEmpty) await progressBox.deleteAll(orphans);
+}
+
+/// Whether the native worker still holds the task, so its file can still land
+/// on disk without the app being alive to record it.
+bool _isInFlight(DownloadTaskStatus status) {
+  return status == DownloadTaskStatus.enqueued ||
+      status == DownloadTaskStatus.running ||
+      status == DownloadTaskStatus.paused;
 }
 
 DownloadStatus _statusOf(DownloadTaskStatus status) {
@@ -156,8 +296,9 @@ Future<void> _migrateProgresses(Box<DownloadProgress> box) async {
     return;
   }
 
-  final db = await sqflite.openReadOnlyDatabase(dbName);
+  sqflite.Database? db;
   try {
+    db = await sqflite.openReadOnlyDatabase(dbName);
     final checkTable = await db.rawQuery(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='task'",
     );
@@ -197,6 +338,8 @@ Future<void> _migrateProgresses(Box<DownloadProgress> box) async {
       await box.putAll(Map.fromEntries(tasks));
     }
   } finally {
-    await db.close();
+    // Covers the open itself as well: a handle that was already created when
+    // a later call throws still gets closed.
+    await db?.close();
   }
 }
