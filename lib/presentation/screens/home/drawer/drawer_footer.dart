@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/app_versions/app_versions_state.dart';
@@ -20,10 +21,9 @@ class DrawerFooter extends ConsumerWidget {
     final scheme = context.colorScheme;
     final appVersions = ref.watch(appVersionsStateProvider);
     final updateProgress = ref.watch(appUpdateProgressProvider);
-    final version = appVersions.maybeWhen(
-      data: (data) => data.current,
-      orElse: () => null,
-    );
+    // The installed version is local. Reading it from the updater check would
+    // leave the readout blank until that request answers.
+    final version = ref.watch(envRepoProvider).appVersion;
 
     final updateTile = appVersions.maybeWhen(
       data: (data) {
@@ -115,7 +115,7 @@ class DrawerFooter extends ConsumerWidget {
                     ),
                     const SizedBox(width: DesignTokens.spacingSm),
                     Text(
-                      version == null ? 'Boorusphere' : 'Boorusphere $version',
+                      'Boorusphere $version',
                       style: context.theme.textTheme.labelSmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),

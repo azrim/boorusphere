@@ -3,6 +3,7 @@ import 'package:boorusphere/constant/app.dart';
 import 'package:boorusphere/data/repository/changelog/entity/changelog_data.dart';
 import 'package:boorusphere/data/repository/version/app_version_repo.dart';
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
+import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/app_versions/app_versions_state.dart';
@@ -25,6 +26,8 @@ class AboutPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appVersions = ref.watch(appVersionsStateProvider);
+    // The installed version is local; only the update check needs the network.
+    final version = ref.watch(envRepoProvider).appVersion;
 
     return Scaffold(
       appBar: AppBar(),
@@ -57,16 +60,11 @@ class AboutPage extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(
                   vertical: DesignTokens.spacingCardInset,
                 ),
-                child: appVersions.maybeWhen(
-                  data: (data) {
-                    return Text(
-                      context.t.version(version: '${data.current} - $kAppArch'),
-                      style: context.theme.textTheme.labelSmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
-                      ),
-                    );
-                  },
-                  orElse: SizedBox.shrink,
+                child: Text(
+                  context.t.version(version: '$version - $kAppArch'),
+                  style: context.theme.textTheme.labelSmall?.copyWith(
+                    color: context.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               appVersions.when(
