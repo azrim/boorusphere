@@ -13,9 +13,11 @@ abstract class PageData with _$PageData {
     @Default(1) int pageIndex,
     // Whether the server may still have another page after this one.
     @Default(false) bool hasNext,
+    // Whether an earlier page can be reached. Tracked rather than derived from
+    // [pageIndex]: a backward fetch comes back empty when every earlier page
+    // was skipped, and the index alone would keep offering a dead control.
+    @Default(false) bool hasPrev,
   }) = _PageData;
 
   const PageData._();
-
-  bool get hasPrev => pageIndex > 1;
 }

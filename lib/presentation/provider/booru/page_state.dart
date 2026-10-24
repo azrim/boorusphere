@@ -63,7 +63,12 @@ class PageState extends _$PageState {
   }
 
   Server get _server {
-    return ref.read(serverStateProvider).getById(session.serverId);
+    // A session can outlive its server (the drawer removes one without
+    // leaving the page). Resolving that id to the first server instead would
+    // answer the next page from a different booru.
+    return ref
+        .read(serverStateProvider)
+        .getById(session.serverId, or: Server.empty);
   }
 
   Iterable<String> get blockedTags {
@@ -76,7 +81,9 @@ class PageState extends _$PageState {
   }
 
   Future<void> update(PageOption Function(PageOption) updater) async {
-    final newOption = updater(state.data.option);
+    // A change queued during a fetch has not reached [state] yet; building the
+    // next one from the committed option would silently drop it.
+    final newOption = updater(_pendingOption ?? state.data.option);
     _retryTarget = null;
     if (_fetching) {
       _pendingOption = newOption;
@@ -143,7 +150,11 @@ class PageState extends _$PageState {
           posts: List.unmodifiable(result.posts),
           option: option.copyWith(clear: false),
           pageIndex: result.index + 1,
-          hasNext: result.rawCount >= option.limit,
+          // Only a literal empty page proves the end of the results. A page
+          // shorter than the requested limit is still followed by more
+          // whenever the server clamps its page size.
+          hasNext: result.rawCount > 0,
+          hasPrev: result.index > 0,
         ),
       );
     } catch (err, stack) {
@@ -165,6 +176,7 @@ class PageState extends _$PageState {
   /// Loads the previous page, replacing the currently displayed posts.
   Future<void> prevPage() async {
     if (_fetching) return;
+    if (!state.data.hasPrev) return;
     if (_page <= 0) return;
     if (state.data.posts.isEmpty) return;
     await _navigateTo(_page - 1);
@@ -207,9 +219,13 @@ class PageState extends _$PageState {
         // The navigation target has no displayable posts: keep the displayed
         // posts and stay on the current page. Only a failed forward step says
         // anything about what comes next; going back must not disable the
-        // forward arrow of the page still on screen.
+        // forward arrow of the page still on screen. It does say that nothing
+        // is reachable behind this page, so the back arrow must stop offering
+        // a step that can never happen.
         state = FetchResult.data(
-          direction > 0 ? current.copyWith(hasNext: false) : current,
+          direction > 0
+              ? current.copyWith(hasNext: false)
+              : current.copyWith(hasPrev: false),
         );
         return;
       }
@@ -220,7 +236,8 @@ class PageState extends _$PageState {
           posts: List.unmodifiable(result.posts),
           option: option.copyWith(clear: false),
           pageIndex: result.index + 1,
-          hasNext: result.rawCount >= option.limit,
+          hasNext: result.rawCount > 0,
+          hasPrev: result.index > 0,
         ),
       );
     } catch (err, stack) {
