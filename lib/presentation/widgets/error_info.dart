@@ -34,7 +34,13 @@ class ErrorInfo extends HookWidget {
     }
 
     while (true) {
-      if (e is HandshakeException) {
+      if (e == null) {
+        // A [DioException] can end the chain without an inner error, so the
+        // loop reports what it has instead of reading a message off null.
+        return host != null
+            ? t.error.connectionFailedHost(host: host)
+            : t.error.unknown;
+      } else if (e is HandshakeException) {
         return host != null
             ? t.error.insecureConnectionHost(host: host)
             : t.error.insecureConnection;
@@ -47,6 +53,10 @@ class ErrorInfo extends HookWidget {
             : t.error.connectionFailed;
       } else if (e is TimeoutException) {
         return t.error.connectionTimeout;
+      } else if (e is DioException && _isTimeout(e)) {
+        // A timeout carries no inner error, so unwrapping it would land on
+        // null and print "null" as the message.
+        return t.error.connectionTimeout;
       } else if (e is! DioException) {
         try {
           // let's try to obtain exception message
@@ -58,6 +68,15 @@ class ErrorInfo extends HookWidget {
       host = e.requestOptions.uri.host;
       e = e.error;
     }
+  }
+
+  static bool _isTimeout(DioException error) {
+    return switch (error.type) {
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout => true,
+      _ => false,
+    };
   }
 
   bool get traceable =>
