@@ -46,6 +46,13 @@ void setupLogger({bool test = false}) {
       _ => _color(8),
     };
 
-    log('$lc${x.level.name} ${_color(2)}${x.loggerName}$_clear: ${x.message}');
+    // An error record carries the exception that caused it; dropping it leaves
+    // only the caller's summary line and no way to tell what actually failed.
+    final error = x.error == null ? '' : '\n  ${x.error}';
+    final stack = x.stackTrace == null ? '' : '\n${x.stackTrace}';
+    log(
+      '$lc${x.level.name} ${_color(2)}${x.loggerName}$_clear: '
+      '${x.message}$error$stack',
+    );
   });
 }
