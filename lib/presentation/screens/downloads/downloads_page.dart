@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
+import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
@@ -15,6 +16,12 @@ import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+/// Statuses of every tracked download as one comparable value. A percent tick
+/// leaves it unchanged, so a page watching it is not rebuilt per tick.
+String _statusSignature(List<DownloadProgress> progresses) {
+  return progresses.map((it) => '${it.id}:${it.status.name}').join(';');
+}
 
 @RoutePage()
 class DownloadsPage extends HookConsumerWidget {
@@ -32,7 +39,12 @@ class DownloadsPage extends HookConsumerWidget {
         .watch(downloadEntryStateProvider)
         .whereNotReserved()
         .toList();
-    final downloadProgressState = ref.watch(downloadProgressStateProvider);
+    // Percent ticks arrive several times a second per running download, and
+    // only a status change can move an entry in or out of the active filter.
+    // Keying the rebuild on the statuses keeps the list still while a file
+    // downloads; the values are then read fresh for the filter itself.
+    ref.watch(downloadProgressStateProvider.select(_statusSignature));
+    final downloadProgressState = ref.read(downloadProgressStateProvider);
     final groupByServer = ref.watch(
       downloadSettingStateProvider.select((it) => it.groupByServer),
     );

@@ -24,7 +24,11 @@ AppUpdater appUpdater(Ref ref) {
 @riverpod
 DownloadProgress appUpdateProgress(Ref ref) {
   final id = ref.watch(appUpdaterProvider.select((it) => it.id));
-  return ref.watch(downloadProgressStateProvider).getById(id);
+  // Scoped to the update's own task: watching the whole list woke the drawer
+  // footer on every percent tick of every other download.
+  return ref.watch(
+    downloadProgressStateProvider.select((it) => it.getById(id)),
+  );
 }
 
 class AppUpdater {

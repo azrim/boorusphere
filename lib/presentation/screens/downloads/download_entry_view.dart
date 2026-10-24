@@ -95,7 +95,11 @@ class DownloadEntryView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final servers = ref.watch(serverStateProvider);
     final headers = ref.watch(postHeadersFactoryProvider(entry.post));
-    final progress = ref.watch(downloadProgressStateProvider).getById(entry.id);
+    // Scoped to this entry: watching the whole list rebuilt every row for each
+    // percent tick of any running download.
+    final progress = ref.watch(
+      downloadProgressStateProvider.select((it) => it.getById(entry.id)),
+    );
     final isFileExists = ref
         .watch(sharedStorageHandleProvider)
         .fileExists(entry.dest);
@@ -163,6 +167,7 @@ class DownloadEntryView extends ConsumerWidget {
         entry: entry,
         progress: progress,
         server: servers.getById(entry.post.serverId),
+        isFileExists: isFileExists,
       ),
       dense: true,
       onTap: !progress.status.isDownloaded || !isFileExists
@@ -213,18 +218,16 @@ class _EntryPopupMenu extends ConsumerWidget {
     required this.entry,
     required this.progress,
     required this.server,
+    required this.isFileExists,
   });
 
   final DownloadEntry entry;
   final DownloadProgress progress;
   final Server server;
+  final bool isFileExists;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFileExists = ref
-        .watch(sharedStorageHandleProvider)
-        .fileExists(entry.dest);
-
     return PopupMenuButton(
       tooltip: MaterialLocalizations.of(context).showMenuTooltip,
       onSelected: (value) {
