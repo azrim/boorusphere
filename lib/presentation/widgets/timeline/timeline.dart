@@ -250,7 +250,7 @@ class Timeline extends ConsumerWidget {
 
                     // Use enhanced post viewer with configurable swipe mode
                     final gestureSettings = ref.read(
-                      gestureSettingStateNotifierProvider,
+                      gestureSettingStateProvider,
                     );
                     EnhancedPostViewer.open(
                       context,

@@ -15,7 +15,6 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart'
     hide DownloadProgress;
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';

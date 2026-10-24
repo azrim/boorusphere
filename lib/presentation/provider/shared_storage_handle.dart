@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
 import 'package:boorusphere/utils/logger.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_scanner/media_scanner.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';

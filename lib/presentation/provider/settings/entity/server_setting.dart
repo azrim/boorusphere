@@ -5,7 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'server_setting.freezed.dart';
 
 @freezed
-class ServerSetting with _$ServerSetting {
+abstract class ServerSetting with _$ServerSetting {
   const factory ServerSetting({
     @Default('') String lastActiveId,
     @Default(PageOption.defaultLimit) int postLimit,

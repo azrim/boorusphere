@@ -12,7 +12,10 @@ class FullscreenState extends _$FullscreenState {
 
   @override
   bool build() {
-    ref.onDispose(reset);
+    // The dispose callback must not touch `ref`, so the platform check it needs
+    // is resolved while the provider is still alive.
+    final sdkVersion = ref.read(envRepoProvider).sdkVersion;
+    ref.onDispose(() => _reset(sdkVersion));
     _lastOrientations = [];
     return false;
   }
@@ -33,9 +36,12 @@ class FullscreenState extends _$FullscreenState {
         : await unfullscreen();
   }
 
-  Future<void> unfullscreen() async {
-    final envRepo = ref.read(envRepoProvider);
-    if (envRepo.sdkVersion < 29) {
+  Future<void> unfullscreen() {
+    return _unfullscreen(ref.read(envRepoProvider).sdkVersion);
+  }
+
+  static Future<void> _unfullscreen(int sdkVersion) async {
+    if (sdkVersion < 29) {
       // SDK 28 and below ignores edgeToEdge, so we have to manually reenable them
       await SystemChrome.setEnabledSystemUIMode(
         SystemUiMode.manual,
@@ -47,7 +53,11 @@ class FullscreenState extends _$FullscreenState {
   }
 
   void reset() {
+    _reset(ref.read(envRepoProvider).sdkVersion);
+  }
+
+  void _reset(int sdkVersion) {
     unawaited(SystemChrome.setPreferredOrientations([]));
-    unawaited(unfullscreen());
+    unawaited(_unfullscreen(sdkVersion));
   }
 }

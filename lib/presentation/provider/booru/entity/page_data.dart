@@ -5,7 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'page_data.freezed.dart';
 
 @freezed
-class PageData with _$PageData {
+abstract class PageData with _$PageData {
   const factory PageData({
     @Default(PageOption(clear: true)) PageOption option,
     @Default(<Post>[]) List<Post> posts,

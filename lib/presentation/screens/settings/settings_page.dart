@@ -317,7 +317,7 @@ class _GestureSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final swipeMode = ref.watch(
-      gestureSettingStateNotifierProvider.select((it) => it.swipeMode),
+      gestureSettingStateProvider.select((it) => it.swipeMode),
     );
 
     return ListTile(

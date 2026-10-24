@@ -16,10 +16,8 @@ class GestureSettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gestureSettings = ref.watch(gestureSettingStateNotifierProvider);
-    final gestureNotifier = ref.read(
-      gestureSettingStateNotifierProvider.notifier,
-    );
+    final gestureSettings = ref.watch(gestureSettingStateProvider);
+    final gestureNotifier = ref.read(gestureSettingStateProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: Text(context.t.settingsPage.gestureSettings)),

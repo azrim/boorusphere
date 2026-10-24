@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'backup_option.freezed.dart';
 
 @freezed
-class BackupOption with _$BackupOption {
+abstract class BackupOption with _$BackupOption {
   const factory BackupOption({
     @Default(true) bool searchHistory,
     @Default(true) bool server,

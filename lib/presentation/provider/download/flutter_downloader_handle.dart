@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'flutter_downloader_handle.g.dart';

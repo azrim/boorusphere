@@ -32,7 +32,6 @@ import 'package:boorusphere/pigeon/app_env.pi.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'provider.g.dart';

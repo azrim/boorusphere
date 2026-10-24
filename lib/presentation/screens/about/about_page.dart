@@ -67,7 +67,10 @@ class AboutPage extends ConsumerWidget {
                   ),
                 ),
               ),
+              // A manual re-check has to look like one: keep the button in
+              // its loading state instead of holding the previous answer.
               appVersions.when(
+                skipLoadingOnRefresh: false,
                 data: (data) {
                   return data.latest.isNewerThan(data.current)
                       ? _Updater(data.latest)

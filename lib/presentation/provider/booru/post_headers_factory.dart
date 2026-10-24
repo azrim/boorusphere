@@ -4,7 +4,6 @@ import 'package:boorusphere/data/dio/headers_factory.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'post_headers_factory.g.dart';

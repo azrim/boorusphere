@@ -6,7 +6,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'changelog_data.freezed.dart';
 
 @freezed
-class ChangelogData with _$ChangelogData {
+abstract class ChangelogData with _$ChangelogData {
   const factory ChangelogData({
     @Default(AppVersion.zero) AppVersion version,
     @Default([]) List<String> logs,

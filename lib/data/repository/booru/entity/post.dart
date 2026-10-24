@@ -6,7 +6,7 @@ part 'post.g.dart';
 
 @freezed
 @HiveType(typeId: 3, adapterName: 'PostAdapter')
-class Post with _$Post {
+abstract class Post with _$Post {
   const factory Post({
     @HiveField(0, defaultValue: -1) @Default(-1) int id,
     @HiveField(1, defaultValue: '') @Default('') String originalFile,

@@ -12,7 +12,7 @@ listTasks() => grutil.tasks();
 
 @Task('Generate code')
 Future<void> gencode() async {
-  await me.pun('build_runner', args: ['build', '--delete-conflicting-outputs']);
+  await me.pun('build_runner', args: ['build']);
 }
 
 @Task('Generate localization')

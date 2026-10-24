@@ -9,7 +9,7 @@ part 'server.g.dart';
 
 @freezed
 @HiveType(typeId: 2, adapterName: 'ServerAdapter')
-class Server with _$Server {
+abstract class Server with _$Server {
   const factory Server({
     @HiveField(0, defaultValue: '') @Default('') String id,
     @HiveField(1, defaultValue: '') @Default('') String homepage,

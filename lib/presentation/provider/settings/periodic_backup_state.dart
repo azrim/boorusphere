@@ -31,7 +31,7 @@ enum BackupFrequency {
 }
 
 @freezed
-class PeriodicBackupState with _$PeriodicBackupState {
+abstract class PeriodicBackupState with _$PeriodicBackupState {
   const factory PeriodicBackupState({
     @Default(false) bool enabled,
     @Default(BackupFrequency.daily) BackupFrequency frequency,

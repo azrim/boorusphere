@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:hooks_riverpod/legacy.dart';
 
 final searchBarControllerProvider = ChangeNotifierProvider.autoDispose
     .family<SearchBarController, SearchSession>(

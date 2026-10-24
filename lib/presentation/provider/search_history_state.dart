@@ -3,7 +3,6 @@ import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/text_match.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'search_history_state.g.dart';

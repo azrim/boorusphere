@@ -37,10 +37,10 @@ void main() async {
     });
 
     test('filter', () {
-      expect(ref.read(FilterHistoryProvider('o')).values.first.query, 'foo');
-      expect(ref.read(FilterHistoryProvider('r')).values.first.query, 'bar');
-      expect(ref.read(FilterHistoryProvider('z')).values.first.query, 'baz');
-      expect(ref.read(FilterHistoryProvider('m')).length, 0);
+      expect(ref.read(filterHistoryProvider('o')).values.first.query, 'foo');
+      expect(ref.read(filterHistoryProvider('r')).values.first.query, 'bar');
+      expect(ref.read(filterHistoryProvider('z')).values.first.query, 'baz');
+      expect(ref.read(filterHistoryProvider('m')).length, 0);
     });
 
     test('remove last', () async {
@@ -55,7 +55,7 @@ void main() async {
       await notifier().save('futaba_rio anime_screenshot', servers.first);
       await notifier().save('naruto_(series) anime_screenshot', servers.first);
 
-      final filtered = ref.read(FilterHistoryProvider('anime'));
+      final filtered = ref.read(filterHistoryProvider('anime'));
 
       expect(filtered.values.first.query, 'anime_screenshot');
       expect(filtered.length, 3);

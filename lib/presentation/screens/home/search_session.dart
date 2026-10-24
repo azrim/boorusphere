@@ -1,12 +1,11 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'search_session.freezed.dart';
 part 'search_session.g.dart';
 
 @freezed
-class SearchSession with _$SearchSession {
+abstract class SearchSession with _$SearchSession {
   const factory SearchSession({
     @Default('') String query,
     @Default('') String serverId,
