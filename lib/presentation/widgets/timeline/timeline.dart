@@ -158,7 +158,7 @@ String _cardSemanticsLabel(BuildContext context, Post post) {
 
   final ext = post.originalFile.fileExt.toUpperCase();
   final dimensions = post.width > 0 && post.height > 0
-      ? '\${post.width}×\${post.height}'
+      ? '${post.width}×${post.height}'
       : '';
 
   // Everything the card draws is folded in here, so the overlays can stay out
@@ -167,12 +167,12 @@ String _cardSemanticsLabel(BuildContext context, Post post) {
   final parts = [
     if (tag != null) tag.label,
     if (rating.isNotEmpty) rating,
-    if (post.score != 0) '\${context.t.score} \${post.score}',
+    if (post.score != 0) '${context.t.score} ${post.score}',
     if (ext.isNotEmpty) ext,
     if (dimensions.isNotEmpty) dimensions,
   ];
 
-  return parts.isEmpty ? '#\${post.id}' : parts.join(', ');
+  return parts.isEmpty ? '#${post.id}' : parts.join(', ');
 }
 
 class Timeline extends ConsumerWidget {
