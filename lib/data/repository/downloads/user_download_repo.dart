@@ -71,6 +71,7 @@ class UserDownloadsRepo implements DownloadsRepo {
     await _adaptEntryDest(entryBox);
     await _migrateProgresses(progressBox);
     await FlutterDownloader.initialize();
+    await _syncProgresses(entryBox, progressBox);
   }
 }
 
@@ -89,6 +90,64 @@ Future<void> _adaptEntryDest(Box<DownloadEntry> box) async {
     newEntries.add(MapEntry(entry.id, entry.copyWith(dest: newDest)));
   }
   await box.putAll(Map.fromEntries(newEntries));
+}
+
+/// Reconciles the persisted progress rows with the native task database.
+///
+/// Progress is otherwise only written by the downloader callback, which cannot
+/// reach the app while its process is dead: a task that completed (or failed)
+/// in the meantime would keep its last in-flight status on screen forever.
+Future<void> _syncProgresses(
+  Box<DownloadEntry> entryBox,
+  Box<DownloadProgress> progressBox,
+) async {
+  final tasks = await FlutterDownloader.loadTasks();
+  if (tasks == null) return;
+
+  final byId = {for (final task in tasks) task.taskId: task};
+  final updates = <String, DownloadProgress>{};
+  final orphans = <String>[];
+
+  for (final progress in progressBox.values) {
+    final task = byId.remove(progress.id);
+    if (task == null) {
+      // No native task behind the row: drop it once its entry is gone too,
+      // otherwise a row left in flight by a dead process would never settle.
+      if (!entryBox.containsKey(progress.id)) {
+        orphans.add(progress.id);
+      } else if (progress.status.isPending || progress.status.isDownloading) {
+        updates[progress.id] = progress.copyWith(
+          status: DownloadStatus.failed,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        );
+      }
+      continue;
+    }
+
+    final status = _statusOf(task.status);
+    if (status != progress.status || task.progress != progress.progress) {
+      updates[progress.id] = progress.copyWith(
+        status: status,
+        progress: task.progress,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
+    }
+  }
+
+  if (updates.isNotEmpty) await progressBox.putAll(updates);
+  if (orphans.isNotEmpty) await progressBox.deleteAll(orphans);
+}
+
+DownloadStatus _statusOf(DownloadTaskStatus status) {
+  return switch (status) {
+    DownloadTaskStatus.undefined => DownloadStatus.empty,
+    DownloadTaskStatus.enqueued => DownloadStatus.pending,
+    DownloadTaskStatus.running => DownloadStatus.downloading,
+    DownloadTaskStatus.complete => DownloadStatus.downloaded,
+    DownloadTaskStatus.failed => DownloadStatus.failed,
+    DownloadTaskStatus.canceled => DownloadStatus.canceled,
+    DownloadTaskStatus.paused => DownloadStatus.paused,
+  };
 }
 
 Future<void> _migrateProgresses(Box<DownloadProgress> box) async {

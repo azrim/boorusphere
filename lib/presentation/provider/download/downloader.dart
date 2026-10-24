@@ -194,18 +194,34 @@ class Downloader {
 
   Future<void> retry({required String id}) async {
     final newId = await FlutterDownloader.retry(taskId: id);
-    if (newId != null) {
-      final newEntry = ref
-          .read(downloadEntryStateProvider)
-          .firstWhere((it) => it.id == id, orElse: DownloadEntry.new)
-          .copyWith(id: newId);
+    if (newId == null) return;
 
-      await ref.read(downloadEntryStateProvider.notifier).update(id, newEntry);
-    }
+    final entry = ref.read(downloadEntryStateProvider).getById(id);
+    if (entry.id.isEmpty) return;
+
+    // The retried task carries a new id from here on, so nothing would ever
+    // write the row of the old one again.
+    await ref.read(downloadProgressStateProvider.notifier).remove(id);
+    await ref
+        .read(downloadEntryStateProvider.notifier)
+        .update(id, entry.copyWith(id: newId));
   }
 
   Future<void> cancel({required String id}) async {
     await FlutterDownloader.cancel(taskId: id);
+    // The native side only flags the task; without a callback the row keeps
+    // reporting the download as running.
+    final progress = ref.read(downloadProgressStateProvider).getById(id);
+    await ref
+        .read(downloadProgressStateProvider.notifier)
+        .update(
+          DownloadProgress(
+            id: id,
+            status: DownloadStatus.canceled,
+            progress: progress.progress,
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
   }
 
   Future<void> clear({required String id}) async {
