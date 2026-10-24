@@ -28,7 +28,6 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:tinycolor2/tinycolor2.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 /// Selection border width for multi-select mode on timeline thumbnails.
@@ -856,6 +855,16 @@ class _LongThumbnailIndicator extends StatelessWidget {
   }
 }
 
+/// Moves [color] along its saturation and lightness axes, clamping both to
+/// the 0..1 range HSLColor expects.
+Color _shiftHsl(Color color, {double saturation = 0, double lightness = 0}) {
+  final hsl = HSLColor.fromColor(color);
+  return hsl
+      .withSaturation((hsl.saturation + saturation).clamp(0.0, 1.0))
+      .withLightness((hsl.lightness + lightness).clamp(0.0, 1.0))
+      .toColor();
+}
+
 class _Placeholder extends StatelessWidget {
   const _Placeholder({this.isFailed = false});
 
@@ -867,12 +876,13 @@ class _Placeholder extends StatelessWidget {
       return const Material(child: Icon(Icons.broken_image_outlined));
     }
 
+    final surface = context.colorScheme.surface;
     final baseColor = context.isLightThemed
-        ? context.colorScheme.surface.desaturate(50).darken(2)
-        : context.colorScheme.surface;
+        ? _shiftHsl(surface, saturation: -0.5, lightness: -0.02)
+        : surface;
     final highlightColor = context.isLightThemed
-        ? context.colorScheme.surface.desaturate(50).lighten(2)
-        : context.colorScheme.surface.lighten(5);
+        ? _shiftHsl(surface, saturation: -0.5, lightness: 0.02)
+        : _shiftHsl(surface, lightness: 0.05);
 
     return Shimmer(
       gradient: LinearGradient(

@@ -2,7 +2,6 @@ import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dar
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:tinycolor2/tinycolor2.dart';
 
 class AppThemeData {
   const AppThemeData({
@@ -62,6 +61,11 @@ class AppThemeData {
   );
 }
 
+/// Darkens [color] toward black by [percent], the shade the surface takes to
+/// separate itself from the page background.
+Color _shade(Color color, double percent) =>
+    Color.lerp(color, const Color(0xFF000000), percent / 100)!;
+
 ThemeData _createThemeData(
   ColorScheme? scheme,
   Brightness brightness, {
@@ -74,7 +78,7 @@ ThemeData _createThemeData(
   final base = scheme ?? defScheme;
   final harmonized = harmonize ? base.harmonized() : base;
   final colorScheme = harmonized.copyWith(
-    surface: harmonized.surface.shade(isDark ? 30 : 3),
+    surface: _shade(harmonized.surface, isDark ? 30 : 3),
     // The hairline is the only delimiter a section block has on the page, so
     // it has to stay visible instead of dissolving into the surface.
     outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.45),
