@@ -9,16 +9,50 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'suggestion_state.g.dart';
 
-/// Boorus typically use `_` as the word separator in tag names (e.g.
-/// `hololive_girl`); we also accept literal spaces to defend against feeds
-/// that emit pre-decoded labels.
-final RegExp _kTagSeparator = RegExp(r'[ _]+');
+/// Rank for a tag that does not contain what was typed at all.
+const _kUnmatched = 4;
 
 class Suggestion {
   const Suggestion(this.name, this.count);
 
   final String name;
   final int count;
+}
+
+/// How closely [name] completes [word].
+///
+/// Boorus answer a suggestion request with substring matches ordered by post
+/// count (`*{tag-part}*`), so the most popular tag that merely *contains* the
+/// text comes back first. Ranking by where the match sits keeps the tag the
+/// reader is actually spelling at the top: `0` exact, `1` prefix, `2` a later
+/// word of the tag (`long_hair` for `hair`), `3` any substring, and
+/// [_kUnmatched] when the text is not in the tag at all.
+int suggestionMatchRank(String name, String word) {
+  final tag = name.toLowerCase();
+  final part = word.toLowerCase();
+  if (tag == part) return 0;
+  if (tag.startsWith(part)) return 1;
+  if (tag.contains('_$part') || tag.contains(' $part')) return 2;
+  if (tag.contains(part)) return 3;
+  return _kUnmatched;
+}
+
+/// Orders two suggestions for the same [word]: closer completion first, then
+/// the more used tag, then the shorter one.
+int compareSuggestions(Suggestion a, Suggestion b, String word) {
+  final byRank = suggestionMatchRank(
+    a.name,
+    word,
+  ).compareTo(suggestionMatchRank(b.name, word));
+  if (byRank != 0) return byRank;
+
+  final byCount = b.count.compareTo(a.count);
+  if (byCount != 0) return byCount;
+
+  final byLength = a.name.length.compareTo(b.name.length);
+  if (byLength != 0) return byLength;
+
+  return a.name.compareTo(b.name);
 }
 
 @riverpod
@@ -46,14 +80,14 @@ class SuggestionState extends _$SuggestionState {
 
   Future<void> get(String query) async {
     final word = _lastWordOf(query);
-    if (_lastWord == word) {
-      return;
-    }
 
-    // Don't fetch suggestions for very short queries to reduce API load
+    // The list already belongs to this word, so there is nothing to ask for.
+    if (word == _lastWord && state is DataFetchResult) return;
+
+    // Don't fetch suggestions for very short queries to reduce API load.
     if (word.length < 2) {
-      state = const FetchResult.data([]);
       _lastWord = word;
+      state = const FetchResult.data([]);
       return;
     }
 
@@ -63,35 +97,33 @@ class SuggestionState extends _$SuggestionState {
       return;
     }
 
-    state = FetchResult.loading(state.data);
+    // Claim the word before the request so a slower answer for an older
+    // prefix is dropped instead of replacing the list the reader is looking at.
     _lastWord = word;
+    state = FetchResult.loading(state.data);
     try {
       final res = await ref
           .read(imageboardRepoProvider(server))
           .getSuggestion(word);
-      final blockedTags = ref.read(tagsBlockerRepoProvider);
-      final blockedNames = blockedTags.get().values.map((e) => e.name).toSet();
-      final result = res
-          .where((it) => !blockedNames.contains(it.name))
-          .toList();
-      // Sort single-word tags before multi-word tags (booru tags use `_` as
-      // the word separator, but treat literal spaces the same way for
-      // robustness). Within the same word count, fall back to post count
-      // descending so the most popular variant surfaces first.
-      int wordCount(String s) {
-        final t = s.trim();
-        if (t.isEmpty) return 0;
-        return t.split(_kTagSeparator).where((w) => w.isNotEmpty).length;
-      }
-
-      result.sort((a, b) {
-        final byWords = wordCount(a.name).compareTo(wordCount(b.name));
-        if (byWords != 0) return byWords;
-        return b.count.compareTo(a.count);
-      });
       if (word != _lastWord) return;
 
-      if (result.isEmpty && word.isNotEmpty) {
+      final blockedNames = ref
+          .read(tagsBlockerRepoProvider)
+          .get()
+          .values
+          .map((e) => e.name)
+          .toSet();
+
+      final seen = <String>{};
+      final result =
+          res
+              .where((it) => !blockedNames.contains(it.name))
+              .where((it) => seen.add(it.name))
+              .where((it) => suggestionMatchRank(it.name, word) < _kUnmatched)
+              .toList()
+            ..sort((a, b) => compareSuggestions(a, b, word));
+
+      if (result.isEmpty) {
         state = FetchResult.error(state.data, error: BooruError.empty);
         return;
       }

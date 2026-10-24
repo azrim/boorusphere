@@ -388,18 +388,6 @@ class _Suggestion extends HookConsumerWidget {
       () => searchBar.textEditingController.text,
     );
 
-    // Load suggestions when user starts typing (2+ chars)
-    useEffect(() {
-      if (query.trim().length >= 2) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (searchBar.isOpen && suggestion is! LoadingFetchResult) {
-            ref.read(suggestionStateProvider.notifier).get(query);
-          }
-        });
-      }
-      return null;
-    }, [query]);
-
     if (!server.canSuggestTags) {
       return const SliverToBoxAdapter();
     }
@@ -413,22 +401,18 @@ class _Suggestion extends HookConsumerWidget {
       // Nothing to say yet: the list only appears once a query has been
       // submitted, so an idle state renders no panel at all.
       IdleFetchResult() => const SliverToBoxAdapter(),
-      DataFetchResult(:final data) => SliverList.builder(
-        itemCount: data.length.clamp(0, 20), // Show more suggestions
-        itemBuilder: (context, index) {
-          final suggestion = data.elementAt(index);
-          return RepaintBoundary(
-            child: _SuggestionEntryTile(
-              data: _SuggestionEntry(
-                isHistory: false,
-                text: suggestion.name,
-                postCount: suggestion.count,
-              ),
-              onTap: (str) => searchBar.submit(context, str),
-              onAdded: searchBar.appendTyped,
-            ),
-          );
-        },
+      // Keep the list that is already on screen while the next one is on the
+      // wire; replacing it with a spinner on every keystroke makes the panel
+      // flash.
+      LoadingFetchResult(:final data) when data.isNotEmpty => _SuggestionList(
+        data: data,
+        onTap: (str) => searchBar.submit(context, str),
+        onAdded: searchBar.appendTyped,
+      ),
+      DataFetchResult(:final data) => _SuggestionList(
+        data: data,
+        onTap: (str) => searchBar.submit(context, str),
+        onAdded: searchBar.appendTyped,
       ),
       LoadingFetchResult() => const SliverToBoxAdapter(
         child: SizedBox(
@@ -448,6 +432,45 @@ class _Suggestion extends HookConsumerWidget {
         serverName: server.name,
       ),
     };
+  }
+}
+
+/// The suggestion rows themselves. A suggestion list is a shortlist, not a
+/// catalogue: ten entries is as far as anyone reads before typing more.
+class _SuggestionList extends StatelessWidget {
+  const _SuggestionList({
+    required this.data,
+    required this.onTap,
+    required this.onAdded,
+  });
+
+  static const _maxSuggestions = 10;
+
+  final Iterable<Suggestion> data;
+  final void Function(String entry) onTap;
+  final void Function(String entry) onAdded;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = data.take(_maxSuggestions).toList();
+
+    return SliverList.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final suggestion = items[index];
+        return RepaintBoundary(
+          child: _SuggestionEntryTile(
+            data: _SuggestionEntry(
+              isHistory: false,
+              text: suggestion.name,
+              postCount: suggestion.count,
+            ),
+            onTap: onTap,
+            onAdded: onAdded,
+          ),
+        );
+      },
+    );
   }
 }
 

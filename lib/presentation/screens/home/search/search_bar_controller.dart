@@ -47,16 +47,21 @@ class SearchBarController extends ChangeNotifier {
     );
   }
 
+  /// Debounce shared by every keystroke: one request per pause, not one per
+  /// character.
+  static const _debounce = Duration(milliseconds: 300);
+
   _fetch() {
     if (!isOpen) return;
-    if (_textTimer?.isActive ?? false) _textTimer?.cancel();
-    // Increase debounce time to reduce API calls
-    _textTimer = Timer(const Duration(milliseconds: 500), () {
-      // Only fetch if there's actual content to search
-      if (value.trim().isNotEmpty) {
-        ref.read(suggestionStateProvider.notifier).get(value);
-      }
-    });
+    _textTimer?.cancel();
+    _textTimer = Timer(_debounce, _requestSuggestion);
+  }
+
+  void _requestSuggestion() {
+    if (!isOpen) return;
+    final query = value;
+    if (query.trim().isEmpty) return;
+    ref.read(suggestionStateProvider.notifier).get(query);
   }
 
   void submit(BuildContext context, String newValue) {
@@ -91,7 +96,9 @@ class SearchBarController extends ChangeNotifier {
 
   void open() {
     _open = true;
-    // Don't fetch suggestions immediately - let user start typing first
+    // Reopening the bar with text already in it brings the list back without
+    // waiting for another keystroke.
+    _requestSuggestion();
     notifyListeners();
   }
 
