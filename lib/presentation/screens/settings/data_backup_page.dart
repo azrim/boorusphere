@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/screens/settings/widgets/settings_secti
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
+import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -113,9 +114,9 @@ class _Content extends HookConsumerWidget {
               title: Text(context.t.dataBackup.backup.title),
               subtitle: RowSubtitle(Text(context.t.dataBackup.backup.desc)),
               onTap: () async {
-                final result = await showDialog<BackupOption?>(
+                final result = await showSettingsSheet<BackupOption>(
                   context: context,
-                  builder: (context) => _BackupSelectionDialog(),
+                  builder: (context) => const _BackupOptionSheet(),
                 );
                 if (result != null) {
                   unawaited(
@@ -241,16 +242,27 @@ class _LoadingDialog extends HookConsumerWidget {
   }
 }
 
-class _BackupSelectionDialog extends HookWidget {
+class _BackupOptionSheet extends HookWidget {
+  const _BackupOptionSheet();
+
   @override
   Widget build(BuildContext context) {
     final option = useState(const BackupOption());
-    return AlertDialog(
-      title: Text(context.t.dataBackup.backup.title),
-      icon: const Icon(Icons.backup),
-      scrollable: true,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+    return SheetShell(
+      title: context.t.dataBackup.backup.title,
+      footer: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(elevation: 0),
+          onPressed: option.value.isValid()
+              ? () => Navigator.pop(context, option.value)
+              : null,
+          child: Text(context.t.backup),
+        ),
+      ),
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.only(bottom: DesignTokens.spacingSm),
         children: [
           CheckboxListTile(
             title: Text(context.t.servers.title),
@@ -284,18 +296,6 @@ class _BackupSelectionDialog extends HookWidget {
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => context.navigator.pop(),
-          child: Text(context.t.cancel),
-        ),
-        ElevatedButton(
-          onPressed: option.value.isValid()
-              ? () => context.navigator.pop(option.value)
-              : null,
-          child: Text(context.t.backup),
-        ),
-      ],
     );
   }
 }
@@ -327,26 +327,19 @@ class _FrequencyTile extends StatelessWidget {
       subtitle: RowSubtitle(Text(frequencyLabel(context, state.frequency))),
       onTap: enabled
           ? () async {
-              final result = await showDialog<BackupFrequency>(
+              final picked = await showChoiceSheet<BackupFrequency>(
                 context: context,
-                builder: (dialogContext) => SimpleDialog(
-                  title: Text(context.t.periodicBackup.frequency),
-                  children: BackupFrequency.values.map((freq) {
-                    return RadioGroup<BackupFrequency>(
-                      groupValue: state.frequency,
-                      onChanged: (value) => Navigator.pop(dialogContext, value),
-                      child: ListTile(
-                        leading: Radio<BackupFrequency>(value: freq),
-                        title: Text(frequencyLabel(context, freq)),
-                        onTap: () => Navigator.pop(dialogContext, freq),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                title: context.t.periodicBackup.frequency,
+                selected: state.frequency,
+                choices: BackupFrequency.values
+                    .map(
+                      (it) =>
+                          Choice(value: it, label: frequencyLabel(context, it)),
+                    )
+                    .toList(),
               );
-              if (result != null) {
-                await notifier.setFrequency(result);
-              }
+              if (picked == null) return;
+              await notifier.setFrequency(picked.value);
             }
           : null,
     );
@@ -433,35 +426,17 @@ class _TelegramChatIdTile extends HookWidget {
       ),
       onTap: enabled
           ? () async {
-              final controller = TextEditingController(
-                text: state.telegramChatId,
-              );
-              final result = await showDialog<String>(
+              final result = await showTextSheet(
                 context: context,
-                builder: (dialogContext) => AlertDialog(
-                  title: Text(context.t.periodicBackup.telegram.chatId),
-                  content: TextField(
-                    controller: controller,
-                    decoration: InputDecoration(
-                      hintText: context.t.periodicBackup.telegram.chatIdHint,
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: Text(context.t.cancel),
-                    ),
-                    ElevatedButton(
-                      onPressed: () =>
-                          Navigator.pop(dialogContext, controller.text),
-                      child: Text(context.t.save),
-                    ),
-                  ],
-                ),
+                title: context.t.periodicBackup.telegram.chatId,
+                hint: context.t.periodicBackup.telegram.chatIdHint,
+                initialValue: state.telegramChatId,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
+                ],
+                saveLabel: context.t.save,
+                cancelLabel: context.t.cancel,
               );
               if (result != null) {
                 await notifier.setTelegramChatId(result);
@@ -495,31 +470,13 @@ class _TelegramBotTokenTile extends HookWidget {
       ),
       onTap: enabled
           ? () async {
-              final controller = TextEditingController(
-                text: state.telegramBotToken,
-              );
-              final result = await showDialog<String>(
+              final result = await showTextSheet(
                 context: context,
-                builder: (dialogContext) => AlertDialog(
-                  title: Text(context.t.periodicBackup.telegram.botToken),
-                  content: TextField(
-                    controller: controller,
-                    decoration: InputDecoration(
-                      hintText: context.t.periodicBackup.telegram.botTokenHint,
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: Text(context.t.cancel),
-                    ),
-                    ElevatedButton(
-                      onPressed: () =>
-                          Navigator.pop(dialogContext, controller.text),
-                      child: Text(context.t.save),
-                    ),
-                  ],
-                ),
+                title: context.t.periodicBackup.telegram.botToken,
+                hint: context.t.periodicBackup.telegram.botTokenHint,
+                initialValue: state.telegramBotToken,
+                saveLabel: context.t.save,
+                cancelLabel: context.t.cancel,
               );
               if (result != null) {
                 await notifier.setTelegramBotToken(result);

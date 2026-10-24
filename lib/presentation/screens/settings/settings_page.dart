@@ -16,6 +16,7 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
+import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -94,42 +95,6 @@ class _HideMedia extends HookConsumerWidget {
 class _DownloadQuality extends ConsumerWidget {
   const _DownloadQuality();
 
-  Future<DownloadQuality?> selectQuality(
-    BuildContext context,
-    DownloadQuality current,
-  ) {
-    return showDialog<DownloadQuality>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(context.t.downloads.quality),
-          icon: const Icon(Icons.file_download),
-          contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: RadioGroup<DownloadQuality>(
-            groupValue: current,
-            onChanged: (x) {
-              context.navigator.pop(x);
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: DownloadQuality.values
-                  .map(
-                    (e) => ListTile(
-                      leading: Radio<DownloadQuality>(value: e),
-                      title: Text(e.describe(context)),
-                      onTap: () {
-                        context.navigator.pop(e);
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quality = ref.watch(
@@ -140,12 +105,18 @@ class _DownloadQuality extends ConsumerWidget {
       subtitle: RowSubtitle(Text(quality.describe(context))),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
-        final result = await selectQuality(context, quality);
-        if (result != null) {
-          await ref
-              .read(downloadSettingStateProvider.notifier)
-              .setQuality(result);
-        }
+        final picked = await showChoiceSheet<DownloadQuality>(
+          context: context,
+          title: context.t.downloads.quality,
+          selected: quality,
+          choices: DownloadQuality.values
+              .map((it) => Choice(value: it, label: it.describe(context)))
+              .toList(),
+        );
+        if (picked == null) return;
+        await ref
+            .read(downloadSettingStateProvider.notifier)
+            .setQuality(picked.value);
       },
     );
   }
@@ -187,29 +158,25 @@ class _ColorPalette extends ConsumerWidget {
       title: Text(context.t.settingsPage.colorPalette),
       subtitle: RowSubtitle(Text(currentPalette.displayName)),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () {
-        showModalBottomSheet(
+      onTap: () async {
+        final picked = await showChoiceSheet<ColorPalette>(
           context: context,
-          showDragHandle: true,
-          builder: (context) => ListView(
-            children: ColorPalette.values.map((palette) {
-              return ListTile(
-                title: Text(palette.displayName),
-                selected: currentPalette == palette,
-                leading: _PaletteSwatch(palette: palette),
-                trailing: currentPalette == palette
-                    ? Icon(Icons.check, color: context.colorScheme.primary)
-                    : null,
-                onTap: () {
-                  ref
-                      .read(uiSettingStateProvider.notifier)
-                      .setColorPalette(palette);
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
+          title: context.t.settingsPage.colorPalette,
+          selected: currentPalette,
+          choices: ColorPalette.values
+              .map(
+                (it) => Choice(
+                  value: it,
+                  label: it.displayName,
+                  leading: _PaletteSwatch(palette: it),
+                ),
+              )
+              .toList(),
         );
+        if (picked == null) return;
+        await ref
+            .read(uiSettingStateProvider.notifier)
+            .setColorPalette(picked.value);
       },
     );
   }
@@ -330,17 +297,43 @@ class _ImeIncognito extends ConsumerWidget {
   }
 }
 
-class _Language extends StatelessWidget {
+class _Language extends ConsumerWidget {
   const _Language();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(uiSettingStateProvider.select((ui) => ui.locale));
+
     return ListTile(
       title: Text(context.t.settings.lang.title),
       subtitle: RowSubtitle(_CurrentLanguage()),
       trailing: const Icon(Icons.chevron_right),
-      onTap: () {
-        context.router.push(const LanguageSettingsRoute());
+      onTap: () async {
+        final picked = await showChoiceSheet<AppLocale?>(
+          context: context,
+          title: context.t.settings.lang.title,
+          selected: locale,
+          choices: [
+            Choice(
+              value: null,
+              label: context.t.auto,
+              detail: context.t.settings.lang.auto,
+            ),
+            ...AppLocale.values.map((it) {
+              final name = it.translations.languageName;
+              final alias = it.translations.languageAlias;
+              return Choice(
+                value: it,
+                label: name,
+                // The alias repeats the name for several locales; only show
+                // it when it adds a second spelling.
+                detail: alias == name ? null : alias,
+              );
+            }),
+          ],
+        );
+        if (picked == null) return;
+        await ref.read(uiSettingStateProvider.notifier).setLocale(picked.value);
       },
     );
   }
