@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/home_status.dart';
@@ -348,6 +349,7 @@ class HomeContent extends HookConsumerWidget {
                 final result = await BatchDownloadProvider.download(
                   imageUrls,
                   asArchive: asArchive,
+                  storage: ref.read(sharedStorageHandleProvider),
                 );
 
                 if (context.mounted) {
