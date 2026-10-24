@@ -51,9 +51,9 @@ class UiSettingState extends _$UiSettingState {
     final repo = ref.read(settingsRepoProvider);
     state = state.copyWith(locale: locale);
     if (locale == null) {
-      LocaleSettings.useDeviceLocale();
+      LocaleSettings.useDeviceLocaleSync();
     } else {
-      LocaleSettings.setLocale(locale);
+      LocaleSettings.setLocaleSync(locale);
     }
 
     await repo.put(Setting.uiLanguage, locale == null ? '' : locale.name);
