@@ -636,48 +636,47 @@ class _BackupNowTile extends HookConsumerWidget {
           ? null
           : () async {
               isLoading.value = true;
+              try {
+                final backupFile = await ref
+                    .read(dataBackupStateProvider.notifier)
+                    .createBackupForTelegram();
 
-              // Create backup file
-              final backupFile = await ref
-                  .read(dataBackupStateProvider.notifier)
-                  .createBackupForTelegram();
-
-              if (backupFile == null) {
-                isLoading.value = false;
-                if (context.mounted) {
-                  context.scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        context.t.periodicBackup.telegram.backupFailed,
+                if (backupFile == null) {
+                  if (context.mounted) {
+                    context.scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          context.t.periodicBackup.telegram.backupFailed,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
+                  return;
                 }
-                return;
-              }
 
-              // Send to Telegram
-              final result = await ref
-                  .read(telegramBackupServiceProvider.notifier)
-                  .sendBackupFile(backupFile);
+                final result = await ref
+                    .read(telegramBackupServiceProvider.notifier)
+                    .sendBackupFile(backupFile);
 
-              isLoading.value = false;
+                if (result == TelegramResult.success) {
+                  await ref
+                      .read(periodicBackupSettingStateProvider.notifier)
+                      .setLastBackupTime(DateTime.now());
+                }
 
-              if (!context.mounted) return;
+                if (!context.mounted) return;
 
-              final message = result == TelegramResult.success
-                  ? context.t.periodicBackup.telegram.backupSent
-                  : context.t.periodicBackup.telegram.backupFailed;
+                final message = result == TelegramResult.success
+                    ? context.t.periodicBackup.telegram.backupSent
+                    : context.t.periodicBackup.telegram.backupFailed;
 
-              context.scaffoldMessenger.showSnackBar(
-                SnackBar(content: Text(message)),
-              );
-
-              // Update last backup time on success
-              if (result == TelegramResult.success) {
-                await ref
-                    .read(periodicBackupSettingStateProvider.notifier)
-                    .setLastBackupTime(DateTime.now());
+                context.scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
+              } finally {
+                // The spinner is the only feedback while this runs, so it has
+                // to clear even when the backup throws.
+                isLoading.value = false;
               }
             },
     );

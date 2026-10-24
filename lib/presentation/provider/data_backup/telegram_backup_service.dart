@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
@@ -20,56 +21,81 @@ class TelegramBackupService extends _$TelegramBackupService {
   static const _apiBaseUrl = 'https://api.telegram.org';
   static const _maxFileSize = 50 * 1024 * 1024; // 50MB limit for Telegram
 
+  /// A request that never answers must not leave the caller spinning.
+  static const _testTimeout = Duration(seconds: 30);
+
+  /// Uploading a backup is slow on a mobile connection, so the send gets room
+  /// to finish while still being bounded.
+  static const _uploadTimeout = Duration(minutes: 5);
+
   @override
   TelegramResult? build() => null;
 
-  String _getApiUrl(String method) => '$_apiBaseUrl/$method';
+  /// The bot token belongs in the path (`/bot<token>/<method>`): the Bot API has
+  /// no Bearer authentication, so a token sent only as a header is rejected
+  /// before the method is even read.
+  Uri _method(String token, String method) =>
+      Uri.parse('$_apiBaseUrl/bot$token/$method');
 
-  Map<String, String> _authHeaders(String token) => {
-    'Authorization': 'Bearer $token',
-  };
+  TelegramResult _classify(int statusCode) {
+    switch (statusCode) {
+      case 200:
+        return TelegramResult.success;
+      case 401:
+        return TelegramResult.invalidToken;
+      case 413:
+        return TelegramResult.fileTooLarge;
+      case 400:
+      case 403:
+        return TelegramResult.invalidChatId;
+      default:
+        return TelegramResult.unknownError;
+    }
+  }
 
-  Future<TelegramResult> testConnection() async {
+  Future<TelegramResult> _run(
+    Future<TelegramResult> Function() request, {
+    required Duration timeout,
+  }) async {
+    try {
+      final result = await request().timeout(timeout);
+      state = result;
+      return result;
+    } on TimeoutException {
+      state = TelegramResult.networkError;
+      return TelegramResult.networkError;
+    } on SocketException {
+      state = TelegramResult.networkError;
+      return TelegramResult.networkError;
+    } on http.ClientException {
+      state = TelegramResult.networkError;
+      return TelegramResult.networkError;
+    } catch (_) {
+      state = TelegramResult.unknownError;
+      return TelegramResult.unknownError;
+    }
+  }
+
+  Future<TelegramResult> testConnection() {
     final settings = ref.read(periodicBackupSettingStateProvider);
     final token = settings.telegramBotToken;
     final chatId = settings.telegramChatId;
 
     if (token.isEmpty || chatId.isEmpty) {
-      return TelegramResult.invalidToken;
+      return Future.value(TelegramResult.invalidToken);
     }
 
-    try {
-      // Test by sending a simple message
+    return _run(() async {
       final response = await http.post(
-        Uri.parse(_getApiUrl('sendMessage')),
-        headers: _authHeaders(token),
+        _method(token, 'sendMessage'),
         body: {
           'chat_id': chatId,
           'text':
               '✅ Connection test successful!\nBoorusphere backup bot is ready.',
         },
       );
-
-      if (response.statusCode == 200) {
-        state = TelegramResult.success;
-        return TelegramResult.success;
-      } else if (response.statusCode == 401) {
-        state = TelegramResult.invalidToken;
-        return TelegramResult.invalidToken;
-      } else if (response.statusCode == 400) {
-        state = TelegramResult.invalidChatId;
-        return TelegramResult.invalidChatId;
-      } else {
-        state = TelegramResult.unknownError;
-        return TelegramResult.unknownError;
-      }
-    } on SocketException {
-      state = TelegramResult.networkError;
-      return TelegramResult.networkError;
-    } catch (e) {
-      state = TelegramResult.unknownError;
-      return TelegramResult.unknownError;
-    }
+      return _classify(response.statusCode);
+    }, timeout: _testTimeout);
   }
 
   Future<TelegramResult> sendBackupFile(File file) async {
@@ -81,50 +107,32 @@ class TelegramBackupService extends _$TelegramBackupService {
       return TelegramResult.invalidToken;
     }
 
-    // Check file size
     final fileSize = await file.length();
     if (fileSize > _maxFileSize) {
       state = TelegramResult.fileTooLarge;
       return TelegramResult.fileTooLarge;
     }
 
-    try {
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse(_getApiUrl('sendDocument')),
-      );
+    return _run(() async {
+      final client = http.Client();
+      try {
+        final request = http.MultipartRequest(
+          'POST',
+          _method(token, 'sendDocument'),
+        );
+        request.fields['chat_id'] = chatId;
+        request.fields['caption'] =
+            '📦 Boorusphere Backup\n📅 ${DateTime.now().toIso8601String()}';
+        request.files.add(
+          await http.MultipartFile.fromPath('document', file.path),
+        );
 
-      request.headers.addAll(_authHeaders(token));
-      request.fields['chat_id'] = chatId;
-      request.fields['caption'] =
-          '📦 Boorusphere Backup\n📅 ${DateTime.now().toIso8601String()}';
-
-      request.files.add(
-        await http.MultipartFile.fromPath('document', file.path),
-      );
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        state = TelegramResult.success;
-        return TelegramResult.success;
-      } else if (response.statusCode == 401) {
-        state = TelegramResult.invalidToken;
-        return TelegramResult.invalidToken;
-      } else if (response.statusCode == 400) {
-        state = TelegramResult.invalidChatId;
-        return TelegramResult.invalidChatId;
-      } else {
-        state = TelegramResult.unknownError;
-        return TelegramResult.unknownError;
+        final streamed = await client.send(request);
+        final response = await http.Response.fromStream(streamed);
+        return _classify(response.statusCode);
+      } finally {
+        client.close();
       }
-    } on SocketException {
-      state = TelegramResult.networkError;
-      return TelegramResult.networkError;
-    } catch (e) {
-      state = TelegramResult.unknownError;
-      return TelegramResult.unknownError;
-    }
+    }, timeout: _uploadTimeout);
   }
 }

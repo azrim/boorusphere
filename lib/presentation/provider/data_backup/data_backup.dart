@@ -15,6 +15,7 @@ import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
@@ -142,6 +143,11 @@ class DataBackupState extends _$DataBackupState {
     state = const BackupResult.loading(DataBackupType.backup);
     final zipFile = await _createBackupFile(option);
     if (zipFile != null) {
+      // A manual backup is a backup like any other, so it owns the same
+      // readout the periodic one updates.
+      await ref
+          .read(periodicBackupSettingStateProvider.notifier)
+          .setLastBackupTime(DateTime.now());
       state = BackupResult.exported(zipFile.path);
     } else {
       state = const BackupResult.error();
