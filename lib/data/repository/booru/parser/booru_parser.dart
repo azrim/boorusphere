@@ -1,4 +1,4 @@
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:dio/dio.dart';
@@ -13,7 +13,7 @@ abstract class BooruParser {
   Map<String, String> get headers => {};
   Iterable<BooruParserType> get type;
   bool canParsePage(Response res) => false;
-  Iterable<Post> parsePage(Server server, Response res) => [];
+  ParsedPage parsePage(Server server, Response res) => const ParsedPage.empty();
   bool canParseSuggestion(Response res) => false;
   Iterable<Suggestion> parseSuggestion(Server server, Response res) => [];
 }

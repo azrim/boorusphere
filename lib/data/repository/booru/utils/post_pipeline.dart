@@ -1,3 +1,4 @@
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
@@ -13,14 +14,19 @@ import 'package:boorusphere/data/repository/server/entity/server.dart';
 ///    once its entry has passed the guard (first guard-passing entry wins);
 /// 3. media URLs are normalized against [server], the post URL is derived from
 ///    the id, and an empty rating falls back to `'q'`.
-List<Post> buildPosts(
+///
+/// The returned [ParsedPage.rawCount] counts every entry handed to [mapEntry],
+/// so callers can tell a short page from a page that lost entries to the guard.
+ParsedPage buildPosts(
   Server server,
   Iterable<Object?> entries,
   RawPost Function(Map<String, dynamic> entry) mapEntry,
 ) {
   final result = <Post>[];
   final seenIds = <int>{};
+  var rawCount = 0;
   for (final entry in entries.whereType<Map<String, dynamic>>()) {
+    rawCount++;
     final raw = mapEntry(entry);
     final hasFile = raw.originalFile.isNotEmpty && raw.previewFile.isNotEmpty;
     final hasContent = raw.width > 0 && raw.height > 0;
@@ -52,5 +58,5 @@ List<Post> buildPosts(
       ),
     );
   }
-  return result;
+  return ParsedPage(posts: result, rawCount: rawCount);
 }

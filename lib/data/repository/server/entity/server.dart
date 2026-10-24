@@ -48,7 +48,10 @@ class Server with _$Server {
 
     var url = '$apiAddress/$searchUrl'
         .replaceAll('{tags}', tags)
+        // Engines number pages differently: `pid` is a zero-based page index,
+        // while Danbooru and its clones take a one-based `page`.
         .replaceAll('{page-id}', '$page')
+        .replaceAll('{page-num}', '${page + 1}')
         .replaceAll('{post-offset}', (page * option.limit).toString())
         .replaceAll('{post-limit}', '${option.limit}');
 

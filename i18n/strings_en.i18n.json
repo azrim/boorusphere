@@ -102,6 +102,7 @@
       "other": "No more results for ${query}"
     },
     "blocked": "'${query}' is blocked by Tags Blocker",
+    "unparsable": "Cannot read the response from ${server_name}",
     "change_server": "Change server"
   },
   "suggestion": {

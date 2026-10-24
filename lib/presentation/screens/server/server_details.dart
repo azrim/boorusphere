@@ -32,7 +32,7 @@ class ServerDetails extends HookConsumerWidget {
     }
 
     return value.contains('{tags}') &&
-        value.contains(RegExp(r'\{(page-id|post-offset)\}')) &&
+        value.contains(RegExp(r'\{(page-id|page-num|post-offset)\}')) &&
         value.contains('{post-limit}');
   }
 

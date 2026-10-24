@@ -1,4 +1,4 @@
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
@@ -45,7 +45,7 @@ class SzurubooruJsonParser extends BooruParser {
   }
 
   @override
-  List<Post> parsePage(Server server, Response res) {
+  ParsedPage parsePage(Server server, Response res) {
     final entries = List.from(res.data['results'] ?? <dynamic>[]);
     return buildPosts(server, entries, _mapEntry);
   }

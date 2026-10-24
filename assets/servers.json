@@ -9,7 +9,7 @@
   {
     "id": "Danbooru",
     "homepage": "https://danbooru.donmai.us",
-    "searchUrl": "posts.json?tags={tags}&page={page-id}&limit={post-limit}",
+    "searchUrl": "posts.json?tags={tags}&page={page-num}&limit={post-limit}",
     "tagSuggestionUrl": "tags.json?search[name_matches]=*{tag-part}*&search[order]=count&limit={post-limit}",
     "postUrl": "posts/{post-id}"
   },
@@ -23,14 +23,14 @@
   {
     "id": "Konachan",
     "homepage": "https://konachan.net",
-    "searchUrl": "post.json?tags={tags}&page={page-id}&limit={post-limit}",
+    "searchUrl": "post.json?tags={tags}&page={page-num}&limit={post-limit}",
     "tagSuggestionUrl": "tag.json?name=*{tag-part}*&order=count&limit={post-limit}",
     "postUrl": "post/show/{post-id}"
   },
   {
     "id": "Yandere",
     "homepage": "https://yande.re",
-    "searchUrl": "post.json?tags={tags}&page={page-id}&limit={post-limit}",
+    "searchUrl": "post.json?tags={tags}&page={page-num}&limit={post-limit}",
     "tagSuggestionUrl": "tag.json?name=*{tag-part}*&order=count&limit={post-limit}",
     "postUrl": "post/show/{post-id}"
   },

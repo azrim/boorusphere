@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
@@ -29,8 +31,8 @@ class PageState extends _$PageState {
   final SearchSession session;
 
   /// Maximum number of consecutive pages that may be skipped when a fetched
-  /// page yields no displayable posts (all of them hidden by the tags
-  /// blocker).
+  /// page yields no displayable posts (hidden by the tags blocker or rejected
+  /// by the content guard).
   static const _maxSkippedPages = 3;
 
   /// Zero-based page index handed to `ImageboardRepo.getPage` (page `0` is the
@@ -41,10 +43,22 @@ class PageState extends _$PageState {
   /// Guards fetches so rapid prev/next taps can't interleave.
   bool _fetching = false;
 
+  /// Option that arrived while a fetch was in flight. The response already on
+  /// the wire carries the previous option, so the change is applied once that
+  /// fetch settles instead of being dropped.
+  PageOption? _pendingOption;
+
+  /// Navigation target whose fetch failed, so the next [load] (the retry
+  /// button, a pull-to-refresh) resumes the page the user asked for instead of
+  /// reloading the one still on screen.
+  int? _retryTarget;
+
   @override
   FetchResult<PageData> build() {
     _page = 0;
     _fetching = false;
+    _pendingOption = null;
+    _retryTarget = null;
     return const FetchResult.idle(PageData());
   }
 
@@ -63,6 +77,11 @@ class PageState extends _$PageState {
 
   Future<void> update(PageOption Function(PageOption) updater) async {
     final newOption = updater(state.data.option);
+    _retryTarget = null;
+    if (_fetching) {
+      _pendingOption = newOption;
+      return;
+    }
     state = state.copyWith(data: state.data.copyWith(option: newOption));
     await load();
   }
@@ -74,6 +93,12 @@ class PageState extends _$PageState {
   Future<void> load() async {
     if (_server == Server.empty) return;
     if (_fetching) return;
+
+    final retry = _retryTarget;
+    if (retry != null) {
+      await _navigateTo(retry);
+      return;
+    }
 
     final query = state.data.option.query;
     if (query.toWordList().any(blockedTags.contains)) {
@@ -122,6 +147,7 @@ class PageState extends _$PageState {
       state = FetchResult.error(state.data, error: err, stackTrace: stack);
     } finally {
       _fetching = false;
+      _drainPending();
     }
   }
 
@@ -152,6 +178,7 @@ class PageState extends _$PageState {
 
   Future<void> _navigateTo(int target) async {
     if (_server == Server.empty) return;
+    _retryTarget = null;
 
     final current = state.data;
     final settings = ref.read(serverSettingStateProvider);
@@ -186,6 +213,7 @@ class PageState extends _$PageState {
         ),
       );
     } catch (err, stack) {
+      _retryTarget = target;
       state = FetchResult.error(
         current.copyWith(option: option),
         error: err,
@@ -193,7 +221,20 @@ class PageState extends _$PageState {
       );
     } finally {
       _fetching = false;
+      _drainPending();
     }
+  }
+
+  /// Applies an option that arrived while a fetch was in flight and reloads
+  /// with it.
+  void _drainPending() {
+    final pending = _pendingOption;
+    if (pending == null) return;
+    _pendingOption = null;
+    // A new query supersedes a retry meant for the previous one.
+    if (pending.clear) _retryTarget = null;
+    state = state.copyWith(data: state.data.copyWith(option: pending));
+    unawaited(load());
   }
 
   /// Fetches [startIndex] (0-based), skipping pages that yield no displayable
@@ -213,7 +254,8 @@ class PageState extends _$PageState {
 
     while (true) {
       final res = await repo.getPage(option, index);
-      if (res.isEmpty) return null;
+      // A literal empty response is terminal: the server has no more entries.
+      if (res.rawCount == 0) return null;
 
       // One blocked set per fetch: reading the getter inside the predicate
       // rebuilt it for every post on the page.
@@ -222,10 +264,11 @@ class PageState extends _$PageState {
           .where((it) => !it.allTags.any(blocked.contains))
           .toList();
       if (posts.isNotEmpty) {
-        return (index: index, posts: posts, rawCount: res.length);
+        return (index: index, posts: posts, rawCount: res.rawCount);
       }
 
-      // The page was non-empty but every post is blocked; try the next one.
+      // The page had entries but none of them are displayable; try the next
+      // one.
       if (skips >= _maxSkippedPages) return null;
       skips++;
       index += direction;

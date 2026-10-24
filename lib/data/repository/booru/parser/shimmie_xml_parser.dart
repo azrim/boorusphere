@@ -1,7 +1,7 @@
 import 'dart:collection';
 import 'dart:convert';
 
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
@@ -22,7 +22,7 @@ class ShimmieXmlParser extends BooruParser {
 
   @override
   final searchQuery =
-      'api/danbooru/find_posts/index.xml?tags={tags}&limit={post-limit}&page={page-id}';
+      'api/danbooru/find_posts/index.xml?tags={tags}&limit={post-limit}&page={page-num}';
 
   @override
   final suggestionQuery = 'api/internal/autocomplete?s={tag-part}';
@@ -43,7 +43,7 @@ class ShimmieXmlParser extends BooruParser {
   }
 
   @override
-  List<Post> parsePage(Server server, Response res) {
+  ParsedPage parsePage(Server server, Response res) {
     final entries = [];
     final xjson = Xml2Json();
     xjson.parse(res.data.replaceAll('\\', ''));
@@ -51,7 +51,7 @@ class ShimmieXmlParser extends BooruParser {
     final conv = jsonDecode(xjson.toGData());
 
     if (conv.isEmpty || !conv.values.first.keys.contains('tag')) {
-      return [];
+      return const ParsedPage.empty();
     }
 
     final posts = conv.values.first['tag'];
@@ -61,7 +61,7 @@ class ShimmieXmlParser extends BooruParser {
     } else if (posts is List) {
       entries.addAll(posts);
     } else {
-      return [];
+      return const ParsedPage.empty();
     }
 
     return buildPosts(server, entries, _mapEntry);

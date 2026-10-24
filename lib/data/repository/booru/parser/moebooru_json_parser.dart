@@ -1,4 +1,4 @@
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
@@ -14,7 +14,8 @@ class MoebooruJsonParser extends BooruParser {
   final id = 'Moebooru.json';
 
   @override
-  final searchQuery = 'post.json?tags={tags}&page={page-id}&limit={post-limit}';
+  final searchQuery =
+      'post.json?tags={tags}&page={page-num}&limit={post-limit}';
 
   @override
   final suggestionQuery =
@@ -37,7 +38,7 @@ class MoebooruJsonParser extends BooruParser {
   }
 
   @override
-  List<Post> parsePage(Server server, Response res) {
+  ParsedPage parsePage(Server server, Response res) {
     final entries = List.from(res.data);
     return buildPosts(server, entries, _mapEntry);
   }

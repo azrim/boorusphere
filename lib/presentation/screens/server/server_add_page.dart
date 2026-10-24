@@ -45,7 +45,7 @@ const booruEngines = <BooruEngine>[
     name: 'Danbooru',
     searchParserId: 'Danbooru.json',
     suggestionParserId: 'Danbooru.json',
-    searchQuery: 'posts.json?tags={tags}&page={page-id}&limit={post-limit}',
+    searchQuery: 'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
     suggestionQuery:
         'tags.json?search[name_matches]=*{tag-part}*&search[order]=count&limit={post-limit}',
     postUrl: 'posts/{post-id}',
@@ -64,7 +64,7 @@ const booruEngines = <BooruEngine>[
     name: 'Moebooru',
     searchParserId: 'Moebooru.json',
     suggestionParserId: 'Moebooru.json',
-    searchQuery: 'post.json?tags={tags}&page={page-id}&limit={post-limit}',
+    searchQuery: 'post.json?tags={tags}&page={page-num}&limit={post-limit}',
     suggestionQuery:
         'tag.json?name=*{tag-part}*&order=count&limit={post-limit}',
     postUrl: 'post/show/{post-id}',
@@ -73,7 +73,7 @@ const booruEngines = <BooruEngine>[
     name: 'E621',
     searchParserId: 'E621.json',
     suggestionParserId: 'E621.json',
-    searchQuery: 'posts.json?tags={tags}&page={page-id}&limit={post-limit}',
+    searchQuery: 'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
     suggestionQuery:
         'tags.json?search[name_matches]=*{tag-part}*&search[order]=count&limit={post-limit}',
     postUrl: 'posts/{post-id}',
@@ -83,7 +83,7 @@ const booruEngines = <BooruEngine>[
     searchParserId: 'Shimmie.xml',
     suggestionParserId: 'Shimmie.xml',
     searchQuery:
-        'api/danbooru/find_posts/index.xml?tags={tags}&limit={post-limit}&page={page-id}',
+        'api/danbooru/find_posts/index.xml?tags={tags}&limit={post-limit}&page={page-num}',
     suggestionQuery: 'api/internal/autocomplete?s={tag-part}',
     postUrl: 'post/view/{post-id}',
   ),
@@ -101,7 +101,7 @@ const booruEngines = <BooruEngine>[
     searchParserId: 'BooruOnRails.json',
     suggestionParserId: 'BooruOnRails.json',
     searchQuery:
-        'api/v1/json/search/images?q={tags}&page={page-id}&per_page={post-limit}',
+        'api/v1/json/search/images?q={tags}&page={page-num}&per_page={post-limit}',
     suggestionQuery: 'api/v1/json/search/tags?q=*{tag-part}*',
     postUrl: 'images/{post-id}',
   ),

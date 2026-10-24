@@ -154,5 +154,28 @@ void main() {
       expect(url, contains('offset=60'));
       expect(url, contains('limit=20'));
     });
+
+    test('one-based engines get the page number, not the index', () {
+      const server = Server(
+        homepage: 'https://danbooru.donmai.us',
+        searchUrl: 'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
+      );
+      const option = PageOption(query: 'test', searchRating: BooruRating.all);
+      // The app counts from zero; these engines count from one, and feeding
+      // them the index made the first two pages identical.
+      expect(server.searchUrlOf(option, page: 0), contains('page=1'));
+      expect(server.searchUrlOf(option, page: 1), contains('page=2'));
+    });
+
+    test('zero-based engines keep the raw index', () {
+      const server = Server(
+        homepage: 'https://safebooru.org',
+        searchUrl:
+            'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}',
+      );
+      const option = PageOption(query: 'test', searchRating: BooruRating.all);
+      expect(server.searchUrlOf(option, page: 0), contains('pid=0'));
+      expect(server.searchUrlOf(option, page: 1), contains('pid=1'));
+    });
   });
 }

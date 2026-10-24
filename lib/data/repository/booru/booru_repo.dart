@@ -1,7 +1,8 @@
 import 'dart:convert';
 
+import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/imageboards_repo.dart';
@@ -126,7 +127,7 @@ class BooruRepo implements ImageboardRepo {
   }
 
   @override
-  Future<Set<Post>> getPage(PageOption option, int index) async {
+  Future<ParsedPage> getPage(PageOption option, int index) async {
     try {
       var parser = parsers.firstWhere(
         (x) => x.id == server.searchParserId,
@@ -138,7 +139,7 @@ class BooruRepo implements ImageboardRepo {
 
       if (parser.canParsePage(res)) {
         _log.i('getPage(${server.name}): using ${parser.id}_parser');
-        return parser.parsePage(server, res).toSet();
+        return _dedupe(parser.parsePage(server, res));
       }
 
       parser = parsers.firstWhere(
@@ -150,20 +151,47 @@ class BooruRepo implements ImageboardRepo {
         _log.i(
           'getPage(${server.name}): parser resolved, now using ${parser.id}_parser',
         );
+        return _dedupe(parser.parsePage(server, res));
       }
 
-      return parser.parsePage(server, res).toSet();
+      // No parser recognised the payload. An empty result is still a valid
+      // answer; anything else means the server sent something we cannot read
+      // (interstitial page, proxy error, changed API), which must not be
+      // reported to the user as "no results".
+      if (_isEmptyPayload(res.data)) return const ParsedPage.empty();
+      _log.w('getPage(${server.name}): no parser matched the response');
+      throw BooruError.unparsable;
     } on FormatException catch (_) {
       _log.w('getPage(${server.name}): UTF-8 decode error, returning empty');
-      return {};
+      return const ParsedPage.empty();
     } on DioException catch (e) {
       if (e.error is FormatException) {
         _log.w(
           'getPage(${server.name}): UTF-8 decode error in Dio, returning empty',
         );
-        return {};
+        return const ParsedPage.empty();
       }
       rethrow;
     }
+  }
+
+  /// Collapses equal posts, matching the set semantics the page pipeline was
+  /// built around. Parsers already de-duplicate by id; this keeps that
+  /// guarantee at the repository boundary.
+  ParsedPage _dedupe(ParsedPage page) {
+    return ParsedPage(
+      posts: page.posts.toSet().toList(),
+      rawCount: page.rawCount,
+    );
+  }
+
+  /// Whether [data] is an empty result rather than a payload no parser reads.
+  bool _isEmptyPayload(Object? data) {
+    if (data is String) {
+      final trimmed = data.trim();
+      return trimmed.isEmpty || trimmed.contains('<posts');
+    }
+    if (data is List) return data.isEmpty;
+    return false;
   }
 }

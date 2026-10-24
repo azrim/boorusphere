@@ -1,4 +1,4 @@
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
@@ -16,7 +16,7 @@ class BooruOnRailsJsonParser extends BooruParser {
 
   @override
   final searchQuery =
-      'api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-id}';
+      'api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-num}';
 
   @override
   final suggestionQuery = 'api/v1/json/search/tags?q={tag-part}*';
@@ -37,7 +37,7 @@ class BooruOnRailsJsonParser extends BooruParser {
   }
 
   @override
-  List<Post> parsePage(Server server, Response res) {
+  ParsedPage parsePage(Server server, Response res) {
     final entries = List.from(res.data['images'] ?? <dynamic>[]);
     return buildPosts(server, entries, _mapEntry);
   }

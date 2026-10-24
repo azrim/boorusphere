@@ -93,6 +93,35 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
+  /// One-based engines (Danbooru and its clones) were fed the zero-based page
+  /// index, so page 0 and page 1 answered with the same posts. Rewrite the
+  /// preset templates to the one-based placeholder; hand-written URLs are left
+  /// alone.
+  Future<void> _migrateOneBasedPageParam() async {
+    const outdated = {
+      'posts.json?tags={tags}&page={page-id}&limit={post-limit}',
+      'post.json?tags={tags}&page={page-id}&limit={post-limit}',
+      'api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-id}',
+      'api/v1/json/search/images?q={tags}&page={page-id}&per_page={post-limit}',
+      'api/danbooru/find_posts/index.xml?tags={tags}&limit={post-limit}&page={page-id}',
+    };
+
+    final mapped = Map<String, Server>.from(box.toMap());
+    for (final entry in mapped.entries) {
+      if (!outdated.contains(entry.value.searchUrl)) continue;
+      await box.put(
+        entry.key,
+        entry.value.copyWith(
+          searchUrl: entry.value.searchUrl.replaceAll(
+            'page={page-id}',
+            'page={page-num}',
+          ),
+        ),
+      );
+    }
+    await box.flush();
+  }
+
   @override
   Future<void> populate() async {
     if (_defaults.isEmpty) return;
@@ -103,6 +132,7 @@ class UserServerRepo implements ServerRepo {
       await _migrateKeys();
       await _migrateGelbooruSuggestionUrl();
       await _migrateRule34ApiHost();
+      await _migrateOneBasedPageParam();
     }
   }
 
@@ -150,6 +180,7 @@ class UserServerRepo implements ServerRepo {
       // Run migrations after import to fix any outdated server configs
       await _migrateGelbooruSuggestionUrl();
       await _migrateRule34ApiHost();
+      await _migrateOneBasedPageParam();
     } catch (e) {
       // Import failed, leave existing data intact
     }

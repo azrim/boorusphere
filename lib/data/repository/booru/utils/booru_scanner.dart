@@ -88,6 +88,7 @@ class BooruScanner {
         // sometimes realbooru won't show anything when limit is too low
         .replaceAll('{post-limit}', '30')
         .replaceAll('{page-id}', '1')
+        .replaceAll('{page-num}', '1')
         .replaceAll('{post-offset}', '3')
         .replaceAll('{post-id}', '100');
     try {

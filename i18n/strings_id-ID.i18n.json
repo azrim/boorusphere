@@ -68,7 +68,8 @@
       "zero": "Tidak ada hasil yang ditemukan untuk ${query}",
       "other": "Tidak ada lagi hasil untuk ${query}"
     },
-    "blocked": "'${query}' diblokir oleh Tags Blocker"
+    "blocked": "'${query}' diblokir oleh Tags Blocker",
+    "unparsable": "Tidak bisa membaca respons dari ${server_name}"
   },
   "suggestion": {
     "not_supported": "${server_name} tidak mendukung saran pencarian",

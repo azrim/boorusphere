@@ -66,6 +66,18 @@ void main() {
       expect(posts.map((it) => it.id), [5]);
     });
 
+    test('rawCount keeps the entries the guard rejected', () {
+      final page = buildPosts(_server, [
+        _validEntry(id: 1, originalFile: ''),
+        _validEntry(id: 2),
+      ], _mapEntry);
+
+      expect(page.posts, hasLength(1));
+      // Pagination compares rawCount against the page size, so a page that
+      // lost an entry is not mistaken for the end of the results.
+      expect(page.rawCount, 2);
+    });
+
     test('de-duplicates by id, keeping the first guard-passing entry', () {
       final posts = buildPosts(_server, [
         _validEntry(id: 1, originalFile: 'https://cdn.example.com/first.png'),

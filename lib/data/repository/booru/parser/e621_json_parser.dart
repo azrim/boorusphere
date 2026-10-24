@@ -1,4 +1,4 @@
-import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
@@ -29,7 +29,7 @@ class E621JsonParser extends BooruParser {
   }
 
   @override
-  List<Post> parsePage(Server server, Response res) {
+  ParsedPage parsePage(Server server, Response res) {
     // Handle both old format {'posts': [...]} and new format [...]
     final data = res.data;
     final entries = switch (data) {

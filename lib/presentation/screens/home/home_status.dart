@@ -67,6 +67,8 @@ class _ErrorStatus extends ConsumerWidget {
             );
     } else if (e == BooruError.tagsBlocked) {
       return context.t.pageStatus.blocked(query: data.option.query);
+    } else if (e == BooruError.unparsable) {
+      return context.t.pageStatus.unparsable(serverName: server.name);
     } else {
       return e;
     }
@@ -79,6 +81,8 @@ class _ErrorStatus extends ConsumerWidget {
       return const Icon(Icons.explore_off);
     } else if (error == BooruError.tagsBlocked) {
       return const Icon(Icons.block);
+    } else if (error == BooruError.unparsable) {
+      return const Icon(Icons.help_outline);
     }
     return const Icon(Icons.error_outline);
   }
