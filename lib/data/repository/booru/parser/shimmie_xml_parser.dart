@@ -1,17 +1,15 @@
-import 'dart:collection';
-import 'dart:convert';
-
+import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
 import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
+import 'package:boorusphere/data/repository/booru/utils/xml_entry.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:dio/dio.dart';
-import 'package:xml2json/xml2json.dart';
 
 class ShimmieXmlParser extends BooruParser {
   @override
@@ -44,25 +42,8 @@ class ShimmieXmlParser extends BooruParser {
 
   @override
   ParsedPage parsePage(Server server, Response res) {
-    final entries = [];
-    final xjson = Xml2Json();
-    xjson.parse(res.data.replaceAll('\\', ''));
-
-    final conv = jsonDecode(xjson.toGData());
-
-    if (conv.isEmpty || !conv.values.first.keys.contains('tag')) {
-      return const ParsedPage.empty();
-    }
-
-    final posts = conv.values.first['tag'];
-
-    if (posts is LinkedHashMap) {
-      entries.add(posts);
-    } else if (posts is List) {
-      entries.addAll(posts);
-    } else {
-      return const ParsedPage.empty();
-    }
+    final entries = xmlEntries(res.data, 'tag');
+    if (entries == null) throw BooruError.unparsable;
 
     return buildPosts(server, entries, _mapEntry);
   }

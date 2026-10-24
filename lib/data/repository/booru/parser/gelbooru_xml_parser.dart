@@ -1,17 +1,15 @@
-import 'dart:collection';
-import 'dart:convert';
-
+import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
 import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
+import 'package:boorusphere/data/repository/booru/utils/xml_entry.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:dio/dio.dart';
-import 'package:xml2json/xml2json.dart';
 
 class GelbooruXmlParser extends BooruParser {
   @override
@@ -47,24 +45,8 @@ class GelbooruXmlParser extends BooruParser {
 
   @override
   ParsedPage parsePage(Server server, Response res) {
-    final entries = [];
-    final xjson = Xml2Json();
-    xjson.parse(res.data.replaceAll('\\', ''));
-
-    final fromParkerConv = jsonDecode(xjson.toParker());
-    if (!fromParkerConv.values.first.keys.contains('post')) {
-      return const ParsedPage.empty();
-    }
-
-    final posts = fromParkerConv.values.first['post'];
-
-    if (posts is LinkedHashMap) {
-      entries.add(posts);
-    } else if (posts is List) {
-      entries.addAll(posts);
-    } else {
-      return const ParsedPage.empty();
-    }
+    final entries = xmlEntries(res.data, 'post');
+    if (entries == null) throw BooruError.unparsable;
 
     return buildPosts(server, entries, _mapEntry);
   }
@@ -116,36 +98,6 @@ class GelbooruXmlParser extends BooruParser {
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final data = res.data;
-    final entries = [];
-
-    final xjson = Xml2Json();
-    xjson.parse(data.replaceAll('\\', ''));
-
-    final fromParkerConv = jsonDecode(xjson.toParker());
-    if (!fromParkerConv.values.first.keys.contains('tag')) {
-      return {};
-    }
-
-    final tags = fromParkerConv.values.first['tag'];
-
-    if (tags is LinkedHashMap) {
-      entries.add(tags);
-    } else if (tags is List) {
-      entries.addAll(tags);
-    } else {
-      return {};
-    }
-
-    final result = <Suggestion>{};
-    for (final Map<String, dynamic> entry in entries) {
-      final tag = pick(entry, 'name').asStringOrNull() ?? '';
-      final postCount = pick(entry, 'count').asIntOrNull() ?? 0;
-      if (postCount > 0 && tag.isNotEmpty) {
-        result.add(Suggestion(BooruUtil.decodeTag(tag), postCount));
-      }
-    }
-
-    return result;
+    return xmlSuggestions(res.data) ?? const <Suggestion>{};
   }
 }
