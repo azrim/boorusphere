@@ -106,7 +106,9 @@ class DownloaderDialog extends ConsumerWidget {
     );
   }
 
-  static Future<void> show(
+  /// Whether a download started: `null` when the reader closed the picker
+  /// without choosing, `false` when the download could not be started at all.
+  static Future<bool?> show(
     BuildContext context,
     WidgetRef ref,
     Post post, {
@@ -117,18 +119,25 @@ class DownloaderDialog extends ConsumerWidget {
     );
 
     if (quality == DownloadQuality.ask) {
+      var chosen = false;
       await showModalBottomSheet(
         context: context,
-        builder: (_) => DownloaderDialog(post: post, onItemClick: onItemClick),
+        builder: (_) => DownloaderDialog(
+          post: post,
+          onItemClick: (type) {
+            chosen = true;
+            onItemClick?.call(type);
+          },
+        ),
       );
 
-      return;
+      return chosen ? true : null;
     }
 
     final isGranted = await checkNotificationPermission(context);
-    if (!isGranted) return;
+    if (!isGranted) return null;
 
-    await ref
+    final taskId = await ref
         .read(downloaderProvider)
         .download(
           post,
@@ -136,6 +145,7 @@ class DownloaderDialog extends ConsumerWidget {
               ? post.sampleFile
               : post.originalFile,
         );
+    return taskId != null;
   }
 }
 

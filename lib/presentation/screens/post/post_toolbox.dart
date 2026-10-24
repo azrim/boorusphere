@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
+import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
@@ -231,10 +232,14 @@ class PostDownloadButton extends HookConsumerWidget {
       ),
     );
     final pending = useState(false);
+    // A queued or running download is still the only thing this control can
+    // act on: the entry lives behind it, so a task that never settles would
+    // otherwise leave the button disabled with no way back.
+    final inFlight = progress.status.isDownloading || progress.status.isPending;
     final label = progress.status.isDownloaded
         ? context.t.downloads.status.downloaded
-        : progress.status.isDownloading || progress.status.isPending
-        ? '\${context.t.downloads.status.downloading} \${progress.progress}%'
+        : inFlight
+        ? '${context.t.downloads.status.downloading} ${progress.progress}%'
         : context.t.postAction.download;
 
     return Stack(
@@ -254,19 +259,35 @@ class PostDownloadButton extends HookConsumerWidget {
         IconButton(
           padding: const EdgeInsets.all(DesignTokens.spacingMd),
           color: Colors.white,
-          tooltip: label,
+          tooltip: inFlight ? context.t.cancel : label,
           icon: Icon(
             progress.status.isDownloaded ? Icons.download_done : Icons.download,
           ),
-          onPressed:
-              pending.value ||
-                  progress.status.isDownloaded ||
-                  progress.status.isDownloading
+          onPressed: pending.value || progress.status.isDownloaded
               ? null
               : () async {
+                  if (inFlight) {
+                    await ref.read(downloaderProvider).cancel(id: entry.id);
+                    return;
+                  }
+
                   pending.value = true;
-                  await DownloaderDialog.show(context, ref, post);
-                  pending.value = false;
+                  try {
+                    final started = await DownloaderDialog.show(
+                      context,
+                      ref,
+                      post,
+                    );
+                    if (started == false && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(context.t.downloads.failedToStart),
+                        ),
+                      );
+                    }
+                  } finally {
+                    pending.value = false;
+                  }
                 },
           disabledColor: context.colorScheme.primary,
         ),

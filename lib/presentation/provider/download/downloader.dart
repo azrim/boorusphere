@@ -142,19 +142,26 @@ class Downloader {
       fileUrl.fileName,
     ).replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_]+)'), '_');
 
-    // Try to use cached file first if enabled
-    if (preferCache) {
-      final cachedFile = await _getCachedFile(fileUrl);
-      if (cachedFile != null) {
-        final taskId = await _copyFromCache(cachedFile, post, fileName);
-        if (taskId != null) {
-          return taskId;
+    try {
+      // Try to use cached file first if enabled
+      if (preferCache) {
+        final cachedFile = await _getCachedFile(fileUrl);
+        if (cachedFile != null) {
+          final taskId = await _copyFromCache(cachedFile, post, fileName);
+          if (taskId != null) {
+            return taskId;
+          }
         }
       }
-    }
 
-    // Fall back to network download
-    return _downloadFromNetwork(post, fileUrl, fileName, dest);
+      // Fall back to network download
+      return await _downloadFromNetwork(post, fileUrl, fileName, dest);
+    } catch (e, stack) {
+      // The caller drives the UI from the result: an exception here would
+      // escape its pending flag and leave the control disabled for good.
+      mainLog.e('Downloader: failed to start $fileUrl', e, stack);
+      return null;
+    }
   }
 
   Future<String?> _downloadFromNetwork(
@@ -165,6 +172,12 @@ class Downloader {
   ) async {
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
     await sharedStorageHandle.init();
+    // init() swallows the failure that leaves the folder missing, and enqueuing
+    // into it would only produce a task that cannot write its file.
+    if (!Directory(sharedStorageHandle.path).existsSync()) {
+      mainLog.e('Downloader: download folder is not writable');
+      return null;
+    }
 
     final versionRepo = ref.read(versionRepoProvider);
     // Use post URL for referer (like image viewer does), not file URL

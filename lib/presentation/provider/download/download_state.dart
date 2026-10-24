@@ -88,10 +88,18 @@ extension DownloadEntriesExt on Iterable<DownloadEntry> {
     return whereNot((x) => x.post.isReserved);
   }
 
+  /// Newest entry for [post].
+  ///
+  /// Retrying or switching quality appends a new entry instead of reusing the
+  /// old one, so the first match would keep reporting a state the running
+  /// download has already left behind.
   DownloadEntry getByPost(Post post) {
-    final item = firstWhereOrNull(
-      (x) => x.post.id == post.id && x.post.serverId == post.serverId,
-    );
-    return item ?? DownloadEntry.empty;
+    var found = DownloadEntry.empty;
+    for (final entry in this) {
+      if (entry.post.id == post.id && entry.post.serverId == post.serverId) {
+        found = entry;
+      }
+    }
+    return found;
   }
 }

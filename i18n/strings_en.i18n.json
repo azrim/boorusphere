@@ -179,6 +179,7 @@
     "ungroup": "Ungroup",
     "group_by_server": "Group by server",
     "no_permission": "Cannot download a file; missing notification permission",
+    "failed_to_start": "Download could not be started",
     "quality": "Download quality",
     "status": {
       "empty": "Empty",
