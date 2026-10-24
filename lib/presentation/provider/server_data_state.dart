@@ -45,6 +45,14 @@ class ServerState extends _$ServerState {
     final repo = ref.read(serverRepoProvider);
     await repo.remove(data);
     state = repo.servers;
+
+    // The removed server may be the one the session points at. Leaving its id
+    // behind makes every lookup silently fall back to the first server, so the
+    // next fetch answers from a different booru than the one on screen.
+    if (state.isNotEmpty &&
+        ref.read(serverSettingStateProvider).lastActiveId == data.id) {
+      await settings.setLastActiveId(state.first.id);
+    }
   }
 
   Future<void> edit(Server from, Server to) async {
