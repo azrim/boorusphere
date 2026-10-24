@@ -167,23 +167,40 @@ class UserServerRepo implements ServerRepo {
 
   @override
   Future<void> import(String src) async {
+    final List maps;
     try {
-      final List maps = jsonDecode(src);
-      if (maps.isEmpty) return;
-      await box.deleteAll(box.keys);
-      for (final map in maps) {
-        if (map is Map<String, dynamic>) {
-          final server = Server.fromJson(map);
-          await add(server);
-        }
-      }
-      // Run migrations after import to fix any outdated server configs
-      await _migrateGelbooruSuggestionUrl();
-      await _migrateRule34ApiHost();
-      await _migrateOneBasedPageParam();
+      maps = jsonDecode(src) as List;
     } catch (e) {
-      // Import failed, leave existing data intact
+      // Not a server backup; leave the existing data intact.
+      return;
     }
+    if (maps.isEmpty) return;
+
+    // Decode every entry before touching the box: a malformed entry used to
+    // abort the loop after the box had already been cleared, leaving the user
+    // with a partial server list.
+    final restored = <String, Server>{};
+    try {
+      for (final map in maps) {
+        if (map is! Map<String, dynamic>) continue;
+        final server = Server.fromJson(map);
+        restored[server.key] = server.apiAddr == server.homepage
+            ? server.copyWith(apiAddr: '')
+            : server;
+      }
+    } catch (e) {
+      return;
+    }
+    if (restored.isEmpty) return;
+
+    await box.deleteAll(box.keys);
+    await box.putAll(restored);
+    await box.flush();
+
+    // Run migrations after import to fix any outdated server configs
+    await _migrateGelbooruSuggestionUrl();
+    await _migrateRule34ApiHost();
+    await _migrateOneBasedPageParam();
   }
 
   @override
