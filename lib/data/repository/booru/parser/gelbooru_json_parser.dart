@@ -30,22 +30,24 @@ class GelbooruJsonParser extends BooruParser {
   @override
   bool canParsePage(Response res) {
     final data = res.data;
-    return data is Map && data.keys.contains('post');
+    return data is Map && BooruUtil.isEntryValue(data['post']);
   }
 
   @override
   bool isEmptyPayload(Response res) {
     final data = res.data;
+    if (data is! Map) return false;
     // With no entries the DAPI answers with the `@attributes` envelope alone,
     // the `post` key is simply absent.
-    return data is Map &&
-        data.containsKey('@attributes') &&
-        !data.containsKey('post');
+    if (data.containsKey('@attributes') && !data.containsKey('post')) {
+      return true;
+    }
+    return BooruUtil.isEmptyEnvelope(data, 'post');
   }
 
   @override
   ParsedPage parsePage(Server server, Response res) {
-    final entries = List.from(res.data['post'] ?? <dynamic>[]);
+    final entries = BooruUtil.envelopeEntries(res.data, 'post');
     return buildPosts(server, entries, _mapEntry);
   }
 
@@ -55,12 +57,16 @@ class GelbooruJsonParser extends BooruParser {
     final sampleFile = pick(post, 'sample_url').asStringOrNull() ?? '';
     final previewFile = pick(post, 'preview_url').asStringOrNull() ?? '';
     final tags = pick(post, 'tags').toWordList();
-    final width = pick(post, 'width').asIntOrNull() ?? -1;
-    final height = pick(post, 'height').asIntOrNull() ?? -1;
-    final sampleWidth = pick(post, 'sample_width').asIntOrNull() ?? -1;
-    final sampleHeight = pick(post, 'sample_height').asIntOrNull() ?? -1;
-    final previewWidth = pick(post, 'preview_width').asIntOrNull() ?? -1;
-    final previewHeight = pick(post, 'preview_height').asIntOrNull() ?? -1;
+    final width = pick(post, 'width').asIntOrNull(truncateDouble: true) ?? -1;
+    final height = pick(post, 'height').asIntOrNull(truncateDouble: true) ?? -1;
+    final sampleWidth =
+        pick(post, 'sample_width').asIntOrNull(truncateDouble: true) ?? -1;
+    final sampleHeight =
+        pick(post, 'sample_height').asIntOrNull(truncateDouble: true) ?? -1;
+    final previewWidth =
+        pick(post, 'preview_width').asIntOrNull(truncateDouble: true) ?? -1;
+    final previewHeight =
+        pick(post, 'preview_height').asIntOrNull(truncateDouble: true) ?? -1;
     final rating = pick(post, 'rating').asStringOrNull() ?? '';
     final source = pick(post, 'source').asStringOrNull() ?? '';
     final score = pick(post, 'score').asIntOrNull() ?? 0;
@@ -86,15 +92,15 @@ class GelbooruJsonParser extends BooruParser {
   @override
   bool canParseSuggestion(Response res) {
     final data = res.data;
-    return data is Map && data.keys.contains('tag');
+    return data is Map && BooruUtil.isEntryValue(data['tag']);
   }
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = List.from(res.data['tag'] ?? <dynamic>[]);
+    final entries = BooruUtil.envelopeEntries(res.data, 'tag');
 
     final result = <Suggestion>{};
-    for (final Map<String, dynamic> entry in entries) {
+    for (final entry in entries.whereType<Map<String, dynamic>>()) {
       final tag = pick(entry, 'name').asStringOrNull() ?? '';
       final postCount = pick(entry, 'count').asIntOrNull() ?? 0;
       if (postCount > 0 && tag.isNotEmpty) {

@@ -33,12 +33,16 @@ class BooruOnRailsJsonParser extends BooruParser {
   @override
   bool canParsePage(Response res) {
     final data = res.data;
-    return data is Map && data.keys.contains('images');
+    return data is Map && BooruUtil.isEntryValue(data['images']);
   }
 
   @override
+  bool isEmptyPayload(Response res) =>
+      BooruUtil.isEmptyEnvelope(res.data, 'images');
+
+  @override
   ParsedPage parsePage(Server server, Response res) {
-    final entries = List.from(res.data['images'] ?? <dynamic>[]);
+    final entries = BooruUtil.envelopeEntries(res.data, 'images');
     return buildPosts(server, entries, _mapEntry);
   }
 
@@ -50,8 +54,8 @@ class BooruOnRailsJsonParser extends BooruParser {
     final previewFile =
         pick(post, 'representations', 'thumb').asStringOrNull() ?? '';
     final tags = pick(post, 'tags').asStringList();
-    final width = pick(post, 'width').asIntOrNull() ?? -1;
-    final height = pick(post, 'height').asIntOrNull() ?? -1;
+    final width = pick(post, 'width').asIntOrNull(truncateDouble: true) ?? -1;
+    final height = pick(post, 'height').asIntOrNull(truncateDouble: true) ?? -1;
     final rating =
         tags
             .where(
@@ -80,15 +84,15 @@ class BooruOnRailsJsonParser extends BooruParser {
   @override
   bool canParseSuggestion(Response res) {
     final data = res.data;
-    return data is Map && data.containsKey('tags');
+    return data is Map && BooruUtil.isEntryValue(data['tags']);
   }
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = List.from(res.data['tags'] ?? <dynamic>[]);
+    final entries = BooruUtil.envelopeEntries(res.data, 'tags');
 
     final result = <Suggestion>{};
-    for (final Map<String, dynamic> entry in entries) {
+    for (final entry in entries.whereType<Map<String, dynamic>>()) {
       final tag = pick(entry, 'name').asStringOrNull() ?? '';
       final postCount = pick(entry, 'images').asIntOrNull() ?? 0;
       if (postCount > 0 && tag.isNotEmpty) {

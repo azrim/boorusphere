@@ -49,12 +49,16 @@ class MoebooruJsonParser extends BooruParser {
     final sampleFile = pick(post, 'sample_url').asStringOrNull() ?? '';
     final previewFile = pick(post, 'preview_url').asStringOrNull() ?? '';
     final tags = pick(post, 'tags').toWordList();
-    final width = pick(post, 'width').asIntOrNull() ?? -1;
-    final height = pick(post, 'height').asIntOrNull() ?? -1;
-    final sampleWidth = pick(post, 'sample_width').asIntOrNull() ?? -1;
-    final sampleHeight = pick(post, 'sample_height').asIntOrNull() ?? -1;
-    final previewWidth = pick(post, 'preview_width').asIntOrNull() ?? -1;
-    final previewHeight = pick(post, 'preview_height').asIntOrNull() ?? -1;
+    final width = pick(post, 'width').asIntOrNull(truncateDouble: true) ?? -1;
+    final height = pick(post, 'height').asIntOrNull(truncateDouble: true) ?? -1;
+    final sampleWidth =
+        pick(post, 'sample_width').asIntOrNull(truncateDouble: true) ?? -1;
+    final sampleHeight =
+        pick(post, 'sample_height').asIntOrNull(truncateDouble: true) ?? -1;
+    final previewWidth =
+        pick(post, 'preview_width').asIntOrNull(truncateDouble: true) ?? -1;
+    final previewHeight =
+        pick(post, 'preview_height').asIntOrNull(truncateDouble: true) ?? -1;
     final source = pick(post, 'source').asStringOrNull() ?? '';
     final rating = pick(post, 'rating').asStringOrNull() ?? '';
     final score = pick(post, 'score').asIntOrNull() ?? 0;

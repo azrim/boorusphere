@@ -19,7 +19,7 @@ class E621JsonParser extends BooruParser {
   bool canParsePage(Response res) {
     final data = res.data;
     // Handle both old format {'posts': [...]} and new format [...]
-    if (data is Map && data.keys.contains('posts')) return true;
+    if (data is Map) return data['posts'] is List;
     if (data is List && data.isNotEmpty && data.first is Map) {
       // Check if it looks like E621 data (has 'file' and 'tags' keys)
       final first = data.first as Map;
@@ -29,14 +29,16 @@ class E621JsonParser extends BooruParser {
   }
 
   @override
+  bool isEmptyPayload(Response res) =>
+      BooruUtil.isEmptyEnvelope(res.data, 'posts');
+
+  @override
   ParsedPage parsePage(Server server, Response res) {
     // Handle both old format {'posts': [...]} and new format [...]
     final data = res.data;
-    final entries = switch (data) {
-      {'posts': final List posts} => posts,
-      List posts => posts,
-      _ => <dynamic>[],
-    };
+    final entries = data is List
+        ? data
+        : BooruUtil.envelopeEntries(data, 'posts');
     return buildPosts(server, entries, _mapEntry);
   }
 
@@ -59,12 +61,17 @@ class E621JsonParser extends BooruParser {
       ...pick(tagsMap, 'lore').asStringList(),
       ...pick(tagsMap, 'species').asStringList(),
     ];
-    final width = pick(fileMap, 'width').asIntOrNull() ?? 0;
-    final height = pick(fileMap, 'height').asIntOrNull() ?? 0;
-    final sampleWidth = pick(sampleMap, 'width').asIntOrNull() ?? 0;
-    final sampleHeight = pick(sampleMap, 'height').asIntOrNull() ?? 0;
-    final previewWidth = pick(previewMap, 'width').asIntOrNull() ?? 0;
-    final previewHeight = pick(previewMap, 'height').asIntOrNull() ?? 0;
+    final width = pick(fileMap, 'width').asIntOrNull(truncateDouble: true) ?? 0;
+    final height =
+        pick(fileMap, 'height').asIntOrNull(truncateDouble: true) ?? 0;
+    final sampleWidth =
+        pick(sampleMap, 'width').asIntOrNull(truncateDouble: true) ?? 0;
+    final sampleHeight =
+        pick(sampleMap, 'height').asIntOrNull(truncateDouble: true) ?? 0;
+    final previewWidth =
+        pick(previewMap, 'width').asIntOrNull(truncateDouble: true) ?? 0;
+    final previewHeight =
+        pick(previewMap, 'height').asIntOrNull(truncateDouble: true) ?? 0;
     final rating = pick(post, 'rating').asStringOrNull() ?? '';
     final sources = pick(post, 'sources').asStringList();
     final source = sources.isNotEmpty ? sources.first : '';

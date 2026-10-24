@@ -32,15 +32,13 @@ class DanbooruJsonParser extends BooruParser {
 
   @override
   bool canParsePage(Response res) {
-    final data = res.data;
-    return data is List &&
-        data.isNotEmpty &&
-        (data.first as Map).containsKey('preview_file_url');
+    final first = _firstEntry(res.data);
+    return first != null && first.containsKey('preview_file_url');
   }
 
   @override
   ParsedPage parsePage(Server server, Response res) {
-    final entries = List.from(res.data);
+    final entries = res.data is List ? res.data as List : const [];
     return buildPosts(server, entries, _mapEntry);
   }
 
@@ -51,8 +49,10 @@ class DanbooruJsonParser extends BooruParser {
     final previewFile = pick(post, 'preview_file_url').asStringOrNull() ?? '';
     final rating = pick(post, 'rating').asStringOrNull() ?? '';
     final source = pick(post, 'source').asStringOrNull() ?? '';
-    final width = pick(post, 'image_width').asIntOrNull() ?? -1;
-    final height = pick(post, 'image_height').asIntOrNull() ?? -1;
+    final width =
+        pick(post, 'image_width').asIntOrNull(truncateDouble: true) ?? -1;
+    final height =
+        pick(post, 'image_height').asIntOrNull(truncateDouble: true) ?? -1;
     final tags = pick(post, 'tag_string').toWordList();
     final tagsArtist = pick(post, 'tag_string_artist').toWordList();
     final tagsCharacter = pick(post, 'tag_string_character').toWordList();
@@ -83,18 +83,17 @@ class DanbooruJsonParser extends BooruParser {
 
   @override
   bool canParseSuggestion(Response res) {
-    final data = res.data;
-    return data is List &&
-        data.isNotEmpty &&
-        (data.first as Map).containsKey('name') &&
-        (data.first as Map).containsKey('post_count');
+    final first = _firstEntry(res.data);
+    return first != null &&
+        first.containsKey('name') &&
+        first.containsKey('post_count');
   }
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = List.from(res.data);
+    final entries = res.data is List ? res.data as List : const [];
     final result = <Suggestion>{};
-    for (final Map<String, dynamic> entry in entries) {
+    for (final entry in entries.whereType<Map<String, dynamic>>()) {
       final tag = pick(entry, 'name').asStringOrNull() ?? '';
       final postCount = pick(entry, 'post_count').asIntOrNull() ?? 0;
       if (postCount > 0 && tag.isNotEmpty) {
@@ -103,5 +102,14 @@ class DanbooruJsonParser extends BooruParser {
     }
 
     return result;
+  }
+
+  /// The first entry of a JSON array payload, or null when the payload is not
+  /// one. Reading the entry here keeps the sniffer total: a payload this engine
+  /// cannot read must fall through to the next parser instead of throwing.
+  Map? _firstEntry(Object? data) {
+    if (data is! List || data.isEmpty) return null;
+    final first = data.first;
+    return first is Map ? first : null;
   }
 }
