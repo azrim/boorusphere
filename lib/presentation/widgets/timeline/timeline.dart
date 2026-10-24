@@ -526,7 +526,14 @@ class _ThumbnailCard extends HookConsumerWidget {
           unawaited(favorites.save(post));
         }
       case PostContextMenuAction.download:
-        unawaited(DownloaderDialog.show(context, ref, post));
+        final started = await DownloaderDialog.show(context, ref, post);
+        // A dismissed picker reports null: nothing was asked for, so nothing
+        // failed.
+        if (started == false && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.t.downloads.failedToStart)),
+          );
+        }
       case PostContextMenuAction.share:
         unawaited(StorageUtil().shareText(shareLink, null));
       case PostContextMenuAction.source:

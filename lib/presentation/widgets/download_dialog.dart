@@ -68,18 +68,18 @@ class DownloaderDialog extends ConsumerWidget {
                   },
                 ),
                 leading: Icon(_getFileIcon(post.sampleFile)),
-                onTap: () {
-                  checkNotificationPermission(context).then((value) {
-                    if (value) {
-                      onItemClick?.call('sample');
-                      ref
-                          .read(downloaderProvider)
-                          .download(post, url: post.sampleFile);
-                    }
-                    if (context.mounted) {
-                      context.navigator.pop();
-                    }
-                  });
+                onTap: () async {
+                  // Resolved before the permission prompt: the reader can be
+                  // disposed while it is open, and a read after that throws.
+                  final downloader = ref.read(downloaderProvider);
+                  // The permission only gates the completion notice, so a
+                  // denial must not block the download.
+                  await checkNotificationPermission(context);
+                  onItemClick?.call('sample');
+                  unawaited(downloader.download(post, url: post.sampleFile));
+                  if (context.mounted) {
+                    context.navigator.pop();
+                  }
                 },
               ),
             ListTile(
@@ -88,16 +88,18 @@ class DownloaderDialog extends ConsumerWidget {
                 '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
               ),
               leading: Icon(_getFileIcon(post.originalFile)),
-              onTap: () {
-                checkNotificationPermission(context).then((value) {
-                  if (value) {
-                    onItemClick?.call('original');
-                    ref.read(downloaderProvider).download(post);
-                  }
-                  if (context.mounted) {
-                    context.navigator.pop();
-                  }
-                });
+              onTap: () async {
+                // Resolved before the permission prompt: the reader can be
+                // disposed while it is open, and a read after that throws.
+                final downloader = ref.read(downloaderProvider);
+                // The permission only gates the completion notice, so a
+                // denial must not block the download.
+                await checkNotificationPermission(context);
+                onItemClick?.call('original');
+                unawaited(downloader.download(post));
+                if (context.mounted) {
+                  context.navigator.pop();
+                }
               },
             ),
           ],
@@ -114,6 +116,10 @@ class DownloaderDialog extends ConsumerWidget {
     Post post, {
     Function(String type)? onItemClick,
   }) async {
+    // Resolved before the first await: the caller's element can be disposed
+    // while a sheet or a permission prompt is open, and a read after that
+    // throws instead of starting the download.
+    final downloader = ref.read(downloaderProvider);
     final quality = ref.read(
       downloadSettingStateProvider.select((it) => it.quality),
     );
@@ -134,18 +140,25 @@ class DownloaderDialog extends ConsumerWidget {
       return chosen ? true : null;
     }
 
-    final isGranted = await checkNotificationPermission(context);
-    if (!isGranted) return null;
+    // The permission only gates the completion notice, so a denial must not
+    // block the download.
+    await checkNotificationPermission(context);
 
-    final taskId = await ref
-        .read(downloaderProvider)
-        .download(
-          post,
-          url: quality == DownloadQuality.sample
-              ? post.sampleFile
-              : post.originalFile,
-        );
-    return taskId != null;
+    final isSample = quality == DownloadQuality.sample;
+    final taskId = await downloader.download(
+      post,
+      // Engines without a sample report an empty URL, so the original is the
+      // only downloadable file there.
+      url: isSample && post.sampleFile.isNotEmpty
+          ? post.sampleFile
+          : post.originalFile,
+    );
+    if (taskId == null) return false;
+
+    // The previous record is only dropped once the replacement is running, so
+    // a failed start leaves it in place.
+    onItemClick?.call(isSample ? 'sample' : 'original');
+    return true;
   }
 }
 

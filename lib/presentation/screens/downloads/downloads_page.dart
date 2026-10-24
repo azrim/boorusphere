@@ -18,9 +18,12 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Statuses of every tracked download as one comparable value. A percent tick
-/// leaves it unchanged, so a page watching it is not rebuilt per tick.
+/// leaves it unchanged, so a page watching it is not rebuilt per tick. Entries
+/// are sorted because a status update moves its row to the end of the list.
 String _statusSignature(List<DownloadProgress> progresses) {
-  return progresses.map((it) => '${it.id}:${it.status.name}').join(';');
+  final statuses = progresses.map((it) => '${it.id}:${it.status.name}').toList()
+    ..sort();
+  return statuses.join(';');
 }
 
 @RoutePage()

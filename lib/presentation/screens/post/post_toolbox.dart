@@ -4,6 +4,7 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
+import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -232,11 +233,16 @@ class PostDownloadButton extends HookConsumerWidget {
       ),
     );
     final pending = useState(false);
+    // The record outlives the file: a download whose file was removed outside
+    // the app must still be startable from here.
+    final isDownloaded =
+        progress.status.isDownloaded &&
+        ref.watch(sharedStorageHandleProvider).fileExists(entry.dest);
     // A queued or running download is still the only thing this control can
     // act on: the entry lives behind it, so a task that never settles would
     // otherwise leave the button disabled with no way back.
     final inFlight = progress.status.isDownloading || progress.status.isPending;
-    final label = progress.status.isDownloaded
+    final label = isDownloaded
         ? context.t.downloads.status.downloaded
         : inFlight
         ? '${context.t.downloads.status.downloading} ${progress.progress}%'
@@ -260,10 +266,8 @@ class PostDownloadButton extends HookConsumerWidget {
           padding: const EdgeInsets.all(DesignTokens.spacingMd),
           color: Colors.white,
           tooltip: inFlight ? context.t.cancel : label,
-          icon: Icon(
-            progress.status.isDownloaded ? Icons.download_done : Icons.download,
-          ),
-          onPressed: pending.value || progress.status.isDownloaded
+          icon: Icon(isDownloaded ? Icons.download_done : Icons.download),
+          onPressed: pending.value || isDownloaded
               ? null
               : () async {
                   if (inFlight) {
