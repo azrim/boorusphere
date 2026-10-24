@@ -115,12 +115,15 @@ class PageState extends _$PageState {
       }
 
       final settings = ref.read(serverSettingStateProvider);
+      final previousLimit = state.data.option.limit;
       final option = state.data.option.copyWith(
         limit: settings.postLimit,
         searchRating: settings.searchRating,
       );
 
-      if (option.clear) {
+      // A new query and a different page size both restart the result set:
+      // keeping the old index would point at a window that has shifted.
+      if (option.clear || option.limit != previousLimit) {
         _page = 0;
       }
 
@@ -186,7 +189,12 @@ class PageState extends _$PageState {
       limit: settings.postLimit,
       searchRating: settings.searchRating,
     );
-    final direction = target >= _page ? 1 : -1;
+    // The page size changed while this page was on screen, so the index no
+    // longer maps to the same window; reload from the first page instead of
+    // showing posts the reader has already seen.
+    final limitChanged = option.limit != current.option.limit;
+    if (limitChanged) target = 0;
+    final direction = limitChanged || target >= _page ? 1 : -1;
 
     _fetching = true;
     try {
@@ -197,9 +205,12 @@ class PageState extends _$PageState {
       final result = await _fetchPage(option, target, direction: direction);
       if (result == null) {
         // The navigation target has no displayable posts: keep the displayed
-        // posts, stay on the current page and stop offering forward
-        // navigation.
-        state = FetchResult.data(current.copyWith(hasNext: false));
+        // posts and stay on the current page. Only a failed forward step says
+        // anything about what comes next; going back must not disable the
+        // forward arrow of the page still on screen.
+        state = FetchResult.data(
+          direction > 0 ? current.copyWith(hasNext: false) : current,
+        );
         return;
       }
 
