@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
+import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -14,6 +16,7 @@ import 'package:boorusphere/presentation/routes/app_route_observer.dart';
 import 'package:boorusphere/presentation/routes/app_router.dart';
 import 'package:boorusphere/presentation/widgets/app_theme_builder.dart';
 import 'package:boorusphere/utils/http/overrides.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -81,11 +84,41 @@ class Boorusphere extends HookConsumerWidget {
       // ReceivePort is torn down via `ref.onDispose(handle.dispose)` in the
       // provider, so there's nothing to clean up here.
       ref.read(downloaderHandleProvider).listen((progress) async {
-        if (progress.status.isDownloaded) {
-          await ref.read(sharedStorageHandleProvider).rescan();
+        final progressState = ref.read(downloadProgressStateProvider.notifier);
+
+        if (!progress.status.isDownloaded) {
+          await progressState.update(progress);
+          return;
         }
 
-        await ref.read(downloadProgressStateProvider.notifier).update(progress);
+        // The plugin reports COMPLETE for any HTTP 200 body, so a hotlink
+        // page, an empty file or a truncated transfer arrives here looking
+        // like a finished download. The bytes are checked before the row is
+        // allowed to claim success.
+        final entry = ref.read(downloadEntryStateProvider).getById(progress.id);
+        // A task without an entry was cleared or cancelled while it was still
+        // running: a row for it would be one the Downloads list can never show.
+        if (entry.id.isEmpty) return;
+
+        final storage = ref.read(sharedStorageHandleProvider);
+        if (!storage.isValidMedia(entry.dest)) {
+          mainLog.w(
+            'Boorusphere: ${entry.dest} is not media, '
+            'marking the download as failed',
+          );
+          await progressState.update(
+            DownloadProgress(
+              id: progress.id,
+              status: DownloadStatus.failed,
+              progress: progress.progress,
+              timestamp: progress.timestamp,
+            ),
+          );
+          return;
+        }
+
+        await storage.rescan();
+        await progressState.update(progress);
       });
       return null;
     }, const []);
