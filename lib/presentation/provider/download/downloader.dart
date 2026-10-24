@@ -6,6 +6,7 @@ import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/pigeon/storage_util.pi.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
@@ -15,7 +16,6 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart'
     hide DownloadProgress;
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:media_scanner/media_scanner.dart';
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -40,10 +40,10 @@ class Downloader {
   static Future<void> _ensureNotificationsInitialized() async {
     if (_notificationsInitialized) return;
     const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
+      '@drawable/ic_notification',
     );
     await _notifications.initialize(
-      const InitializationSettings(android: androidSettings),
+      settings: const InitializationSettings(android: androidSettings),
     );
     _notificationsInitialized = true;
   }
@@ -51,10 +51,10 @@ class Downloader {
   Future<void> _showDownloadCompleteNotification(String fileName) async {
     await _ensureNotificationsInitialized();
     await _notifications.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'Download complete',
-      fileName,
-      const NotificationDetails(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: 'Download complete',
+      body: fileName,
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'download_complete',
           'Download Complete',
@@ -88,7 +88,7 @@ class Downloader {
     String fileName,
   ) async {
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
-    await sharedStorageHandle.init();
+    if (!await sharedStorageHandle.init()) return null;
 
     final destPath = p.join(sharedStorageHandle.path, fileName);
 
@@ -103,7 +103,7 @@ class Downloader {
       }
 
       // Trigger media scan so it appears in gallery
-      await MediaScanner.loadMedia(path: destPath);
+      await StorageUtil().scanMedia(destPath);
 
       // Show notification for cached download
       await _showDownloadCompleteNotification(fileName);
@@ -174,10 +174,9 @@ class Downloader {
     String Function(String fileName)? dest,
   ) async {
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
-    await sharedStorageHandle.init();
-    // init() swallows the failure that leaves the folder missing, and enqueuing
-    // into it would only produce a task that cannot write its file.
-    if (!Directory(sharedStorageHandle.path).existsSync()) {
+    // Enqueuing into a folder that does not exist only produces a task that
+    // cannot write its file.
+    if (!await sharedStorageHandle.init()) {
       mainLog.e('Downloader: download folder is not writable');
       return null;
     }

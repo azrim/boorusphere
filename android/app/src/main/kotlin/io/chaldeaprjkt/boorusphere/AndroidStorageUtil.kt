@@ -3,6 +3,7 @@ package io.chaldeaprjkt.boorusphere
 import StorageUtil
 import android.content.Context
 import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -14,6 +15,10 @@ class AndroidStorageUtil(private val context: Context) : StorageUtil {
     override fun getStoragePath(): String {
         val file = Environment.getExternalStorageDirectory()
         return file.absolutePath
+    }
+
+    override fun scanMedia(path: String) {
+        MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
     }
 
     override fun getDownloadPath(): String {

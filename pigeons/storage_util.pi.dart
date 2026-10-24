@@ -14,4 +14,8 @@ abstract class StorageUtil {
   String getDownloadPath();
   void open(String filePath);
   void shareText(String text, String? subject);
+
+  /// Asks the media scanner to index [path] (a file or a directory) so it
+  /// shows up in the gallery and in other apps.
+  void scanMedia(String path);
 }
