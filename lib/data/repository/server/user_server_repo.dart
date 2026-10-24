@@ -223,11 +223,17 @@ class UserServerRepo implements ServerRepo {
 
     try {
       await Hive.openBox<Server>(key, encryptionCipher: cipher);
+      return;
     } catch (_) {
-      // Migration: old data was unencrypted
-      final plainBox = await Hive.openBox<Server>(key);
-      final data = plainBox.toMap();
-      await plainBox.close();
+      // Migration: old data was unencrypted.
+      final data = await _readUnencrypted();
+      if (data == null) {
+        // The box is on disk but neither the encryption key nor a plain read
+        // opens it, which means the stored entries are unrecoverable. They are
+        // left untouched: the app starts with an empty list and reports the
+        // failure instead of deleting data it cannot read.
+        rethrow;
+      }
 
       await Hive.deleteBoxFromDisk(key);
 
@@ -237,6 +243,19 @@ class UserServerRepo implements ServerRepo {
       );
       await encryptedBox.putAll(data);
       await encryptedBox.flush();
+    }
+  }
+
+  /// Reads the box without a cipher, or returns null when its entries are
+  /// encrypted.
+  static Future<Map<dynamic, Server>?> _readUnencrypted() async {
+    try {
+      final box = await Hive.openBox<Server>(key);
+      final data = box.toMap();
+      await box.close();
+      return data;
+    } catch (_) {
+      return null;
     }
   }
 }

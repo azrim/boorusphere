@@ -26,19 +26,72 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 class Boorusphere extends HookConsumerWidget {
   const Boorusphere({super.key});
 
+  /// Runs the work that has to finish before the timeline is shown.
+  ///
+  /// [onCompleted] always runs: the boot gate waits on it, so a failure that
+  /// skipped it would leave the spinner on screen for the rest of the session.
+  /// The failure is handed back instead, so the app opens with an empty server
+  /// list and a way to try again.
   Future<void> initializeAsyncStates(
-    WidgetRef ref,
-    Function onCompleted,
-  ) async {
-    await ref.read(serverStateProvider.notifier).populate();
-
-    final envRepo = ref.read(envRepoProvider);
-    final appStateRepo = ref.read(appStateRepoProvider);
-    if (envRepo.appVersion.isNewerThan(appStateRepo.version)) {
-      await ref.read(appUpdaterProvider).clear();
+    WidgetRef ref, {
+    required void Function(Object? failure) onCompleted,
+  }) async {
+    Object? failure;
+    try {
+      await ref.read(serverStateProvider.notifier).populate();
+    } catch (e, stack) {
+      mainLog.e('Boot: failed to load the server list', e, stack);
+      failure = e;
     }
 
-    onCompleted();
+    try {
+      final envRepo = ref.read(envRepoProvider);
+      final appStateRepo = ref.read(appStateRepoProvider);
+      if (envRepo.appVersion.isNewerThan(appStateRepo.version)) {
+        await ref.read(appUpdaterProvider).clear();
+      }
+    } catch (e, stack) {
+      mainLog.e('Boot: failed to clear the update state', e, stack);
+    }
+
+    onCompleted(failure);
+  }
+
+  /// Reports a boot failure the app survived. The server list stays empty, and
+  /// the action retries the load that failed.
+  void _reportBootFailure(
+    BuildContext context,
+    WidgetRef ref,
+    GlobalKey<ScaffoldMessengerState> messenger,
+  ) {
+    final t = TranslationProvider.of(context).translations;
+    final messengerState = messenger.currentState;
+    if (messengerState == null) return;
+
+    messengerState
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(t.error.unknown),
+          action: SnackBarAction(
+            label: t.retry,
+            onPressed: () {
+              ref.read(serverStateProvider.notifier).populate().catchError((
+                Object error,
+                StackTrace stack,
+              ) {
+                mainLog.e(
+                  'Boot: retrying the server list failed',
+                  error,
+                  stack,
+                );
+                if (!context.mounted) return;
+                _reportBootFailure(context, ref, messenger);
+              });
+            },
+          ),
+        ),
+      );
   }
 
   @override
@@ -53,6 +106,10 @@ class Boorusphere extends HookConsumerWidget {
     final envRepo = ref.watch(envRepoProvider);
     final cookieJar = ref.watch(cookieJarProvider);
     final router = useMemoized(AppRouter.new);
+    final messengerKey = useMemoized(
+      GlobalKey<ScaffoldMessengerState>.new,
+      const [],
+    );
     final initialized = useState(false);
     final sdkVersion = envRepo.sdkVersion;
 
@@ -61,9 +118,15 @@ class Boorusphere extends HookConsumerWidget {
     // the early `if (!initialized.value) return` guard.
 
     useEffect(() {
-      initializeAsyncStates(ref, () {
-        initialized.value = true;
-      });
+      initializeAsyncStates(
+        ref,
+        onCompleted: (failure) {
+          initialized.value = true;
+          if (failure != null) {
+            _reportBootFailure(context, ref, messengerKey);
+          }
+        },
+      );
       return null;
     }, const []);
 
@@ -133,6 +196,7 @@ class Boorusphere extends HookConsumerWidget {
     return AppThemeBuilder(
       builder: (context, appTheme) => MaterialApp.router(
         debugShowCheckedModeBanner: false,
+        scaffoldMessengerKey: messengerKey,
         title: 'Boorusphere',
         theme: appTheme.day,
         darkTheme: isMidnight ? appTheme.midnight : appTheme.night,
