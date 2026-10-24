@@ -6,6 +6,7 @@ import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:logging/logging.dart';
@@ -67,8 +68,14 @@ class BooruScanner {
     _uiLogs.value = [];
   }
 
+  /// A probe is a yes/no question, so it must answer quickly: the shared
+  /// client's retry policy would turn one slow parser into minutes of
+  /// scanning, and the server list waits on every parser at once.
+  static const _probeTimeout = Duration(seconds: 8);
+
   Future<_ScanResult> _scan(
-    String host, {
+    Server server, {
+    required String host,
     required BooruParser parser,
     required _ScanType type,
   }) async {
@@ -94,20 +101,38 @@ class BooruScanner {
     try {
       final testUrl = '$host/$test';
       _uilog('→ checking ${type.name}::${parser.id}...');
+      // Logged without credentials.
       _log.v('Scanning $testUrl');
+      final options = Options(
+        connectTimeout: _probeTimeout,
+        sendTimeout: _probeTimeout,
+        receiveTimeout: _probeTimeout,
+        validateStatus: (it) => it == 200,
+        headers: parser.headers,
+        responseType: type == _ScanType.post ? ResponseType.stream : null,
+      );
+      options.disableRetry = true;
+
+      // Credentials ride along with the probe: a booru that gates its API
+      // answers nothing without them, so a scan would report "no engine" for
+      // a server the user can browse once the key is attached.
       final res = await client.get(
-        testUrl,
-        options: Options(
-          validateStatus: (it) => it == 200,
-          headers: parser.headers,
-          responseType: type == _ScanType.post ? ResponseType.stream : null,
-        ),
+        server.appendCredentials(testUrl),
+        options: options,
         cancelToken: _cancelToken,
       );
 
       final origin = res.redirects.isNotEmpty && res.realUri.hasAuthority
           ? res.realUri.origin
           : host;
+
+      // The post probe only asks whether the page exists, so its body is
+      // never read; a stream response still has to be consumed or the
+      // connection is left open for the rest of the scan.
+      final body = res.data;
+      if (body is ResponseBody) {
+        await body.stream.drain<void>().catchError((Object _) {});
+      }
 
       if (type == _ScanType.post) {
         return _ScanResult(
@@ -171,6 +196,7 @@ class BooruScanner {
 
   Stream<_ScanResult> _performScans(
     String host, {
+    required Server server,
     required _ScanType type,
   }) async* {
     final results = <_ScanResult>[];
@@ -178,7 +204,7 @@ class BooruScanner {
       if (i > 0) {
         await Future.delayed(Duration(milliseconds: i * 100));
       }
-      return _scan(host, parser: parser, type: type);
+      return _scan(server, host: host, parser: parser, type: type);
     });
 
     await for (final result in Future.wait(requests).asStream()) {
@@ -219,7 +245,7 @@ class BooruScanner {
     try {
       _uilog('🧐 Scanning search query...');
       _cancelToken = CancelToken();
-      final search = _performScans(api, type: _ScanType.search);
+      final search = _performScans(api, server: data, type: _ScanType.search);
       await for (var ev in search) {
         if (ev == _ScanResult.empty && isScanning.value) {
           continue;
@@ -233,7 +259,11 @@ class BooruScanner {
       }
 
       _uilog('🧐 Scanning suggestion query...');
-      final suggestion = _performScans(api, type: _ScanType.suggestion);
+      final suggestion = _performScans(
+        api,
+        server: data,
+        type: _ScanType.suggestion,
+      );
       await for (var ev in suggestion) {
         if (ev == _ScanResult.empty && isScanning.value) {
           continue;
@@ -247,7 +277,7 @@ class BooruScanner {
       }
 
       _uilog('🧐 Scanning web post query...');
-      final post = _performScans(home, type: _ScanType.post);
+      final post = _performScans(home, server: data, type: _ScanType.post);
       await for (var ev in post) {
         if (ev == _ScanResult.empty && isScanning.value) {
           continue;
