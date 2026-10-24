@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <files-path name="files" path="." />
+    <cache-path name="cache" path="apk/" />
     <external-path name="external_files" path="Download/Boorusphere/" />
+    <external-cache-path name="external_cache" path="apk/" />
 </paths>

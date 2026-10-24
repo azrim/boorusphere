@@ -63,9 +63,11 @@ class AppUpdater {
     final fileName = _fileNameOf(version);
     final url = version.apkUrl;
 
-    // Use external cache directory for APK downloads
+    // The APK lives in its own folder inside the cache, which the app's file
+    // provider exposes so the package installer can read the file.
     final cacheDir = await getExternalCacheDirectories();
-    final saveDir = cacheDir?.firstOrNull ?? await getTemporaryDirectory();
+    final rootDir = cacheDir?.firstOrNull ?? await getTemporaryDirectory();
+    final saveDir = Directory(path.join(rootDir.path, 'apk'));
     _savedDir = saveDir.path;
 
     // Create directory if it doesn't exist
