@@ -34,6 +34,16 @@ class GelbooruJsonParser extends BooruParser {
   }
 
   @override
+  bool isEmptyPayload(Response res) {
+    final data = res.data;
+    // With no entries the DAPI answers with the `@attributes` envelope alone,
+    // the `post` key is simply absent.
+    return data is Map &&
+        data.containsKey('@attributes') &&
+        !data.containsKey('post');
+  }
+
+  @override
   ParsedPage parsePage(Server server, Response res) {
     final entries = List.from(res.data['post'] ?? <dynamic>[]);
     return buildPosts(server, entries, _mapEntry);

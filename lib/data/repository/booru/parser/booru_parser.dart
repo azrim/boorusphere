@@ -13,6 +13,13 @@ abstract class BooruParser {
   Map<String, String> get headers => {};
   Iterable<BooruParserType> get type;
   bool canParsePage(Response res) => false;
+
+  /// Whether [res] is a well-formed *empty* result for this engine, as opposed
+  /// to a payload this parser cannot read. Engines whose empty envelope keeps
+  /// its wrapper (a Map without the post list) override this so the dispatcher
+  /// can answer "no results" instead of "unparsable".
+  bool isEmptyPayload(Response res) => false;
+
   ParsedPage parsePage(Server server, Response res) => const ParsedPage.empty();
   bool canParseSuggestion(Response res) => false;
   Iterable<Suggestion> parseSuggestion(Server server, Response res) => [];

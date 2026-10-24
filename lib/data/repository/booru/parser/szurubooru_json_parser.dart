@@ -45,6 +45,15 @@ class SzurubooruJsonParser extends BooruParser {
   }
 
   @override
+  bool isEmptyPayload(Response res) {
+    final data = res.data;
+    // An exhausted result set keeps the envelope: `{results: [], total: n}`.
+    return data is Map &&
+        data['results'] is List &&
+        (data['results'] as List).isEmpty;
+  }
+
+  @override
   ParsedPage parsePage(Server server, Response res) {
     final entries = List.from(res.data['results'] ?? <dynamic>[]);
     return buildPosts(server, entries, _mapEntry);

@@ -158,7 +158,7 @@ class BooruRepo implements ImageboardRepo {
       // answer; anything else means the server sent something we cannot read
       // (interstitial page, proxy error, changed API), which must not be
       // reported to the user as "no results".
-      if (_isEmptyPayload(res.data)) return const ParsedPage.empty();
+      if (_isEmptyPayload(res)) return const ParsedPage.empty();
       _log.w('getPage(${server.name}): no parser matched the response');
       throw BooruError.unparsable;
     } on FormatException catch (_) {
@@ -185,13 +185,17 @@ class BooruRepo implements ImageboardRepo {
     );
   }
 
-  /// Whether [data] is an empty result rather than a payload no parser reads.
-  bool _isEmptyPayload(Object? data) {
+  /// Whether [res] is an empty result rather than a payload no parser reads.
+  bool _isEmptyPayload(Response res) {
+    final data = res.data;
     if (data is String) {
       final trimmed = data.trim();
       return trimmed.isEmpty || trimmed.contains('<posts');
     }
     if (data is List) return data.isEmpty;
+    // Engines that wrap their results in an envelope keep the envelope when
+    // there is nothing to return, so only the parser knows that shape.
+    if (data is Map) return parsers.any((it) => it.isEmptyPayload(res));
     return false;
   }
 }
