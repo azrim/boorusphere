@@ -40,11 +40,13 @@ abstract class Server with _$Server {
       tags += ' ${_szuruRateString(option.searchRating)}';
     } else if (searchUrl.contains('api/v1/json/search')) {
       // booru-on-rails didn't support rating
-      tags = tags.replaceAll('rating:', '');
+      tags = tags.replaceAll(RegExp(r'\brating:\S+'), '');
     } else {
       tags += ' ${_rateString(option.searchRating)}';
     }
-    tags = Uri.encodeComponent(tags.trim());
+    // Dropping a token leaves a double space behind, which reads as a
+    // separator between two empty tags on some engines.
+    tags = Uri.encodeComponent(tags.replaceAll(RegExp(r'\s+'), ' ').trim());
 
     var url = '$apiAddress/$searchUrl'
         .replaceAll('{tags}', tags)
@@ -55,24 +57,31 @@ abstract class Server with _$Server {
         .replaceAll('{post-offset}', (page * option.limit).toString())
         .replaceAll('{post-limit}', '${option.limit}');
 
-    return _appendCredentials(url);
+    return appendCredentials(url);
   }
 
-  /// Appends API credentials to the URL if they are configured
-  String _appendCredentials(String url) {
-    if (login.isEmpty && apiKey.isEmpty) return url;
+  /// Appends the configured credentials to [url].
+  ///
+  /// The query string is copied as text instead of being parsed and rebuilt:
+  /// templates such as `name_pattern=%{tag-part}%` carry a literal `%`, and
+  /// decoding the query would read it as the start of a percent escape and
+  /// throw [FormatException].
+  String appendCredentials(String url) {
+    if (!hasCredentials) return url;
 
-    final uri = Uri.parse(url);
-    final params = Map<String, String>.from(uri.queryParameters);
-
+    final buffer = StringBuffer(url);
+    var separator = url.contains('?')
+        ? (url.endsWith('?') || url.endsWith('&') ? '' : '&')
+        : '?';
     if (login.isNotEmpty) {
-      params['user_id'] = login;
+      buffer.write('${separator}user_id=${Uri.encodeComponent(login)}');
+      separator = '&';
     }
     if (apiKey.isNotEmpty) {
-      params['api_key'] = apiKey;
+      buffer.write('${separator}api_key=${Uri.encodeComponent(apiKey)}');
     }
 
-    return uri.replace(queryParameters: params).toString();
+    return buffer.toString();
   }
 
   String suggestionUrlsOf(String query) {
@@ -95,7 +104,7 @@ abstract class Server with _$Server {
       url = url.replaceAll('{tag-part}', encq);
     }
 
-    return _appendCredentials(url);
+    return appendCredentials(url);
   }
 
   String postUrlOf(int id) {
