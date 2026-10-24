@@ -249,6 +249,9 @@ class _EntryPopupMenu extends ConsumerWidget {
           case 'cancel':
             downloader.cancel(id: entry.id);
             break;
+          case 'delete-file':
+            downloader.deleteContent(entry);
+            break;
           case 'clear':
             downloader.clear(id: entry.id);
             break;
@@ -267,6 +270,11 @@ class _EntryPopupMenu extends ConsumerWidget {
             PopupMenuItem(value: 'retry', child: Text(context.t.retry)),
           if (progress.status.isDownloading)
             PopupMenuItem(value: 'cancel', child: Text(context.t.cancel)),
+          if (isFileExists)
+            PopupMenuItem(
+              value: 'delete-file',
+              child: Text(context.t.downloads.deleteFile),
+            ),
           PopupMenuItem(value: 'clear', child: Text(context.t.clear)),
         ];
       },

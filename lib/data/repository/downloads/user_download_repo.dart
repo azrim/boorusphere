@@ -1,11 +1,8 @@
-import 'dart:io';
-
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/repository/downloads_repo.dart';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
-import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:hive_ce/hive.dart';
@@ -46,8 +43,6 @@ class UserDownloadsRepo implements DownloadsRepo {
 
   @override
   Future<void> clearEntries() async {
-    final entries = entryBox.values.toList();
-
     // The plugin database is shared with the rest of the app and still holds
     // tasks this repo never recorded. Removing those would leave their owner
     // pointing at a row that no longer exists, so only the ids with an entry
@@ -86,10 +81,9 @@ class UserDownloadsRepo implements DownloadsRepo {
       mainLog.e('Downloads: failed to clear native tasks', e, stack);
     }
 
-    // The records are the only handle the app has on the files, so they are
-    // dropped last: without them nothing is left to delete the files from.
-    await _deleteFiles(entries.where((entry) => !kept.contains(entry.id)));
-
+    // Clearing drops the records only: the files belong to the user, and
+    // deleting one is an explicit action on its entry. The kept entries stay
+    // recorded for the same reason their tasks were left in the plugin.
     await entryBox.deleteAll(entryBox.keys.where((key) => !kept.contains(key)));
   }
 
@@ -152,46 +146,10 @@ Future<void> _adaptEntryDest(Box<DownloadEntry> box) async {
   await box.putAll(Map.fromEntries(newEntries));
 }
 
-/// Deletes the file behind every entry, one by one: a single unusable path
-/// must not leave the rest of the folder behind.
-Future<void> _deleteFiles(Iterable<DownloadEntry> entries) async {
-  final String downloadDir;
-  try {
-    downloadDir = await _downloadDir();
-  } catch (e, stack) {
-    mainLog.e('Downloads: failed to resolve the download folder', e, stack);
-    return;
-  }
-
-  for (final entry in entries) {
-    if (entry.dest.isEmpty) {
-      continue;
-    }
-    try {
-      final file = File(_resolveDest(entry.dest, downloadDir));
-      if (file.existsSync()) {
-        await file.delete();
-      }
-    } catch (e, stack) {
-      mainLog.e('Downloads: failed to delete ${entry.dest}', e, stack);
-    }
-  }
-}
-
 /// Whether the task is the update APK. Those belong to the updater, which
 /// clears them itself (see `AppUpdater.clear`).
 bool _isUpdaterTask(String? fileName) {
   return (fileName ?? '').toLowerCase().endsWith('.apk');
-}
-
-/// [dest] is a name inside the download folder for every file this app wrote;
-/// entries stored before that change kept the absolute path they were saved
-/// to, which is still the file to delete.
-String _resolveDest(String dest, String downloadDir) {
-  if (path.isAbsolute(dest)) {
-    return dest;
-  }
-  return path.join(downloadDir, decodeComponentSafely(dest));
 }
 
 Future<String> _downloadDir() async {

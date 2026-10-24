@@ -173,6 +173,7 @@
     "title": "Downloads",
     "no_file": "File has been moved",
     "redownload": "Redownload",
+    "delete_file": "Delete file",
     "detail": "Show detail",
     "placeholder": "Your downloaded files will appear here",
     "no_match": "No downloads match this filter",

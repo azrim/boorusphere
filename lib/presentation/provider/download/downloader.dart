@@ -318,16 +318,41 @@ class Downloader {
         );
   }
 
+  /// Drops the record of [id] and leaves the file on disk.
+  ///
+  /// The record and the bytes are separate: the list is a log of what was
+  /// downloaded, and forgetting an entry does not mean the file has to go.
+  /// [deleteContent] is the action that removes the file.
   Future<void> clear({required String id}) async {
-    final entry = ref.read(downloadEntryStateProvider).getById(id);
-    if (id.startsWith(_cacheTaskPrefix)) {
-      await _deleteLocalContent(entry.dest);
-    } else {
-      // The app owns the file, so dropping the record has to drop the bytes as
-      // well; a partial left by a running task is cleaned up the same way.
-      await FlutterDownloader.remove(taskId: id, shouldDeleteContent: true);
+    if (!id.startsWith(_cacheTaskPrefix)) {
+      // Also drops the native task row, which would otherwise be read back as
+      // a pending download at the next boot.
+      await FlutterDownloader.remove(taskId: id, shouldDeleteContent: false);
     }
     await ref.read(downloadEntryStateProvider.notifier).remove(id);
+  }
+
+  /// Deletes the file behind [entry], keeping its record so the row can still
+  /// offer a redownload.
+  Future<void> deleteContent(DownloadEntry entry) async {
+    if (entry.id.startsWith(_cacheTaskPrefix)) {
+      await _deleteLocalContent(entry.dest);
+      return;
+    }
+
+    try {
+      await FlutterDownloader.remove(
+        taskId: entry.id,
+        shouldDeleteContent: true,
+      );
+    } catch (e, stack) {
+      mainLog.e('Downloader: failed to remove task', e, stack);
+    }
+
+    // The plugin only deletes the file of a task it still tracks, and the boot
+    // reconciliation prunes tasks whose file never landed: a leftover file is
+    // removed by its path instead.
+    await _deleteLocalContent(entry.dest);
   }
 
   Future<void> _deleteLocalContent(String dest) async {
