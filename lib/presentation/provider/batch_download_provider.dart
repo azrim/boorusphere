@@ -8,6 +8,7 @@ import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/domain/repository/version_repo.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
@@ -81,6 +82,18 @@ class BatchDownloadProvider {
       );
     }
 
+    // Resolved while [ref] is still usable: the page can be left mid-batch,
+    // and a disposed [ref] throws on read. The notifiers are keepAlive, so
+    // they stay valid after the widget that started the batch is gone.
+    //
+    // The app client brings the cookie jar, the User-Agent and the retry
+    // policy the single-download path relies on; without a [WidgetRef] it is
+    // out of reach and a bare client is all that is left.
+    final client = ref?.read(dioProvider) ?? Dio();
+    final versionRepo = ref?.read(versionRepoProvider);
+    final entryState = ref?.read(downloadEntryStateProvider.notifier);
+    final progressState = ref?.read(downloadProgressStateProvider.notifier);
+
     Directory? batchDir;
     try {
       await storage.init();
@@ -98,10 +111,6 @@ class BatchDownloadProvider {
       }
 
       final targetDir = asArchive ? batchDir! : downloadsDir;
-      // The app client brings the cookie jar, the User-Agent and the retry
-      // policy the single-download path relies on; without a [WidgetRef] it is
-      // out of reach and a bare client is all that is left.
-      final client = ref?.read(dioProvider) ?? Dio();
       final usedNames = <String>{};
       final downloads = <Future<bool>>[];
 
@@ -117,7 +126,9 @@ class BatchDownloadProvider {
             destPath: '${targetDir.path}/$fileName',
             storage: storage,
             post: _findPost(imageUrl, posts),
-            ref: ref,
+            versionRepo: versionRepo,
+            entryState: entryState,
+            progressState: progressState,
           ),
         );
       }
@@ -194,7 +205,9 @@ class BatchDownloadProvider {
     required String destPath,
     required SharedStorageHandle storage,
     required Post? post,
-    required WidgetRef? ref,
+    required VersionRepo? versionRepo,
+    required DownloadEntryState? entryState,
+    required DownloadProgressState? progressState,
   }) async {
     try {
       await client.download(
@@ -204,7 +217,7 @@ class BatchDownloadProvider {
           // Media URLs are served through CDN redirects, while the app client
           // leaves redirects to its callers.
           followRedirects: true,
-          headers: _headers(ref, post, url),
+          headers: _headers(versionRepo, post, url),
         ),
       );
     } catch (e) {
@@ -218,8 +231,13 @@ class BatchDownloadProvider {
       return false;
     }
 
-    if (ref != null && post != null) {
-      await _registerEntry(ref: ref, post: post, dest: fileName);
+    if (post != null && entryState != null && progressState != null) {
+      await _registerEntry(
+        entryState: entryState,
+        progressState: progressState,
+        post: post,
+        dest: fileName,
+      );
     }
     return true;
   }
@@ -227,9 +245,12 @@ class BatchDownloadProvider {
   /// Request headers the single-download path sends: a booru behind hotlink
   /// protection answers with an HTML page when the User-Agent or the Referer
   /// is missing.
-  static Map<String, String> _headers(WidgetRef? ref, Post? post, String url) {
+  static Map<String, String> _headers(
+    VersionRepo? versionRepo,
+    Post? post,
+    String url,
+  ) {
     final builder = HeadersFactory.builder();
-    final versionRepo = ref?.read(versionRepoProvider);
     if (versionRepo != null) {
       builder.setUserAgent(versionRepo.current);
     }
@@ -241,27 +262,36 @@ class BatchDownloadProvider {
   /// Adds the written file to the Downloads page as a finished entry.
   ///
   /// The id is local to the app: nothing is enqueued through the platform
-  /// downloader, so it only has to stay unique among entries.
+  /// downloader, so it only has to stay unique among entries. Each store is
+  /// written on its own, so one record that fails to persist cannot stop the
+  /// rest of the batch from being listed, nor turn a file already on disk into
+  /// a failed download.
   static Future<void> _registerEntry({
-    required WidgetRef ref,
+    required DownloadEntryState entryState,
+    required DownloadProgressState progressState,
     required Post post,
     required String dest,
   }) async {
     final id =
         'batch_${DateTime.now().microsecondsSinceEpoch}_${dest.hashCode}';
-    await ref
-        .read(downloadEntryStateProvider.notifier)
-        .add(DownloadEntry(id: id, post: post, dest: dest));
-    await ref
-        .read(downloadProgressStateProvider.notifier)
-        .update(
-          DownloadProgress(
-            id: id,
-            progress: 100,
-            status: DownloadStatus.downloaded,
-            timestamp: DateTime.now().millisecondsSinceEpoch,
-          ),
-        );
+    try {
+      await entryState.add(DownloadEntry(id: id, post: post, dest: dest));
+    } catch (e) {
+      mainLog.e('BatchDownloadProvider: failed to record entry $id', e);
+      return;
+    }
+    try {
+      await progressState.update(
+        DownloadProgress(
+          id: id,
+          progress: 100,
+          status: DownloadStatus.downloaded,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+    } catch (e) {
+      mainLog.e('BatchDownloadProvider: failed to record progress $id', e);
+    }
   }
 
   /// Post whose file is [url], so the request can carry its Referer and the
