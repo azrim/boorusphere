@@ -155,6 +155,10 @@ class _PostImage extends HookConsumerWidget {
       duration: context.motionDuration(const Duration(milliseconds: 150)),
     );
     final wasZoomed = useRef(false);
+    // Zoom is a threshold, not a continuous value. The transform controller
+    // notifies on every frame of a pinch or pan, while the gesture surface only
+    // changes when the image crosses in or out of a zoom.
+    final zoomedNotifier = useMemoized(() => ValueNotifier<bool>(false));
     final activePointers = useRef(0);
     final tapPosition = useRef(Offset.zero);
     final retryNonce = useState(0);
@@ -180,13 +184,16 @@ class _PostImage extends HookConsumerWidget {
         final zoomed = scale > 1.01;
         if (zoomed != wasZoomed.value) {
           wasZoomed.value = zoomed;
+          zoomedNotifier.value = zoomed;
           onZoomChanged?.call(zoomed);
         }
       }
 
       transformController.addListener(onTransformChange);
       return () => transformController.removeListener(onTransformChange);
-    }, [transformController]);
+    }, [transformController, zoomedNotifier]);
+
+    useEffect(() => zoomedNotifier.dispose, [zoomedNotifier]);
 
     // Back while zoomed returns the image to fit-to-screen instead of
     // leaving the viewer, matching the platform photo-viewer model.
@@ -389,11 +396,9 @@ class _PostImage extends HookConsumerWidget {
             // single-finger pan is uncontested while the user is panning a
             // zoomed image.
             Positioned.fill(
-              child: ValueListenableBuilder<Matrix4>(
-                valueListenable: transformController,
-                builder: (context, matrix, _) {
-                  final scale = matrix.getMaxScaleOnAxis();
-                  final isZoomed = scale > 1.01;
+              child: ValueListenableBuilder<bool>(
+                valueListenable: zoomedNotifier,
+                builder: (context, isZoomed, _) {
                   return _PostImageGestureOverlay(
                     onTap:
                         onTap ??

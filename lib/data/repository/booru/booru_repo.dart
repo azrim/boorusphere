@@ -78,12 +78,15 @@ class BooruRepo implements ImageboardRepo {
         'getSuggestion(${server.name}): URL = ${suggestionUrl.split('?').first}',
       );
       final res = await _request(suggestionUrl, parser);
-      _log.i(
-        'getSuggestion(${server.name}): response data type = ${res.data.runtimeType}',
-      );
-      _log.i(
-        'getSuggestion(${server.name}): response data = ${res.data.toString().substring(0, (res.data.toString().length).clamp(0, 200))}',
-      );
+      // Interpolating the payload stringifies the whole response twice; skip it
+      // unless the log will actually be written, since this runs per keystroke.
+      if (_log.isLoggable(Level.INFO)) {
+        final preview = res.data.toString();
+        _log.i(
+          'getSuggestion(${server.name}): response data type = ${res.data.runtimeType}'
+          ' data = ${preview.substring(0, preview.length.clamp(0, 200))}',
+        );
+      }
 
       if (parser.canParseSuggestion(res)) {
         _log.i('getSuggestion(${server.name}): using ${parser.id}_parser');

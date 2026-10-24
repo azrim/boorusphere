@@ -215,8 +215,11 @@ class PageState extends _$PageState {
       final res = await repo.getPage(option, index);
       if (res.isEmpty) return null;
 
+      // One blocked set per fetch: reading the getter inside the predicate
+      // rebuilt it for every post on the page.
+      final blocked = blockedTags;
       final posts = res
-          .where((it) => !it.allTags.any(blockedTags.contains))
+          .where((it) => !it.allTags.any(blocked.contains))
           .toList();
       if (posts.isNotEmpty) {
         return (index: index, posts: posts, rawCount: res.length);
