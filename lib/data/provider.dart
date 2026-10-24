@@ -39,9 +39,14 @@ Future<Map<String, Server>> provideDefaultServers() async {
   );
 }
 
-@riverpod
+/// Kept alive for the whole session: every request goes through this client,
+/// and a client per fetch would drop the HTTP connection pool (a fresh TLS
+/// handshake per page) and leave its sockets to the garbage collector.
+@Riverpod(keepAlive: true)
 Dio dio(Ref ref) {
   final cookieJar = ref.watch(cookieJarProvider);
   final envRepo = ref.watch(envRepoProvider);
-  return AppDio(cookieJar: cookieJar, envRepo: envRepo);
+  final client = AppDio(cookieJar: cookieJar, envRepo: envRepo);
+  ref.onDispose(() => client.close(force: true));
+  return client;
 }
