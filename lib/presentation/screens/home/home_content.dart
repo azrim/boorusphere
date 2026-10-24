@@ -350,20 +350,23 @@ class HomeContent extends HookConsumerWidget {
                   imageUrls,
                   asArchive: asArchive,
                   storage: ref.read(sharedStorageHandleProvider),
+                  ref: ref,
+                  posts: selectedPosts,
                 );
 
                 if (context.mounted) {
                   if (result.success) {
+                    // The count comes from the batch, not from the request:
+                    // a URL that answered with something other than media was
+                    // dropped, and the message reports what reached the disk.
                     final msg = asArchive
                         ? context.t.batch.downloaded(
-                            n: selectedPosts.length,
+                            n: result.savedCount,
                             filename:
                                 result.savedPath?.split('/').last ??
                                 'batch.zip',
                           )
-                        : context.t.batch.downloadedFiles(
-                            n: selectedPosts.length,
-                          );
+                        : context.t.batch.downloadedFiles(n: result.savedCount);
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text(msg)));

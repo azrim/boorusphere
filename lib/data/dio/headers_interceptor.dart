@@ -12,12 +12,18 @@ class HeadersInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    options.headers.addAll(
-      HeadersFactory.builder()
-          .setReferer(options.path)
-          .setUserAgent(envRepo.appVersion)
-          .build(),
-    );
+    final defaults = HeadersFactory.builder()
+        .setReferer(options.path)
+        .setUserAgent(envRepo.appVersion)
+        .build();
+
+    // These are defaults for requests that carry none. A caller that sets its
+    // own User-Agent or Referer keeps it: the batch download points the
+    // Referer at the post page, and the path of the file request would
+    // replace it with the file URL a hotlink-protected booru rejects.
+    for (final entry in defaults.entries) {
+      options.headers.putIfAbsent(entry.key, () => entry.value);
+    }
     super.onRequest(options, handler);
   }
 }
