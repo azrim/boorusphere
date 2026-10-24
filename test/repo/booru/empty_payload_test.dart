@@ -29,6 +29,26 @@ const _gelbooru = Server(
   searchParserId: 'Gelbooru.json',
 );
 
+const _gelbooruXml = Server(
+  id: 'GelbooruXml',
+  homepage: 'https://gelbooru.example.com',
+  searchUrl:
+      'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}',
+  searchParserId: 'Gelbooru.xml',
+);
+
+/// A well-formed result set whose post attributes no parser reads.
+String _xmlPage(int count, {String fileAttribute = 'file_url'}) {
+  final entries = List.generate(
+    count,
+    (i) =>
+        '<post id="${i + 1}" $fileAttribute="https://x/${i + 1}.jpg" '
+        'preview_url="https://x/${i + 1}.p.jpg" width="10" height="10"/>',
+  ).join();
+  return '<?xml version="1.0" encoding="UTF-8"?>'
+      '<posts count="$count" offset="0">$entries</posts>';
+}
+
 void main() async {
   setupLogger(test: true);
   setupMocktailFallbacks();
@@ -80,6 +100,24 @@ void main() async {
     test('an unreadable payload still fails loudly', () async {
       expect(
         () => pageFor(_gelbooru, '{"error":"rate limited"}'),
+        throwsA(BooruError.unparsable),
+      );
+    });
+
+    test('an XML result set with no entry at all is empty', () async {
+      final posts = await pageFor(
+        _gelbooruXml,
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<posts count="0" offset="0"/>',
+      );
+      expect(posts, isEmpty);
+    });
+
+    test('an XML result set no parser can read is a parse failure', () async {
+      // 40 entries are present, so this must not be reported as "no results":
+      // that answer would end pagination for the whole query.
+      expect(
+        () => pageFor(_gelbooruXml, _xmlPage(40, fileAttribute: 'fileurl')),
         throwsA(BooruError.unparsable),
       );
     });

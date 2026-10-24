@@ -190,7 +190,15 @@ class BooruRepo implements ImageboardRepo {
     final data = res.data;
     if (data is String) {
       final trimmed = data.trim();
-      return trimmed.isEmpty || trimmed.contains('<posts');
+      if (trimmed.isEmpty) return true;
+      // An XML result set is empty only when it carries the root element and
+      // not a single entry. Matching the root on its own would report every
+      // payload whose attributes no parser reads — a changed API, a proxy
+      // interstitial — as "no results" and end pagination there.
+      return trimmed.contains('<posts') &&
+          !trimmed.contains('<post ') &&
+          !trimmed.contains('<post>') &&
+          !trimmed.contains('<tag ');
     }
     if (data is List) return data.isEmpty;
     // Engines that wrap their results in an envelope keep the envelope when
