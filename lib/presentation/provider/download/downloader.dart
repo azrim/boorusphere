@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:boorusphere/data/dio/headers_factory.dart';
+import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
@@ -33,6 +34,11 @@ class Downloader {
   Downloader(this.ref);
 
   final Ref ref;
+
+  /// Prefix of the task ids minted for downloads served from the image cache.
+  /// They have no native task behind them, so every platform call that takes a
+  /// task id has to be skipped for them.
+  static const _cacheTaskPrefix = 'cache_';
 
   static final _notifications = FlutterLocalNotificationsPlugin();
   static bool _notificationsInitialized = false;
@@ -109,7 +115,8 @@ class Downloader {
       await _showDownloadCompleteNotification(fileName);
 
       // Create a fake task ID for tracking
-      final taskId = 'cache_${DateTime.now().millisecondsSinceEpoch}';
+      final taskId =
+          '$_cacheTaskPrefix${DateTime.now().millisecondsSinceEpoch}';
 
       final entry = DownloadEntry(id: taskId, post: post, dest: fileName);
       await ref.read(downloadEntryStateProvider.notifier).add(entry);
@@ -139,13 +146,16 @@ class Downloader {
     String Function(String fileName)? dest,
     bool preferCache = true,
   }) async {
-    final fileUrl = url ?? post.originalFile;
-    // sanitize forbidden characters on the file name
-    final fileName = decodeComponentSafely(
-      fileUrl.fileName,
-    ).replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_]+)'), '_');
+    // Some engines answer with an empty sample url for small images, and an
+    // empty url only ever produces a task that fails right away.
+    final fileUrl = url != null && url.isNotEmpty ? url : post.originalFile;
+    if (fileUrl.isEmpty) return null;
 
     try {
+      // Resolved once so the cache copy and the queued task write the same
+      // path, and so the entry reports the name the file actually got.
+      final fileName = await _uniqueFileName(fileUrl);
+
       // Try to use cached file first if enabled
       if (preferCache) {
         final cachedFile = await _getCachedFile(fileUrl);
@@ -167,6 +177,39 @@ class Downloader {
     }
   }
 
+  /// File name for [fileUrl] that neither a queued entry nor an existing file
+  /// in the download folder already claims.
+  ///
+  /// The native worker opens the target path in append mode, so a second
+  /// download resolving to a name already on disk would resume the first one's
+  /// bytes and both would end up reporting a corrupt file as complete. A
+  /// leading dot is stripped as well: a name like '.nomedia' would hide the
+  /// whole folder from the gallery.
+  Future<String> _uniqueFileName(String fileUrl) async {
+    final decoded = decodeComponentSafely(fileUrl.fileName);
+    final sanitized = decoded
+        .replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_\-]+)'), '_')
+        .replaceFirst(RegExp(r'^\.+'), '');
+    final dot = sanitized.lastIndexOf('.');
+    final stem = (dot > 0 ? sanitized.substring(0, dot) : sanitized).trim();
+    final ext = dot > 0 ? sanitized.substring(dot) : '';
+    final base = stem.isEmpty ? 'image' : stem;
+
+    final taken = ref
+        .read(downloadEntryStateProvider)
+        .map((it) => p.basename(it.dest))
+        .toSet();
+    final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
+
+    var candidate = '$base$ext';
+    var suffix = 1;
+    while (taken.contains(candidate) ||
+        sharedStorageHandle.fileExists(candidate)) {
+      candidate = '${base}_${suffix++}$ext';
+    }
+    return candidate;
+  }
+
   Future<String?> _downloadFromNetwork(
     Post post,
     String fileUrl,
@@ -184,6 +227,11 @@ class Downloader {
     final versionRepo = ref.read(versionRepoProvider);
     // Use post URL for referer (like image viewer does), not file URL
     final refererUrl = post.postUrl.isEmpty ? fileUrl : post.postUrl;
+    // The native worker re-sends these headers on every redirect hop
+    // (DownloadWorker.kt), so only the cookies of the file's own host apply.
+    final cookies = await ref
+        .read(cookieJarProvider)
+        .loadForRequest(fileUrl.toUri());
     final taskId = await FlutterDownloader.enqueue(
       url: fileUrl,
       fileName: fileName,
@@ -193,6 +241,7 @@ class Downloader {
       headers: HeadersFactory.builder()
           .setUserAgent(versionRepo.current)
           .setReferer(createReferer(refererUrl))
+          .setCookies(cookies)
           .build(),
     );
 
@@ -203,6 +252,19 @@ class Downloader {
         dest: dest?.call(fileName) ?? fileName,
       );
       await ref.read(downloadEntryStateProvider.notifier).add(entry);
+      // The plugin's ENQUEUED event has no Dart handler, so without this row
+      // the entry keeps reporting an empty status until the worker starts,
+      // which never happens while the device is offline.
+      await ref
+          .read(downloadProgressStateProvider.notifier)
+          .update(
+            DownloadProgress(
+              id: taskId,
+              status: DownloadStatus.pending,
+              progress: 0,
+              timestamp: DateTime.now().millisecondsSinceEpoch,
+            ),
+          );
     }
     return taskId;
   }
@@ -223,10 +285,27 @@ class Downloader {
   }
 
   Future<void> cancel({required String id}) async {
+    // Cancelling a finished task would downgrade its row: the native side
+    // rejects retrying a completed task, so the entry could never recover.
+    if (ref
+        .read(downloadProgressStateProvider)
+        .getById(id)
+        .status
+        .isDownloaded) {
+      return;
+    }
+
     await FlutterDownloader.cancel(taskId: id);
-    // The native side only flags the task; without a callback the row keeps
-    // reporting the download as running.
+    if (!id.startsWith(_cacheTaskPrefix)) {
+      // cancel() only stops the work; its database row survives and boot-time
+      // reconciliation would read it back as pending forever.
+      await FlutterDownloader.remove(taskId: id, shouldDeleteContent: false);
+    }
+
+    // The task may have completed while the channel call was in flight.
     final progress = ref.read(downloadProgressStateProvider).getById(id);
+    if (progress.status.isDownloaded) return;
+
     await ref
         .read(downloadProgressStateProvider.notifier)
         .update(
@@ -240,8 +319,29 @@ class Downloader {
   }
 
   Future<void> clear({required String id}) async {
-    await FlutterDownloader.remove(taskId: id, shouldDeleteContent: false);
+    final entry = ref.read(downloadEntryStateProvider).getById(id);
+    if (id.startsWith(_cacheTaskPrefix)) {
+      await _deleteLocalContent(entry.dest);
+    } else {
+      // The app owns the file, so dropping the record has to drop the bytes as
+      // well; a partial left by a running task is cleaned up the same way.
+      await FlutterDownloader.remove(taskId: id, shouldDeleteContent: true);
+    }
     await ref.read(downloadEntryStateProvider.notifier).remove(id);
+  }
+
+  Future<void> _deleteLocalContent(String dest) async {
+    if (dest.isEmpty) return;
+
+    final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
+    if (!sharedStorageHandle.fileExists(dest)) return;
+
+    try {
+      final file = File(p.join(sharedStorageHandle.path, Uri.decodeFull(dest)));
+      await file.delete();
+    } catch (e) {
+      mainLog.e('Downloader: failed to delete $dest', e);
+    }
   }
 
   void openFile({required String id}) {
