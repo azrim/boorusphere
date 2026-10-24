@@ -4,15 +4,16 @@ import 'package:path/path.dart' as path;
 
 class BooruUtil {
   static String normalizeUrl(Server server, String urlString) {
-    if (urlString.isEmpty) {
-      // wtf are you doing here
+    final trimmed = urlString.trim();
+    if (trimmed.isEmpty) {
+      // A post without a sample or a preview is a normal answer, not an error.
       return '';
     }
     try {
-      final uri = Uri.parse(urlString);
+      final uri = Uri.parse(trimmed);
       if (uri.hasScheme && uri.hasAuthority && uri.hasAbsolutePath) {
         // valid url, there's nothing to do
-        return urlString;
+        return trimmed;
       }
 
       final apiAddr = Uri.parse(server.apiAddress);
@@ -32,6 +33,35 @@ class BooruUtil {
     } catch (e) {
       return '';
     }
+  }
+
+  /// Reads the entry list an engine keeps under [key] in its response envelope.
+  ///
+  /// An engine answers a single match with the entry object itself instead of a
+  /// one-element list, so both shapes are read the same way. A missing key or a
+  /// value that carries no entry yields an empty list; [isEmptyEnvelope] is what
+  /// tells that apart from an envelope that has entries.
+  static List<Object?> envelopeEntries(Object? data, String key) {
+    if (data is! Map) return const [];
+    final value = data[key];
+    if (value is List) return value;
+    if (value is Map) return [value];
+    return const [];
+  }
+
+  /// Whether [value] is an entry list, or the single entry object an engine
+  /// answers with when only one match is left.
+  static bool isEntryValue(Object? value) => value is List || value is Map;
+
+  /// Whether [data] is an envelope that carries no entry under [key].
+  ///
+  /// A key that is missing says nothing about this engine, so the answer is
+  /// false and the caller can ask another parser.
+  static bool isEmptyEnvelope(Object? data, String key) {
+    if (data is! Map || !data.containsKey(key)) return false;
+    final value = data[key];
+    if (value is List) return value.isEmpty;
+    return value is! Map;
   }
 
   static String decodeTag(String str) {
