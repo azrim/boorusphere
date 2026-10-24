@@ -26,11 +26,13 @@ class SafebooruXmlParser extends BooruParser {
     final data = res.data;
     final rawString = data.toString();
     return data is String &&
-        rawString.contains('<?xml') &&
         rawString.contains('<posts ') &&
         rawString.contains('<post ') &&
         rawString.contains(' file_url="');
   }
+
+  @override
+  bool isEmptyPayload(Response res) => xmlIsEmptyResultSet(res.data);
 
   @override
   ParsedPage parsePage(Server server, Response res) {
@@ -46,12 +48,16 @@ class SafebooruXmlParser extends BooruParser {
     final sampleFile = pick(post, 'sample_url').asStringOrNull() ?? '';
     final previewFile = pick(post, 'preview_url').asStringOrNull() ?? '';
     final tags = pick(post, 'tags').toWordList();
-    final width = pick(post, 'width').asIntOrNull() ?? -1;
-    final height = pick(post, 'height').asIntOrNull() ?? -1;
-    final sampleWidth = pick(post, 'sample_width').asIntOrNull() ?? -1;
-    final sampleHeight = pick(post, 'sample_height').asIntOrNull() ?? -1;
-    final previewWidth = pick(post, 'preview_width').asIntOrNull() ?? -1;
-    final previewHeight = pick(post, 'preview_height').asIntOrNull() ?? -1;
+    final width = pick(post, 'width').asIntOrNull(truncateDouble: true) ?? -1;
+    final height = pick(post, 'height').asIntOrNull(truncateDouble: true) ?? -1;
+    final sampleWidth =
+        pick(post, 'sample_width').asIntOrNull(truncateDouble: true) ?? -1;
+    final sampleHeight =
+        pick(post, 'sample_height').asIntOrNull(truncateDouble: true) ?? -1;
+    final previewWidth =
+        pick(post, 'preview_width').asIntOrNull(truncateDouble: true) ?? -1;
+    final previewHeight =
+        pick(post, 'preview_height').asIntOrNull(truncateDouble: true) ?? -1;
     final rating = pick(post, 'rating').asStringOrNull() ?? '';
     final source = pick(post, 'source').asStringOrNull() ?? '';
     final score = pick(post, 'score').asIntOrNull() ?? 0;
@@ -79,7 +85,6 @@ class SafebooruXmlParser extends BooruParser {
     final data = res.data;
     final rawString = data.toString();
     return data is String &&
-        rawString.contains('<?xml') &&
         rawString.contains('<tags') &&
         rawString.contains('<tag ') &&
         rawString.contains(' name="');

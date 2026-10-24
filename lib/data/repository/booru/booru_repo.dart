@@ -157,7 +157,8 @@ class BooruRepo implements ImageboardRepo {
       // No parser recognised the payload. An empty result is still a valid
       // answer; anything else means the server sent something we cannot read
       // (interstitial page, proxy error, changed API), which must not be
-      // reported to the user as "no results".
+      // reported to the user as "no results". Only the parsers know what an
+      // empty result looks like for the engine that answered.
       if (_isEmptyPayload(res)) return const ParsedPage.empty();
       _log.w('getPage(${server.name}): no parser matched the response');
       throw BooruError.unparsable;
@@ -186,24 +187,14 @@ class BooruRepo implements ImageboardRepo {
   }
 
   /// Whether [res] is an empty result rather than a payload no parser reads.
+  ///
+  /// The shape of an empty result belongs to the engine, so the parsers answer
+  /// it: a bare empty string and an empty list are empty by construction, and
+  /// everything else is offered to every registered parser.
   bool _isEmptyPayload(Response res) {
     final data = res.data;
-    if (data is String) {
-      final trimmed = data.trim();
-      if (trimmed.isEmpty) return true;
-      // An XML result set is empty only when it carries the root element and
-      // not a single entry. Matching the root on its own would report every
-      // payload whose attributes no parser reads — a changed API, a proxy
-      // interstitial — as "no results" and end pagination there.
-      return trimmed.contains('<posts') &&
-          !trimmed.contains('<post ') &&
-          !trimmed.contains('<post>') &&
-          !trimmed.contains('<tag ');
-    }
+    if (data is String && data.trim().isEmpty) return true;
     if (data is List) return data.isEmpty;
-    // Engines that wrap their results in an envelope keep the envelope when
-    // there is nothing to return, so only the parser knows that shape.
-    if (data is Map) return parsers.any((it) => it.isEmptyPayload(res));
-    return false;
+    return parsers.any((it) => it.isEmptyPayload(res));
   }
 }
