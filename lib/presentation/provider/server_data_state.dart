@@ -22,7 +22,10 @@ class ServerState extends _$ServerState {
     await repo.populate();
     state = repo.servers;
 
-    if (state.isNotEmpty && serverSetting.lastActiveId.isEmpty) {
+    // An empty or stale id would leave the home session pointing at a server
+    // that no longer exists; every lookup would then have to guess.
+    if (state.isNotEmpty &&
+        !state.any((it) => it.id == serverSetting.lastActiveId)) {
       final server = state.firstWhere(
         (it) => it.id.startsWith('Safe'),
         orElse: () => state.first,
