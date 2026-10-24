@@ -21,6 +21,13 @@ enum ColorPalette {
 
   final Color? accentColor;
   final String displayName;
+
+  static ColorPalette fromName(String name) {
+    return ColorPalette.values.firstWhere(
+      (it) => it.name == name,
+      orElse: () => ColorPalette.system,
+    );
+  }
 }
 
 @freezed

@@ -20,6 +20,9 @@ class UiSettingState extends _$UiSettingState {
           .values[repo.get(Setting.uiThemeMode, or: ThemeMode.system.index)],
       midnightMode: repo.get(Setting.uiMidnightMode, or: false),
       imeIncognito: repo.get(Setting.imeIncognito, or: false),
+      colorPalette: ColorPalette.fromName(
+        repo.get(Setting.uiColorPalette, or: ColorPalette.system.name),
+      ),
     );
   }
 
@@ -98,8 +101,9 @@ class UiSettingState extends _$UiSettingState {
   }
 
   Future<ColorPalette> setColorPalette(ColorPalette palette) async {
+    final repo = ref.read(settingsRepoProvider);
     state = state.copyWith(colorPalette: palette);
-    // TODO: Persist color palette setting
+    await repo.put(Setting.uiColorPalette, palette.name);
     return state.colorPalette;
   }
 }

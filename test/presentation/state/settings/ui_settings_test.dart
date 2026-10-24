@@ -1,8 +1,11 @@
+import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../utils/hive.dart';
@@ -74,6 +77,26 @@ void main() async {
       await notifier().setImeIncognito(true);
 
       expect(state().imeIncognito, true);
+    });
+
+    test('colorPalette', () async {
+      await notifier().setColorPalette(ColorPalette.dracula);
+
+      expect(state().colorPalette, ColorPalette.dracula);
+    });
+
+    test('colorPalette survives a reload', () async {
+      await notifier().setColorPalette(ColorPalette.gruvbox);
+
+      final box = Hive.box(UserSettingsRepo.key);
+      await box.flush();
+      await box.close();
+      await UserSettingsRepo.prepare();
+
+      final reloaded = UserSettingsRepo(
+        Hive.box(UserSettingsRepo.key),
+      ).get(Setting.uiColorPalette, or: ColorPalette.system.name);
+      expect(ColorPalette.fromName(reloaded), ColorPalette.gruvbox);
     });
   });
 }

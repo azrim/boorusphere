@@ -14,6 +14,7 @@ enum Setting {
   uiMidnightMode,
   uiBlur,
   uiThemeMode,
+  uiColorPalette,
   uiTimelineGrid,
   uiLongPressHintSeen,
   uiLanguage,
