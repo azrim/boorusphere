@@ -8,3 +8,4 @@ flat_map: false
 timestamp: false
 key_case: camel
 param_case: camel
+lazy: false
