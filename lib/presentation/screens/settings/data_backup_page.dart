@@ -579,10 +579,16 @@ class _TestConnectionTile extends HookConsumerWidget {
           ? null
           : () async {
               isLoading.value = true;
-              final result = await ref
-                  .read(telegramBackupServiceProvider.notifier)
-                  .testConnection();
-              isLoading.value = false;
+              final TelegramResult result;
+              try {
+                result = await ref
+                    .read(telegramBackupServiceProvider.notifier)
+                    .testConnection();
+              } finally {
+                // The spinner is the only feedback while this runs, so it has
+                // to clear even when the request throws.
+                isLoading.value = false;
+              }
 
               if (!context.mounted) return;
 

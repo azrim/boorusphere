@@ -16,7 +16,10 @@ enum TelegramResult {
   unknownError,
 }
 
-@riverpod
+/// Kept alive for the session: every caller only reads the notifier and then
+/// awaits a request, so an auto-disposed element would be gone by the time the
+/// result is written back and that write would throw instead of answering.
+@Riverpod(keepAlive: true)
 class TelegramBackupService extends _$TelegramBackupService {
   static const _apiBaseUrl = 'https://api.telegram.org';
   static const _maxFileSize = 50 * 1024 * 1024; // 50MB limit for Telegram
