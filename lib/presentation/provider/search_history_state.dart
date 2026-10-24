@@ -2,29 +2,46 @@ import 'package:boorusphere/data/repository/search_history/entity/search_history
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/text_match.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'search_history_state.g.dart';
 
+/// History entries to show for [query], best match first.
+///
+/// The map keeps insertion order and that order is the display order: entries
+/// are ranked by where the typed text sits in the stored query (exact, prefix,
+/// later word, substring) instead of by recency alone. Typing `anime` used to
+/// leave `anime_screenshot` below older multi-tag searches that merely
+/// contained the word; recency now only breaks a tie.
 @riverpod
 Map<int, SearchHistory> filterHistory(Ref ref, String query) {
   final history = ref.watch(searchHistoryStateProvider);
-  if (query.endsWith(' ') || query.isEmpty) {
-    return history;
+  // Hive hands out incrementing keys, so the highest key is the newest search.
+  final entries = history.entries.toList()
+    ..sort((a, b) => b.key.compareTo(a.key));
+
+  final typed = query.trim();
+  // A trailing space means the reader is starting the next tag.
+  if (typed.isEmpty || query.endsWith(' ')) {
+    return Map.fromEntries(entries);
   }
 
-  final queries = query.toWordList();
-  // Filtering history that contains last word from any state (either incomplete
-  // or already contains multiple words)
-  final filtered = Map<int, SearchHistory>.from(history);
-  filtered.removeWhere(
-    (key, value) =>
-        !value.query.contains(queries.last) ||
-        queries.take(queries.length).contains(value.query),
-  );
+  final word = typed.toWordList().last;
+  final matched = entries
+      .where((it) => matchRank(it.value.query, word) < kNoMatch)
+      .toList();
+  matched.sort((a, b) {
+    final byRank = matchRank(
+      a.value.query,
+      word,
+    ).compareTo(matchRank(b.value.query, word));
+    if (byRank != 0) return byRank;
+    return b.key.compareTo(a.key);
+  });
 
-  return filtered;
+  return Map.fromEntries(matched);
 }
 
 @riverpod

@@ -228,10 +228,9 @@ class _SearchHistory extends HookConsumerWidget {
       () => searchBar.textEditingController.text,
     );
 
-    // Optimize history filtering for better performance
-    final history = query.trim().isEmpty
-        ? ref.watch(searchHistoryStateProvider) // Show all history
-        : ref.watch(filterHistoryProvider(query)); // Show filtered history
+    // Already ordered best match first; the provider also handles the
+    // unfiltered case.
+    final history = ref.watch(filterHistoryProvider(query));
 
     // Don't show history if search bar is closed
     if (!searchBar.isOpen) {
@@ -239,7 +238,7 @@ class _SearchHistory extends HookConsumerWidget {
     }
 
     // Show empty state if no history
-    if (history.entries.isEmpty) {
+    if (history.isEmpty) {
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(DesignTokens.spacingXl),
@@ -278,15 +277,13 @@ class _SearchHistory extends HookConsumerWidget {
       );
     }
 
-    // Convert to list once and limit items for better performance
     final historyList = history.entries.toList();
-    final itemCount = (historyList.length).clamp(0, 15);
+    final itemCount = historyList.length.clamp(0, 15);
 
     return SliverList.builder(
       itemCount: itemCount,
       itemBuilder: (context, index) {
-        final reversed = historyList.length - 1 - index;
-        final entry = historyList[reversed];
+        final entry = historyList[index];
         return RepaintBoundary(
           child: Dismissible(
             key: Key(entry.key.toString()),

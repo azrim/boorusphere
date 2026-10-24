@@ -1,26 +1,27 @@
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
+import 'package:boorusphere/utils/text_match.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('suggestionMatchRank', () {
+  group('matchRank', () {
     test('ranks the match position, closest first', () {
-      expect(suggestionMatchRank('blue_eyes', 'blue_eyes'), 0);
-      expect(suggestionMatchRank('blue_eyes', 'blue'), 1);
-      expect(suggestionMatchRank('long_hair', 'hair'), 2);
-      expect(suggestionMatchRank('ahoge', 'hoge'), 3);
+      expect(matchRank('blue_eyes', 'blue_eyes'), 0);
+      expect(matchRank('blue_eyes', 'blue'), 1);
+      expect(matchRank('long_hair', 'hair'), 2);
+      expect(matchRank('ahoge', 'hoge'), 3);
     });
 
     test('treats a space as a word boundary too', () {
-      expect(suggestionMatchRank('long hair', 'hair'), 2);
+      expect(matchRank('long hair', 'hair'), 2);
     });
 
     test('ignores case', () {
-      expect(suggestionMatchRank('Blue_Eyes', 'BLUE'), 1);
-      expect(suggestionMatchRank('Blue_Eyes', 'eyes'), 2);
+      expect(matchRank('Blue_Eyes', 'BLUE'), 1);
+      expect(matchRank('Blue_Eyes', 'eyes'), 2);
     });
 
     test('flags a tag that does not contain the text', () {
-      expect(suggestionMatchRank('animal_ears', 'zzz'), 4);
+      expect(matchRank('animal_ears', 'zzz'), kNoMatch);
     });
   });
 

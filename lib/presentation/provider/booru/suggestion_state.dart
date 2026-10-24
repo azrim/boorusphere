@@ -5,12 +5,10 @@ import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/text_match.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'suggestion_state.g.dart';
-
-/// Rank for a tag that does not contain what was typed at all.
-const _kUnmatched = 4;
 
 class Suggestion {
   const Suggestion(this.name, this.count);
@@ -19,31 +17,10 @@ class Suggestion {
   final int count;
 }
 
-/// How closely [name] completes [word].
-///
-/// Boorus answer a suggestion request with substring matches ordered by post
-/// count (`*{tag-part}*`), so the most popular tag that merely *contains* the
-/// text comes back first. Ranking by where the match sits keeps the tag the
-/// reader is actually spelling at the top: `0` exact, `1` prefix, `2` a later
-/// word of the tag (`long_hair` for `hair`), `3` any substring, and
-/// [_kUnmatched] when the text is not in the tag at all.
-int suggestionMatchRank(String name, String word) {
-  final tag = name.toLowerCase();
-  final part = word.toLowerCase();
-  if (tag == part) return 0;
-  if (tag.startsWith(part)) return 1;
-  if (tag.contains('_$part') || tag.contains(' $part')) return 2;
-  if (tag.contains(part)) return 3;
-  return _kUnmatched;
-}
-
 /// Orders two suggestions for the same [word]: closer completion first, then
 /// the more used tag, then the shorter one.
 int compareSuggestions(Suggestion a, Suggestion b, String word) {
-  final byRank = suggestionMatchRank(
-    a.name,
-    word,
-  ).compareTo(suggestionMatchRank(b.name, word));
+  final byRank = matchRank(a.name, word).compareTo(matchRank(b.name, word));
   if (byRank != 0) return byRank;
 
   final byCount = b.count.compareTo(a.count);
@@ -119,7 +96,7 @@ class SuggestionState extends _$SuggestionState {
           res
               .where((it) => !blockedNames.contains(it.name))
               .where((it) => seen.add(it.name))
-              .where((it) => suggestionMatchRank(it.name, word) < _kUnmatched)
+              .where((it) => matchRank(it.name, word) < kNoMatch)
               .toList()
             ..sort((a, b) => compareSuggestions(a, b, word));
 

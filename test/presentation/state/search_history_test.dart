@@ -48,6 +48,19 @@ void main() async {
       expect(state().length, 2);
     });
 
+    test('filter ranks the closest match above older entries', () async {
+      await notifier().clear();
+      // Saved oldest first, so recency alone would leave the exact tag last.
+      await notifier().save('anime_screenshot', servers.first);
+      await notifier().save('futaba_rio anime_screenshot', servers.first);
+      await notifier().save('naruto_(series) anime_screenshot', servers.first);
+
+      final filtered = ref.read(FilterHistoryProvider('anime'));
+
+      expect(filtered.values.first.query, 'anime_screenshot');
+      expect(filtered.length, 3);
+    });
+
     test('cleanup', () async {
       await notifier().clear();
       expect(state().length, 0);
