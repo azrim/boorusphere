@@ -11,7 +11,13 @@ class AppDio with DioMixin implements Dio {
     options = BaseOptions(
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
-      followRedirects: false,
+      // Redirects are resolved by dart:io, which re-sends a request header
+      // only when the target is the same origin (RFC 6454); authorization and
+      // cookie headers are dropped otherwise, and a redirect never re-adds the
+      // original query string. A 3xx is not a failure: canonical http→https
+      // and 301s are common, and reporting them as HTTP errors leaves whole
+      // servers unreadable.
+      followRedirects: true,
     );
     httpClientAdapter = IOHttpClientAdapter();
     final retryDelays = List.generate(5, (index) {
@@ -26,6 +32,14 @@ class AppDio with DioMixin implements Dio {
           dio: this,
           retries: retryDelays.length,
           retryDelays: retryDelays,
+          // A 429 is the server asking us to back off, not a transient
+          // failure: retrying it multiplies the pressure it just complained
+          // about. It reaches the caller immediately, which is also what
+          // honoring Retry-After means when no retry is attempted.
+          retryEvaluator: (error, attempt) {
+            if (error.response?.statusCode == 429) return false;
+            return RetryInterceptor.defaultRetryEvaluator(error, attempt);
+          },
         ),
       );
   }
