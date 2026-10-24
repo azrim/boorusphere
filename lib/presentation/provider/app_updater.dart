@@ -16,7 +16,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_updater.g.dart';
 
-@riverpod
+/// Kept alive for the session: it holds the id of the running update between
+/// calls and reads [Ref] after awaits, which an auto-disposed element cannot
+/// survive.
+@Riverpod(keepAlive: true)
 AppUpdater appUpdater(Ref ref) {
   return AppUpdater(ref);
 }
