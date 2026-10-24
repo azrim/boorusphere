@@ -23,7 +23,10 @@ class DrawerServerSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final servers = ref.watch(serverStateProvider);
     final session = ref.watch(searchSessionProvider);
-    final activeServer = servers.getById(session.serverId);
+    // Falling back to the first server here would mark an unrelated row as the
+    // active one, and tapping it would then do nothing: the session still
+    // points at a server that no longer exists.
+    final activeServer = servers.getById(session.serverId, or: Server.empty);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

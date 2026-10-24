@@ -71,6 +71,18 @@ class PageState extends _$PageState {
         .getById(session.serverId, or: Server.empty);
   }
 
+  /// Reports a session whose server is no longer in the list, which happens
+  /// when the drawer removes the server the page was opened with.
+  ///
+  /// The error is the generic one on purpose: the timeline must not look idle
+  /// while every load and navigation quietly does nothing, and the status card
+  /// that shows it also carries the "Change server" action that gets out.
+  bool _hasServer() {
+    if (_server != Server.empty) return true;
+    state = FetchResult.error(state.data);
+    return false;
+  }
+
   Iterable<String> get blockedTags {
     return ref
         .read(tagsBlockerStateProvider)
@@ -98,7 +110,7 @@ class PageState extends _$PageState {
   /// Used for the first load, retry and pull-to-refresh. An option marked with
   /// `clear` (a new query) restarts from the first page.
   Future<void> load() async {
-    if (_server == Server.empty) return;
+    if (!_hasServer()) return;
     if (_fetching) return;
 
     final retry = _retryTarget;
@@ -192,7 +204,7 @@ class PageState extends _$PageState {
   }
 
   Future<void> _navigateTo(int target) async {
-    if (_server == Server.empty) return;
+    if (!_hasServer()) return;
     _retryTarget = null;
 
     final current = state.data;
