@@ -103,9 +103,12 @@ class ServerAlreadyExistsException implements Exception {
 }
 
 extension ServerDataListExt on Iterable<Server> {
+  /// Resolves [id] to the server carrying it.
+  ///
+  /// An unknown id yields [or], or [Server.empty] when none is given: silently
+  /// answering with the first server would point a session at a booru the user
+  /// never picked.
   Server getById(String id, {Server? or}) {
-    return isEmpty
-        ? Server.empty
-        : firstWhere((it) => it.id == id, orElse: () => or ?? first);
+    return firstWhere((it) => it.id == id, orElse: () => or ?? Server.empty);
   }
 }

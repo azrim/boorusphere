@@ -45,8 +45,8 @@ void main() async {
 
     test('get', () async {
       expect(state().getById('Yandere').homepage, 'https://yande.re');
-      expect(state().getById('deez'), state().first);
-      expect(state().getById('deez', or: Server.empty), Server.empty);
+      expect(state().getById('deez'), Server.empty);
+      expect(state().getById('deez', or: state().first), state().first);
     });
 
     test('add', () async {

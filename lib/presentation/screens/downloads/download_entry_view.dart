@@ -16,6 +16,7 @@ import 'package:boorusphere/utils/extensions/number.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:cached_network_image/cached_network_image.dart'
     hide DownloadProgress;
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -156,7 +157,11 @@ class DownloadEntryView extends ConsumerWidget {
                   width: DesignTokens.iconInline,
                   child: Center(child: Text('•')),
                 ),
-                Text(servers.getById(entry.post.serverId).name),
+                Text(
+                  servers
+                      .getById(entry.post.serverId, or: servers.firstOrNull)
+                      .name,
+                ),
               ],
             ),
           ],
@@ -166,7 +171,7 @@ class DownloadEntryView extends ConsumerWidget {
       trailing: _EntryPopupMenu(
         entry: entry,
         progress: progress,
-        server: servers.getById(entry.post.serverId),
+        server: servers.getById(entry.post.serverId, or: servers.firstOrNull),
         isFileExists: isFileExists,
       ),
       dense: true,

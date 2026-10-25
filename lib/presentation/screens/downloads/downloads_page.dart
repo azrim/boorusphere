@@ -13,6 +13,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/expandable_group_list_view.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -162,7 +163,7 @@ class DownloadsPage extends HookConsumerWidget {
                   items: filteredEntries,
                   groupedBy: (item) => item.post.serverId,
                   groupTitle: (id) => Text(
-                    servers.getById(id).name,
+                    servers.getById(id, or: servers.firstOrNull).name,
                     style: context.theme.textTheme.bodyLarge,
                   ),
                   itemBuilder: (item) => DownloadEntryView(
