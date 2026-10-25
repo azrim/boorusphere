@@ -137,7 +137,9 @@ class SheetTab {
 ///
 /// It sits directly under the title, inside thumb reach, and the active label
 /// carries a hairline-thin underline so the strip reads as a divider that
-/// happens to be tappable rather than as a second toolbar.
+/// happens to be tappable rather than as a second toolbar. Labels size to
+/// their own text and the underline hugs the word, so a short label does not
+/// leave a bar hanging under empty space.
 class SheetTabs extends StatelessWidget {
   const SheetTabs({
     super.key,
@@ -158,21 +160,20 @@ class SheetTabs extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
-      padding: const EdgeInsets.only(
-        left: DesignTokens.spacingXs,
-        right: DesignTokens.spacingXs,
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < tabs.length; i++)
-            Flexible(
-              child: _SheetTabButton(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        // The first label starts on the same 16 dp line as the rows below it.
+        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingXs),
+        child: Row(
+          children: [
+            for (var i = 0; i < tabs.length; i++)
+              _SheetTabButton(
                 tab: tabs[i],
                 selected: i == index,
                 onTap: () => onChanged(i),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -203,51 +204,58 @@ class _SheetTabButton extends StatelessWidget {
       selected: selected,
       child: InkWell(
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: duration,
-          curve: DesignTokens.curveStandard,
+        child: Container(
+          height: DesignTokens.controlHeightMin,
           constraints: const BoxConstraints(
             minWidth: DesignTokens.controlHeightMin + DesignTokens.spacingSm,
           ),
-          height: DesignTokens.controlHeightMin,
-          padding: const EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingCardInset,
-          ),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: selected ? scheme.primary : Colors.transparent,
-                width: 2,
-              ),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+          child: Stack(
             children: [
-              Flexible(
-                child: AnimatedDefaultTextStyle(
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingCardInset,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: 1,
+                  heightFactor: 1,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      AnimatedDefaultTextStyle(
+                        duration: duration,
+                        curve: DesignTokens.curveStandard,
+                        style: style ?? const TextStyle(),
+                        child: Text(tab.label, maxLines: 1),
+                      ),
+                      if (tab.count case final count?) ...[
+                        const SizedBox(width: DesignTokens.spacingXs + 2),
+                        Text(
+                          count,
+                          style: textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              // The underline hugs the label instead of the tab's share of the
+              // strip, so it reads as a mark under a word rather than a bar.
+              Positioned(
+                left: DesignTokens.spacingCardInset,
+                right: DesignTokens.spacingCardInset,
+                bottom: 0,
+                child: AnimatedContainer(
                   duration: duration,
                   curve: DesignTokens.curveStandard,
-                  style: style ?? const TextStyle(),
-                  child: Text(
-                    tab.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  height: 2,
+                  color: selected ? scheme.primary : Colors.transparent,
                 ),
               ),
-              if (tab.count case final count?) ...[
-                const SizedBox(width: DesignTokens.spacingXs + 2),
-                Text(
-                  count,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
             ],
           ),
         ),

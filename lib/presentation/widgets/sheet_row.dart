@@ -47,6 +47,10 @@ class SheetPanel extends StatelessWidget {
             Divider(
               height: 1,
               thickness: 1,
+              // The rules start where the labels do, so a panel reads as a
+              // table instead of a stack of full-width bars.
+              indent: DesignTokens.spacingMd,
+              endIndent: DesignTokens.spacingMd,
               color: context.colorScheme.outlineVariant,
             ),
         ],

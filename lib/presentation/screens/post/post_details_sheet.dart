@@ -195,9 +195,15 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                               ),
                             },
                           ),
-                          const SafeArea(
+                          // The action bar floats over the panel, so the
+                          // content only makes room for it while it is up.
+                          SafeArea(
                             top: false,
-                            child: SizedBox(height: DesignTokens.spacingXl * 3),
+                            child: SizedBox(
+                              height: _selectedTags.isEmpty
+                                  ? DesignTokens.spacingMd
+                                  : DesignTokens.spacingXl * 3,
+                            ),
                           ),
                         ],
                       ),
