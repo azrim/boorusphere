@@ -29,7 +29,11 @@ class UserSettingsRepo implements SettingsRepo {
   @override
   T get<T>(Setting key, {required T or}) {
     final value = _memory[key.name] ?? box?.get(key.name);
-    return value == null ? or : value as T;
+    if (value == null) return or;
+    // A stored value of another type (a box written by an older build, or an
+    // entry a backup restored by hand) answers with the default instead of
+    // throwing inside a build.
+    return value is T ? value : or;
   }
 
   @override
@@ -60,18 +64,16 @@ class UserSettingsRepo implements SettingsRepo {
   @override
   Future<BackupItem> export() async {
     final data = box?.toMap() ?? const <dynamic, dynamic>{};
-    return BackupItem(
-      key,
-      data.map((key, value) {
-        if (value is DownloadQuality) {
-          return MapEntry(key, value.name);
-        } else if (value is BooruRating) {
-          return MapEntry(key, value.name);
-        } else {
-          return MapEntry(key, value);
-        }
-      }),
-    );
+    final exported = data.map((key, value) {
+      if (value is DownloadQuality) {
+        return MapEntry(key, value.name);
+      } else if (value is BooruRating) {
+        return MapEntry(key, value.name);
+      } else {
+        return MapEntry(key, value);
+      }
+    });
+    return BackupItem(key, exported);
   }
 
   /// Stores [value] under [key] and reports whether it reached the disk.

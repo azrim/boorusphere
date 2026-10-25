@@ -86,7 +86,9 @@ ServerRepo serverRepo(Ref ref) {
   );
 }
 
-@riverpod
+/// Kept alive for the session: the repository holds the values written while
+/// the box is unavailable, and a fresh instance per read would drop them.
+@Riverpod(keepAlive: true)
 SettingsRepo settingsRepo(Ref ref) {
   // A box that failed to open must not throw here: this is read while the app
   // builds, and a throw would replace the UI with an error screen.

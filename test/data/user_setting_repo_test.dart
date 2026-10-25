@@ -34,6 +34,13 @@ void main() {
     expect(repo.get(Setting.uiTimelineGrid, or: 1), 2);
   });
 
+  test('a value of another type answers with the default', () async {
+    final repo = UserSettingsRepo(null);
+    await repo.put(Setting.uiTimelineGrid, 'two');
+
+    expect(repo.get(Setting.uiTimelineGrid, or: 1), 1);
+  });
+
   group('with the box open', () {
     setUpAll(UserSettingsRepo.prepare);
 
@@ -68,5 +75,35 @@ void main() {
         );
       },
     );
+
+    test('export carries the Telegram credentials in the backup', () async {
+      final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
+      await repo.put(Setting.telegramBotToken, '123:abc');
+      await repo.put(Setting.telegramChatId, '-100');
+      await repo.put(Setting.uiBlur, true);
+
+      final exported = (await repo.export()).value as Map;
+
+      expect(exported.keys, contains(Setting.uiBlur.name));
+      expect(exported[Setting.telegramBotToken.name], '123:abc');
+      expect(exported[Setting.telegramChatId.name], '-100');
+    });
+
+    test('import restores the Telegram credentials from the backup', () async {
+      final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
+      await repo.put(Setting.telegramBotToken, '123:abc');
+      await repo.put(Setting.telegramChatId, '-100');
+
+      await repo.import(
+        jsonEncode({
+          Setting.uiBlur.name: true,
+          Setting.telegramBotToken.name: '456:foreign',
+          Setting.telegramChatId.name: '-200',
+        }),
+      );
+
+      expect(repo.get(Setting.telegramBotToken, or: ''), '456:foreign');
+      expect(repo.get(Setting.telegramChatId, or: ''), '-200');
+    });
   });
 }

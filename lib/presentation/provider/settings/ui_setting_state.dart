@@ -2,6 +2,7 @@ import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -16,8 +17,11 @@ class UiSettingState extends _$UiSettingState {
       blur: repo.get(Setting.uiBlur, or: true),
       grid: repo.get(Setting.uiTimelineGrid, or: 1),
       locale: localeFromStr(repo.get(Setting.uiLanguage, or: '')),
-      themeMode: ThemeMode
-          .values[repo.get(Setting.uiThemeMode, or: ThemeMode.system.index)],
+      themeMode:
+          ThemeMode.values.elementAtOrNull(
+            repo.get(Setting.uiThemeMode, or: ThemeMode.system.index),
+          ) ??
+          ThemeMode.system,
       midnightMode: repo.get(Setting.uiMidnightMode, or: false),
       imeIncognito: repo.get(Setting.imeIncognito, or: false),
       colorPalette: ColorPalette.fromName(
