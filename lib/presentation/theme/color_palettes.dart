@@ -52,6 +52,8 @@ class PaletteColors {
   /// The strong line: the theme's own emphasis rule.
   final Color line;
 
+  /// The theme's foreground, as written. A theme is often tuned for one
+  /// surface, so [toScheme] lifts it to 4.5:1 on both the page and the panel.
   final Color text;
 
   /// Secondary text and icons, as the theme writes them. A comment tone is
@@ -69,8 +71,11 @@ class PaletteColors {
     final accentSecondary = _readableAccent(secondary, background);
     final accentTertiary = _readableAccent(tertiary, background);
     final accentError = _readableAccent(error, background);
-    // The supporting text has to hold on the page and on the panel, whichever
-    // of the two the theme wrote it against.
+    // Text and supporting text have to hold on the page and on the panel,
+    // whichever of the two the theme wrote them against.
+    final textBase = _contrast(text, container) < _contrast(text, background)
+        ? container
+        : background;
     final mutedBase = _contrast(muted, container) < _contrast(muted, background)
         ? container
         : background;
@@ -94,7 +99,7 @@ class PaletteColors {
       errorContainer: _tint(accentError, background),
       onErrorContainer: text,
       surface: background,
-      onSurface: text,
+      onSurface: _readableAccent(text, textBase),
       onSurfaceVariant: _readableAccent(muted, mutedBase),
       // Both of these stay inside the theme's own ramp.
       surfaceDim: containerLow,
@@ -246,6 +251,8 @@ const _palettes = <ColorPalette, (PaletteColors, PaletteColors?)>{
   ),
   // Solarized defines base03 as the page, base02 as the raised surface and
   // base01 as the comment tone; the two chip steps are taken between them.
+  // Its light variant is warm paper, so it stays dark only and day is
+  // generated from the blue.
   ColorPalette.solarized: (
     PaletteColors(
       background: Color(0xFF002B36),
@@ -262,23 +269,10 @@ const _palettes = <ColorPalette, (PaletteColors, PaletteColors?)>{
       tertiary: Color(0xFFB58900),
       error: Color(0xFFDC322F),
     ),
-    PaletteColors(
-      background: Color(0xFFFDF6E3),
-      containerLow: Color(0xFFEEE8D5),
-      container: Color(0xFFEEE8D5),
-      containerHigh: Color(0xFFE4DCC4),
-      containerHighest: Color(0xFFDDD6C1),
-      border: Color(0xFFE4DCC4),
-      line: Color(0xFF93A1A1),
-      text: Color(0xFF073642),
-      muted: Color(0xFF526569),
-      primary: Color(0xFF268BD2),
-      secondary: Color(0xFF2AA198),
-      tertiary: Color(0xFFB58900),
-      error: Color(0xFFDC322F),
-    ),
+    null,
   ),
-  // Gruvbox bg0 through bg4, with the light variant's darker accent set.
+  // Gruvbox bg0 through bg4. Its light variant is the warmest page of any
+  // theme here, so it stays dark only.
   ColorPalette.gruvbox: (
     PaletteColors(
       background: Color(0xFF282828),
@@ -295,21 +289,7 @@ const _palettes = <ColorPalette, (PaletteColors, PaletteColors?)>{
       tertiary: Color(0xFFD3869B),
       error: Color(0xFFFB4934),
     ),
-    PaletteColors(
-      background: Color(0xFFFBF1C7),
-      containerLow: Color(0xFFF2E5BC),
-      container: Color(0xFFEBDBB2),
-      containerHigh: Color(0xFFD5C4A1),
-      containerHighest: Color(0xFFBDAE93),
-      border: Color(0xFFD5C4A1),
-      line: Color(0xFFA89984),
-      text: Color(0xFF3C3836),
-      muted: Color(0xFF665C54),
-      primary: Color(0xFFB57614),
-      secondary: Color(0xFF076678),
-      tertiary: Color(0xFF8F3F71),
-      error: Color(0xFF9D0006),
-    ),
+    null,
   ),
   // One Dark and One Light workbench: editor, sidebar, widget, border.
   ColorPalette.oneDark: (
@@ -395,6 +375,75 @@ const _palettes = <ColorPalette, (PaletteColors, PaletteColors?)>{
       secondary: Color(0xFF8250DF),
       tertiary: Color(0xFF1A7F37),
       error: Color(0xFFCF222E),
+    ),
+  ),
+  // Tokyo Night: night is bg, bg_dark, bg_float, bg_highlight, border. Day is
+  // the cool grey workbench, with the two chip steps taken between its
+  // highlight and its comment tone.
+  ColorPalette.tokyoNight: (
+    PaletteColors(
+      background: Color(0xFF1A1B26),
+      containerLow: Color(0xFF16161E),
+      container: Color(0xFF1F2335),
+      containerHigh: Color(0xFF292E42),
+      containerHighest: Color(0xFF414868),
+      border: Color(0xFF292E42),
+      line: Color(0xFF3B4261),
+      text: Color(0xFFC0CAF5),
+      muted: Color(0xFF565F89),
+      primary: Color(0xFF7AA2F7),
+      secondary: Color(0xFFBB9AF7),
+      tertiary: Color(0xFF7DCFFF),
+      error: Color(0xFFF7768E),
+    ),
+    PaletteColors(
+      background: Color(0xFFE1E2E7),
+      containerLow: Color(0xFFD0D5E3),
+      container: Color(0xFFD0D5E3),
+      containerHigh: Color(0xFFC4C8DA),
+      containerHighest: Color(0xFFB4B9D1),
+      border: Color(0xFFC4C8DA),
+      line: Color(0xFFA4AAC7),
+      text: Color(0xFF3760BF),
+      muted: Color(0xFF848CB5),
+      primary: Color(0xFF2E7DE9),
+      secondary: Color(0xFF9854F1),
+      tertiary: Color(0xFF007197),
+      error: Color(0xFFF52A65),
+    ),
+  ),
+  // Ayu publishes a background, a foreground and one dimmed tone per polarity,
+  // so the chip steps are taken between those instead of being invented.
+  ColorPalette.ayu: (
+    PaletteColors(
+      background: Color(0xFF0F1419),
+      containerLow: Color(0xFF181E26),
+      container: Color(0xFF212733),
+      containerHigh: Color(0xFF2D3542),
+      containerHighest: Color(0xFF384451),
+      border: Color(0xFF2D3542),
+      line: Color(0xFF3E4B59),
+      text: Color(0xFFBFBDB6),
+      muted: Color(0xFF626A73),
+      primary: Color(0xFFE6B450),
+      secondary: Color(0xFF59C2FF),
+      tertiary: Color(0xFFD2A6FF),
+      error: Color(0xFFF07178),
+    ),
+    PaletteColors(
+      background: Color(0xFFFAFAFA),
+      containerLow: Color(0xFFF3F4F5),
+      container: Color(0xFFEDEEF0),
+      containerHigh: Color(0xFFE4E6E8),
+      containerHighest: Color(0xFFD8DBDE),
+      border: Color(0xFFE4E6E8),
+      line: Color(0xFFC7CCD1),
+      text: Color(0xFF5C6773),
+      muted: Color(0xFF828C99),
+      primary: Color(0xFFFF6A00),
+      secondary: Color(0xFF41A6D9),
+      tertiary: Color(0xFFA37ACC),
+      error: Color(0xFFF07178),
     ),
   ),
 };

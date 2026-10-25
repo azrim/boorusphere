@@ -15,6 +15,8 @@ enum ColorPalette {
   oneDark(Color.fromARGB(255, 97, 175, 239), 'One Dark'),
   monokai(Color.fromARGB(255, 249, 38, 114), 'Monokai'),
   github(Color.fromARGB(255, 3, 131, 240), 'GitHub'),
+  tokyoNight(Color.fromARGB(255, 122, 162, 247), 'Tokyo Night'),
+  ayu(Color.fromARGB(255, 230, 180, 80), 'Ayu'),
   materialYou(Color.fromARGB(255, 149, 30, 229), 'Material You');
 
   const ColorPalette(this.accentColor, this.displayName);
