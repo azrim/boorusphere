@@ -116,7 +116,7 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Shadow Vocabulary
 - **Snackbars**: Top-rounded (12px radius), primary container background. No shadow — depth from color contrast.
-- **Bottom sheets**: Standard Material 3 bottom sheet behavior. Backdrop blur (sigma 10) behind the details sheet. Picker sheets paint `surface` with a hairline outline and 16px top radius — no elevation.
+- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surface` with a hairline top edge and 16px top radius, no elevation. Backdrop blur (sigma 10) sits behind the details sheet only.
 - **Popup menus**: `surface` fill, hairline `outlineVariant` outline, 16px radius, no elevation. Menus are flat cards, not floating shadows.
 - **Grid items**: No shadows on thumbnails. Content is flat; depth comes from the staggered layout itself.
 - **Bottom search bar**: A glass surface rather than an elevated one — `surface` at 72% over a 20 px backdrop blur, with a hairline `outlineVariant` on the top edge and no shadow. It is the one place blur is structural: the bar floats over moving art and has to stay legible without hiding it.
@@ -174,11 +174,35 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Colors**: section labels are muted uppercase `onSurfaceVariant`; row icons stay neutral `onSurfaceVariant`, and only the count badges, the active-server highlight, the add-server plus, and the footer status dot carry semantic scheme colors
 - **Type**: drawer rows run one step denser than content rows — a 14 sp `bodyMedium` label — so more destinations fit without touching the brand header, which keeps its `headlineSmall` wordmark
 
+### Sheet Shell
+One container for every bottom sheet in the app — post details, settings pickers, text entry, gesture reference, What's New.
+
+- **Shape**: 16 dp top corners, `surface` fill, hairline `outlineVariant` along the top edge, no elevation. A 40×4 handle sits 8 dp from the top
+- **Header**: the sheet's own name at `titleMedium` semibold with a 48 dp close target on the trailing edge. The name is the thing the sheet is about — the post's identifying tag, the setting being changed — never a generic "Details"
+- **Height**: capped at 78% of the screen (90% for a long changelog) and grown by its content, so a three-option picker does not open half empty. Only the panel scrolls
+- **Panels**: one job at a time. Rows stack with a single hairline between them and none after the last, so a panel ends on the sheet's own edge
+- **Footer**: a hairline, then the sheet's one action, full width
+- **Insets**: the keyboard and the system navigation bar are both cleared by the shell, so a field never sits under the IME
+- **Dismiss**: the close control, a downward drag, or the backdrop — all three
+
+### Sheet Tabs
+- **Use**: only when a sheet holds more than one kind of answer — the post details split into Details / Tags / Links
+- **Layout**: directly under the header at 48 dp, inside thumb reach; labels at `labelLarge`, the active one `onSurface` w600 over a 2 dp `primary` underline, and the strip closes with the panel hairline
+- **Count**: a tab may carry a muted count, so the size of what is behind it is known before the tap
+- **Motion**: underline and label weight animate at 150 ms, and the panel below resizes with `AnimatedSize`, so the sheet never jumps
+
+### Sheet Rows
+- **Fact row**: small-caps label on the leading edge, value on the trailing edge in `bodyMedium` with tabular figures, so scores and dimensions line up down the panel
+- **Option row**: 16 sp title, an optional 12 sp supporting line, an optional leading swatch, and a `primary` check on the trailing edge; the current option takes a `surfaceContainerHighest` tint
+- **Link row**: small-caps label, an optional readout, the address in `primary` at the supporting size, and a copy control
+- **Targets**: every row is at least 48 dp tall
+
 ### Bottom Sheet (Post Details)
-- **Shape**: Rounded top corners (12px), draggable snap points (0%, 50%, 90%)
-- **Background**: Surface color with BackdropFilter blur
-- **Content**: Post metadata, tags (chip-style), source link, action buttons
-- **Gesture**: Swipe up to expand, swipe down to dismiss
+- **Shape**: rounded top corners, draggable snap points (0%, 50%, 90%) over the viewer, with `BackdropFilter` blur (sigma 10) behind it while the Blur setting is on. The sheet keeps 94% of its surface even then: the panel carries text, and a bright image behind it would take the contrast away
+- **Header**: the post's most identifying tag (artist → copyright → character → general), so the sheet is named after what was opened rather than after a database row
+- **Panels**: Details (rating, score, dimensions, format), Tags (grouped by category, each with its count; tap to select), Links (post page, source, sample and original file, each with copy)
+- **Selection**: tag taps accumulate across panels and survive a panel switch; the action bar then offers copy, block, append, search and clear
+- **Gesture**: swipe up to expand, swipe down or the close control to collapse back onto the image
 
 ### Chips (Tags)
 - **Style**: Filled, primaryContainer background, onPrimaryContainer text

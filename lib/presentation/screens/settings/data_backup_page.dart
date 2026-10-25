@@ -12,6 +12,8 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
+import 'package:boorusphere/presentation/widgets/sheet_row.dart';
+import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -125,7 +127,7 @@ class _Content extends HookConsumerWidget {
               title: Text(context.t.dataBackup.backup.title),
               subtitle: RowSubtitle(Text(context.t.dataBackup.backup.desc)),
               onTap: () async {
-                final option = await showSettingsSheet<BackupOption>(
+                final option = await showSheet<BackupOption>(
                   context: context,
                   builder: (context) => const _BackupOptionSheet(),
                 );
@@ -321,6 +323,25 @@ class _BackupOptionSheet extends HookConsumerWidget {
         encrypt: ref.read(periodicBackupSettingStateProvider).encryptBackup,
       ),
     );
+
+    // One row per packable store; the row carries the tick so the state is
+    // readable without aiming at the checkbox.
+    Widget contentRow(
+      String title,
+      bool value,
+      BackupOption Function(bool) apply,
+    ) {
+      return SheetRow(
+        title: title,
+        selected: value,
+        trailing: Checkbox(
+          value: value,
+          onChanged: (v) => option.value = apply(v ?? false),
+        ),
+        onTap: () => option.value = apply(!value),
+      );
+    }
+
     return SheetShell(
       title: context.t.dataBackup.backup.title,
       footer: SizedBox(
@@ -333,50 +354,50 @@ class _BackupOptionSheet extends HookConsumerWidget {
           child: Text(context.t.backup),
         ),
       ),
-      child: ListView(
-        shrinkWrap: true,
-        padding: const EdgeInsets.only(bottom: DesignTokens.spacingSm),
-        children: [
-          CheckboxListTile(
-            title: Text(context.t.servers.title),
-            value: option.value.server,
-            onChanged: (v) =>
-                option.value = option.value.copyWith(server: v ?? true),
-          ),
-          CheckboxListTile(
-            title: Text(context.t.searchHistory),
-            value: option.value.searchHistory,
-            onChanged: (v) =>
-                option.value = option.value.copyWith(searchHistory: v ?? true),
-          ),
-          CheckboxListTile(
-            title: Text(context.t.tagsBlocker.title),
-            value: option.value.blockedTags,
-            onChanged: (v) =>
-                option.value = option.value.copyWith(blockedTags: v ?? true),
-          ),
-          CheckboxListTile(
-            title: Text(context.t.favorites.title),
-            value: option.value.favoritePost,
-            onChanged: (v) =>
-                option.value = option.value.copyWith(favoritePost: v ?? true),
-          ),
-          CheckboxListTile(
-            title: Text(context.t.settings.title),
-            value: option.value.setting,
-            onChanged: (v) =>
-                option.value = option.value.copyWith(setting: v ?? true),
-          ),
-          // Encryption is not part of what gets packed, so it sits apart from
-          // the content choices above.
-          const Divider(),
-          SwitchListTile(
-            title: Text(context.t.dataBackup.encrypt),
-            subtitle: RowSubtitle(Text(context.t.dataBackup.encryptDesc)),
-            value: option.value.encrypt,
-            onChanged: (v) => option.value = option.value.copyWith(encrypt: v),
-          ),
-        ],
+      child: SingleChildScrollView(
+        child: SheetPanel(
+          children: [
+            contentRow(
+              context.t.servers.title,
+              option.value.server,
+              (v) => option.value.copyWith(server: v),
+            ),
+            contentRow(
+              context.t.searchHistory,
+              option.value.searchHistory,
+              (v) => option.value.copyWith(searchHistory: v),
+            ),
+            contentRow(
+              context.t.tagsBlocker.title,
+              option.value.blockedTags,
+              (v) => option.value.copyWith(blockedTags: v),
+            ),
+            contentRow(
+              context.t.favorites.title,
+              option.value.favoritePost,
+              (v) => option.value.copyWith(favoritePost: v),
+            ),
+            contentRow(
+              context.t.settings.title,
+              option.value.setting,
+              (v) => option.value.copyWith(setting: v),
+            ),
+            // Encryption is not part of what gets packed, so it closes the
+            // list instead of sitting among the content choices.
+            SheetRow(
+              title: context.t.dataBackup.encrypt,
+              detail: context.t.dataBackup.encryptDesc,
+              trailing: Switch(
+                value: option.value.encrypt,
+                onChanged: (v) =>
+                    option.value = option.value.copyWith(encrypt: v),
+              ),
+              onTap: () => option.value = option.value.copyWith(
+                encrypt: !option.value.encrypt,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

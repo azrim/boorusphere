@@ -3,145 +3,11 @@
     "Here are translations that exist in <en> but not in secondary locales.",
     "After editing this file, you can run 'dart run slang apply --locale=<locale>' to quickly apply the newly added translations."
   ],
-  "de-DE": {
-    "findRelated": "Find related",
-    "load_video_failed": "Failed to load video",
-    "exit": "Exit",
-    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
-    "sidebar": {
-      "servers": "Servers",
-      "library": "Library",
-      "preferences": "Preferences",
-      "manage": "Manage",
-      "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
-      "open_navigation": "Open navigation",
-      "theme_system": "Theme: system",
-      "theme_light": "Theme: light",
-      "theme_dark": "Theme: dark"
-    },
-    "post_action": {
-      "select": "Select",
-      "deselect": "Deselect",
-      "favorite": "Add to favorites",
-      "unfavorite": "Remove from favorites",
-      "download": "Download",
-      "share": "Share",
-      "open_source": "Open source"
-    },
-    "servers": {
-      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
-      "engine_type": "Booru engine",
-      "engine_required": "Please select a booru engine",
-      "mode": {
-        "scan": "Scan",
-        "manual": "Manual"
-      },
-      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
-      "scanning": "Scanning...",
-      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
-      "profile_name": "Profile name",
-      "name_error": "Please enter a name",
-      "credentials": {
-        "title": "API Credentials",
-        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
-        "login": "User ID",
-        "apiKey": "API Key"
-      }
-    },
-    "periodicBackup": {
-      "title": "Periodic Backups",
-      "enable": "Enable periodic backups",
-      "frequency": "Backup frequency",
-      "deleteOld": "Delete old backups",
-      "deleteOldDesc": "Automatically delete old backup files to save storage space",
-      "maxBackups": "Max number of backups",
-      "lastBackup": "Last successful backup",
-      "never": "Never",
-      "justNow": "Just now",
-      "minutesAgo": {
-        "one": "${n} minute ago",
-        "other": "${n} minutes ago"
-      },
-      "hoursAgo": {
-        "one": "${n} hour ago",
-        "other": "${n} hours ago"
-      },
-      "daysAgo": {
-        "one": "${n} day ago",
-        "other": "${n} days ago"
-      },
-      "telegram": {
-        "title": "Telegram integration",
-        "enable": "Send backups to Telegram",
-        "chatId": "Telegram chat ID",
-        "chatIdHint": "e.g. -1001234567890",
-        "botToken": "Bot token",
-        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "notSet": "Not set",
-        "openBot": "Create a Telegram bot",
-        "openBotDesc": "Open BotFather to create your backup bot",
-        "testConnection": "Test connection",
-        "testSuccess": "Connection successful!",
-        "invalidToken": "Invalid bot token",
-        "invalidChatId": "Invalid chat ID",
-        "networkError": "Network error",
-        "unknownError": "Unknown error",
-        "backupNow": "Backup now",
-        "backupNowDesc": "Create and send backup to Telegram immediately",
-        "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
-      }
-    },
-    "onboarding": {
-      "welcome_title": "Welcome to Boorusphere",
-      "welcome_desc": "Add a booru server to start discovering and collecting images",
-      "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
-      "start_browsing": "Start browsing"
-    },
-    "batch": {
-      "downloading": "Downloading ${n} images...",
-      "downloaded": "Downloaded ${n} images to ${filename}",
-      "downloaded_files": "Downloaded ${n} images to Downloads",
-      "failed": "Batch download failed",
-      "favorited": "Added ${n} posts to favorites",
-      "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
-    },
-    "settings_page": {
-      "color_palette": "Color Palette",
-      "gesture_settings": "Gesture Settings",
-      "swipe_horizontal": "Horizontal swipe",
-      "swipe_vertical": "Vertical swipe",
-      "swipe_mode": "Swipe Mode",
-      "swipe_mode_desc": "Choose how to navigate between posts",
-      "swipe_actions": "Swipe Actions",
-      "swipe_to_details": "Swipe to Details",
-      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
-      "swipe_to_dismiss": "Swipe to Dismiss",
-      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
-      "sensitivity": "Sensitivity",
-      "swipe_down_threshold": "Swipe Down Threshold",
-      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
-      "reset": "Reset",
-      "reset_success": "Gesture settings reset to defaults",
-      "horizontal": "Horizontal",
-      "horizontal_desc": "Swipe left/right to navigate between posts",
-      "vertical": "Vertical",
-      "vertical_desc": "Swipe up/down to navigate between posts"
-    },
-    "error": {
-      "unknown": "Something went wrong and we don't know why"
-    },
-    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
-    "downloads_hint": "Open any post and tap download to save it to your device.",
-    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
-    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
-  },
   "fil": {
     "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
     "meta": "Meta",
     "artist": "Artist",
     "copyright": "Copyright",
@@ -154,13 +20,20 @@
       "preferences": "Preferences",
       "manage": "Manage",
       "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
+      "add_custom_server": "Add server",
       "open_navigation": "Open navigation",
       "theme_system": "Theme: system",
       "theme_light": "Theme: light",
       "theme_dark": "Theme: dark"
     },
     "home": "Home",
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
     "backup": "Backup",
     "restore": "Restore",
     "searchHistory": "Search History",
@@ -171,6 +44,26 @@
     "rating": {
       "all": "All",
       "disable_rating_safe": "Disable rating:safe"
+    },
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
     },
     "action_tag": {
       "search": "Search tag"
@@ -184,11 +77,23 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
     "changelog": {
       "title": "Changelog",
       "whats_new": "What's new in ${version}"
     },
     "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started",
       "quality": "Download quality",
       "status": {
         "pending": "Pending"
@@ -218,6 +123,7 @@
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
       "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
       "invalid_search_query": "Invalid search query",
       "incompatible": "Cannot find compatible parser for ${addr}",
@@ -265,15 +171,35 @@
         "invalid": "Invalid backup file",
         "warning": "Warning! this action will overwrite any existing data.\nAre you sure you want to continue ?",
         "loading": "Restoring data..."
-      }
+      },
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
     },
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
       "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
       "deleteOld": "Delete old backups",
       "deleteOldDesc": "Automatically delete old backup files to save storage space",
       "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
       "lastBackup": "Last successful backup",
       "never": "Never",
       "justNow": "Just now",
@@ -315,7 +241,7 @@
       "welcome_title": "Welcome to Boorusphere",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
+      "browse_presets": "Browse presets",
       "start_browsing": "Start browsing"
     },
     "batch": {
@@ -325,7 +251,8 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
     },
     "settings_page": {
       "color_palette": "Color Palette",
@@ -350,272 +277,13 @@
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
     "error": {
-      "unknown": "Something went wrong and we don't know why"
-    },
-    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
-    "downloads_hint": "Open any post and tap download to save it to your device.",
-    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
-    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
-  },
-  "id-ID": {
-    "findRelated": "Find related",
-    "load_video_failed": "Failed to load video",
-    "exit": "Exit",
-    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
-    "sidebar": {
-      "servers": "Servers",
-      "library": "Library",
-      "preferences": "Preferences",
-      "manage": "Manage",
-      "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
-      "open_navigation": "Open navigation",
-      "theme_system": "Theme: system",
-      "theme_light": "Theme: light",
-      "theme_dark": "Theme: dark"
-    },
-    "servers": {
-      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
-      "engine_type": "Booru engine",
-      "engine_required": "Please select a booru engine",
-      "mode": {
-        "scan": "Scan",
-        "manual": "Manual"
-      },
-      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
-      "scanning": "Scanning...",
-      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
-      "profile_name": "Profile name",
-      "name_error": "Please enter a name",
-      "id": "ID",
-      "credentials": {
-        "title": "API Credentials",
-        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
-        "login": "User ID",
-        "apiKey": "API Key"
-      }
-    },
-    "periodicBackup": {
-      "title": "Periodic Backups",
-      "enable": "Enable periodic backups",
-      "frequency": "Backup frequency",
-      "deleteOld": "Delete old backups",
-      "deleteOldDesc": "Automatically delete old backup files to save storage space",
-      "maxBackups": "Max number of backups",
-      "lastBackup": "Last successful backup",
-      "never": "Never",
-      "justNow": "Just now",
-      "minutesAgo": {
-        "one": "${n} minute ago",
-        "other": "${n} minutes ago"
-      },
-      "hoursAgo": {
-        "one": "${n} hour ago",
-        "other": "${n} hours ago"
-      },
-      "daysAgo": {
-        "one": "${n} day ago",
-        "other": "${n} days ago"
-      },
-      "telegram": {
-        "title": "Telegram integration",
-        "enable": "Send backups to Telegram",
-        "chatId": "Telegram chat ID",
-        "chatIdHint": "e.g. -1001234567890",
-        "botToken": "Bot token",
-        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "notSet": "Not set",
-        "openBot": "Create a Telegram bot",
-        "openBotDesc": "Open BotFather to create your backup bot",
-        "testConnection": "Test connection",
-        "testSuccess": "Connection successful!",
-        "invalidToken": "Invalid bot token",
-        "invalidChatId": "Invalid chat ID",
-        "networkError": "Network error",
-        "unknownError": "Unknown error",
-        "backupNow": "Backup now",
-        "backupNowDesc": "Create and send backup to Telegram immediately",
-        "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
-      }
-    },
-    "onboarding": {
-      "welcome_title": "Welcome to Boorusphere",
-      "welcome_desc": "Add a booru server to start discovering and collecting images",
-      "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
-      "start_browsing": "Start browsing"
-    },
-    "batch": {
-      "downloading": "Downloading ${n} images...",
-      "downloaded": "Downloaded ${n} images to ${filename}",
-      "downloaded_files": "Downloaded ${n} images to Downloads",
-      "failed": "Batch download failed",
-      "favorited": "Added ${n} posts to favorites",
-      "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
-    },
-    "settings_page": {
-      "color_palette": "Color Palette",
-      "gesture_settings": "Gesture Settings",
-      "swipe_horizontal": "Horizontal swipe",
-      "swipe_vertical": "Vertical swipe",
-      "swipe_mode": "Swipe Mode",
-      "swipe_mode_desc": "Choose how to navigate between posts",
-      "swipe_actions": "Swipe Actions",
-      "swipe_to_details": "Swipe to Details",
-      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
-      "swipe_to_dismiss": "Swipe to Dismiss",
-      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
-      "sensitivity": "Sensitivity",
-      "swipe_down_threshold": "Swipe Down Threshold",
-      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
-      "reset": "Reset",
-      "reset_success": "Gesture settings reset to defaults",
-      "horizontal": "Horizontal",
-      "horizontal_desc": "Swipe left/right to navigate between posts",
-      "vertical": "Vertical",
-      "vertical_desc": "Swipe up/down to navigate between posts"
-    },
-    "error": {
-      "unknown": "Something went wrong and we don't know why"
-    },
-    "downloads_hint": "Open any post and tap download to save it to your device.",
-    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
-    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
-  },
-  "ja-JP": {
-    "findRelated": "Find related",
-    "load_video_failed": "Failed to load video",
-    "exit": "Exit",
-    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
-    "sidebar": {
-      "servers": "Servers",
-      "library": "Library",
-      "preferences": "Preferences",
-      "manage": "Manage",
-      "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
-      "open_navigation": "Open navigation",
-      "theme_system": "Theme: system",
-      "theme_light": "Theme: light",
-      "theme_dark": "Theme: dark"
-    },
-    "post_action": {
-      "select": "Select",
-      "deselect": "Deselect",
-      "favorite": "Add to favorites",
-      "unfavorite": "Remove from favorites",
-      "download": "Download",
-      "share": "Share",
-      "open_source": "Open source"
-    },
-    "servers": {
-      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
-      "engine_type": "Booru engine",
-      "engine_required": "Please select a booru engine",
-      "mode": {
-        "scan": "Scan",
-        "manual": "Manual"
-      },
-      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
-      "scanning": "Scanning...",
-      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
-      "profile_name": "Profile name",
-      "name_error": "Please enter a name",
-      "credentials": {
-        "title": "API Credentials",
-        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
-        "login": "User ID",
-        "apiKey": "API Key"
-      }
-    },
-    "periodicBackup": {
-      "title": "Periodic Backups",
-      "enable": "Enable periodic backups",
-      "frequency": "Backup frequency",
-      "deleteOld": "Delete old backups",
-      "deleteOldDesc": "Automatically delete old backup files to save storage space",
-      "maxBackups": "Max number of backups",
-      "lastBackup": "Last successful backup",
-      "never": "Never",
-      "justNow": "Just now",
-      "minutesAgo": {
-        "one": "${n} minute ago",
-        "other": "${n} minutes ago"
-      },
-      "hoursAgo": {
-        "one": "${n} hour ago",
-        "other": "${n} hours ago"
-      },
-      "daysAgo": {
-        "one": "${n} day ago",
-        "other": "${n} days ago"
-      },
-      "telegram": {
-        "title": "Telegram integration",
-        "enable": "Send backups to Telegram",
-        "chatId": "Telegram chat ID",
-        "chatIdHint": "e.g. -1001234567890",
-        "botToken": "Bot token",
-        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "notSet": "Not set",
-        "openBot": "Create a Telegram bot",
-        "openBotDesc": "Open BotFather to create your backup bot",
-        "testConnection": "Test connection",
-        "testSuccess": "Connection successful!",
-        "invalidToken": "Invalid bot token",
-        "invalidChatId": "Invalid chat ID",
-        "networkError": "Network error",
-        "unknownError": "Unknown error",
-        "backupNow": "Backup now",
-        "backupNowDesc": "Create and send backup to Telegram immediately",
-        "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
-      }
-    },
-    "onboarding": {
-      "welcome_title": "Welcome to Boorusphere",
-      "welcome_desc": "Add a booru server to start discovering and collecting images",
-      "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
-      "start_browsing": "Start browsing"
-    },
-    "batch": {
-      "downloading": "Downloading ${n} images...",
-      "downloaded": "Downloaded ${n} images to ${filename}",
-      "downloaded_files": "Downloaded ${n} images to Downloads",
-      "failed": "Batch download failed",
-      "favorited": "Added ${n} posts to favorites",
-      "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
-    },
-    "settings_page": {
-      "color_palette": "Color Palette",
-      "gesture_settings": "Gesture Settings",
-      "swipe_horizontal": "Horizontal swipe",
-      "swipe_vertical": "Vertical swipe",
-      "swipe_mode": "Swipe Mode",
-      "swipe_mode_desc": "Choose how to navigate between posts",
-      "swipe_actions": "Swipe Actions",
-      "swipe_to_details": "Swipe to Details",
-      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
-      "swipe_to_dismiss": "Swipe to Dismiss",
-      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
-      "sensitivity": "Sensitivity",
-      "swipe_down_threshold": "Swipe Down Threshold",
-      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
-      "reset": "Reset",
-      "reset_success": "Gesture settings reset to defaults",
-      "horizontal": "Horizontal",
-      "horizontal_desc": "Swipe left/right to navigate between posts",
-      "vertical": "Vertical",
-      "vertical_desc": "Swipe up/down to navigate between posts"
-    },
-    "error": {
-      "unknown": "Something went wrong and we don't know why"
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
@@ -624,6 +292,9 @@
   },
   "ru": {
     "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -633,12 +304,19 @@
       "preferences": "Preferences",
       "manage": "Manage",
       "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
+      "add_custom_server": "Add server",
       "open_navigation": "Open navigation",
       "theme_system": "Theme: system",
       "theme_light": "Theme: light",
       "theme_dark": "Theme: dark"
     },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
     "score": "Score",
     "always_ask": "Always ask",
     "action_continue": "Continue",
@@ -646,6 +324,26 @@
       "sensitive": "Sensitive",
       "all": "All",
       "disable_rating_safe": "Disable rating:safe"
+    },
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
     },
     "post_action": {
       "select": "Select",
@@ -656,10 +354,22 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
     "changelog": {
       "whats_new": "What's new in ${version}"
     },
     "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started",
       "filter_by_status": "Filter by status",
       "no_filter": "No filter",
       "clear_all": "Clear all",
@@ -678,6 +388,7 @@
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
       "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
       "invalid_search_query": "Invalid search query",
       "incompatible": "Cannot find compatible parser for ${addr}",
@@ -699,13 +410,35 @@
         "desc": "Explicit-rated content will not be blurred on view-mode"
       }
     },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
       "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
       "deleteOld": "Delete old backups",
       "deleteOldDesc": "Automatically delete old backup files to save storage space",
       "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
       "lastBackup": "Last successful backup",
       "never": "Never",
       "justNow": "Just now",
@@ -747,7 +480,7 @@
       "welcome_title": "Welcome to Boorusphere",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
+      "browse_presets": "Browse presets",
       "start_browsing": "Start browsing"
     },
     "batch": {
@@ -757,7 +490,8 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
     },
     "settings_page": {
       "color_palette": "Color Palette",
@@ -782,15 +516,24 @@
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
     "error": {
-      "unknown": "Something went wrong and we don't know why"
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
-  "th-TH": {
+  "uk": {
     "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -800,11 +543,38 @@
       "preferences": "Preferences",
       "manage": "Manage",
       "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
+      "add_custom_server": "Add server",
       "open_navigation": "Open navigation",
       "theme_system": "Theme: system",
       "theme_light": "Theme: light",
       "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
     },
     "post_action": {
       "select": "Select",
@@ -814,6 +584,20 @@
       "download": "Download",
       "share": "Share",
       "open_source": "Open source"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -828,6 +612,7 @@
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
       "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
       "credentials": {
         "title": "API Credentials",
@@ -836,13 +621,35 @@
         "apiKey": "API Key"
       }
     },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
       "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
       "deleteOld": "Delete old backups",
       "deleteOldDesc": "Automatically delete old backup files to save storage space",
       "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
       "lastBackup": "Last successful backup",
       "never": "Never",
       "justNow": "Just now",
@@ -884,7 +691,7 @@
       "welcome_title": "Welcome to Boorusphere",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
+      "browse_presets": "Browse presets",
       "start_browsing": "Start browsing"
     },
     "batch": {
@@ -894,7 +701,8 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
     },
     "settings_page": {
       "color_palette": "Color Palette",
@@ -919,15 +727,24 @@
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
     "error": {
-      "unknown": "Something went wrong and we don't know why"
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
-  "tr-TR": {
+  "uwu": {
     "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -937,13 +754,39 @@
       "preferences": "Preferences",
       "manage": "Manage",
       "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
+      "add_custom_server": "Add server",
       "open_navigation": "Open navigation",
       "theme_system": "Theme: system",
       "theme_light": "Theme: light",
       "theme_dark": "Theme: dark"
     },
-    "action_continue": "Continue",
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
+    },
     "post_action": {
       "select": "Select",
       "deselect": "Deselect",
@@ -953,10 +796,1067 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
+    },
+    "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "engine_type": "Booru engine",
+      "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
+      "name_error": "Please enter a name",
+      "credentials": {
+        "title": "API Credentials",
+        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
+        "login": "User ID",
+        "apiKey": "API Key"
+      }
+    },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
+    "periodicBackup": {
+      "title": "Periodic Backups",
+      "enable": "Enable periodic backups",
+      "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
+      "deleteOld": "Delete old backups",
+      "deleteOldDesc": "Automatically delete old backup files to save storage space",
+      "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
+      "lastBackup": "Last successful backup",
+      "never": "Never",
+      "justNow": "Just now",
+      "minutesAgo": {
+        "one": "${n} minute ago",
+        "other": "${n} minutes ago"
+      },
+      "hoursAgo": {
+        "one": "${n} hour ago",
+        "other": "${n} hours ago"
+      },
+      "daysAgo": {
+        "one": "${n} day ago",
+        "other": "${n} days ago"
+      },
+      "telegram": {
+        "title": "Telegram integration",
+        "enable": "Send backups to Telegram",
+        "chatId": "Telegram chat ID",
+        "chatIdHint": "e.g. -1001234567890",
+        "botToken": "Bot token",
+        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "notSet": "Not set",
+        "openBot": "Create a Telegram bot",
+        "openBotDesc": "Open BotFather to create your backup bot",
+        "testConnection": "Test connection",
+        "testSuccess": "Connection successful!",
+        "invalidToken": "Invalid bot token",
+        "invalidChatId": "Invalid chat ID",
+        "networkError": "Network error",
+        "unknownError": "Unknown error",
+        "backupNow": "Backup now",
+        "backupNowDesc": "Create and send backup to Telegram immediately",
+        "backupSent": "Backup sent to Telegram",
+        "backupFailed": "Failed to send backup"
+      }
+    },
+    "onboarding": {
+      "welcome_title": "Welcome to Boorusphere",
+      "welcome_desc": "Add a booru server to start discovering and collecting images",
+      "add_first_server": "Add your first server",
+      "browse_presets": "Browse presets",
+      "start_browsing": "Start browsing"
+    },
+    "batch": {
+      "downloading": "Downloading ${n} images...",
+      "downloaded": "Downloaded ${n} images to ${filename}",
+      "downloaded_files": "Downloaded ${n} images to Downloads",
+      "failed": "Batch download failed",
+      "favorited": "Added ${n} posts to favorites",
+      "selected": "${n} selected",
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
+    },
+    "settings_page": {
+      "color_palette": "Color Palette",
+      "gesture_settings": "Gesture Settings",
+      "swipe_horizontal": "Horizontal swipe",
+      "swipe_vertical": "Vertical swipe",
+      "swipe_mode": "Swipe Mode",
+      "swipe_mode_desc": "Choose how to navigate between posts",
+      "swipe_actions": "Swipe Actions",
+      "swipe_to_details": "Swipe to Details",
+      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
+      "swipe_to_dismiss": "Swipe to Dismiss",
+      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
+      "sensitivity": "Sensitivity",
+      "swipe_down_threshold": "Swipe Down Threshold",
+      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
+      "reset": "Reset",
+      "reset_success": "Gesture settings reset to defaults",
+      "horizontal": "Horizontal",
+      "horizontal_desc": "Swipe left/right to navigate between posts",
+      "vertical": "Vertical",
+      "vertical_desc": "Swipe up/down to navigate between posts"
+    },
+    "error": {
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
+    },
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
+    "downloads_hint": "Open any post and tap download to save it to your device.",
+    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
+    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
+  },
+  "de-DE": {
+    "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
+    "load_video_failed": "Failed to load video",
+    "exit": "Exit",
+    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
+    },
+    "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "engine_type": "Booru engine",
+      "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
+      "name_error": "Please enter a name",
+      "credentials": {
+        "title": "API Credentials",
+        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
+        "login": "User ID",
+        "apiKey": "API Key"
+      }
+    },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
+    "periodicBackup": {
+      "title": "Periodic Backups",
+      "enable": "Enable periodic backups",
+      "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
+      "deleteOld": "Delete old backups",
+      "deleteOldDesc": "Automatically delete old backup files to save storage space",
+      "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
+      "lastBackup": "Last successful backup",
+      "never": "Never",
+      "justNow": "Just now",
+      "minutesAgo": {
+        "one": "${n} minute ago",
+        "other": "${n} minutes ago"
+      },
+      "hoursAgo": {
+        "one": "${n} hour ago",
+        "other": "${n} hours ago"
+      },
+      "daysAgo": {
+        "one": "${n} day ago",
+        "other": "${n} days ago"
+      },
+      "telegram": {
+        "title": "Telegram integration",
+        "enable": "Send backups to Telegram",
+        "chatId": "Telegram chat ID",
+        "chatIdHint": "e.g. -1001234567890",
+        "botToken": "Bot token",
+        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "notSet": "Not set",
+        "openBot": "Create a Telegram bot",
+        "openBotDesc": "Open BotFather to create your backup bot",
+        "testConnection": "Test connection",
+        "testSuccess": "Connection successful!",
+        "invalidToken": "Invalid bot token",
+        "invalidChatId": "Invalid chat ID",
+        "networkError": "Network error",
+        "unknownError": "Unknown error",
+        "backupNow": "Backup now",
+        "backupNowDesc": "Create and send backup to Telegram immediately",
+        "backupSent": "Backup sent to Telegram",
+        "backupFailed": "Failed to send backup"
+      }
+    },
+    "onboarding": {
+      "welcome_title": "Welcome to Boorusphere",
+      "welcome_desc": "Add a booru server to start discovering and collecting images",
+      "add_first_server": "Add your first server",
+      "browse_presets": "Browse presets",
+      "start_browsing": "Start browsing"
+    },
+    "batch": {
+      "downloading": "Downloading ${n} images...",
+      "downloaded": "Downloaded ${n} images to ${filename}",
+      "downloaded_files": "Downloaded ${n} images to Downloads",
+      "failed": "Batch download failed",
+      "favorited": "Added ${n} posts to favorites",
+      "selected": "${n} selected",
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
+    },
+    "settings_page": {
+      "color_palette": "Color Palette",
+      "gesture_settings": "Gesture Settings",
+      "swipe_horizontal": "Horizontal swipe",
+      "swipe_vertical": "Vertical swipe",
+      "swipe_mode": "Swipe Mode",
+      "swipe_mode_desc": "Choose how to navigate between posts",
+      "swipe_actions": "Swipe Actions",
+      "swipe_to_details": "Swipe to Details",
+      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
+      "swipe_to_dismiss": "Swipe to Dismiss",
+      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
+      "sensitivity": "Sensitivity",
+      "swipe_down_threshold": "Swipe Down Threshold",
+      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
+      "reset": "Reset",
+      "reset_success": "Gesture settings reset to defaults",
+      "horizontal": "Horizontal",
+      "horizontal_desc": "Swipe left/right to navigate between posts",
+      "vertical": "Vertical",
+      "vertical_desc": "Swipe up/down to navigate between posts"
+    },
+    "error": {
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
+    },
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
+    "downloads_hint": "Open any post and tap download to save it to your device.",
+    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
+    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
+  },
+  "id-ID": {
+    "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
+    "load_video_failed": "Failed to load video",
+    "exit": "Exit",
+    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
+    },
+    "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "engine_type": "Booru engine",
+      "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
+      "name_error": "Please enter a name",
+      "id": "ID",
+      "credentials": {
+        "title": "API Credentials",
+        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
+        "login": "User ID",
+        "apiKey": "API Key"
+      }
+    },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
+    "periodicBackup": {
+      "title": "Periodic Backups",
+      "enable": "Enable periodic backups",
+      "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
+      "deleteOld": "Delete old backups",
+      "deleteOldDesc": "Automatically delete old backup files to save storage space",
+      "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
+      "lastBackup": "Last successful backup",
+      "never": "Never",
+      "justNow": "Just now",
+      "minutesAgo": {
+        "one": "${n} minute ago",
+        "other": "${n} minutes ago"
+      },
+      "hoursAgo": {
+        "one": "${n} hour ago",
+        "other": "${n} hours ago"
+      },
+      "daysAgo": {
+        "one": "${n} day ago",
+        "other": "${n} days ago"
+      },
+      "telegram": {
+        "title": "Telegram integration",
+        "enable": "Send backups to Telegram",
+        "chatId": "Telegram chat ID",
+        "chatIdHint": "e.g. -1001234567890",
+        "botToken": "Bot token",
+        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "notSet": "Not set",
+        "openBot": "Create a Telegram bot",
+        "openBotDesc": "Open BotFather to create your backup bot",
+        "testConnection": "Test connection",
+        "testSuccess": "Connection successful!",
+        "invalidToken": "Invalid bot token",
+        "invalidChatId": "Invalid chat ID",
+        "networkError": "Network error",
+        "unknownError": "Unknown error",
+        "backupNow": "Backup now",
+        "backupNowDesc": "Create and send backup to Telegram immediately",
+        "backupSent": "Backup sent to Telegram",
+        "backupFailed": "Failed to send backup"
+      }
+    },
+    "onboarding": {
+      "welcome_title": "Welcome to Boorusphere",
+      "welcome_desc": "Add a booru server to start discovering and collecting images",
+      "add_first_server": "Add your first server",
+      "browse_presets": "Browse presets",
+      "start_browsing": "Start browsing"
+    },
+    "batch": {
+      "downloading": "Downloading ${n} images...",
+      "downloaded": "Downloaded ${n} images to ${filename}",
+      "downloaded_files": "Downloaded ${n} images to Downloads",
+      "failed": "Batch download failed",
+      "favorited": "Added ${n} posts to favorites",
+      "selected": "${n} selected",
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
+    },
+    "settings_page": {
+      "color_palette": "Color Palette",
+      "gesture_settings": "Gesture Settings",
+      "swipe_horizontal": "Horizontal swipe",
+      "swipe_vertical": "Vertical swipe",
+      "swipe_mode": "Swipe Mode",
+      "swipe_mode_desc": "Choose how to navigate between posts",
+      "swipe_actions": "Swipe Actions",
+      "swipe_to_details": "Swipe to Details",
+      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
+      "swipe_to_dismiss": "Swipe to Dismiss",
+      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
+      "sensitivity": "Sensitivity",
+      "swipe_down_threshold": "Swipe Down Threshold",
+      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
+      "reset": "Reset",
+      "reset_success": "Gesture settings reset to defaults",
+      "horizontal": "Horizontal",
+      "horizontal_desc": "Swipe left/right to navigate between posts",
+      "vertical": "Vertical",
+      "vertical_desc": "Swipe up/down to navigate between posts"
+    },
+    "error": {
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
+    },
+    "downloads_hint": "Open any post and tap download to save it to your device.",
+    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
+    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
+  },
+  "ja-JP": {
+    "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
+    "load_video_failed": "Failed to load video",
+    "exit": "Exit",
+    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
+    },
+    "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "engine_type": "Booru engine",
+      "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
+      "name_error": "Please enter a name",
+      "credentials": {
+        "title": "API Credentials",
+        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
+        "login": "User ID",
+        "apiKey": "API Key"
+      }
+    },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
+    "periodicBackup": {
+      "title": "Periodic Backups",
+      "enable": "Enable periodic backups",
+      "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
+      "deleteOld": "Delete old backups",
+      "deleteOldDesc": "Automatically delete old backup files to save storage space",
+      "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
+      "lastBackup": "Last successful backup",
+      "never": "Never",
+      "justNow": "Just now",
+      "minutesAgo": {
+        "one": "${n} minute ago",
+        "other": "${n} minutes ago"
+      },
+      "hoursAgo": {
+        "one": "${n} hour ago",
+        "other": "${n} hours ago"
+      },
+      "daysAgo": {
+        "one": "${n} day ago",
+        "other": "${n} days ago"
+      },
+      "telegram": {
+        "title": "Telegram integration",
+        "enable": "Send backups to Telegram",
+        "chatId": "Telegram chat ID",
+        "chatIdHint": "e.g. -1001234567890",
+        "botToken": "Bot token",
+        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "notSet": "Not set",
+        "openBot": "Create a Telegram bot",
+        "openBotDesc": "Open BotFather to create your backup bot",
+        "testConnection": "Test connection",
+        "testSuccess": "Connection successful!",
+        "invalidToken": "Invalid bot token",
+        "invalidChatId": "Invalid chat ID",
+        "networkError": "Network error",
+        "unknownError": "Unknown error",
+        "backupNow": "Backup now",
+        "backupNowDesc": "Create and send backup to Telegram immediately",
+        "backupSent": "Backup sent to Telegram",
+        "backupFailed": "Failed to send backup"
+      }
+    },
+    "onboarding": {
+      "welcome_title": "Welcome to Boorusphere",
+      "welcome_desc": "Add a booru server to start discovering and collecting images",
+      "add_first_server": "Add your first server",
+      "browse_presets": "Browse presets",
+      "start_browsing": "Start browsing"
+    },
+    "batch": {
+      "downloading": "Downloading ${n} images...",
+      "downloaded": "Downloaded ${n} images to ${filename}",
+      "downloaded_files": "Downloaded ${n} images to Downloads",
+      "failed": "Batch download failed",
+      "favorited": "Added ${n} posts to favorites",
+      "selected": "${n} selected",
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
+    },
+    "settings_page": {
+      "color_palette": "Color Palette",
+      "gesture_settings": "Gesture Settings",
+      "swipe_horizontal": "Horizontal swipe",
+      "swipe_vertical": "Vertical swipe",
+      "swipe_mode": "Swipe Mode",
+      "swipe_mode_desc": "Choose how to navigate between posts",
+      "swipe_actions": "Swipe Actions",
+      "swipe_to_details": "Swipe to Details",
+      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
+      "swipe_to_dismiss": "Swipe to Dismiss",
+      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
+      "sensitivity": "Sensitivity",
+      "swipe_down_threshold": "Swipe Down Threshold",
+      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
+      "reset": "Reset",
+      "reset_success": "Gesture settings reset to defaults",
+      "horizontal": "Horizontal",
+      "horizontal_desc": "Swipe left/right to navigate between posts",
+      "vertical": "Vertical",
+      "vertical_desc": "Swipe up/down to navigate between posts"
+    },
+    "error": {
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
+    },
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
+    "downloads_hint": "Open any post and tap download to save it to your device.",
+    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
+    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
+  },
+  "th-TH": {
+    "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
+    "load_video_failed": "Failed to load video",
+    "exit": "Exit",
+    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
+    },
+    "servers": {
+      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "engine_type": "Booru engine",
+      "engine_required": "Please select a booru engine",
+      "mode": {
+        "scan": "Scan",
+        "manual": "Manual"
+      },
+      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
+      "scanning": "Scanning...",
+      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
+      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
+      "name_error": "Please enter a name",
+      "credentials": {
+        "title": "API Credentials",
+        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
+        "login": "User ID",
+        "apiKey": "API Key"
+      }
+    },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
+    "periodicBackup": {
+      "title": "Periodic Backups",
+      "enable": "Enable periodic backups",
+      "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
+      "deleteOld": "Delete old backups",
+      "deleteOldDesc": "Automatically delete old backup files to save storage space",
+      "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
+      "lastBackup": "Last successful backup",
+      "never": "Never",
+      "justNow": "Just now",
+      "minutesAgo": {
+        "one": "${n} minute ago",
+        "other": "${n} minutes ago"
+      },
+      "hoursAgo": {
+        "one": "${n} hour ago",
+        "other": "${n} hours ago"
+      },
+      "daysAgo": {
+        "one": "${n} day ago",
+        "other": "${n} days ago"
+      },
+      "telegram": {
+        "title": "Telegram integration",
+        "enable": "Send backups to Telegram",
+        "chatId": "Telegram chat ID",
+        "chatIdHint": "e.g. -1001234567890",
+        "botToken": "Bot token",
+        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "notSet": "Not set",
+        "openBot": "Create a Telegram bot",
+        "openBotDesc": "Open BotFather to create your backup bot",
+        "testConnection": "Test connection",
+        "testSuccess": "Connection successful!",
+        "invalidToken": "Invalid bot token",
+        "invalidChatId": "Invalid chat ID",
+        "networkError": "Network error",
+        "unknownError": "Unknown error",
+        "backupNow": "Backup now",
+        "backupNowDesc": "Create and send backup to Telegram immediately",
+        "backupSent": "Backup sent to Telegram",
+        "backupFailed": "Failed to send backup"
+      }
+    },
+    "onboarding": {
+      "welcome_title": "Welcome to Boorusphere",
+      "welcome_desc": "Add a booru server to start discovering and collecting images",
+      "add_first_server": "Add your first server",
+      "browse_presets": "Browse presets",
+      "start_browsing": "Start browsing"
+    },
+    "batch": {
+      "downloading": "Downloading ${n} images...",
+      "downloaded": "Downloaded ${n} images to ${filename}",
+      "downloaded_files": "Downloaded ${n} images to Downloads",
+      "failed": "Batch download failed",
+      "favorited": "Added ${n} posts to favorites",
+      "selected": "${n} selected",
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
+    },
+    "settings_page": {
+      "color_palette": "Color Palette",
+      "gesture_settings": "Gesture Settings",
+      "swipe_horizontal": "Horizontal swipe",
+      "swipe_vertical": "Vertical swipe",
+      "swipe_mode": "Swipe Mode",
+      "swipe_mode_desc": "Choose how to navigate between posts",
+      "swipe_actions": "Swipe Actions",
+      "swipe_to_details": "Swipe to Details",
+      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
+      "swipe_to_dismiss": "Swipe to Dismiss",
+      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
+      "sensitivity": "Sensitivity",
+      "swipe_down_threshold": "Swipe Down Threshold",
+      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
+      "reset": "Reset",
+      "reset_success": "Gesture settings reset to defaults",
+      "horizontal": "Horizontal",
+      "horizontal_desc": "Swipe left/right to navigate between posts",
+      "vertical": "Vertical",
+      "vertical_desc": "Swipe up/down to navigate between posts"
+    },
+    "error": {
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
+    },
+    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
+    "downloads_hint": "Open any post and tap download to save it to your device.",
+    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
+    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
+  },
+  "tr-TR": {
+    "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
+    "load_video_failed": "Failed to load video",
+    "exit": "Exit",
+    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
+    "sidebar": {
+      "servers": "Servers",
+      "library": "Library",
+      "preferences": "Preferences",
+      "manage": "Manage",
+      "tagline": "Multi-engine art explorer",
+      "add_custom_server": "Add server",
+      "open_navigation": "Open navigation",
+      "theme_system": "Theme: system",
+      "theme_light": "Theme: light",
+      "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "action_continue": "Continue",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
+    },
+    "post_action": {
+      "select": "Select",
+      "deselect": "Deselect",
+      "favorite": "Add to favorites",
+      "unfavorite": "Remove from favorites",
+      "download": "Download",
+      "share": "Share",
+      "open_source": "Open source"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
     "changelog": {
       "whats_new": "What's new in ${version}"
     },
     "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started",
       "clear_all": "Clear all",
       "clear_all_warning": "Are you sure you want to clear all the download record ?"
     },
@@ -973,6 +1873,7 @@
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
       "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
       "incompatible": "Cannot find compatible parser for ${addr}",
       "id": "ID",
@@ -987,13 +1888,35 @@
         "apiKey": "API Key"
       }
     },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
       "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
       "deleteOld": "Delete old backups",
       "deleteOldDesc": "Automatically delete old backup files to save storage space",
       "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
       "lastBackup": "Last successful backup",
       "never": "Never",
       "justNow": "Just now",
@@ -1035,7 +1958,7 @@
       "welcome_title": "Welcome to Boorusphere",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
+      "browse_presets": "Browse presets",
       "start_browsing": "Start browsing"
     },
     "batch": {
@@ -1045,7 +1968,8 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
     },
     "settings_page": {
       "color_palette": "Color Palette",
@@ -1070,281 +1994,13 @@
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
     "error": {
-      "unknown": "Something went wrong and we don't know why"
-    },
-    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
-    "downloads_hint": "Open any post and tap download to save it to your device.",
-    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
-    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
-  },
-  "uk": {
-    "findRelated": "Find related",
-    "load_video_failed": "Failed to load video",
-    "exit": "Exit",
-    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
-    "sidebar": {
-      "servers": "Servers",
-      "library": "Library",
-      "preferences": "Preferences",
-      "manage": "Manage",
-      "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
-      "open_navigation": "Open navigation",
-      "theme_system": "Theme: system",
-      "theme_light": "Theme: light",
-      "theme_dark": "Theme: dark"
-    },
-    "post_action": {
-      "select": "Select",
-      "deselect": "Deselect",
-      "favorite": "Add to favorites",
-      "unfavorite": "Remove from favorites",
-      "download": "Download",
-      "share": "Share",
-      "open_source": "Open source"
-    },
-    "servers": {
-      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
-      "engine_type": "Booru engine",
-      "engine_required": "Please select a booru engine",
-      "mode": {
-        "scan": "Scan",
-        "manual": "Manual"
-      },
-      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
-      "scanning": "Scanning...",
-      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
-      "profile_name": "Profile name",
-      "name_error": "Please enter a name",
-      "credentials": {
-        "title": "API Credentials",
-        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
-        "login": "User ID",
-        "apiKey": "API Key"
-      }
-    },
-    "periodicBackup": {
-      "title": "Periodic Backups",
-      "enable": "Enable periodic backups",
-      "frequency": "Backup frequency",
-      "deleteOld": "Delete old backups",
-      "deleteOldDesc": "Automatically delete old backup files to save storage space",
-      "maxBackups": "Max number of backups",
-      "lastBackup": "Last successful backup",
-      "never": "Never",
-      "justNow": "Just now",
-      "minutesAgo": {
-        "one": "${n} minute ago",
-        "other": "${n} minutes ago"
-      },
-      "hoursAgo": {
-        "one": "${n} hour ago",
-        "other": "${n} hours ago"
-      },
-      "daysAgo": {
-        "one": "${n} day ago",
-        "other": "${n} days ago"
-      },
-      "telegram": {
-        "title": "Telegram integration",
-        "enable": "Send backups to Telegram",
-        "chatId": "Telegram chat ID",
-        "chatIdHint": "e.g. -1001234567890",
-        "botToken": "Bot token",
-        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "notSet": "Not set",
-        "openBot": "Create a Telegram bot",
-        "openBotDesc": "Open BotFather to create your backup bot",
-        "testConnection": "Test connection",
-        "testSuccess": "Connection successful!",
-        "invalidToken": "Invalid bot token",
-        "invalidChatId": "Invalid chat ID",
-        "networkError": "Network error",
-        "unknownError": "Unknown error",
-        "backupNow": "Backup now",
-        "backupNowDesc": "Create and send backup to Telegram immediately",
-        "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
-      }
-    },
-    "onboarding": {
-      "welcome_title": "Welcome to Boorusphere",
-      "welcome_desc": "Add a booru server to start discovering and collecting images",
-      "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
-      "start_browsing": "Start browsing"
-    },
-    "batch": {
-      "downloading": "Downloading ${n} images...",
-      "downloaded": "Downloaded ${n} images to ${filename}",
-      "downloaded_files": "Downloaded ${n} images to Downloads",
-      "failed": "Batch download failed",
-      "favorited": "Added ${n} posts to favorites",
-      "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
-    },
-    "settings_page": {
-      "color_palette": "Color Palette",
-      "gesture_settings": "Gesture Settings",
-      "swipe_horizontal": "Horizontal swipe",
-      "swipe_vertical": "Vertical swipe",
-      "swipe_mode": "Swipe Mode",
-      "swipe_mode_desc": "Choose how to navigate between posts",
-      "swipe_actions": "Swipe Actions",
-      "swipe_to_details": "Swipe to Details",
-      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
-      "swipe_to_dismiss": "Swipe to Dismiss",
-      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
-      "sensitivity": "Sensitivity",
-      "swipe_down_threshold": "Swipe Down Threshold",
-      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
-      "reset": "Reset",
-      "reset_success": "Gesture settings reset to defaults",
-      "horizontal": "Horizontal",
-      "horizontal_desc": "Swipe left/right to navigate between posts",
-      "vertical": "Vertical",
-      "vertical_desc": "Swipe up/down to navigate between posts"
-    },
-    "error": {
-      "unknown": "Something went wrong and we don't know why"
-    },
-    "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
-    "downloads_hint": "Open any post and tap download to save it to your device.",
-    "page_status_empty_hint": "Try different tags, or check the rating filter above.",
-    "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
-  },
-  "uwu": {
-    "findRelated": "Find related",
-    "load_video_failed": "Failed to load video",
-    "exit": "Exit",
-    "exit_confirmation": "Are you sure you want to exit Boorusphere?",
-    "sidebar": {
-      "servers": "Servers",
-      "library": "Library",
-      "preferences": "Preferences",
-      "manage": "Manage",
-      "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
-      "open_navigation": "Open navigation",
-      "theme_system": "Theme: system",
-      "theme_light": "Theme: light",
-      "theme_dark": "Theme: dark"
-    },
-    "post_action": {
-      "select": "Select",
-      "deselect": "Deselect",
-      "favorite": "Add to favorites",
-      "unfavorite": "Remove from favorites",
-      "download": "Download",
-      "share": "Share",
-      "open_source": "Open source"
-    },
-    "servers": {
-      "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
-      "engine_type": "Booru engine",
-      "engine_required": "Please select a booru engine",
-      "mode": {
-        "scan": "Scan",
-        "manual": "Manual"
-      },
-      "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
-      "scanning": "Scanning...",
-      "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
-      "profile_name": "Profile name",
-      "name_error": "Please enter a name",
-      "credentials": {
-        "title": "API Credentials",
-        "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
-        "login": "User ID",
-        "apiKey": "API Key"
-      }
-    },
-    "periodicBackup": {
-      "title": "Periodic Backups",
-      "enable": "Enable periodic backups",
-      "frequency": "Backup frequency",
-      "deleteOld": "Delete old backups",
-      "deleteOldDesc": "Automatically delete old backup files to save storage space",
-      "maxBackups": "Max number of backups",
-      "lastBackup": "Last successful backup",
-      "never": "Never",
-      "justNow": "Just now",
-      "minutesAgo": {
-        "one": "${n} minute ago",
-        "other": "${n} minutes ago"
-      },
-      "hoursAgo": {
-        "one": "${n} hour ago",
-        "other": "${n} hours ago"
-      },
-      "daysAgo": {
-        "one": "${n} day ago",
-        "other": "${n} days ago"
-      },
-      "telegram": {
-        "title": "Telegram integration",
-        "enable": "Send backups to Telegram",
-        "chatId": "Telegram chat ID",
-        "chatIdHint": "e.g. -1001234567890",
-        "botToken": "Bot token",
-        "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "notSet": "Not set",
-        "openBot": "Create a Telegram bot",
-        "openBotDesc": "Open BotFather to create your backup bot",
-        "testConnection": "Test connection",
-        "testSuccess": "Connection successful!",
-        "invalidToken": "Invalid bot token",
-        "invalidChatId": "Invalid chat ID",
-        "networkError": "Network error",
-        "unknownError": "Unknown error",
-        "backupNow": "Backup now",
-        "backupNowDesc": "Create and send backup to Telegram immediately",
-        "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
-      }
-    },
-    "onboarding": {
-      "welcome_title": "Welcome to Boorusphere",
-      "welcome_desc": "Add a booru server to start discovering and collecting images",
-      "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
-      "start_browsing": "Start browsing"
-    },
-    "batch": {
-      "downloading": "Downloading ${n} images...",
-      "downloaded": "Downloaded ${n} images to ${filename}",
-      "downloaded_files": "Downloaded ${n} images to Downloads",
-      "failed": "Batch download failed",
-      "favorited": "Added ${n} posts to favorites",
-      "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
-    },
-    "settings_page": {
-      "color_palette": "Color Palette",
-      "gesture_settings": "Gesture Settings",
-      "swipe_horizontal": "Horizontal swipe",
-      "swipe_vertical": "Vertical swipe",
-      "swipe_mode": "Swipe Mode",
-      "swipe_mode_desc": "Choose how to navigate between posts",
-      "swipe_actions": "Swipe Actions",
-      "swipe_to_details": "Swipe to Details",
-      "swipe_to_details_desc": "Swipe up to open post details (horizontal mode)",
-      "swipe_to_dismiss": "Swipe to Dismiss",
-      "swipe_to_dismiss_desc": "Swipe down to close viewer (horizontal mode)",
-      "sensitivity": "Sensitivity",
-      "swipe_down_threshold": "Swipe Down Threshold",
-      "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
-      "reset": "Reset",
-      "reset_success": "Gesture settings reset to defaults",
-      "horizontal": "Horizontal",
-      "horizontal_desc": "Swipe left/right to navigate between posts",
-      "vertical": "Vertical",
-      "vertical_desc": "Swipe up/down to navigate between posts"
-    },
-    "error": {
-      "unknown": "Something went wrong and we don't know why"
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
@@ -1353,6 +2009,9 @@
   },
   "zh-Hans": {
     "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1362,11 +2021,38 @@
       "preferences": "Preferences",
       "manage": "Manage",
       "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
+      "add_custom_server": "Add server",
       "open_navigation": "Open navigation",
       "theme_system": "Theme: system",
       "theme_light": "Theme: light",
       "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
     },
     "post_action": {
       "select": "Select",
@@ -1376,6 +2062,20 @@
       "download": "Download",
       "share": "Share",
       "open_source": "Open source"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -1390,6 +2090,7 @@
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
       "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
       "credentials": {
         "title": "API Credentials",
@@ -1398,13 +2099,35 @@
         "apiKey": "API Key"
       }
     },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
       "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
       "deleteOld": "Delete old backups",
       "deleteOldDesc": "Automatically delete old backup files to save storage space",
       "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
       "lastBackup": "Last successful backup",
       "never": "Never",
       "justNow": "Just now",
@@ -1446,7 +2169,7 @@
       "welcome_title": "Welcome to Boorusphere",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
+      "browse_presets": "Browse presets",
       "start_browsing": "Start browsing"
     },
     "batch": {
@@ -1456,7 +2179,8 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
     },
     "settings_page": {
       "color_palette": "Color Palette",
@@ -1481,7 +2205,13 @@
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
     "error": {
-      "unknown": "Something went wrong and we don't know why"
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
@@ -1490,6 +2220,9 @@
   },
   "zh-TW": {
     "findRelated": "Find related",
+    "dimensions": "Dimensions",
+    "format": "Format",
+    "links": "Links",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1499,11 +2232,38 @@
       "preferences": "Preferences",
       "manage": "Manage",
       "tagline": "Multi-engine art explorer",
-      "add_custom_server": "Add custom server",
+      "add_custom_server": "Add server",
       "open_navigation": "Open navigation",
       "theme_system": "Theme: system",
       "theme_light": "Theme: light",
       "theme_dark": "Theme: dark"
+    },
+    "back_to_top": "Back to top",
+    "change_grid": "Change grid columns",
+    "reset_query": "Reset query",
+    "clear_query": "Clear search",
+    "clear_selection": "Clear selection",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "help": {
+      "title": "Gestures & tags",
+      "long_press_hint": "Long-press a post for actions",
+      "tap": "Tap a post to open it",
+      "long_press": "Long-press to select, favorite, download or share",
+      "double_tap": "Double-tap to zoom",
+      "swipe_up": "Swipe up for details",
+      "swipe_down": "Swipe down to close the viewer",
+      "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "page_status": {
+      "unparsable": "Cannot read the response from ${server_name}",
+      "change_server": "Change server"
+    },
+    "suggestion": {
+      "history_empty": "No search history yet",
+      "history_no_match": "No matching history found",
+      "history_hint": "Your recent searches will appear here",
+      "history_hint_query": "Try a different search term"
     },
     "post_action": {
       "select": "Select",
@@ -1513,6 +2273,20 @@
       "download": "Download",
       "share": "Share",
       "open_source": "Open source"
+    },
+    "viewer": {
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "fullscreen": "Fullscreen",
+      "exit_fullscreen": "Exit fullscreen",
+      "play": "Play",
+      "pause": "Pause",
+      "open_link": "Open link"
+    },
+    "downloads": {
+      "delete_file": "Delete file",
+      "no_match": "No downloads match this filter",
+      "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -1527,6 +2301,7 @@
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
       "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
+      "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
       "credentials": {
         "title": "API Credentials",
@@ -1535,13 +2310,35 @@
         "apiKey": "API Key"
       }
     },
+    "data_backup": {
+      "encrypt": "Encrypt with passphrase",
+      "encryptDesc": "Protect the backup with a passphrase only you know",
+      "passphrase": "Passphrase",
+      "passphraseConfirm": "Confirm passphrase",
+      "passphraseHint": "At least ${n} characters",
+      "passphraseTooShort": "Use at least ${n} characters",
+      "passphraseMismatch": "Passphrases do not match",
+      "passphraseTitle": "Backup passphrase",
+      "passphraseTile": "Backup passphrase",
+      "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+      "passphraseNotSet": "Not set",
+      "passphraseRemove": "Remove passphrase",
+      "savePassphrase": "Save for automatic backups",
+      "wrongPassphrase": "Wrong passphrase, or the file is damaged"
+    },
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
       "frequency": "Backup frequency",
+      "frequency_daily": "Every day",
+      "frequency_weekly": "Every week",
+      "frequency_monthly": "Every month",
       "deleteOld": "Delete old backups",
       "deleteOldDesc": "Automatically delete old backup files to save storage space",
       "maxBackups": "Max number of backups",
+      "encrypt": "Encrypt backups",
+      "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+      "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
       "lastBackup": "Last successful backup",
       "never": "Never",
       "justNow": "Just now",
@@ -1583,7 +2380,7 @@
       "welcome_title": "Welcome to Boorusphere",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
-      "browse_presets": "Browse popular servers",
+      "browse_presets": "Browse presets",
       "start_browsing": "Start browsing"
     },
     "batch": {
@@ -1593,7 +2390,8 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP"
+      "as_archive": "Save as ZIP",
+      "download_files": "Download files"
     },
     "settings_page": {
       "color_palette": "Color Palette",
@@ -1618,7 +2416,13 @@
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
     "error": {
-      "unknown": "Something went wrong and we don't know why"
+      "unknown": "Something went wrong and we don't know why",
+      "connection_failed": "Connection failed",
+      "connection_failed_host": "Failed to connect to ${host}",
+      "connection_timeout": "Connection timeout",
+      "insecure_connection": "Cannot establish a secure connection",
+      "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",

@@ -13,7 +13,10 @@ import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
+import 'package:boorusphere/presentation/widgets/sheet_row.dart';
+import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/url_validator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -25,6 +28,9 @@ import 'package:url_launcher/url_launcher_string.dart';
 const _kMinSheetSize = 0.0;
 const _kSnapSheetSize = 0.5;
 const _kMaxSheetSize = 0.9;
+
+/// Index of the panel the sheet is showing.
+enum _Panel { details, tags, links }
 
 class PostDetailsSheet extends ConsumerStatefulWidget {
   const PostDetailsSheet({
@@ -45,6 +51,7 @@ class PostDetailsSheet extends ConsumerStatefulWidget {
 class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
   final Set<String> _selectedTags = {};
   int? _lastPostId;
+  _Panel _panel = _Panel.details;
 
   @override
   void initState() {
@@ -93,6 +100,15 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
     setState(_selectedTags.clear);
   }
 
+  /// Collapses the sheet back over the image instead of leaving the viewer.
+  void _collapse() {
+    widget.sheetController.animateTo(
+      _kMinSheetSize,
+      duration: context.motionDuration(DesignTokens.durationNormal),
+      curve: DesignTokens.curveStandard,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final enableBlur = ref.watch(uiSettingStateProvider.select((s) => s.blur));
@@ -118,10 +134,14 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
               // from inside this builder via `addPostFrameCallback` would
               // schedule work on every rebuild (e.g. tag toggles), not
               // only on actual post-id transitions.
+              final headers = ref.watch(postHeadersFactoryProvider(post));
               final content = Container(
                 decoration: BoxDecoration(
+                  // The sheet keeps almost all of its surface even with the
+                  // blur on: the rows carry text, and a bright image behind
+                  // them would take the contrast away.
                   color: enableBlur
-                      ? backgroundColor.withValues(alpha: 0.85)
+                      ? backgroundColor.withValues(alpha: 0.94)
                       : backgroundColor,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(DesignTokens.radiusXl),
@@ -129,31 +149,59 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                 ),
                 child: Stack(
                   children: [
-                    CustomScrollView(
+                    SingleChildScrollView(
                       controller: scrollController,
-                      slivers: [
-                        // Drag handle
-                        const SliverToBoxAdapter(
-                          child: DragHandle(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const DragHandle(
                             margin: EdgeInsets.symmetric(
                               vertical: DesignTokens.spacingCardInset,
                             ),
                           ),
-                        ),
-                        // Content
-                        SliverToBoxAdapter(
-                          child: _SheetContent(
-                            key: ValueKey(
-                              'content_${post.id}_${post.serverId}',
-                            ),
-                            post: post,
-                            selectedTags: _selectedTags,
-                            onTagPressed: _onTagPressed,
+                          _Header(post: post, onClose: _collapse),
+                          SheetTabs(
+                            tabs: [
+                              SheetTab(context.t.details),
+                              SheetTab(
+                                context.t.tags,
+                                count: '${post.allTags.length}',
+                              ),
+                              SheetTab(
+                                context.t.links,
+                                count: '${_linkCount(post)}',
+                              ),
+                            ],
+                            index: _panel.index,
+                            onChanged: (index) =>
+                                setState(() => _panel = _Panel.values[index]),
                           ),
-                        ),
-                      ],
+                          AnimatedSize(
+                            duration: context.motionDuration(
+                              DesignTokens.durationFast,
+                            ),
+                            curve: DesignTokens.curveStandard,
+                            alignment: Alignment.topCenter,
+                            child: switch (_panel) {
+                              _Panel.details => _DetailsPanel(post: post),
+                              _Panel.tags => _TagsPanel(
+                                post: post,
+                                selectedTags: _selectedTags,
+                                onTagPressed: _onTagPressed,
+                              ),
+                              _Panel.links => _LinksPanel(
+                                post: post,
+                                headers: headers,
+                              ),
+                            },
+                          ),
+                          const SafeArea(
+                            top: false,
+                            child: SizedBox(height: DesignTokens.spacingXl * 3),
+                          ),
+                        ],
+                      ),
                     ),
-                    // Fixed bottom action bar
                     if (_selectedTags.isNotEmpty)
                       Positioned(
                         left: 0,
@@ -196,6 +244,353 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
   }
 }
 
+/// How many of the post's addresses the links panel will list.
+int _linkCount(Post post) {
+  var count = 0;
+  if (post.postUrl.contains(post.id.toString())) count++;
+  if (post.source.isNotEmpty) count++;
+  if (post.sampleFile.isNotEmpty) count++;
+  count++;
+  return count;
+}
+
+/// The post's most identifying tag, so the sheet is named after the thing the
+/// visitor opened rather than after a database row.
+String _titleOf(Post post) {
+  for (final tags in [
+    post.tagsArtist,
+    post.tagsCopyright,
+    post.tagsCharacter,
+    post.tagsGeneral,
+    post.tags,
+  ]) {
+    if (tags.isNotEmpty) return tags.first;
+  }
+
+  return '#${post.id}';
+}
+
+void _copy(BuildContext context, String text) {
+  Clipboard.setData(ClipboardData(text: text));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(context.t.copySuccess),
+      duration: const Duration(seconds: 1),
+    ),
+  );
+}
+
+void _open(String url) {
+  if (isSafeUrl(url)) {
+    launchUrlString(url, mode: LaunchMode.externalApplication);
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.post, required this.onClose});
+
+  final Post post;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: DesignTokens.spacingMd,
+        right: DesignTokens.spacingXs,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              header: true,
+              child: Text(
+                _titleOf(post),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close_rounded, size: 20),
+            tooltip: context.t.dismiss,
+            onPressed: onClose,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The numbers: what the post is and what it is made of.
+class _DetailsPanel extends StatelessWidget {
+  const _DetailsPanel({required this.post});
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) {
+    final rating = post.rating.describe(context);
+    final ext = post.originalFile.fileExt.toUpperCase();
+
+    return SheetPanel(
+      children: [
+        if (rating.isNotEmpty)
+          SheetFactRow(label: context.t.rating.title, value: rating),
+        SheetFactRow(label: context.t.score, value: post.score.toString()),
+        if (post.originalSize.hasPixels)
+          SheetFactRow(
+            label: context.t.dimensions,
+            value: post.originalSize.toString(),
+          ),
+        if (ext.isNotEmpty) SheetFactRow(label: context.t.format, value: ext),
+      ],
+    );
+  }
+}
+
+/// The addresses: where the post lives and where its files are.
+class _LinksPanel extends StatelessWidget {
+  const _LinksPanel({required this.post, required this.headers});
+
+  final Post post;
+  final Map<String, String> headers;
+
+  @override
+  Widget build(BuildContext context) {
+    final originalExt = post.originalFile.fileExt.toUpperCase();
+
+    return SheetPanel(
+      children: [
+        if (post.postUrl.contains(post.id.toString()))
+          SheetLinkRow(
+            label: context.t.location,
+            url: post.postUrl,
+            onOpen: () => _open(post.postUrl),
+            onCopy: () => _copy(context, post.postUrl),
+          ),
+        if (post.source.isNotEmpty)
+          SheetLinkRow(
+            label: context.t.source,
+            url: post.source,
+            onOpen: () => _open(post.source),
+            onCopy: () => _copy(context, post.source),
+          ),
+        if (post.sampleFile.isNotEmpty)
+          _SampleLinkRow(post: post, headers: headers),
+        SheetLinkRow(
+          label: context.t.fileOg,
+          detail: '${post.originalSize}, $originalExt',
+          url: post.originalFile,
+          onOpen: () => _open(post.originalFile),
+          onCopy: () => _copy(context, post.originalFile),
+        ),
+      ],
+    );
+  }
+}
+
+/// The sample row resolves the image's real pixel size once, so switching
+/// panels does not re-request the header of an image that has not changed.
+class _SampleLinkRow extends StatefulWidget {
+  const _SampleLinkRow({required this.post, required this.headers});
+
+  final Post post;
+  final Map<String, String> headers;
+
+  @override
+  State<_SampleLinkRow> createState() => _SampleLinkRowState();
+}
+
+class _SampleLinkRowState extends State<_SampleLinkRow> {
+  late Future<PixelSize> _size = _resolve();
+
+  Future<PixelSize> _resolve() {
+    final post = widget.post;
+    if ((post.content.isPhoto || post.content.isGif) &&
+        !post.sampleSize.hasPixels) {
+      return CachedNetworkImageProvider(
+        post.sampleFile,
+        headers: widget.headers,
+      ).resolvePixelSize();
+    }
+
+    return Future.value(post.sampleSize);
+  }
+
+  @override
+  void didUpdateWidget(covariant _SampleLinkRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.sampleFile != widget.post.sampleFile) {
+      _size = _resolve();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final post = widget.post;
+    final ext = post.sampleFile.fileExt.toUpperCase();
+
+    return FutureBuilder<PixelSize>(
+      future: _size,
+      builder: (context, snapshot) {
+        final size = snapshot.data ?? post.sampleSize;
+
+        return SheetLinkRow(
+          label: context.t.fileSample,
+          detail: '$size, $ext',
+          url: post.sampleFile,
+          onOpen: () => _open(post.sampleFile),
+          onCopy: () => _copy(context, post.sampleFile),
+        );
+      },
+    );
+  }
+}
+
+/// The tags, grouped by what they describe. A tap selects a tag; the action bar
+/// at the bottom of the sheet then says what can be done with the selection.
+class _TagsPanel extends StatelessWidget {
+  const _TagsPanel({
+    required this.post,
+    required this.selectedTags,
+    required this.onTagPressed,
+  });
+
+  final Post post;
+  final Set<String> selectedTags;
+  final void Function(String) onTagPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!post.hasCategorizedTags) {
+      return _Group(
+        tags: post.tags,
+        selectedTags: selectedTags,
+        onTagPressed: onTagPressed,
+      );
+    }
+
+    final groups = <(String, List<String>)>[
+      (context.t.meta, post.tagsMeta),
+      (context.t.artist, post.tagsArtist),
+      (context.t.character, post.tagsCharacter),
+      (context.t.copyright, post.tagsCopyright),
+      (context.t.general, post.tagsGeneral),
+    ].where((group) => group.$2.isNotEmpty).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (label, tags) in groups)
+          _Group(
+            label: label,
+            tags: tags,
+            selectedTags: selectedTags,
+            onTagPressed: onTagPressed,
+          ),
+      ],
+    );
+  }
+}
+
+class _Group extends StatelessWidget {
+  const _Group({
+    required this.tags,
+    required this.selectedTags,
+    required this.onTagPressed,
+    this.label,
+  });
+
+  final List<String> tags;
+  final Set<String> selectedTags;
+  final void Function(String) onTagPressed;
+
+  /// The category this group describes; the uncategorised cloud has none.
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        DesignTokens.spacingMd,
+        DesignTokens.spacingMd,
+        DesignTokens.spacingMd,
+        DesignTokens.spacingXs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (label case final label?)
+            Padding(
+              padding: const EdgeInsets.only(
+                bottom: DesignTokens.spacingSm + 2,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    label.toUpperLocale(context),
+                    style: sheetLabelStyle(context),
+                  ),
+                  const SizedBox(width: DesignTokens.spacingSm),
+                  Text('${tags.length}', style: sheetLabelStyle(context)),
+                ],
+              ),
+            ),
+          Wrap(
+            spacing: DesignTokens.spacingSm,
+            runSpacing: DesignTokens.spacingSm,
+            children: [
+              for (final tag in tags)
+                _TagChip(
+                  tag: tag,
+                  selected: selectedTags.contains(tag),
+                  onTap: () => onTagPressed(tag),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  const _TagChip({
+    required this.tag,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String tag;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+
+    return FilterChip(
+      label: Text(tag),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) => onTap(),
+      backgroundColor: scheme.surfaceContainerHighest,
+      selectedColor: scheme.primaryContainer,
+      labelStyle: context.theme.textTheme.bodySmall?.copyWith(
+        color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
+      ),
+      shape: const StadiumBorder(),
+      side: selected
+          ? BorderSide.none
+          : BorderSide(color: scheme.outlineVariant),
+    );
+  }
+}
+
 class _TagActionBar extends ConsumerWidget {
   const _TagActionBar({
     required this.selectedTags,
@@ -206,18 +601,6 @@ class _TagActionBar extends ConsumerWidget {
   final Set<String> selectedTags;
   final SearchSession session;
   final VoidCallback onClearSelection;
-
-  void _copyTags(BuildContext context) {
-    final tags = selectedTags.join(' ');
-    Clipboard.setData(ClipboardData(text: tags));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.t.copySuccess),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-    onClearSelection();
-  }
 
   void _blockTags(BuildContext context, WidgetRef ref) {
     ref
@@ -249,38 +632,42 @@ class _TagActionBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = context.colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        color: scheme.surfaceContainerHighest,
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: DesignTokens.spacingSm,
-            vertical: DesignTokens.spacingSm,
+            vertical: DesignTokens.spacingXs,
           ),
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  context.t.batch.selected(n: selectedTags.length),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: DesignTokens.spacingSm),
+                  child: Text(
+                    context.t.batch.selected(n: selectedTags.length),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.copy, size: 20),
+                icon: const Icon(Icons.copy_rounded, size: 20),
                 tooltip: context.t.actionTag.copy,
-                onPressed: () => _copyTags(context),
+                onPressed: () {
+                  _copy(context, selectedTags.join(' '));
+                  onClearSelection();
+                },
               ),
               IconButton(
                 icon: const Icon(Icons.block, size: 20),
@@ -306,292 +693,6 @@ class _TagActionBar extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SheetContent extends ConsumerWidget {
-  const _SheetContent({
-    super.key,
-    required this.post,
-    required this.selectedTags,
-    required this.onTagPressed,
-  });
-
-  final Post post;
-  final Set<String> selectedTags;
-  final void Function(String) onTagPressed;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final headers = ref.watch(postHeadersFactoryProvider(post));
-    final rating = post.rating.describe(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (rating.isNotEmpty)
-            _InfoTile(title: context.t.rating.title, content: Text(rating)),
-          _InfoTile(
-            title: context.t.score,
-            content: Text(post.score.toString()),
-          ),
-          if (post.postUrl.contains(post.id.toString()))
-            _InfoTile(
-              title: context.t.location,
-              content: _LinkText(post.postUrl),
-              trailing: _CopyButton(post.postUrl),
-            ),
-          if (post.source.isNotEmpty)
-            _InfoTile(
-              title: context.t.source,
-              content: _LinkText(post.source),
-              trailing: _CopyButton(post.source),
-            ),
-          if (post.sampleFile.isNotEmpty)
-            _InfoTile(
-              title: context.t.fileSample,
-              content: FutureBuilder<PixelSize>(
-                future:
-                    (post.content.isPhoto || post.content.isGif) &&
-                        !post.sampleSize.hasPixels
-                    ? CachedNetworkImageProvider(
-                        post.sampleFile,
-                        headers: headers,
-                      ).resolvePixelSize()
-                    : Future.value(post.sampleSize),
-                builder: (context, snapshot) {
-                  final size = snapshot.data ?? post.sampleSize;
-                  return _LinkText(
-                    post.sampleFile,
-                    label: '$size, ${post.sampleFile.fileExt}',
-                  );
-                },
-              ),
-              trailing: _CopyButton(post.sampleFile),
-            ),
-          _InfoTile(
-            title: context.t.fileOg,
-            content: _LinkText(
-              post.originalFile,
-              label:
-                  '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
-            ),
-            trailing: _CopyButton(post.originalFile),
-          ),
-          const SizedBox(height: DesignTokens.spacingSm),
-          Text(context.t.tags, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: DesignTokens.spacingSm),
-          if (!post.hasCategorizedTags)
-            _TagsWrap(
-              tags: post.tags,
-              selectedTags: selectedTags,
-              onTagPressed: onTagPressed,
-            )
-          else ...[
-            if (post.tagsMeta.isNotEmpty)
-              _TagsSection(
-                label: context.t.meta,
-                tags: post.tagsMeta,
-                selectedTags: selectedTags,
-                onTagPressed: onTagPressed,
-              ),
-            if (post.tagsArtist.isNotEmpty)
-              _TagsSection(
-                label: context.t.artist,
-                tags: post.tagsArtist,
-                selectedTags: selectedTags,
-                onTagPressed: onTagPressed,
-              ),
-            if (post.tagsCharacter.isNotEmpty)
-              _TagsSection(
-                label: context.t.character,
-                tags: post.tagsCharacter,
-                selectedTags: selectedTags,
-                onTagPressed: onTagPressed,
-              ),
-            if (post.tagsCopyright.isNotEmpty)
-              _TagsSection(
-                label: context.t.copyright,
-                tags: post.tagsCopyright,
-                selectedTags: selectedTags,
-                onTagPressed: onTagPressed,
-              ),
-            if (post.tagsGeneral.isNotEmpty)
-              _TagsSection(
-                label: context.t.general,
-                tags: post.tagsGeneral,
-                selectedTags: selectedTags,
-                onTagPressed: onTagPressed,
-              ),
-          ],
-          const SizedBox(height: DesignTokens.spacingXl * 3),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({required this.title, required this.content, this.trailing});
-
-  final String title;
-  final Widget content;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: DesignTokens.spacingSm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: DesignTokens.spacingSm),
-                content,
-              ],
-            ),
-          ),
-          if (trailing != null) trailing!,
-        ],
-      ),
-    );
-  }
-}
-
-class _LinkText extends StatelessWidget {
-  const _LinkText(this.url, {this.label});
-
-  final String url;
-  final String? label;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        if (isSafeUrl(url)) {
-          launchUrlString(url, mode: LaunchMode.externalApplication);
-        }
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (label != null)
-            Text(label!, style: Theme.of(context).textTheme.bodyMedium),
-          Text(
-            url,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CopyButton extends StatelessWidget {
-  const _CopyButton(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      iconSize: 18,
-      tooltip: context.t.actionTag.copy,
-      onPressed: () {
-        Clipboard.setData(ClipboardData(text: text));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.t.copySuccess),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      },
-      icon: const Icon(Icons.copy),
-    );
-  }
-}
-
-class _TagsSection extends StatelessWidget {
-  const _TagsSection({
-    required this.label,
-    required this.tags,
-    required this.selectedTags,
-    required this.onTagPressed,
-  });
-
-  final String label;
-  final List<String> tags;
-  final Set<String> selectedTags;
-  final void Function(String) onTagPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(
-            top: DesignTokens.spacingSm,
-            bottom: DesignTokens.spacingXs,
-          ),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        _TagsWrap(
-          tags: tags,
-          selectedTags: selectedTags,
-          onTagPressed: onTagPressed,
-        ),
-      ],
-    );
-  }
-}
-
-class _TagsWrap extends StatelessWidget {
-  const _TagsWrap({
-    required this.tags,
-    required this.selectedTags,
-    required this.onTagPressed,
-  });
-
-  final List<String> tags;
-  final Set<String> selectedTags;
-  final void Function(String) onTagPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: DesignTokens.spacingSm,
-      runSpacing: DesignTokens.spacingSm,
-      children: tags.map((tag) {
-        final isSelected = selectedTags.contains(tag);
-        return FilterChip(
-          label: Text(tag),
-          selected: isSelected,
-          showCheckmark: false,
-          onSelected: (_) => onTagPressed(tag),
-        );
-      }).toList(),
     );
   }
 }

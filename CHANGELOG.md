@@ -1,4 +1,7 @@
 ## 2.0.24
+* **Feat**: rebuild every bottom sheet on one shell - a header named after what it is about with a close control, one job per panel, and rows ruled by a single hairline
+* **Feat**: split the post details sheet into Details, Tags and Links panels, with a tab strip that shows how much sits behind each one
+* **Fix**: keep the post details sheet readable over a bright image, and right-align its values so scores and dimensions line up
 * **Fix**: run the drawer rows one step denser so more destinations fit, while the wordmark header keeps its size
 * **Fix**: keep every form label above its field instead of letting it sit where the value goes, and move the examples into the hint, so an empty field no longer reads as a filled one or as a second title
 * **Fix**: translate the search history empty state and the backup frequency labels, which still shipped English text inside translated screens
