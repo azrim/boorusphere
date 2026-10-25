@@ -47,6 +47,15 @@ class ServerState extends _$ServerState {
     final repo = ref.read(serverRepoProvider);
     await repo.add(data);
     state = repo.servers;
+
+    // A boot that could not open the server box starts with an empty list, so
+    // the session has no id to point at. The server just added is the only one
+    // the timeline could show, so it is adopted instead of leaving the session
+    // stuck on an id that resolves to no server.
+    final lastActiveId = ref.read(serverSettingStateProvider).lastActiveId;
+    if (!state.any((it) => it.id == lastActiveId)) {
+      await settings.setLastActiveId(data.id);
+    }
   }
 
   Future<void> remove(Server data) async {

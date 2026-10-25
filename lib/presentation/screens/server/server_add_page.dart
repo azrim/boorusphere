@@ -5,7 +5,10 @@ import 'package:boorusphere/data/repository/booru/utils/booru_scanner.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
@@ -266,6 +269,10 @@ class ServerAddPage extends HookConsumerWidget {
     /// replace that server's configuration, credentials included.
     Future<void> submit() async {
       final serverPod = ref.read(serverStateProvider.notifier);
+      final lastActiveId = ref.read(serverSettingStateProvider).lastActiveId;
+      final hadActiveServer = ref
+          .read(serverStateProvider)
+          .any((it) => it.id == lastActiveId);
       try {
         await serverPod.add(server.value);
       } on ServerAlreadyExistsException {
@@ -287,7 +294,20 @@ class ServerAddPage extends HookConsumerWidget {
         return;
       }
 
-      if (context.mounted) await context.router.maybePop();
+      if (!context.mounted) return;
+
+      // A server saved while the session has none (a boot that could not open
+      // the server box) is the only one the timeline behind this page could
+      // show. Opening its timeline here saves a manual switch through the
+      // drawer, which is the state the page would otherwise stay in.
+      if (!hadActiveServer) {
+        await context.router.replaceAll([
+          HomeRoute(session: SearchSession(serverId: server.value.id)),
+        ]);
+        return;
+      }
+
+      await context.router.maybePop();
     }
 
     return Scaffold(
