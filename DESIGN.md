@@ -55,7 +55,7 @@ Boorusphere is a content-first mobile image browser. The design philosophy is ra
 
 ## 2. Colors
 
-A scheme is produced one of two ways. The **System** palette takes the wallpaper scheme on Android 12+ and harmonizes it; **Material You** generates a scheme from the brand seed. The eight named palettes — Dracula, Catppuccin, Nord, Solarized, Gruvbox, One Dark, Monokai, GitHub — are curated: each owns its page, cards, text, hairlines and accents the way a code editor theme does, so picking one recolours the whole app instead of only shifting the accent hue.
+A scheme is produced one of two ways. The **System** palette takes the wallpaper scheme on Android 12+ and harmonizes it; **Material You** generates a scheme from the brand seed. The ten named palettes — Dracula, Catppuccin, Nord, Solarized, Gruvbox, One Dark, Monokai, GitHub, Tokyo Night, Ayu — are curated: each owns its page, cards, text, hairlines and accents the way a code editor theme does, so picking one recolours the whole app instead of only shifting the accent hue.
 
 ### What a curated palette decides
 
@@ -69,7 +69,9 @@ An editor theme ships a surface ramp — a page, the panels that float on it, th
 
 A comment tone is written for syntax, not for UI, and a light theme's pink or yellow often lands under 4.5:1. `toScheme` therefore lifts the muted role and each accent towards the page's opposite, one small step at a time, and stops the moment the floor is met. The hue is always the theme's; only lightness moves, and only where it has to.
 
-Two themes ship one polarity only: **Nord** and **Monokai**. Their day scheme is generated from their accent, because inventing a light variant is exactly what this system stopped doing.
+Four themes ship one polarity only: **Nord** and **Monokai** never had a light variant, and **Solarized** and **Gruvbox** do have one but it is warm paper, which would tint the artwork it sits behind. Their day scheme is generated from their accent, because inventing a light variant is exactly what this system stopped doing, and a viewer's surround has to stay neutral.
+
+**The Neutral Surround Rule.** A light page is the field an image is judged against, so a warm or cool paper tone belongs to the theme's cards and accents, not to the page. A theme whose light page is saturated paper ships as a dark-only palette instead.
 
 **The Ramp Rule.** A surface is never mixed out of two other colours to produce a new tone. If the theme does not define a step, it is not invented — the role that would need it falls back to the nearest tone the theme does define.
 
