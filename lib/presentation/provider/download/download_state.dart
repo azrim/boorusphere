@@ -31,8 +31,14 @@ class DownloadEntryState extends _$DownloadEntryState {
 
   Future<void> update(String id, DownloadEntry entry) async {
     final repo = ref.read(downloadsRepoProvider);
-    await repo.removeEntry(id);
+    // The replacement lands before the old record goes: the boxes are written
+    // in separate frames, and a process death in between then leaves a
+    // duplicate row the boot reconciliation can settle. The reverse order
+    // would leave a running native task with no record at all.
     await repo.addEntry(entry);
+    if (id != entry.id) {
+      await repo.removeEntry(id);
+    }
     state = [...state.where((it) => it.id != id), entry];
   }
 

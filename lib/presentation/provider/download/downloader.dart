@@ -277,11 +277,14 @@ class Downloader {
     if (entry.id.isEmpty) return;
 
     // The retried task carries a new id from here on, so nothing would ever
-    // write the row of the old one again.
-    await ref.read(downloadProgressStateProvider.notifier).remove(id);
+    // write the row of the old one again. The record moves to the new id
+    // first: a death before the old rows are dropped leaves a duplicate the
+    // boot reconciliation settles, while dropping them first would leave the
+    // running task with nothing pointing at it.
     await ref
         .read(downloadEntryStateProvider.notifier)
         .update(id, entry.copyWith(id: newId));
+    await ref.read(downloadProgressStateProvider.notifier).remove(id);
   }
 
   Future<void> cancel({required String id}) async {
