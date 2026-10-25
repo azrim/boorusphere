@@ -41,6 +41,8 @@ abstract class PeriodicBackupState with _$PeriodicBackupState {
     @Default(false) bool telegramEnabled,
     @Default('') String telegramChatId,
     @Default('') String telegramBotToken,
+    @Default('') String backupPassphrase,
+    @Default(false) bool encryptBackup,
   }) = _PeriodicBackupState;
 }
 
@@ -66,6 +68,8 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
       telegramEnabled: repo.get(Setting.telegramBackupEnabled, or: false),
       telegramChatId: repo.get(Setting.telegramChatId, or: ''),
       telegramBotToken: repo.get(Setting.telegramBotToken, or: ''),
+      backupPassphrase: repo.get(Setting.backupPassphrase, or: ''),
+      encryptBackup: repo.get(Setting.backupEncryption, or: false),
     );
   }
 
@@ -119,6 +123,21 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
     state = state.copyWith(telegramBotToken: value);
     await repo.put(Setting.telegramBotToken, value);
   }
+
+  Future<void> setPassphrase(String value) async {
+    final repo = ref.read(settingsRepoProvider);
+    final passphrase = value.trim();
+    state = state.copyWith(backupPassphrase: passphrase);
+    await repo.put(Setting.backupPassphrase, passphrase);
+  }
+
+  Future<void> setEncryption(bool value) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(encryptBackup: value);
+    await repo.put(Setting.backupEncryption, value);
+  }
+
+  bool get hasPassphrase => state.backupPassphrase.isNotEmpty;
 
   bool get isTelegramConfigured =>
       state.telegramChatId.isNotEmpty && state.telegramBotToken.isNotEmpty;

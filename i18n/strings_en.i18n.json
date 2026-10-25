@@ -320,7 +320,21 @@
       "invalid": "Invalid backup file",
       "warning": "Warning! this action will overwrite any existing data.\nAre you sure you want to continue ?",
       "loading": "Restoring data..."
-    }
+    },
+    "encrypt": "Encrypt with passphrase",
+    "encryptDesc": "Protect the backup with a passphrase only you know",
+    "passphrase": "Passphrase",
+    "passphraseConfirm": "Confirm passphrase",
+    "passphraseHint": "At least ${n} characters",
+    "passphraseTooShort": "Use at least ${n} characters",
+    "passphraseMismatch": "Passphrases do not match",
+    "passphraseTitle": "Backup passphrase",
+    "passphraseTile": "Backup passphrase",
+    "passphraseTileDesc": "Used for automatic backups and encrypted restores",
+    "passphraseNotSet": "Not set",
+    "passphraseRemove": "Remove passphrase",
+    "savePassphrase": "Save for automatic backups",
+    "wrongPassphrase": "Wrong passphrase, or the file is damaged"
   },
   "periodicBackup": {
     "title": "Periodic Backups",
@@ -332,6 +346,9 @@
     "deleteOld": "Delete old backups",
     "deleteOldDesc": "Automatically delete old backup files to save storage space",
     "maxBackups": "Max number of backups",
+    "encrypt": "Encrypt backups",
+    "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
+    "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
     "lastBackup": "Last successful backup",
     "never": "Never",
     "justNow": "Just now",

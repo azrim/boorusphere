@@ -10,6 +10,7 @@ abstract class BackupOption with _$BackupOption {
     @Default(true) bool blockedTags,
     @Default(true) bool favoritePost,
     @Default(true) bool setting,
+    @Default(false) bool encrypt,
   }) = _BackupOption;
 }
 

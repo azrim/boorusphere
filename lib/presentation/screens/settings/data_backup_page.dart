@@ -125,17 +125,45 @@ class _Content extends HookConsumerWidget {
               title: Text(context.t.dataBackup.backup.title),
               subtitle: RowSubtitle(Text(context.t.dataBackup.backup.desc)),
               onTap: () async {
-                final result = await showSettingsSheet<BackupOption>(
+                final option = await showSettingsSheet<BackupOption>(
                   context: context,
                   builder: (context) => const _BackupOptionSheet(),
                 );
-                if (result != null) {
-                  unawaited(
-                    ref
-                        .read(dataBackupStateProvider.notifier)
-                        .backup(option: result),
-                  );
+                if (option == null || !context.mounted) return;
+
+                String? passphrase;
+                if (option.encrypt) {
+                  // A stored passphrase seals the archive without a prompt,
+                  // which is what automatic backups rely on.
+                  final stored = ref
+                      .read(periodicBackupSettingStateProvider)
+                      .backupPassphrase;
+                  if (stored.isNotEmpty) {
+                    passphrase = stored;
+                  } else {
+                    // The passphrase is asked for before the run starts:
+                    // backing out of the prompt has to leave no archive
+                    // behind, plain or otherwise.
+                    final result = await showDialog<_PassphraseResult>(
+                      context: context,
+                      builder: (_) =>
+                          const _PassphraseDialog(mode: _PassphraseMode.backup),
+                    );
+                    if (result == null) return;
+                    passphrase = result.passphrase;
+                    if (result.save) {
+                      await ref
+                          .read(periodicBackupSettingStateProvider.notifier)
+                          .setPassphrase(result.passphrase);
+                    }
+                  }
                 }
+
+                unawaited(
+                  ref
+                      .read(dataBackupStateProvider.notifier)
+                      .backup(option: option, passphrase: passphrase),
+                );
               },
             ),
             ListTile(
@@ -145,7 +173,19 @@ class _Content extends HookConsumerWidget {
               onTap: () {
                 ref
                     .read(dataBackupStateProvider.notifier)
-                    .restore(onConfirm: () => _warningDialog(context));
+                    .restore(
+                      onConfirm: () => _warningDialog(context),
+                      onPassphrase: () async {
+                        if (!context.mounted) return null;
+                        final result = await showDialog<_PassphraseResult>(
+                          context: context,
+                          builder: (_) => const _PassphraseDialog(
+                            mode: _PassphraseMode.restore,
+                          ),
+                        );
+                        return result?.passphrase;
+                      },
+                    );
               },
             ),
           ],
@@ -178,6 +218,21 @@ class _Content extends HookConsumerWidget {
               notifier: periodicNotifier,
               enabled: periodicState.enabled && periodicState.deleteOldBackups,
             ),
+            // The switch only records a default; a backup started without a
+            // stored passphrase still asks for one.
+            SwitchListTile(
+              title: Text(context.t.periodicBackup.encrypt),
+              subtitle: RowSubtitle(
+                Text(
+                  periodicState.encryptBackup && !periodicNotifier.hasPassphrase
+                      ? context.t.periodicBackup.encryptNeedsPassphrase
+                      : context.t.periodicBackup.encryptDesc,
+                ),
+              ),
+              value: periodicState.encryptBackup,
+              onChanged: periodicNotifier.setEncryption,
+            ),
+            _PassphraseTile(state: periodicState, notifier: periodicNotifier),
             _LastBackupInfo(lastBackupTime: periodicState.lastBackupTime),
           ],
         ),
@@ -253,12 +308,19 @@ class _LoadingDialog extends HookConsumerWidget {
   }
 }
 
-class _BackupOptionSheet extends HookWidget {
+class _BackupOptionSheet extends HookConsumerWidget {
   const _BackupOptionSheet();
 
   @override
-  Widget build(BuildContext context) {
-    final option = useState(const BackupOption());
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The global switch supplies the starting value, so encryption does not
+    // have to be turned on again for every backup. Toggling it here applies
+    // to this run only and leaves the setting alone.
+    final option = useState(
+      BackupOption(
+        encrypt: ref.read(periodicBackupSettingStateProvider).encryptBackup,
+      ),
+    );
     return SheetShell(
       title: context.t.dataBackup.backup.title,
       footer: SizedBox(
@@ -305,8 +367,170 @@ class _BackupOptionSheet extends HookWidget {
             onChanged: (v) =>
                 option.value = option.value.copyWith(setting: v ?? true),
           ),
+          // Encryption is not part of what gets packed, so it sits apart from
+          // the content choices above.
+          const Divider(),
+          SwitchListTile(
+            title: Text(context.t.dataBackup.encrypt),
+            subtitle: RowSubtitle(Text(context.t.dataBackup.encryptDesc)),
+            value: option.value.encrypt,
+            onChanged: (v) => option.value = option.value.copyWith(encrypt: v),
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Which flow is asking for a passphrase.
+enum _PassphraseMode {
+  /// Sealing a new archive: typed twice, and it can be kept for the next
+  /// automatic backup.
+  backup,
+
+  /// Opening an existing archive: typed once.
+  restore,
+
+  /// Stored in the settings: typed twice, and the stored one can be removed.
+  stored,
+}
+
+/// What the passphrase dialog returns.
+class _PassphraseResult {
+  const _PassphraseResult(
+    this.passphrase, {
+    this.save = false,
+    this.remove = false,
+  });
+
+  final String passphrase;
+
+  /// Whether the passphrase should be kept for automatic backups.
+  final bool save;
+
+  /// Whether the stored passphrase should be dropped instead of replaced.
+  final bool remove;
+}
+
+/// Asks for a backup passphrase.
+///
+/// A new passphrase is typed twice, because a typo would produce an archive
+/// nobody can open. A restore asks once.
+class _PassphraseDialog extends HookWidget {
+  const _PassphraseDialog({required this.mode, this.canRemove = false});
+
+  final _PassphraseMode mode;
+
+  /// Whether the dialog offers to drop the passphrase stored in the settings.
+  final bool canRemove;
+
+  /// The shortest passphrase the backup flow accepts, so anything shorter is
+  /// already known to be wrong when restoring.
+  static const _minLength = 8;
+
+  bool get _confirm => mode != _PassphraseMode.restore;
+
+  @override
+  Widget build(BuildContext context) {
+    final passphrase = useTextEditingController();
+    final confirmation = useTextEditingController();
+    final save = useState(true);
+    final error = useState<String?>(null);
+
+    void submit() {
+      final value = passphrase.text;
+      if (value.length < _minLength) {
+        error.value = _confirm
+            ? context.t.dataBackup.passphraseTooShort(n: _minLength)
+            : context.t.dataBackup.wrongPassphrase;
+        return;
+      }
+      if (_confirm && value != confirmation.text) {
+        error.value = context.t.dataBackup.passphraseMismatch;
+        return;
+      }
+      Navigator.of(context).pop(
+        _PassphraseResult(
+          value,
+          save: mode == _PassphraseMode.backup && save.value,
+        ),
+      );
+    }
+
+    return AlertDialog(
+      icon: const Icon(Icons.lock_outline),
+      title: Text(context.t.dataBackup.passphraseTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: passphrase,
+            autofocus: true,
+            obscureText: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            textInputAction: _confirm
+                ? TextInputAction.next
+                : TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: context.t.dataBackup.passphrase,
+              helperText: context.t.dataBackup.passphraseHint(n: _minLength),
+            ),
+            onSubmitted: _confirm ? null : (_) => submit(),
+          ),
+          if (_confirm) ...[
+            const SizedBox(height: DesignTokens.spacingSm),
+            TextField(
+              controller: confirmation,
+              obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                labelText: context.t.dataBackup.passphraseConfirm,
+              ),
+              onSubmitted: (_) => submit(),
+            ),
+          ],
+          if (mode == _PassphraseMode.backup)
+            CheckboxListTile(
+              value: save.value,
+              onChanged: (v) => save.value = v ?? true,
+              title: Text(context.t.dataBackup.savePassphrase),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+          if (error.value case final message?) ...[
+            const SizedBox(height: DesignTokens.spacingSm),
+            Text(
+              message,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        if (canRemove)
+          TextButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(const _PassphraseResult('', remove: true)),
+            child: Text(context.t.dataBackup.passphraseRemove),
+          ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.t.cancel),
+        ),
+        ElevatedButton(
+          onPressed: submit,
+          child: Text(switch (mode) {
+            _PassphraseMode.backup => context.t.backup,
+            _PassphraseMode.restore => context.t.restore,
+            _PassphraseMode.stored => context.t.save,
+          }),
+        ),
+      ],
     );
   }
 }
@@ -382,6 +606,42 @@ class _MaxBackupSlider extends HookWidget {
       enabled: enabled,
       onChanged: (value) => sliderValue.value = value,
       onChangeEnd: (value) => notifier.setMaxBackupCount(value.round()),
+    );
+  }
+}
+
+/// Shows whether a passphrase is kept for automatic backups, and edits it.
+///
+/// The value itself is never rendered: the tile reports only that one exists.
+class _PassphraseTile extends StatelessWidget {
+  const _PassphraseTile({required this.state, required this.notifier});
+
+  final PeriodicBackupState state;
+  final PeriodicBackupSettingState notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPassphrase = notifier.hasPassphrase;
+
+    return ListTile(
+      leading: const Icon(Icons.key),
+      title: Text(context.t.dataBackup.passphraseTile),
+      subtitle: RowSubtitle(
+        Text(
+          hasPassphrase ? '••••••••' : context.t.dataBackup.passphraseNotSet,
+        ),
+      ),
+      onTap: () async {
+        final result = await showDialog<_PassphraseResult>(
+          context: context,
+          builder: (_) => _PassphraseDialog(
+            mode: _PassphraseMode.stored,
+            canRemove: hasPassphrase,
+          ),
+        );
+        if (result == null) return;
+        await notifier.setPassphrase(result.remove ? '' : result.passphrase);
+      },
     );
   }
 }

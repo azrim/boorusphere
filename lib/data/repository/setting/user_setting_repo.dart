@@ -51,29 +51,40 @@ class UserSettingsRepo implements SettingsRepo {
     // write failed halfway through.
     var stored = true;
     for (final entry in map.entries) {
+      // The passphrase is what opens an encrypted backup, so an archive never
+      // carries one and an archive that does cannot replace the local one.
+      if (entry.key == Setting.backupPassphrase.name) continue;
       stored &= await _write('${entry.key}', _decode(entry.key, entry.value));
     }
     if (!stored) return;
 
     final target = box;
     if (target == null) return;
-    final stale = target.keys.where((it) => !map.containsKey(it)).toList();
+    final stale = target.keys
+        .where((it) => it != Setting.backupPassphrase.name)
+        .where((it) => !map.containsKey(it))
+        .toList();
     if (stale.isNotEmpty) await target.deleteAll(stale);
   }
 
   @override
   Future<BackupItem> export() async {
     final data = box?.toMap() ?? const <dynamic, dynamic>{};
-    final exported = data.map((key, value) {
-      if (value is DownloadQuality) {
-        return MapEntry(key, value.name);
-      } else if (value is BooruRating) {
-        return MapEntry(key, value.name);
-      } else {
-        return MapEntry(key, value);
-      }
-    });
-    return BackupItem(key, exported);
+    // The passphrase stays out of the archive: it is the key that opens an
+    // encrypted backup, and an archive must not carry its own key.
+    final exported = data.entries
+        .where((it) => it.key != Setting.backupPassphrase.name)
+        .map((entry) {
+          final value = entry.value;
+          if (value is DownloadQuality) {
+            return MapEntry(entry.key, value.name);
+          } else if (value is BooruRating) {
+            return MapEntry(entry.key, value.name);
+          } else {
+            return MapEntry(entry.key, value);
+          }
+        });
+    return BackupItem(key, Map.fromEntries(exported));
   }
 
   /// Stores [value] under [key] and reports whether it reached the disk.

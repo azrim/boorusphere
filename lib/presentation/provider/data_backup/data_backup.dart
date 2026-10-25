@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
 import 'package:boorusphere/data/repository/favorite_post/user_favorite_post_repo.dart';
@@ -9,6 +10,7 @@ import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/presentation/provider/data_backup/backup_cipher.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_option.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_result.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
@@ -106,11 +108,14 @@ class DataBackupState extends _$DataBackupState {
     await ref.read(serverStateProvider.notifier).populate();
   }
 
-  Future<void> restore({Future<bool?> Function()? onConfirm}) async {
+  Future<void> restore({
+    Future<bool?> Function()? onConfirm,
+    Future<String?> Function()? onPassphrase,
+  }) async {
     if (_busy) return;
     _busy = true;
     try {
-      await _restore(onConfirm: onConfirm);
+      await _restore(onConfirm: onConfirm, onPassphrase: onPassphrase);
     } on Object catch (e, stack) {
       // A corrupt or truncated archive throws out of the decoder, and a failed
       // import throws out of the repository. Either way the screen must get a
@@ -124,14 +129,17 @@ class DataBackupState extends _$DataBackupState {
     }
   }
 
-  Future<void> _restore({Future<bool?> Function()? onConfirm}) async {
+  Future<void> _restore({
+    Future<bool?> Function()? onConfirm,
+    Future<String?> Function()? onPassphrase,
+  }) async {
     // Restoring reads a file the user picks, so it does not depend on the
     // shared folder being writable.
     await FilePicker.clearTemporaryFiles();
 
     final picked = await FilePicker.pickFile(
       type: FileType.custom,
-      allowedExtensions: ['zip'],
+      allowedExtensions: ['zip', 'enc'],
     );
 
     final pickedPath = picked?.path;
@@ -139,92 +147,138 @@ class DataBackupState extends _$DataBackupState {
       state = const BackupResult.idle();
       return;
     }
-    final stream = InputFileStream(pickedPath);
-    try {
-      final decoder = ZipDecoder().decodeStream(stream);
-      const maxDecompressedSize = 100 * 1024 * 1024; // 100MB
-      final totalSize = decoder.files
-          .where((it) => it.isFile)
-          .fold<int>(0, (sum, file) => sum + file.size);
-      if (totalSize > maxDecompressedSize) {
-        state = const BackupResult.error();
-        return;
-      }
-      // The marker entry is what identifies the archive as ours; its content
-      // is not read, so a backup written by another build still restores.
-      final hasMarker = decoder.files.any((it) => it.name == '$appId.json');
-      if (!hasMarker) {
-        state = const BackupResult.error();
-        return;
-      }
 
-      final confirm = onConfirm ?? () async => true;
-      final continueRestore = await confirm.call() ?? false;
-      if (!continueRestore) {
-        state = const BackupResult.idle();
-        return;
-      }
-
-      state = const BackupResult.loading(DataBackupType.restore);
-      var applied = 0;
-      try {
-        for (final json in decoder.files.where((it) => it.isFile)) {
-          // Only the entries the exporter wrote at the root are ours; a
-          // folder prefix means the archive was packed by something else.
-          if (path.dirname(json.name) != '.') continue;
-          final content = utf8.decode(json.content);
-          switch (path.basenameWithoutExtension(json.name)) {
-            case UserServerRepo.key:
-              await ref.read(serverRepoProvider).import(content);
-              applied++;
-              break;
-            case BooruTagsBlockerRepo.boxKey:
-              await ref.read(tagsBlockerRepoProvider).import(content);
-              applied++;
-              break;
-            case UserFavoritePostRepo.key:
-              await ref.read(favoritePostRepoProvider).import(content);
-              applied++;
-              break;
-            case UserSettingsRepo.key:
-              await ref.read(settingsRepoProvider).import(content);
-              applied++;
-              break;
-            case UserSearchHistoryRepo.key:
-              await ref.read(searchHistoryRepoProvider).import(content);
-              applied++;
-              break;
-            default:
-              break;
-          }
+    var bytes = await File(pickedPath).readAsBytes();
+    // The envelope header decides, not the extension: an encrypted archive
+    // renamed to .zip still asks for its passphrase, and a plain one renamed
+    // to .enc still restores.
+    if (BackupCipher.isEncrypted(bytes)) {
+      // The stored passphrase is tried first, so an archive this app wrote for
+      // an automatic backup opens without a prompt. A file from another
+      // source fails the tag check and falls through to the prompt below.
+      final stored = ref
+          .read(periodicBackupSettingStateProvider)
+          .backupPassphrase;
+      Uint8List? decrypted;
+      if (stored.isNotEmpty) {
+        try {
+          decrypted = BackupCipher.decrypt(bytes, stored);
+        } on BackupCipherException {
+          decrypted = null;
         }
-      } finally {
-        // The entries imported before a failure are already on disk, so the
-        // states mirroring those boxes are refreshed on both outcomes.
-        await _invalidateProviders();
       }
 
-      // Nothing was imported, so reporting a restore would be a lie.
-      if (applied == 0) {
-        state = const BackupResult.error();
-        return;
+      if (decrypted == null) {
+        final askPassphrase = onPassphrase;
+        if (askPassphrase == null) {
+          state = const BackupResult.error();
+          return;
+        }
+        final passphrase = await askPassphrase();
+        if (passphrase == null) {
+          // Dismissing the prompt cancels the restore instead of failing it.
+          state = const BackupResult.idle();
+          return;
+        }
+        try {
+          decrypted = BackupCipher.decrypt(bytes, passphrase);
+        } on BackupCipherException {
+          // A wrong passphrase is a user mistake: the screen gets an error
+          // result, and the passphrase itself is never logged.
+          state = const BackupResult.error();
+          return;
+        }
       }
-
-      state = const BackupResult.imported();
-    } finally {
-      await stream.close();
+      bytes = decrypted;
     }
+
+    final decoder = ZipDecoder().decodeBytes(bytes);
+    const maxDecompressedSize = 100 * 1024 * 1024; // 100MB
+    final totalSize = decoder.files
+        .where((it) => it.isFile)
+        .fold<int>(0, (sum, file) => sum + file.size);
+    if (totalSize > maxDecompressedSize) {
+      state = const BackupResult.error();
+      return;
+    }
+    // The marker entry is what identifies the archive as ours; its content
+    // is not read, so a backup written by another build still restores.
+    final hasMarker = decoder.files.any((it) => it.name == '$appId.json');
+    if (!hasMarker) {
+      state = const BackupResult.error();
+      return;
+    }
+
+    final confirm = onConfirm ?? () async => true;
+    final continueRestore = await confirm.call() ?? false;
+    if (!continueRestore) {
+      state = const BackupResult.idle();
+      return;
+    }
+
+    state = const BackupResult.loading(DataBackupType.restore);
+    var applied = 0;
+    try {
+      for (final json in decoder.files.where((it) => it.isFile)) {
+        // Only the entries the exporter wrote at the root are ours; a
+        // folder prefix means the archive was packed by something else.
+        if (path.dirname(json.name) != '.') continue;
+        final content = utf8.decode(json.content);
+        switch (path.basenameWithoutExtension(json.name)) {
+          case UserServerRepo.key:
+            await ref.read(serverRepoProvider).import(content);
+            applied++;
+            break;
+          case BooruTagsBlockerRepo.boxKey:
+            await ref.read(tagsBlockerRepoProvider).import(content);
+            applied++;
+            break;
+          case UserFavoritePostRepo.key:
+            await ref.read(favoritePostRepoProvider).import(content);
+            applied++;
+            break;
+          case UserSettingsRepo.key:
+            await ref.read(settingsRepoProvider).import(content);
+            applied++;
+            break;
+          case UserSearchHistoryRepo.key:
+            await ref.read(searchHistoryRepoProvider).import(content);
+            applied++;
+            break;
+          default:
+            break;
+        }
+      }
+    } finally {
+      // The entries imported before a failure are already on disk, so the
+      // states mirroring those boxes are refreshed on both outcomes.
+      await _invalidateProviders();
+    }
+
+    // Nothing was imported, so reporting a restore would be a lie.
+    if (applied == 0) {
+      state = const BackupResult.error();
+      return;
+    }
+
+    state = const BackupResult.imported();
   }
 
-  Future<void> backup({BackupOption option = const BackupOption()}) async {
+  Future<void> backup({
+    BackupOption option = const BackupOption(),
+    String? passphrase,
+  }) async {
     if (!option.isValid()) return;
     if (_busy) return;
     _busy = true;
 
     state = const BackupResult.loading(DataBackupType.backup);
     try {
-      final zipFile = await _createBackupFile(option);
-      if (zipFile == null) {
+      final backupFile = await _createBackupFile(
+        option,
+        passphrase: passphrase,
+      );
+      if (backupFile == null) {
         state = const BackupResult.error();
         return;
       }
@@ -233,7 +287,7 @@ class DataBackupState extends _$DataBackupState {
       await ref
           .read(periodicBackupSettingStateProvider.notifier)
           .setLastBackupTime(DateTime.now());
-      state = BackupResult.exported(zipFile.path);
+      state = BackupResult.exported(backupFile.path);
     } on Object catch (e, stack) {
       // Writing the archive or copying it into the shared folder can fail
       // (no space, folder not writable). Leaving the state at `loading` would
@@ -245,8 +299,15 @@ class DataBackupState extends _$DataBackupState {
     }
   }
 
-  /// Creates a backup file and returns it. Used for both local and Telegram backups.
-  Future<File?> _createBackupFile(BackupOption option) async {
+  /// Creates a backup file and returns it. Used for both local and Telegram
+  /// backups.
+  ///
+  /// With a [passphrase] the archive is published as an encrypted envelope
+  /// (`.enc`); without one it stays a plain ZIP (`.zip`).
+  Future<File?> _createBackupFile(
+    BackupOption option, {
+    String? passphrase,
+  }) async {
     if (!option.isValid()) return null;
 
     final server = ref.read(serverRepoProvider).export();
@@ -282,18 +343,31 @@ class DataBackupState extends _$DataBackupState {
 
       await encoder.close();
 
-      final dir = await _backupDir();
-      final time = DateFormat('yyyy-MM-dd-HH-mm-ss').format(DateTime.now());
-      final name = '${appId}_backup_$time.zip';
-      final zip = File(path.join(dir.path, name));
-      if (zip.existsSync()) {
-        zip.deleteSync();
+      // The archive is sealed as one blob, so the ZIP is built first and its
+      // ciphertext is what gets published.
+      final encrypted = passphrase != null && passphrase.isNotEmpty;
+      var payload = File(zipPath);
+      if (encrypted) {
+        final sealed = BackupCipher.encrypt(
+          await payload.readAsBytes(),
+          passphrase,
+        );
+        payload = File(path.join(temp.path, 'data.enc'));
+        await payload.writeAsBytes(sealed, flush: true);
       }
 
-      await File(zipPath).copy(zip.path);
-      _pruneBackups(dir, keep: zip);
+      final dir = await _backupDir();
+      final time = DateFormat('yyyy-MM-dd-HH-mm-ss').format(DateTime.now());
+      final name = '${appId}_backup_$time.${encrypted ? 'enc' : 'zip'}';
+      final backup = File(path.join(dir.path, name));
+      if (backup.existsSync()) {
+        backup.deleteSync();
+      }
+
+      await payload.copy(backup.path);
+      _pruneBackups(dir, keep: backup);
       await ref.read(sharedStorageHandleProvider).rescan();
-      return zip;
+      return backup;
     } finally {
       if (temp.existsSync()) temp.deleteSync(recursive: true);
     }
@@ -314,7 +388,7 @@ class DataBackupState extends _$DataBackupState {
     final max = settings.get(Setting.periodicBackupMaxCount, or: 3);
     if (max <= 0) return;
 
-    final pattern = RegExp('^${appId}_backup_.+\\.zip\$');
+    final pattern = RegExp('^${appId}_backup_.+\\.(zip|enc)\$');
     try {
       final archives =
           dir
@@ -333,7 +407,11 @@ class DataBackupState extends _$DataBackupState {
     }
   }
 
-  /// Creates a backup and returns the file path for external use (e.g., Telegram)
+  /// Creates a backup and returns the file path for external use (e.g.,
+  /// Telegram).
+  ///
+  /// Telegram backups stay plain: the upload runs unattended, so there is
+  /// nowhere to keep the passphrase an encrypted one would need.
   Future<File?> createBackupForTelegram() async {
     return _createBackupFile(const BackupOption());
   }

@@ -27,6 +27,12 @@ enum Setting {
   periodicBackupDeleteOld,
   periodicBackupMaxCount,
   periodicBackupLastTime,
+  // Whether new backups are sealed by default. Unlike the passphrase below,
+  // this is not a secret, so an archive carries it like any other setting.
+  backupEncryption,
+  // Kept out of the exported settings: the passphrase is what opens an
+  // encrypted backup, so it must never travel inside one.
+  backupPassphrase,
   // Telegram backup settings
   telegramBackupEnabled,
   telegramChatId,

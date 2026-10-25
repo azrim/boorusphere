@@ -89,6 +89,45 @@ void main() {
       expect(exported[Setting.telegramChatId.name], '-100');
     });
 
+    test('export leaves the archive passphrase out', () async {
+      final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
+      await repo.put(Setting.backupPassphrase, 'local-secret');
+      await repo.put(Setting.uiBlur, true);
+
+      final exported = (await repo.export()).value as Map;
+
+      expect(exported.keys, contains(Setting.uiBlur.name));
+      expect(exported.keys, isNot(contains(Setting.backupPassphrase.name)));
+    });
+
+    test(
+      'import does not write the passphrase carried by an archive',
+      () async {
+        final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
+        await repo.put(Setting.backupPassphrase, 'local-secret');
+
+        await repo.import(
+          jsonEncode({
+            Setting.uiBlur.name: true,
+            Setting.backupPassphrase.name: 'foreign-secret',
+          }),
+        );
+
+        expect(repo.get(Setting.backupPassphrase, or: ''), 'local-secret');
+      },
+    );
+
+    test('import does not drop the local passphrase', () async {
+      final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
+      await repo.put(Setting.backupPassphrase, 'local-secret');
+
+      // The backup names none of the local keys, so every other stale entry
+      // is dropped; the passphrase has to survive that sweep.
+      await repo.import(jsonEncode({Setting.uiTimelineGrid.name: 3}));
+
+      expect(repo.get(Setting.backupPassphrase, or: ''), 'local-secret');
+    });
+
     test('import restores the Telegram credentials from the backup', () async {
       final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
       await repo.put(Setting.telegramBotToken, '123:abc');
