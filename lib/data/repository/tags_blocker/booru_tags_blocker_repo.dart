@@ -32,15 +32,33 @@ class BooruTagsBlockerRepo implements TagsBlockerRepo {
   Future<void> import(String src) async {
     final List maps = jsonDecode(src);
     if (maps.isEmpty) return;
-    await box.deleteAll(box.keys);
+
+    // Every entry is decoded before the box is touched, so a malformed entry
+    // reaches the caller with the stored blocklist still intact. The entries
+    // keep the order the backup was written in.
+    final tags = <BooruTag>[];
     for (final data in maps) {
+      final BooruTag tag;
       if (data is Map) {
-        final tag = BooruTag.fromJson(Map.from(data));
-        await push(tag);
+        tag = BooruTag.fromJson(Map.from(data));
       } else if (data is String) {
-        await push(BooruTag(name: data));
+        tag = BooruTag(name: data);
+      } else {
+        continue;
       }
+
+      final trimmed = tag.copyWith(name: tag.name.trim());
+      if (trimmed.name.isEmpty || tags.contains(trimmed)) continue;
+      tags.add(trimmed);
     }
+    if (tags.isEmpty) return;
+
+    final restored = {
+      for (var index = 0; index < tags.length; index++) index: tags[index],
+    };
+    await box.putAll(restored);
+    final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
+    if (stale.isNotEmpty) await box.deleteAll(stale);
   }
 
   @override

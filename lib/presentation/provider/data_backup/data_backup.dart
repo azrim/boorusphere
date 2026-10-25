@@ -5,6 +5,7 @@ import 'package:archive/archive_io.dart';
 import 'package:boorusphere/data/repository/favorite_post/user_favorite_post_repo.dart';
 import 'package:boorusphere/data/repository/search_history/user_search_history.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
+import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
@@ -15,6 +16,7 @@ import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
@@ -33,20 +35,42 @@ typedef BackupItem = MapEntry<String, Object>;
 
 enum DataBackupType { backup, restore }
 
-@riverpod
+/// Kept alive for the session: a backup or a restore outlives the page that
+/// started it, and an auto-disposed notifier would throw on the first write
+/// back to [state] while the boxes are already half-written.
+@Riverpod(keepAlive: true)
 class DataBackupState extends _$DataBackupState {
+  /// Set while a run is in flight. The page can start a second one (the
+  /// loading dialog is dismissible, and "Backup now" is a separate entry
+  /// point), and two overlapping runs would overwrite each other's result
+  /// while both read and write the same boxes and the same shared folder.
+  bool _busy = false;
+
   @override
   BackupResult build() {
     return const BackupResult.idle();
   }
 
+  /// Clears the result of a finished run, so the page does not reopen on a
+  /// stale snackbar or error. A run still in flight keeps its state and the
+  /// dialog that reports it.
+  void reset() {
+    if (_busy || state is IdleBackupResult) return;
+    state = const BackupResult.idle();
+  }
+
+  /// A folder of its own for every run: two backups writing the same paths
+  /// delete each other's files, and the archive that survives is whichever
+  /// run finished last.
   Future<Directory> _tempDir() async {
     final basedir = await getTemporaryDirectory();
-    final temp = Directory(path.join(basedir.path, '.backup.tmp'));
-    if (temp.existsSync()) {
-      temp.deleteSync(recursive: true);
-    }
-    temp.createSync();
+    final temp = Directory(
+      path.join(
+        basedir.path,
+        '.backup-${DateTime.now().microsecondsSinceEpoch}',
+      ),
+    );
+    temp.createSync(recursive: true);
     return temp;
   }
 
@@ -63,8 +87,13 @@ class DataBackupState extends _$DataBackupState {
     return BackupItem(appId, {'version': '${versionRepo.current}'});
   }
 
-  void _invalidateProviders() {
-    ref.invalidate(serverStateProvider);
+  /// Rebuilds every state that mirrors a box the restore may have replaced.
+  ///
+  /// [ServerState.build] starts from an empty list and is filled by
+  /// [ServerState.populate], so the server list is repopulated instead of
+  /// invalidated: an invalidated list would stay empty for the rest of the
+  /// session.
+  Future<void> _invalidateProviders() async {
     ref.invalidate(tagsBlockerStateProvider);
     ref.invalidate(searchHistoryStateProvider);
     ref.invalidate(favoritePostStateProvider);
@@ -72,9 +101,14 @@ class DataBackupState extends _$DataBackupState {
     ref.invalidate(contentSettingStateProvider);
     ref.invalidate(downloadSettingStateProvider);
     ref.invalidate(serverSettingStateProvider);
+    ref.invalidate(gestureSettingStateProvider);
+    ref.invalidate(periodicBackupSettingStateProvider);
+    await ref.read(serverStateProvider.notifier).populate();
   }
 
   Future<void> restore({Future<bool?> Function()? onConfirm}) async {
+    if (_busy) return;
+    _busy = true;
     try {
       await _restore(onConfirm: onConfirm);
     } on Object catch (e, stack) {
@@ -82,26 +116,30 @@ class DataBackupState extends _$DataBackupState {
       // import throws out of the repository. Either way the screen must get a
       // terminal state instead of an unhandled error.
       mainLog.e('DataBackupState: restore failed', e, stack);
+      // The states mirroring the boxes already written are refreshed by the
+      // import loop before it rethrows.
       state = const BackupResult.error();
+    } finally {
+      _busy = false;
     }
   }
 
   Future<void> _restore({Future<bool?> Function()? onConfirm}) async {
-    final backupsDir = await _backupDir();
+    // Restoring reads a file the user picks, so it does not depend on the
+    // shared folder being writable.
     await FilePicker.clearTemporaryFiles();
 
     final picked = await FilePicker.pickFile(
-      initialDirectory: backupsDir.absolute.path,
       type: FileType.custom,
       allowedExtensions: ['zip'],
     );
 
-    final path = picked?.path;
-    if (path == null) {
+    final pickedPath = picked?.path;
+    if (pickedPath == null) {
       state = const BackupResult.idle();
       return;
     }
-    final stream = InputFileStream(path);
+    final stream = InputFileStream(pickedPath);
     try {
       final decoder = ZipDecoder().decodeStream(stream);
       const maxDecompressedSize = 100 * 1024 * 1024; // 100MB
@@ -112,7 +150,10 @@ class DataBackupState extends _$DataBackupState {
         state = const BackupResult.error();
         return;
       }
-      if (!decoder.files.any((it) => it.name == '$appId.json')) {
+      // The marker entry is what identifies the archive as ours; its content
+      // is not read, so a backup written by another build still restores.
+      final hasMarker = decoder.files.any((it) => it.name == '$appId.json');
+      if (!hasMarker) {
         state = const BackupResult.error();
         return;
       }
@@ -125,30 +166,50 @@ class DataBackupState extends _$DataBackupState {
       }
 
       state = const BackupResult.loading(DataBackupType.restore);
-      for (final json in decoder.files.where((it) => it.isFile)) {
-        final content = utf8.decode(json.content);
-        switch (json.name.replaceAll('.json', '')) {
-          case UserServerRepo.key:
-            await ref.read(serverRepoProvider).import(content);
-            break;
-          case BooruTagsBlockerRepo.boxKey:
-            await ref.read(tagsBlockerRepoProvider).import(content);
-            break;
-          case UserFavoritePostRepo.key:
-            await ref.read(favoritePostRepoProvider).import(content);
-            break;
-          case UserSettingsRepo.key:
-            await ref.read(settingsRepoProvider).import(content);
-            break;
-          case UserSearchHistoryRepo.key:
-            await ref.read(searchHistoryRepoProvider).import(content);
-            break;
-          default:
-            break;
+      var applied = 0;
+      try {
+        for (final json in decoder.files.where((it) => it.isFile)) {
+          // Only the entries the exporter wrote at the root are ours; a
+          // folder prefix means the archive was packed by something else.
+          if (path.dirname(json.name) != '.') continue;
+          final content = utf8.decode(json.content);
+          switch (path.basenameWithoutExtension(json.name)) {
+            case UserServerRepo.key:
+              await ref.read(serverRepoProvider).import(content);
+              applied++;
+              break;
+            case BooruTagsBlockerRepo.boxKey:
+              await ref.read(tagsBlockerRepoProvider).import(content);
+              applied++;
+              break;
+            case UserFavoritePostRepo.key:
+              await ref.read(favoritePostRepoProvider).import(content);
+              applied++;
+              break;
+            case UserSettingsRepo.key:
+              await ref.read(settingsRepoProvider).import(content);
+              applied++;
+              break;
+            case UserSearchHistoryRepo.key:
+              await ref.read(searchHistoryRepoProvider).import(content);
+              applied++;
+              break;
+            default:
+              break;
+          }
         }
+      } finally {
+        // The entries imported before a failure are already on disk, so the
+        // states mirroring those boxes are refreshed on both outcomes.
+        await _invalidateProviders();
       }
 
-      _invalidateProviders();
+      // Nothing was imported, so reporting a restore would be a lie.
+      if (applied == 0) {
+        state = const BackupResult.error();
+        return;
+      }
+
       state = const BackupResult.imported();
     } finally {
       await stream.close();
@@ -157,6 +218,8 @@ class DataBackupState extends _$DataBackupState {
 
   Future<void> backup({BackupOption option = const BackupOption()}) async {
     if (!option.isValid()) return;
+    if (_busy) return;
+    _busy = true;
 
     state = const BackupResult.loading(DataBackupType.backup);
     try {
@@ -177,6 +240,8 @@ class DataBackupState extends _$DataBackupState {
       // keep the screen blocked forever.
       mainLog.e('DataBackupState: backup failed', e, stack);
       state = const BackupResult.error();
+    } finally {
+      _busy = false;
     }
   }
 
@@ -226,10 +291,45 @@ class DataBackupState extends _$DataBackupState {
       }
 
       await File(zipPath).copy(zip.path);
+      _pruneBackups(dir, keep: zip);
       await ref.read(sharedStorageHandleProvider).rescan();
       return zip;
     } finally {
       if (temp.existsSync()) temp.deleteSync(recursive: true);
+    }
+  }
+
+  /// Drops the oldest archives once there are more than the configured count.
+  ///
+  /// Only files this app named are considered, so a file the user dropped in
+  /// the folder is never deleted. The timestamp in the name sorts
+  /// chronologically, which is what makes "newest first" a plain string sort.
+  void _pruneBackups(Directory dir, {required File keep}) {
+    final settings = ref.read(settingsRepoProvider);
+    if (!settings.get(Setting.periodicBackupDeleteOld, or: true)) return;
+
+    // The archive this run just wrote counts towards the limit and is never
+    // a candidate: reporting a backup whose file was then removed would be
+    // wrong, and a non-positive limit leaves nothing to prune against.
+    final max = settings.get(Setting.periodicBackupMaxCount, or: 3);
+    if (max <= 0) return;
+
+    final pattern = RegExp('^${appId}_backup_.+\\.zip\$');
+    try {
+      final archives =
+          dir
+              .listSync()
+              .whereType<File>()
+              .where((it) => pattern.hasMatch(path.basename(it.path)))
+              .where((it) => it.path != keep.path)
+              .toList()
+            ..sort((a, b) => b.path.compareTo(a.path));
+
+      for (final file in archives.skip(max - 1)) {
+        file.deleteSync();
+      }
+    } catch (e) {
+      mainLog.w('DataBackupState: failed to prune old backups', e);
     }
   }
 

@@ -44,13 +44,21 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
   Future<void> import(String src) async {
     final List maps = jsonDecode(src);
     if (maps.isEmpty) return;
-    await box.deleteAll(box.keys);
+
+    // Every entry is decoded before the box is touched, so a malformed entry
+    // reaches the caller with the stored history still intact. Keys are
+    // assigned here rather than by `add()` so the restored order is the one
+    // the backup was written in.
+    final restored = <int, SearchHistory>{};
     for (final map in maps) {
-      if (map is Map) {
-        final history = SearchHistory.fromJson(Map.from(map));
-        await box.add(history);
-      }
+      if (map is! Map) continue;
+      restored[restored.length] = SearchHistory.fromJson(Map.from(map));
     }
+    if (restored.isEmpty) return;
+
+    await box.putAll(restored);
+    final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
+    if (stale.isNotEmpty) await box.deleteAll(stale);
   }
 
   @override

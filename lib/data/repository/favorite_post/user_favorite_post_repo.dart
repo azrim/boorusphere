@@ -39,19 +39,22 @@ class UserFavoritePostRepo implements FavoritePostRepo {
 
   @override
   Future<void> import(String src) async {
-    try {
-      final List maps = jsonDecode(src);
-      if (maps.isEmpty) return;
-      await box.deleteAll(box.keys);
-      for (final map in maps) {
-        if (map is Map) {
-          final fav = FavoritePost.fromJson(Map.from(map));
-          await box.put(fav.key, fav);
-        }
-      }
-    } catch (e) {
-      // Import failed, leave existing data intact
+    final List maps = jsonDecode(src);
+    if (maps.isEmpty) return;
+
+    // Every entry is decoded before the box is touched, so a malformed entry
+    // reaches the caller with the stored favorites still intact.
+    final restored = <String, FavoritePost>{};
+    for (final map in maps) {
+      if (map is! Map) continue;
+      final fav = FavoritePost.fromJson(Map.from(map));
+      restored[fav.key] = fav;
     }
+    if (restored.isEmpty) return;
+
+    await box.putAll(restored);
+    final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
+    if (stale.isNotEmpty) await box.deleteAll(stale);
   }
 
   @override

@@ -65,6 +65,17 @@ class _Content extends HookConsumerWidget {
       periodicBackupSettingStateProvider.notifier,
     );
 
+    // A result belongs to the run that produced it: the page opens on a
+    // clean state instead of replaying the last snackbar or error. The
+    // reset waits for the frame, since a provider cannot be written while
+    // the widget tree is building.
+    final backupNotifier = ref.read(dataBackupStateProvider.notifier);
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => backupNotifier.reset(),
+      );
+    }, const []);
+
     ref.listen<BackupResult?>(dataBackupStateProvider, (prev, next) {
       switch (next) {
         case LoadingBackupResult(:final type):
