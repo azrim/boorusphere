@@ -382,12 +382,12 @@ class HomeContent extends HookConsumerWidget {
                 // ones that were not already saved are undoable, so Undo
                 // never removes something the user saved earlier.
                 final selection = ref.read(postSelectionProvider);
-                final favorites = ref.read(favoritePostStateProvider);
+                final favorites = ref.read(favoritePostStateProvider.notifier);
                 final selectedPosts = filteredPosts
                     .where((post) => selection.contains(post.id))
                     .toList();
                 final added = selectedPosts
-                    .where((post) => !favorites.contains(post))
+                    .where((post) => !favorites.isFavorite(post))
                     .toList();
                 for (final post in added) {
                   await ref.read(favoritePostStateProvider.notifier).save(post);

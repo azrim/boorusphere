@@ -12,7 +12,10 @@ class FavoritePostState extends _$FavoritePostState {
     return repo.get();
   }
 
-  Set<int> get _favoriteIds => state.map((p) => p.id).toSet();
+  /// Whether [post] is saved, matched by the same identity the storage key
+  /// uses: a post id is only unique within a booru, so the server counts too.
+  bool isFavorite(Post post) =>
+      state.any((it) => it.id == post.id && it.serverId == post.serverId);
 
   Future<void> clear() async {
     final repo = ref.read(favoritePostRepoProvider);
@@ -26,9 +29,9 @@ class FavoritePostState extends _$FavoritePostState {
     state = repo.get();
   }
 
+  /// Saves [post], replacing an earlier snapshot of the same post so refreshed
+  /// metadata such as score or tags is kept.
   Future<void> save(Post post) async {
-    if (_favoriteIds.contains(post.id)) return;
-
     final repo = ref.read(favoritePostRepoProvider);
     await repo.save(post);
     state = repo.get();

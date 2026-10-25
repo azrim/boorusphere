@@ -172,7 +172,9 @@ class PostFavoriteButton extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final favorites = ref.watch(favoritePostStateProvider);
+    // Watching the list keeps the button in step with saves and removals made
+    // elsewhere; the predicate below then reads that list.
+    ref.watch(favoritePostStateProvider);
     final animator = useAnimationController(
       duration: context.motionDuration(const Duration(milliseconds: 300)),
     );
@@ -182,7 +184,7 @@ class PostFavoriteButton extends HookConsumerWidget {
         end: Theme.of(context).colorScheme.error,
       ).animate(animator),
     );
-    final isFav = favorites.contains(post);
+    final isFav = ref.read(favoritePostStateProvider.notifier).isFavorite(post);
     useEffect(() {
       if (isFav) {
         animator.forward();

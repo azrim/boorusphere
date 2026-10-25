@@ -460,7 +460,9 @@ class _ThumbnailCard extends HookConsumerWidget {
   Future<void> _showCardMenu(BuildContext context, WidgetRef ref) async {
     final (_, post) = postdata;
     final isSelected = ref.read(postSelectionProvider).contains(post.id);
-    final isFavorite = ref.read(favoritePostStateProvider).contains(post);
+    final isFavorite = ref
+        .read(favoritePostStateProvider.notifier)
+        .isFavorite(post);
     final shareLink = post.postUrl.isNotEmpty
         ? post.postUrl
         : post.originalFile;

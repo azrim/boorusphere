@@ -44,5 +44,24 @@ void main() async {
       await notifier().clear();
       expect(state().length, 0);
     });
+
+    test('identity and snapshot', () async {
+      final post = posts.first;
+      await notifier().save(post);
+
+      expect(notifier().isFavorite(post), isTrue);
+      // A refreshed post keeps its identity, so it still counts as saved even
+      // though the snapshot differs.
+      final refreshed = post.copyWith(score: post.score + 1);
+      expect(notifier().isFavorite(refreshed), isTrue);
+      expect(
+        notifier().isFavorite(post.copyWith(serverId: 'elsewhere')),
+        isFalse,
+      );
+
+      await notifier().save(refreshed);
+      expect(state().length, 1);
+      expect(state().first.score, post.score + 1);
+    });
   });
 }
