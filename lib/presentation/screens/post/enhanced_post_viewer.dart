@@ -174,7 +174,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
     void expandSheet() {
       if (sheetController.isAttached) {
         sheetController.animateTo(
-          0.5,
+          PostDetailsSheet.openSize,
           duration: DesignTokens.durationNormal,
           curve: Curves.easeOutCubic,
         );

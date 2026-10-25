@@ -26,8 +26,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 const _kMinSheetSize = 0.0;
-const _kSnapSheetSize = 0.5;
-const _kMaxSheetSize = 0.9;
 
 /// Index of the panel the sheet is showing.
 enum _Panel { details, tags, links }
@@ -39,6 +37,11 @@ class PostDetailsSheet extends ConsumerStatefulWidget {
     required this.sheetController,
     required this.session,
   });
+
+  /// How much of the viewer the sheet covers when it opens. It is also the
+  /// tallest the sheet gets, so one downward drag dismisses it instead of
+  /// walking through intermediate stops.
+  static const double openSize = 0.75;
 
   final ValueNotifier<Post> postNotifier;
   final DraggableScrollableController sheetController;
@@ -118,8 +121,8 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
       controller: widget.sheetController,
       initialChildSize: _kMinSheetSize,
       minChildSize: _kMinSheetSize,
-      maxChildSize: _kMaxSheetSize,
-      snapSizes: const [_kMinSheetSize, _kSnapSheetSize, _kMaxSheetSize],
+      maxChildSize: PostDetailsSheet.openSize,
+      snapSizes: const [_kMinSheetSize, PostDetailsSheet.openSize],
       snap: true,
       snapAnimationDuration: context.motionDuration(
         const Duration(milliseconds: 200),
@@ -137,11 +140,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
               final headers = ref.watch(postHeadersFactoryProvider(post));
               final content = Container(
                 decoration: BoxDecoration(
-                  // The sheet keeps almost all of its surface even with the
-                  // blur on: the rows carry text, and a bright image behind
-                  // them would take the contrast away.
+                  // With the blur on the sheet is glass over the artwork:
+                  // enough of the image reads through to keep the context,
+                  // while the surface still holds the text contrast.
                   color: enableBlur
-                      ? backgroundColor.withValues(alpha: 0.94)
+                      ? backgroundColor.withValues(alpha: 0.72)
                       : backgroundColor,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(DesignTokens.radiusXl),
@@ -230,7 +233,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                     top: Radius.circular(DesignTokens.radiusXl),
                   ),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                     child: content,
                   ),
                 );

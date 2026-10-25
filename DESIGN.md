@@ -116,7 +116,7 @@ The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightnes
 
 ### Shadow Vocabulary
 - **Snackbars**: Top-rounded (12px radius), primary container background. No shadow — depth from color contrast.
-- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surface` with a hairline top edge and 16px top radius, no elevation. Backdrop blur (sigma 10) sits behind the details sheet only.
+- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surface` with a hairline top edge and 16px top radius, no elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
 - **Popup menus**: `surface` fill, hairline `outlineVariant` outline, 16px radius, no elevation. Menus are flat cards, not floating shadows.
 - **Grid items**: No shadows on thumbnails. Content is flat; depth comes from the staggered layout itself.
 - **Bottom search bar**: A glass surface rather than an elevated one — `surface` at 72% over a 20 px backdrop blur, with a hairline `outlineVariant` on the top edge and no shadow. It is the one place blur is structural: the bar floats over moving art and has to stay legible without hiding it.
@@ -198,11 +198,12 @@ One container for every bottom sheet in the app — post details, settings picke
 - **Targets**: every row is at least 48 dp tall
 
 ### Bottom Sheet (Post Details)
-- **Shape**: rounded top corners, draggable snap points (0%, 50%, 90%) over the viewer, with `BackdropFilter` blur (sigma 10) behind it while the Blur setting is on. The sheet keeps 94% of its surface even then: the panel carries text, and a bright image behind it would take the contrast away
+- **Shape**: rounded top corners, opening at 75% of the viewer. That is also the tallest it gets, so it snaps only between open and closed — one downward drag dismisses it instead of walking through intermediate stops
+- **Surface**: with the Blur setting on it is a glass sheet — `surface` at 72% over a sigma-16 backdrop blur, so the artwork still reads through it while the rows keep their contrast. With Blur off the sheet paints an opaque `surface`, the cheaper path on slow devices
 - **Header**: the post's most identifying tag (artist → copyright → character → general), so the sheet is named after what was opened rather than after a database row
 - **Panels**: Details (rating, score, dimensions, format), Tags (grouped by category, each with its count; tap to select), Links (post page, source, sample and original file, each with copy)
 - **Selection**: tag taps accumulate across panels and survive a panel switch; the action bar then offers copy, block, append, search and clear
-- **Gesture**: swipe up to expand, swipe down or the close control to collapse back onto the image
+- **Gesture**: swipe up or the info button opens it; one swipe down, the close control or Back dismisses it
 
 ### Chips (Tags)
 - **Style**: Filled, primaryContainer background, onPrimaryContainer text
