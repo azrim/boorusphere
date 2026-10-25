@@ -59,8 +59,12 @@ class HomeDrawerHeader extends ConsumerWidget {
                 children: [
                   TextSpan(text: 'Boorusphere', style: wordmark),
                   TextSpan(
-                    text: '.',
-                    style: wordmark?.copyWith(color: scheme.primary),
+                    text: '!',
+                    style: wordmark?.copyWith(
+                      color: scheme.primary,
+                      // The wordmark is set tight; the mark needs its own air.
+                      letterSpacing: 0,
+                    ),
                   ),
                 ],
               ),
