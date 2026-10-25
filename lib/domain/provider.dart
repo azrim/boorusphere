@@ -88,8 +88,9 @@ ServerRepo serverRepo(Ref ref) {
 
 @riverpod
 SettingsRepo settingsRepo(Ref ref) {
-  final box = Hive.box(UserSettingsRepo.key);
-  return UserSettingsRepo(box);
+  // A box that failed to open must not throw here: this is read while the app
+  // builds, and a throw would replace the UI with an error screen.
+  return UserSettingsRepo(UserSettingsRepo.openBox());
 }
 
 @riverpod

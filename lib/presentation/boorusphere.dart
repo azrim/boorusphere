@@ -4,6 +4,7 @@ import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/domain/repository/settings_repo.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
@@ -42,6 +43,13 @@ class Boorusphere extends HookConsumerWidget {
     } catch (e, stack) {
       mainLog.e('Boot: failed to load the server list', e, stack);
       failure = e;
+    }
+
+    // The settings box can fail on its own while the server list loads fine.
+    // The app then runs on defaults, so the failure is reported through the
+    // same card instead of resetting the user's preferences without a word.
+    if (!ref.read(settingsRepoProvider).isPersistent) {
+      failure ??= const SettingsUnavailableException();
     }
 
     try {
