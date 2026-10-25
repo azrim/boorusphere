@@ -37,14 +37,16 @@ class DataBackupPage extends StatelessWidget {
 class _Content extends HookConsumerWidget {
   const _Content();
 
-  Future<bool?> _warningDialog(BuildContext context) {
+  Future<bool?> _warningDialog(BuildContext context, String fileName) {
     return showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text(context.t.dataBackup.restore.title),
           icon: const Icon(Icons.restore),
-          content: Text(context.t.dataBackup.restore.warning),
+          content: Text(
+            context.t.dataBackup.restore.warningFile(file: fileName),
+          ),
           actions: [
             TextButton(
               onPressed: () => context.navigator.pop(false),
@@ -83,19 +85,44 @@ class _Content extends HookConsumerWidget {
         case LoadingBackupResult(:final type):
           showDialog(
             context: context,
+            // The run cannot be cancelled, so a tap outside must not leave
+            // the page without a report of how it ended.
+            barrierDismissible: false,
             builder: (_) => UncontrolledProviderScope(
               container: ProviderScope.containerOf(context),
               child: _LoadingDialog(type: type),
             ),
           );
-        case ImportedBackupResult():
-          context.scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(context.t.dataBackup.restore.success),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          Future.delayed(const Duration(seconds: 2), SystemNavigator.pop);
+        case ImportedBackupResult(:final fileName):
+          // The loading dialog is closed by its own listener, and a dialog
+          // cannot be pushed in the frame that pops another one. Waiting for
+          // the frame keeps this prompt from being dismissed with it.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => PopScope(
+                canPop: false,
+                child: AlertDialog(
+                  icon: const Icon(Icons.restart_alt),
+                  title: Text(
+                    context.t.dataBackup.restore.completed(file: fileName),
+                  ),
+                  content: Text(context.t.dataBackup.restore.completedDesc),
+                  actions: [
+                    // Closing the activity is the whole point: the restored
+                    // boxes are only read on a cold start, so the app has to
+                    // be opened again for them to take effect.
+                    ElevatedButton(
+                      onPressed: SystemNavigator.pop,
+                      child: Text(context.t.dataBackup.restore.restartNow),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          });
         case ExportedBackupResult(:final path):
           context.scaffoldMessenger.showSnackBar(
             SnackBar(
@@ -176,7 +203,8 @@ class _Content extends HookConsumerWidget {
                 ref
                     .read(dataBackupStateProvider.notifier)
                     .restore(
-                      onConfirm: () => _warningDialog(context),
+                      onConfirm: (fileName) =>
+                          _warningDialog(context, fileName),
                       onPassphrase: () async {
                         if (!context.mounted) return null;
                         final result = await showDialog<_PassphraseResult>(
@@ -287,24 +315,30 @@ class _LoadingDialog extends HookConsumerWidget {
         context.navigator.pop();
       }
     });
-    return Dialog(
-      child: Row(
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(DesignTokens.spacingMd),
-            child: CircularProgressIndicator(),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(right: DesignTokens.spacingMd),
-              child: Text(
-                type == DataBackupType.backup
-                    ? context.t.dataBackup.backup.loading
-                    : context.t.dataBackup.restore.loading,
+    // The dialog is the only progress report while the run is in flight, so
+    // it stays until the result arrives: the back gesture is ignored for the
+    // same reason a tap outside is.
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        child: Row(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(DesignTokens.spacingMd),
+              child: CircularProgressIndicator(),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: DesignTokens.spacingMd),
+                child: Text(
+                  type == DataBackupType.backup
+                      ? context.t.dataBackup.backup.loading
+                      : context.t.dataBackup.restore.loading,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

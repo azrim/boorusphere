@@ -174,6 +174,31 @@ void main() {
       expect(box.keys, ['@keep']);
       expect(box.values.single.id, 'keep');
     });
+
+    test(
+      'an outside payload restores both servers with their credentials',
+      () async {
+        await repo.import(
+          jsonEncode([
+            {
+              'id': 'signed',
+              'homepage': 'https://signed.example',
+              'apiAddr': 'https://signed.example/api',
+              'login': 'user',
+              'apiKey': 'secret',
+            },
+            {'id': 'anon', 'homepage': 'https://anon.example'},
+          ]),
+        );
+
+        expect(box.keys, unorderedEquals(['@signed', '@anon']));
+        final signed = box.get('@signed');
+        expect(signed?.login, 'user');
+        expect(signed?.apiKey, 'secret');
+        expect(box.get('@anon')?.login, '');
+        expect(box.get('@anon')?.apiKey, '');
+      },
+    );
   });
 
   group('UserServerRepo.export', () {

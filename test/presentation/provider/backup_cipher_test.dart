@@ -69,5 +69,19 @@ void main() {
         throwsA(isA<BackupCipherException>()),
       );
     });
+    test('roundtrips through the isolate-backed variants', () async {
+      final sealed = await BackupCipher.encryptAsync(plaintext, passphrase);
+
+      expect(await BackupCipher.decryptAsync(sealed, passphrase), plaintext);
+    });
+
+    test('rejects a wrong passphrase on the isolate-backed path', () async {
+      final sealed = await BackupCipher.encryptAsync(plaintext, passphrase);
+
+      await expectLater(
+        BackupCipher.decryptAsync(sealed, 'wrong passphrase'),
+        throwsA(isA<BackupCipherException>()),
+      );
+    });
   });
 }

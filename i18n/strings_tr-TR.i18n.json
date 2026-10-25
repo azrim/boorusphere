@@ -226,9 +226,8 @@
     "restore": {
       "title": "Verileri geri yükle",
       "desc": "Uygulama verilerini bir geri yükleme dosyasından geri yükle",
-      "success": "Uygulama verileri geri yüklendi",
       "invalid": "Yedek dosyası geçersiz",
-      "warning": "Uyarı! bu işlem varolan her verinin üzerine yazılacaktır.\nDevam etmek istediğinize emin misiniz?",
+      "warningFile": "${file}\n\nUyarı! bu işlem varolan her verinin üzerine yazılacaktır.\nDevam etmek istediğinize emin misiniz?",
       "loading": "Veriler geri yükleniyor..."
     }
   }

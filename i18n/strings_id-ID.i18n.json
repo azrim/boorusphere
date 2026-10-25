@@ -246,9 +246,8 @@
     "restore": {
       "title": "Memulihkan data",
       "desc": "Pulihkan data aplikasi dari file cadangan",
-      "success": "Data aplikasi telah dipulihkan",
       "invalid": "File cadangan tidak valid",
-      "warning": "Perhatian! tindakan ini akan menimpa data yang ada.\nApakah kamu yakin ingin melanjutkan?",
+      "warningFile": "${file}\n\nPerhatian! tindakan ini akan menimpa data yang ada.\nApakah kamu yakin ingin melanjutkan?",
       "loading": "Memulihkan data..."
     }
   },

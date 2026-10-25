@@ -236,9 +236,8 @@
     "restore": {
       "title": "Daten wiederherstellen",
       "desc": "App-Daten aus einer Sicherungsdatei wiederherstellen",
-      "success": "App-Daten wurden wiederhergestellt",
       "invalid": "Ungültige Sicherungsdatei",
-      "warning": "Warnung! Diese Aktion überschreibt alle vorhandenen Daten.\nMöchten Sie wirklich fortfahren?",
+      "warningFile": "${file}\n\nWarnung! Diese Aktion überschreibt alle vorhandenen Daten.\nMöchten Sie wirklich fortfahren?",
       "loading": "Daten werden wiederhergestellt..."
     }
   }

@@ -6,7 +6,7 @@ part 'backup_result.freezed.dart';
 @freezed
 sealed class BackupResult with _$BackupResult {
   const factory BackupResult.idle() = IdleBackupResult;
-  const factory BackupResult.imported() = ImportedBackupResult;
+  const factory BackupResult.imported(String fileName) = ImportedBackupResult;
   const factory BackupResult.exported(String path) = ExportedBackupResult;
   const factory BackupResult.loading(DataBackupType type) = LoadingBackupResult;
   const factory BackupResult.error({Object? error, StackTrace? stackTrace}) =

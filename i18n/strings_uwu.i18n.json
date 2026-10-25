@@ -236,9 +236,8 @@
     "restore": {
       "title": "Westowe data",
       "desc": "Westowe app data fwom backup fiwe",
-      "success": "App data has been westowed",
       "invalid": "Invawid backup fiwe",
-      "warning": "Wawnying?!! this action wiww uvwwwite any OwO existing >w< data.\nAwe you suwe you w-want t-to continyue *screeches* ?!!",
+      "warningFile": "${file}\n\nWawnying?!! this action wiww uvwwwite any OwO existing >w< data.\nAwe you suwe you w-want t-to continyue *screeches* ?!!",
       "loading": "Westowing data..."
     }
   }

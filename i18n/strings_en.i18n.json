@@ -319,9 +319,11 @@
     "restore": {
       "title": "Restore data",
       "desc": "Restore app data from backup file",
-      "success": "App data has been restored",
+      "completed": "Restore complete — ${file}",
+      "completedDesc": "Restart the app so the restored data is loaded.",
+      "restartNow": "Restart now",
       "invalid": "Invalid backup file",
-      "warning": "Warning! this action will overwrite any existing data.\nAre you sure you want to continue ?",
+      "warningFile": "Restore \"${file}\"?\nThis overwrites any existing data.\nAre you sure you want to continue?",
       "loading": "Restoring data..."
     },
     "encrypt": "Encrypt with passphrase",

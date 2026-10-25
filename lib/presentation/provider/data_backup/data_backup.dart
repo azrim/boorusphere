@@ -109,7 +109,7 @@ class DataBackupState extends _$DataBackupState {
   }
 
   Future<void> restore({
-    Future<bool?> Function()? onConfirm,
+    Future<bool?> Function(String fileName)? onConfirm,
     Future<String?> Function()? onPassphrase,
   }) async {
     if (_busy) return;
@@ -130,17 +130,18 @@ class DataBackupState extends _$DataBackupState {
   }
 
   Future<void> _restore({
-    Future<bool?> Function()? onConfirm,
+    Future<bool?> Function(String fileName)? onConfirm,
     Future<String?> Function()? onPassphrase,
   }) async {
     // Restoring reads a file the user picks, so it does not depend on the
     // shared folder being writable.
     await FilePicker.clearTemporaryFiles();
 
-    final picked = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: ['zip', 'enc'],
-    );
+    // Any file is accepted: the picker turns allowedExtensions into MIME
+    // types on Android, and an .enc archive has none, which leaves it
+    // greyed out and unselectable. What the file is gets decided below, from
+    // its header rather than its name.
+    final picked = await FilePicker.pickFile(type: FileType.any);
 
     final pickedPath = picked?.path;
     if (pickedPath == null) {
@@ -148,48 +149,66 @@ class DataBackupState extends _$DataBackupState {
       return;
     }
 
+    final fileName = path.basename(pickedPath);
+
+    // Confirming follows the picker: a run cancelled at the picker never had
+    // anything to overwrite, so the prompt only appears once there is an
+    // archive to apply. The prompt gets the archive name, because the picker
+    // lists every file and the newest one sits at the top.
+    final confirm = onConfirm ?? (_) async => true;
+    final continueRestore = await confirm.call(fileName) ?? false;
+    if (!continueRestore) {
+      state = const BackupResult.idle();
+      return;
+    }
+
+    state = const BackupResult.loading(DataBackupType.restore);
+    // The dialog is opened by a listener, so it only exists after the next
+    // frame. Handing control back to the event loop here is what lets that
+    // frame be drawn before the decryption and the import loop take over.
+    await Future<void>.delayed(Duration.zero);
+
     var bytes = await File(pickedPath).readAsBytes();
+    // Refused before the bytes are parsed or decrypted: nothing this app
+    // writes comes close to this size, so a bigger file is not one of ours.
+    if (bytes.length > _maxArchiveSize) {
+      state = const BackupResult.error();
+      return;
+    }
+
     // The envelope header decides, not the extension: an encrypted archive
     // renamed to .zip still asks for its passphrase, and a plain one renamed
     // to .enc still restores.
-    if (BackupCipher.isEncrypted(bytes)) {
-      // The stored passphrase is tried first, so an archive this app wrote for
-      // an automatic backup opens without a prompt. A file from another
-      // source fails the tag check and falls through to the prompt below.
-      final stored = ref
-          .read(periodicBackupSettingStateProvider)
-          .backupPassphrase;
-      Uint8List? decrypted;
-      if (stored.isNotEmpty) {
-        try {
-          decrypted = BackupCipher.decrypt(bytes, stored);
-        } on BackupCipherException {
-          decrypted = null;
-        }
+    final encrypted = BackupCipher.isEncrypted(bytes);
+    if (encrypted) {
+      // The passphrase is always asked for, even when one is stored: the
+      // archive may come from another device, so a key kept here says nothing
+      // about this file. The stored passphrase only seals new backups.
+      final askPassphrase = onPassphrase;
+      if (askPassphrase == null) {
+        state = const BackupResult.error();
+        return;
       }
-
-      if (decrypted == null) {
-        final askPassphrase = onPassphrase;
-        if (askPassphrase == null) {
-          state = const BackupResult.error();
-          return;
-        }
-        final passphrase = await askPassphrase();
-        if (passphrase == null) {
-          // Dismissing the prompt cancels the restore instead of failing it.
-          state = const BackupResult.idle();
-          return;
-        }
-        try {
-          decrypted = BackupCipher.decrypt(bytes, passphrase);
-        } on BackupCipherException {
-          // A wrong passphrase is a user mistake: the screen gets an error
-          // result, and the passphrase itself is never logged.
-          state = const BackupResult.error();
-          return;
-        }
+      final passphrase = await askPassphrase();
+      if (passphrase == null) {
+        // Dismissing the prompt cancels the restore instead of failing it.
+        state = const BackupResult.idle();
+        return;
       }
-      bytes = decrypted;
+      try {
+        bytes = await BackupCipher.decryptAsync(bytes, passphrase);
+      } on BackupCipherException {
+        // A wrong passphrase is a user mistake: the screen gets an error
+        // result, and the passphrase itself is never logged.
+        state = const BackupResult.error();
+        return;
+      }
+    } else if (!_isZipArchive(bytes)) {
+      // Without the extension filter, any file the user picks can land here.
+      // Only a ZIP can be handed to the decoder; anything else is reported
+      // instead of being thrown out of it.
+      state = const BackupResult.error();
+      return;
     }
 
     final decoder = ZipDecoder().decodeBytes(bytes);
@@ -209,15 +228,8 @@ class DataBackupState extends _$DataBackupState {
       return;
     }
 
-    final confirm = onConfirm ?? () async => true;
-    final continueRestore = await confirm.call() ?? false;
-    if (!continueRestore) {
-      state = const BackupResult.idle();
-      return;
-    }
-
-    state = const BackupResult.loading(DataBackupType.restore);
     var applied = 0;
+    var importedServers = false;
     try {
       for (final json in decoder.files.where((it) => it.isFile)) {
         // Only the entries the exporter wrote at the root are ours; a
@@ -228,6 +240,7 @@ class DataBackupState extends _$DataBackupState {
           case UserServerRepo.key:
             await ref.read(serverRepoProvider).import(content);
             applied++;
+            importedServers = true;
             break;
           case BooruTagsBlockerRepo.boxKey:
             await ref.read(tagsBlockerRepoProvider).import(content);
@@ -261,7 +274,18 @@ class DataBackupState extends _$DataBackupState {
       return;
     }
 
-    state = const BackupResult.imported();
+    // The log carries counts only: the entries hold logins and API keys,
+    // which stay out of it.
+    if (importedServers) {
+      final servers = ref.read(serverRepoProvider).servers;
+      final withCredentials = servers.where((it) => it.hasCredentials).length;
+      mainLog.i(
+        'Restore "$fileName" (${encrypted ? 'encrypted' : 'plain'}): '
+        '${servers.length} servers, $withCredentials with credentials',
+      );
+    }
+
+    state = BackupResult.imported(fileName);
   }
 
   Future<void> backup({
@@ -273,6 +297,9 @@ class DataBackupState extends _$DataBackupState {
     _busy = true;
 
     state = const BackupResult.loading(DataBackupType.backup);
+    // See the note in _restore: the progress dialog has to be painted before
+    // the work starts, or the screen looks frozen instead.
+    await Future<void>.delayed(Duration.zero);
     try {
       final backupFile = await _createBackupFile(
         option,
@@ -348,7 +375,7 @@ class DataBackupState extends _$DataBackupState {
       final encrypted = passphrase != null && passphrase.isNotEmpty;
       var payload = File(zipPath);
       if (encrypted) {
-        final sealed = BackupCipher.encrypt(
+        final sealed = await BackupCipher.encryptAsync(
           await payload.readAsBytes(),
           passphrase,
         );
@@ -417,4 +444,19 @@ class DataBackupState extends _$DataBackupState {
   }
 
   static const appId = 'boorusphere';
+
+  /// Upper bound for a picked archive. Nothing this app writes comes close,
+  /// so a bigger file is not one of ours and is refused before it is read
+  /// into memory.
+  static const _maxArchiveSize = 100 * 1024 * 1024;
+
+  /// Whether [bytes] starts with a ZIP signature: a local file header, or the
+  /// end-of-central-directory record of an empty archive.
+  static bool _isZipArchive(Uint8List bytes) {
+    if (bytes.length < 4) return false;
+    final isZip = bytes[0] == 0x50 && bytes[1] == 0x4b;
+    return isZip &&
+        ((bytes[2] == 0x03 && bytes[3] == 0x04) ||
+            (bytes[2] == 0x05 && bytes[3] == 0x06));
+  }
 }

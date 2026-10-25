@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -114,6 +115,24 @@ class BackupCipher {
       // covers both a wrong passphrase and a corrupted file.
       throw const BackupCipherException();
     }
+  }
+
+  /// [encrypt] on a separate isolate.
+  ///
+  /// Deriving the key is intentionally slow, and running it on the UI isolate
+  /// would stall every frame until it finished: the progress dialog would not
+  /// even get painted. The passphrase and the archive are copied to the
+  /// worker, so nothing shared is touched from two isolates.
+  static Future<Uint8List> encryptAsync(
+    Uint8List plaintext,
+    String passphrase,
+  ) {
+    return Isolate.run(() => encrypt(plaintext, passphrase));
+  }
+
+  /// [decrypt] on a separate isolate, for the same reason as [encryptAsync].
+  static Future<Uint8List> decryptAsync(Uint8List data, String passphrase) {
+    return Isolate.run(() => decrypt(data, passphrase));
   }
 
   static Uint8List _deriveKey(String passphrase, Uint8List salt) {
