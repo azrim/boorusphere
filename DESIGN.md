@@ -201,10 +201,10 @@ One container for every bottom sheet in the app — post details, settings picke
 ### Bottom Sheet (Post Details)
 - **Shape**: rounded top corners, opening at 75% of the viewer. That is also the tallest it gets, so it snaps only between open and closed — one downward drag dismisses it instead of walking through intermediate stops
 - **Surface**: with the Blur setting on it is a glass sheet — `surface` at 72% over a sigma-16 backdrop blur, so the artwork still reads through it while the rows keep their contrast. With Blur off the sheet paints an opaque `surface`, the cheaper path on slow devices
-- **Header**: the post's most identifying tag (artist → copyright → character → general), so the sheet is named after what was opened rather than after a database row
+- **No header**: the sheet opens straight onto the tab strip — the handle, then the panels. The artwork behind it already says which post is open, so a title line and a close button were a second, redundant answer to the same question
 - **Panels**: Details (rating, score, dimensions, format), Tags (grouped by category, each with its count; tap to select), Links (post page, source, sample and original file, each with copy)
 - **Selection**: tag taps accumulate across panels and survive a panel switch; the action bar then offers copy, block, append, search and clear
-- **Gesture**: swipe up or the info button opens it; one swipe down, the close control or Back dismisses it
+- **Gesture**: swipe up or the info button opens it; one swipe down or Back dismisses it, which is why the sheet carries no dismiss control of its own
 
 ### Chips (Tags)
 - **Style**: Filled, primaryContainer background, onPrimaryContainer text

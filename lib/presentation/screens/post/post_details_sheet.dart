@@ -200,15 +200,6 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     };
   }
 
-  /// Collapses the sheet back over the image instead of leaving the viewer.
-  void _collapse() {
-    widget.sheetController.animateTo(
-      _kMinSheetSize,
-      duration: context.motionDuration(DesignTokens.durationNormal),
-      curve: DesignTokens.curveStandard,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final enableBlur = ref.watch(uiSettingStateProvider.select((s) => s.blur));
@@ -255,11 +246,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const DragHandle(
-                            margin: EdgeInsets.symmetric(
-                              vertical: DesignTokens.spacingCardInset,
+                            margin: EdgeInsets.only(
+                              top: DesignTokens.spacingCardInset,
+                              bottom: DesignTokens.spacingXs,
                             ),
                           ),
-                          _Header(post: post, onClose: _collapse),
                           SheetTabs(
                             tabs: [
                               SheetTab(context.t.details),
@@ -359,22 +350,6 @@ int _linkCount(Post post) {
   return count;
 }
 
-/// The post's most identifying tag, so the sheet is named after the thing the
-/// visitor opened rather than after a database row.
-String _titleOf(Post post) {
-  for (final tags in [
-    post.tagsArtist,
-    post.tagsCopyright,
-    post.tagsCharacter,
-    post.tagsGeneral,
-    post.tags,
-  ]) {
-    if (tags.isNotEmpty) return tags.first;
-  }
-
-  return '#${post.id}';
-}
-
 void _copy(BuildContext context, String text) {
   Clipboard.setData(ClipboardData(text: text));
   ScaffoldMessenger.of(context).showSnackBar(
@@ -388,45 +363,6 @@ void _copy(BuildContext context, String text) {
 void _open(String url) {
   if (isSafeUrl(url)) {
     launchUrlString(url, mode: LaunchMode.externalApplication);
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.post, required this.onClose});
-
-  final Post post;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: DesignTokens.spacingMd,
-        right: DesignTokens.spacingXs,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Semantics(
-              header: true,
-              child: Text(
-                _titleOf(post),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close_rounded, size: 20),
-            tooltip: context.t.dismiss,
-            onPressed: onClose,
-          ),
-        ],
-      ),
-    );
   }
 }
 
