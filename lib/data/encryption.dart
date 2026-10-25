@@ -25,7 +25,16 @@ class EncryptionHelper {
   static const _keyField = 'aes_key';
 
   /// Boxes opened with the cipher returned by [getCipher].
-  static const encryptedBoxNames = ['server', 'settings'];
+  ///
+  /// The migration copies are listed too: one is left behind while a plain
+  /// box is rewritten, and it is then the only copy of the entries. Minting a
+  /// fresh key because it was not looked at would make that copy unreadable.
+  static const encryptedBoxNames = [
+    'server',
+    'settings',
+    'server_migration',
+    'settings_migration_backup',
+  ];
 
   /// Tail of the queue that keeps [getCipher] calls from overlapping. Two
   /// concurrent callers would otherwise both see an empty key box, mint

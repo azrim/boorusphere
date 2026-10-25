@@ -193,8 +193,11 @@ class UserServerRepo implements ServerRepo {
     }
     if (restored.isEmpty) return;
 
-    await box.deleteAll(box.keys);
+    // The new entries reach the disk before the ones the backup does not
+    // mention are dropped, so a failed write never leaves an empty list.
     await box.putAll(restored);
+    final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
+    if (stale.isNotEmpty) await box.deleteAll(stale);
     await box.flush();
 
     // Run migrations after import to fix any outdated server configs
@@ -218,8 +221,14 @@ class UserServerRepo implements ServerRepo {
 
   static const String key = 'server';
 
+  /// Box holding a copy of the entries while the plain box is rewritten as an
+  /// encrypted one. One that survives a start means that migration stopped
+  /// before the encrypted box was complete.
+  static const String _migrationKey = 'server_migration';
+
   static Future<void> prepare() async {
     final cipher = await EncryptionHelper.getCipher();
+    await _recoverInterruptedMigration(cipher);
 
     try {
       await Hive.openBox<Server>(key, encryptionCipher: cipher);
@@ -235,14 +244,74 @@ class UserServerRepo implements ServerRepo {
         rethrow;
       }
 
-      await Hive.deleteBoxFromDisk(key);
+      await _migrateToEncrypted(data, cipher);
+    }
+  }
 
-      final encryptedBox = await Hive.openBox<Server>(
-        key,
-        encryptionCipher: cipher,
-      );
-      await encryptedBox.putAll(data);
-      await encryptedBox.flush();
+  /// Rewrites the plain box as an encrypted one.
+  ///
+  /// The entries are copied to an encrypted box under [_migrationKey] before
+  /// the plain box is dropped: that copy is the only one left between the two
+  /// steps, and it carries the server list with its credentials.
+  static Future<void> _migrateToEncrypted(
+    Map<dynamic, Server> data,
+    HiveAesCipher cipher,
+  ) async {
+    final migration = await Hive.openBox<Server>(
+      _migrationKey,
+      encryptionCipher: cipher,
+    );
+    await migration.putAll(data);
+    await migration.flush();
+    await migration.close();
+
+    await Hive.deleteBoxFromDisk(key);
+
+    final encryptedBox = await Hive.openBox<Server>(
+      key,
+      encryptionCipher: cipher,
+    );
+    await encryptedBox.putAll(data);
+    await encryptedBox.flush();
+
+    await Hive.deleteBoxFromDisk(_migrationKey);
+  }
+
+  /// Writes back the copy left by an interrupted migration, then drops it.
+  ///
+  /// Runs before the box is opened, so a start that follows a half-finished
+  /// migration finds its server list instead of an empty box. The handle is
+  /// closed afterwards so the cipher is still applied when the box is plain.
+  static Future<void> _recoverInterruptedMigration(HiveAesCipher cipher) async {
+    if (!await Hive.boxExists(_migrationKey)) return;
+
+    final migration = await Hive.openBox<Server>(
+      _migrationKey,
+      encryptionCipher: cipher,
+    );
+    final data = migration.toMap();
+    await migration.close();
+
+    if (data.isEmpty) {
+      await Hive.deleteBoxFromDisk(_migrationKey);
+      return;
+    }
+
+    final restored = await _openForRestore(cipher);
+    await restored.putAll(data);
+    await restored.flush();
+    await restored.close();
+
+    await Hive.deleteBoxFromDisk(_migrationKey);
+  }
+
+  /// The server box, opened with the cipher when it is encrypted and plainly
+  /// when it is still the legacy one.
+  static Future<Box<Server>> _openForRestore(HiveAesCipher cipher) async {
+    try {
+      return await Hive.openBox<Server>(key, encryptionCipher: cipher);
+    } catch (_) {
+      return Hive.openBox<Server>(key);
     }
   }
 
