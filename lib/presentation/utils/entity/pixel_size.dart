@@ -9,5 +9,5 @@ class PixelSize {
   double get aspectRatio => width / height;
 
   @override
-  String toString() => hasPixels ? '${width}x$height' : 'unknown size';
+  String toString() => hasPixels ? '$width×$height' : 'unknown size';
 }

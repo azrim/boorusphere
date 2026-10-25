@@ -52,7 +52,7 @@ void main() {
 
     test('toString with pixels', () {
       const size = PixelSize(width: 1920, height: 1080);
-      expect(size.toString(), '1920x1080');
+      expect(size.toString(), '1920×1080');
     });
 
     test('toString without pixels', () {
