@@ -7,6 +7,7 @@ import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/user_download_repo.dart';
 import 'package:boorusphere/data/repository/env/current_env_repo.dart';
+import 'package:boorusphere/data/repository/fallback_box.dart';
 import 'package:boorusphere/data/repository/favorite_post/entity/favorite_post.dart';
 import 'package:boorusphere/data/repository/favorite_post/user_favorite_post_repo.dart';
 import 'package:boorusphere/data/repository/search_history/entity/search_history.dart';
@@ -45,9 +46,25 @@ Future<EnvRepo> provideEnvRepo() async {
   return CurrentEnvRepo(env: await AppEnv().get());
 }
 
+/// The open box for [name], or the empty stand-in boot registered for it.
+///
+/// A box that failed to open stays closed, and `Hive.box` throws for it. That
+/// throw would escape a provider read during a build, which leaves no way back
+/// to the screen. The stand-in keeps the feature on its empty state for this
+/// run; without one the failure surfaces as before.
+Box<T> _boxOrFallback<T>(String name) {
+  try {
+    return Hive.box<T>(name);
+  } on HiveError {
+    final fallback = fallbackFor<T>(name);
+    if (fallback == null) rethrow;
+    return fallback;
+  }
+}
+
 @riverpod
 TagsBlockerRepo tagsBlockerRepo(Ref ref) {
-  final box = Hive.box<BooruTag>(BooruTagsBlockerRepo.boxKey);
+  final box = _boxOrFallback<BooruTag>(BooruTagsBlockerRepo.boxKey);
   return BooruTagsBlockerRepo(box);
 }
 
@@ -68,13 +85,13 @@ ChangelogRepo changelogRepo(Ref ref) {
 
 @riverpod
 FavoritePostRepo favoritePostRepo(Ref ref) {
-  final box = Hive.box<FavoritePost>(UserFavoritePostRepo.key);
+  final box = _boxOrFallback<FavoritePost>(UserFavoritePostRepo.key);
   return UserFavoritePostRepo(box);
 }
 
 @riverpod
 SearchHistoryRepo searchHistoryRepo(Ref ref) {
-  final box = Hive.box<SearchHistory>(UserSearchHistoryRepo.key);
+  final box = _boxOrFallback<SearchHistory>(UserSearchHistoryRepo.key);
   return UserSearchHistoryRepo(box);
 }
 
@@ -82,7 +99,7 @@ SearchHistoryRepo searchHistoryRepo(Ref ref) {
 ServerRepo serverRepo(Ref ref) {
   return UserServerRepo(
     defaultServers: ref.watch(defaultServersProvider),
-    box: Hive.box<Server>(UserServerRepo.key),
+    box: _boxOrFallback<Server>(UserServerRepo.key),
   );
 }
 
@@ -105,8 +122,10 @@ VersionRepo versionRepo(Ref ref) {
 
 @riverpod
 DownloadsRepo downloadsRepo(Ref ref) {
-  final entryBox = Hive.box<DownloadEntry>(UserDownloadsRepo.entryKey);
-  final progressBox = Hive.box<DownloadProgress>(UserDownloadsRepo.progressKey);
+  final entryBox = _boxOrFallback<DownloadEntry>(UserDownloadsRepo.entryKey);
+  final progressBox = _boxOrFallback<DownloadProgress>(
+    UserDownloadsRepo.progressKey,
+  );
   return UserDownloadsRepo(entryBox: entryBox, progressBox: progressBox);
 }
 
