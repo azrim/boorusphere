@@ -1,89 +1,123 @@
+import 'dart:math' as math;
+
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:flutter/material.dart';
 
 /// The colours a preset palette owns, for one brightness.
 ///
-/// Only the roles a theme actually decides are stored. The container, inverse
-/// and state roles are derived in [toScheme], so every palette keeps the same
-/// structure while its page, cards, text and accents come from the theme
-/// itself instead of from a generated tonal ramp.
+/// An editor theme ships a surface ramp of its own — a page, the panels that
+/// float on it, and the tone a selected row takes — so the ramp is stored as
+/// the theme designed it. [toScheme] maps those tones onto Material roles and
+/// never invents a surface by mixing two others.
+///
+/// Accents keep the theme's hue; only their lightness moves, and only as far
+/// as the 4.5:1 floor requires, because an editor paints syntax on a page and
+/// a light theme's pink or yellow is often too pale to carry a control.
 @immutable
 class PaletteColors {
   const PaletteColors({
     required this.background,
-    required this.panel,
+    required this.containerLow,
+    required this.container,
+    required this.containerHigh,
+    required this.containerHighest,
+    required this.border,
+    required this.line,
     required this.text,
     required this.muted,
     required this.primary,
     required this.secondary,
     required this.tertiary,
-    required this.border,
     required this.error,
   });
 
   /// The page surface every screen paints behind its content.
   final Color background;
 
+  /// One step off the page, towards the panel.
+  final Color containerLow;
+
   /// Cards, sheets, inputs and menus: the surface that sits on [background].
-  final Color panel;
+  final Color container;
+
+  /// One step above the panel.
+  final Color containerHigh;
+
+  /// The tone a selected or hovered row takes in the theme it came from.
+  final Color containerHighest;
+
+  /// The soft hairline: a tone one step off the surface it sits on.
+  final Color border;
+
+  /// The strong line: the theme's own emphasis rule.
+  final Color line;
 
   final Color text;
 
-  /// Secondary text and icons; kept above 4.5:1 on both surfaces.
+  /// Secondary text and icons, as the theme writes them. A comment tone is
+  /// often below 4.5:1 on the page, so [toScheme] lifts it to the floor.
   final Color muted;
 
   final Color primary;
   final Color secondary;
   final Color tertiary;
-
-  /// Hairlines and section dividers.
-  final Color border;
-
   final Color error;
 
   /// Builds the full Material scheme from the palette's own colours.
   ColorScheme toScheme(Brightness brightness) {
+    final accent = _readableAccent(primary, background);
+    final accentSecondary = _readableAccent(secondary, background);
+    final accentTertiary = _readableAccent(tertiary, background);
+    final accentError = _readableAccent(error, background);
+    // The supporting text has to hold on the page and on the panel, whichever
+    // of the two the theme wrote it against.
+    final mutedBase = _contrast(muted, container) < _contrast(muted, background)
+        ? container
+        : background;
+
     return ColorScheme(
       brightness: brightness,
-      primary: primary,
-      onPrimary: _readableOn(primary),
-      primaryContainer: _tint(primary, background),
+      primary: accent,
+      onPrimary: _readableOn(accent),
+      primaryContainer: _tint(accent, background),
       onPrimaryContainer: text,
-      secondary: secondary,
-      onSecondary: _readableOn(secondary),
-      secondaryContainer: _tint(secondary, background),
+      secondary: accentSecondary,
+      onSecondary: _readableOn(accentSecondary),
+      secondaryContainer: _tint(accentSecondary, background),
       onSecondaryContainer: text,
-      tertiary: tertiary,
-      onTertiary: _readableOn(tertiary),
-      tertiaryContainer: _tint(tertiary, background),
+      tertiary: accentTertiary,
+      onTertiary: _readableOn(accentTertiary),
+      tertiaryContainer: _tint(accentTertiary, background),
       onTertiaryContainer: text,
-      error: error,
-      onError: _readableOn(error),
-      errorContainer: _tint(error, background),
+      error: accentError,
+      onError: _readableOn(accentError),
+      errorContainer: _tint(accentError, background),
       onErrorContainer: text,
       surface: background,
       onSurface: text,
-      onSurfaceVariant: muted,
-      surfaceDim: _mix(background, panel, 0.5),
-      surfaceBright: _mix(panel, text, 0.08),
+      onSurfaceVariant: _readableAccent(muted, mutedBase),
+      // Both of these stay inside the theme's own ramp.
+      surfaceDim: containerLow,
+      surfaceBright: containerHigh,
       surfaceContainerLowest: background,
-      surfaceContainerLow: _mix(background, panel, 0.45),
-      surfaceContainer: _mix(background, panel, 0.75),
-      surfaceContainerHigh: panel,
-      surfaceContainerHighest: _mix(panel, text, 0.05),
-      outline: border,
+      surfaceContainerLow: containerLow,
+      surfaceContainer: container,
+      surfaceContainerHigh: containerHigh,
+      surfaceContainerHighest: containerHighest,
+      outline: line,
       outlineVariant: border,
       shadow: const Color(0xFF000000),
       scrim: const Color(0xFF000000),
       inverseSurface: text,
       onInverseSurface: background,
-      inversePrimary: primary,
+      inversePrimary: accent,
     );
   }
 }
 
 /// The curated colours for [palette] at [brightness], or null when the scheme
-/// is generated instead of curated (the wallpaper palette, or a single seed).
+/// is generated instead of curated (the wallpaper palette, a single seed, or
+/// the day side of a theme that only ships a dark variant).
 PaletteColors? paletteColorsFor(ColorPalette palette, Brightness brightness) {
   final pair = _palettes[palette];
   if (pair == null) return null;
@@ -102,200 +136,264 @@ Color _tint(Color accent, Color base) {
   return Color.alphaBlend(accent.withValues(alpha: 0.20), base);
 }
 
-Color _mix(Color from, Color to, double amount) {
-  return Color.lerp(from, to, amount)!;
+double _contrast(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
 
-const _palettes = <ColorPalette, (PaletteColors, PaletteColors)>{
+/// Walks [color] towards the page's opposite until it clears 4.5:1 on [base].
+/// The hue is the theme's; the steps are the smallest that pass.
+Color _readableAccent(Color color, Color base) {
+  final away = _readableOn(base);
+  var result = color;
+  for (var step = 0; step < 24 && _contrast(result, base) < 4.5; step++) {
+    result = Color.lerp(result, away, 0.06)!;
+  }
+
+  return result;
+}
+
+const _palettes = <ColorPalette, (PaletteColors, PaletteColors?)>{
+  // Dracula Classic and Alucard, from the published ramp: page, background
+  // dark, floating/background light, background lighter, selection, current
+  // line.
   ColorPalette.dracula: (
     PaletteColors(
       background: Color(0xFF282A36),
-      panel: Color(0xFF343746),
+      containerLow: Color(0xFF21222C),
+      container: Color(0xFF343746),
+      containerHigh: Color(0xFF424450),
+      containerHighest: Color(0xFF44475A),
+      border: Color(0xFF44475A),
+      line: Color(0xFF6272A4),
       text: Color(0xFFF8F8F2),
-      muted: Color(0xFF9AA2C4),
+      muted: Color(0xFF6272A4),
       primary: Color(0xFFBD93F9),
       secondary: Color(0xFFFF79C6),
       tertiary: Color(0xFF8BE9FD),
-      border: Color(0xFF44475A),
       error: Color(0xFFFF5555),
     ),
     PaletteColors(
       background: Color(0xFFFFFBEB),
-      panel: Color(0xFFF2EBDC),
+      containerLow: Color(0xFFEFEDDC),
+      container: Color(0xFFECE9DF),
+      containerHigh: Color(0xFFDEDCCF),
+      containerHighest: Color(0xFFCFCFDE),
+      border: Color(0xFFCFCFDE),
+      line: Color(0xFF6C664B),
       text: Color(0xFF1F1F1F),
       muted: Color(0xFF5F5A45),
       primary: Color(0xFF644AC9),
       secondary: Color(0xFFA3144D),
       tertiary: Color(0xFF036A96),
-      border: Color(0xFFCFCFDE),
       error: Color(0xFFCB3A2A),
     ),
   ),
+  // Catppuccin Mocha and Latte: base, mantle, crust, surface0-2, overlay0.
   ColorPalette.catpuccin: (
     PaletteColors(
       background: Color(0xFF1E1E2E),
-      panel: Color(0xFF313244),
+      containerLow: Color(0xFF181825),
+      container: Color(0xFF313244),
+      containerHigh: Color(0xFF45475A),
+      containerHighest: Color(0xFF585B70),
+      border: Color(0xFF45475A),
+      line: Color(0xFF6C7086),
       text: Color(0xFFCDD6F4),
       muted: Color(0xFFA6ADC8),
       primary: Color(0xFFCBA6F7),
       secondary: Color(0xFFF5C2E7),
       tertiary: Color(0xFF89B4FA),
-      border: Color(0xFF45475A),
       error: Color(0xFFF38BA8),
     ),
     PaletteColors(
       background: Color(0xFFEFF1F5),
-      panel: Color(0xFFE6E9EF),
-      text: Color(0xFF4C4F69),
-      muted: Color(0xFF5A5D75),
-      primary: Color(0xFF8839EF),
-      secondary: Color(0xFFC2187A),
-      tertiary: Color(0xFF1E66F5),
+      containerLow: Color(0xFFE6E9EF),
+      container: Color(0xFFDCE0E8),
+      containerHigh: Color(0xFFCCD0DA),
+      containerHighest: Color(0xFFBCC0CC),
       border: Color(0xFFCCD0DA),
+      line: Color(0xFF9CA0B0),
+      text: Color(0xFF4C4F69),
+      muted: Color(0xFF5C5F77),
+      primary: Color(0xFF8839EF),
+      secondary: Color(0xFFEA76CB),
+      tertiary: Color(0xFF1E66F5),
       error: Color(0xFFD20F39),
     ),
   ),
+  // Nord ships one polarity: polar night nord0-3, with frost and aurora as
+  // accents. There is no official light variant, so day falls back to a
+  // generated light scheme seeded from the frost blue.
   ColorPalette.nord: (
     PaletteColors(
       background: Color(0xFF2E3440),
-      panel: Color(0xFF3B4252),
+      containerLow: Color(0xFF3B4252),
+      container: Color(0xFF3B4252),
+      containerHigh: Color(0xFF434C5E),
+      containerHighest: Color(0xFF4C566A),
+      border: Color(0xFF434C5E),
+      line: Color(0xFF4C566A),
       text: Color(0xFFECEFF4),
       muted: Color(0xFFA7B1C2),
       primary: Color(0xFF88C0D0),
       secondary: Color(0xFFB48EAD),
       tertiary: Color(0xFF8FBCBB),
-      border: Color(0xFF4C566A),
-      error: Color(0xFFD98A92),
+      error: Color(0xFFBF616A),
     ),
-    PaletteColors(
-      background: Color(0xFFECEFF4),
-      panel: Color(0xFFE5E9F0),
-      text: Color(0xFF2E3440),
-      muted: Color(0xFF4C566A),
-      primary: Color(0xFF4F7099),
-      secondary: Color(0xFF8F5F87),
-      tertiary: Color(0xFF7E5C7E),
-      border: Color(0xFFD8DEE9),
-      error: Color(0xFFA9454E),
-    ),
+    null,
   ),
+  // Solarized defines base03 as the page, base02 as the raised surface and
+  // base01 as the comment tone; the two chip steps are taken between them.
   ColorPalette.solarized: (
     PaletteColors(
       background: Color(0xFF002B36),
-      panel: Color(0xFF073642),
+      containerLow: Color(0xFF073642),
+      container: Color(0xFF073642),
+      containerHigh: Color(0xFF17414C),
+      containerHighest: Color(0xFF21505A),
+      border: Color(0xFF17414C),
+      line: Color(0xFF586E75),
       text: Color(0xFFEEE8D5),
       muted: Color(0xFF93A1A1),
       primary: Color(0xFF268BD2),
       secondary: Color(0xFF2AA198),
       tertiary: Color(0xFFB58900),
-      border: Color(0xFF0F4B57),
-      error: Color(0xFFF07167),
+      error: Color(0xFFDC322F),
     ),
     PaletteColors(
       background: Color(0xFFFDF6E3),
-      panel: Color(0xFFEEE8D5),
+      containerLow: Color(0xFFEEE8D5),
+      container: Color(0xFFEEE8D5),
+      containerHigh: Color(0xFFE4DCC4),
+      containerHighest: Color(0xFFDDD6C1),
+      border: Color(0xFFE4DCC4),
+      line: Color(0xFF93A1A1),
       text: Color(0xFF073642),
       muted: Color(0xFF526569),
-      primary: Color(0xFF1F73AE),
-      secondary: Color(0xFF17786F),
-      tertiary: Color(0xFF8F6B00),
-      border: Color(0xFFDDD6C1),
-      error: Color(0xFFC02B28),
+      primary: Color(0xFF268BD2),
+      secondary: Color(0xFF2AA198),
+      tertiary: Color(0xFFB58900),
+      error: Color(0xFFDC322F),
     ),
   ),
+  // Gruvbox bg0 through bg4, with the light variant's darker accent set.
   ColorPalette.gruvbox: (
     PaletteColors(
       background: Color(0xFF282828),
-      panel: Color(0xFF3C3836),
+      containerLow: Color(0xFF1D2021),
+      container: Color(0xFF3C3836),
+      containerHigh: Color(0xFF504945),
+      containerHighest: Color(0xFF665C54),
+      border: Color(0xFF504945),
+      line: Color(0xFF665C54),
       text: Color(0xFFEBDBB2),
       muted: Color(0xFFB5A78F),
       primary: Color(0xFFFABD2F),
       secondary: Color(0xFF83A598),
       tertiary: Color(0xFFD3869B),
-      border: Color(0xFF504945),
       error: Color(0xFFFB4934),
     ),
     PaletteColors(
       background: Color(0xFFFBF1C7),
-      panel: Color(0xFFEBDBB2),
+      containerLow: Color(0xFFF2E5BC),
+      container: Color(0xFFEBDBB2),
+      containerHigh: Color(0xFFD5C4A1),
+      containerHighest: Color(0xFFBDAE93),
+      border: Color(0xFFD5C4A1),
+      line: Color(0xFFA89984),
       text: Color(0xFF3C3836),
       muted: Color(0xFF665C54),
-      primary: Color(0xFF96600F),
+      primary: Color(0xFFB57614),
       secondary: Color(0xFF076678),
       tertiary: Color(0xFF8F3F71),
-      border: Color(0xFFD5C4A1),
       error: Color(0xFF9D0006),
     ),
   ),
+  // One Dark and One Light workbench: editor, sidebar, widget, border.
   ColorPalette.oneDark: (
     PaletteColors(
       background: Color(0xFF282C34),
-      panel: Color(0xFF333842),
+      containerLow: Color(0xFF21252B),
+      container: Color(0xFF2C313A),
+      containerHigh: Color(0xFF333842),
+      containerHighest: Color(0xFF3E4451),
+      border: Color(0xFF3E4451),
+      line: Color(0xFF4B5263),
       text: Color(0xFFABB2BF),
       muted: Color(0xFF9AA1AD),
       primary: Color(0xFF61AFEF),
       secondary: Color(0xFFC678DD),
       tertiary: Color(0xFF56B6C2),
-      border: Color(0xFF3E4451),
       error: Color(0xFFE06C75),
     ),
     PaletteColors(
       background: Color(0xFFFAFAFA),
-      panel: Color(0xFFF0F0F0),
+      containerLow: Color(0xFFF0F0F1),
+      container: Color(0xFFEAEAEB),
+      containerHigh: Color(0xFFDBDBDC),
+      containerHighest: Color(0xFFD0D0D1),
+      border: Color(0xFFDBDBDC),
+      line: Color(0xFFA0A1A7),
       text: Color(0xFF383A42),
       muted: Color(0xFF696C77),
-      primary: Color(0xFF2F63D6),
+      primary: Color(0xFF4078F2),
       secondary: Color(0xFFA626A4),
       tertiary: Color(0xFF0184BC),
-      border: Color(0xFFE5E5E6),
       error: Color(0xFFE45649),
     ),
   ),
+  // Monokai is dark only: background, current line, selection, comment. The
+  // two chip steps are taken between the selection and the comment.
   ColorPalette.monokai: (
     PaletteColors(
       background: Color(0xFF272822),
-      panel: Color(0xFF3E3D32),
+      containerLow: Color(0xFF272822),
+      container: Color(0xFF3E3D32),
+      containerHigh: Color(0xFF49483E),
+      containerHighest: Color(0xFF545346),
+      border: Color(0xFF49483E),
+      line: Color(0xFF75715E),
       text: Color(0xFFF8F8F2),
       muted: Color(0xFFA9A99A),
       primary: Color(0xFFA6E22E),
       secondary: Color(0xFFFD971F),
       tertiary: Color(0xFF66D9EF),
-      border: Color(0xFF49483E),
-      error: Color(0xFFFF6188),
+      error: Color(0xFFF92672),
     ),
-    PaletteColors(
-      background: Color(0xFFF9F8F5),
-      panel: Color(0xFFF0EFEA),
-      text: Color(0xFF272822),
-      muted: Color(0xFF5B5A52),
-      primary: Color(0xFF5A7A00),
-      secondary: Color(0xFFA85200),
-      tertiary: Color(0xFF00738C),
-      border: Color(0xFFE2E0D8),
-      error: Color(0xFFC7254E),
-    ),
+    null,
   ),
+  // GitHub Primer: canvas default, subtle, inset, and the border ramp.
   ColorPalette.github: (
     PaletteColors(
       background: Color(0xFF0D1117),
-      panel: Color(0xFF161B22),
-      text: Color(0xFFC9D1D9),
-      muted: Color(0xFF8B949E),
+      containerLow: Color(0xFF010409),
+      container: Color(0xFF161B22),
+      containerHigh: Color(0xFF21262D),
+      containerHighest: Color(0xFF30363D),
+      border: Color(0xFF30363D),
+      line: Color(0xFF484F58),
+      text: Color(0xFFE6EDF3),
+      muted: Color(0xFF7D8590),
       primary: Color(0xFF58A6FF),
       secondary: Color(0xFFBC8CFF),
       tertiary: Color(0xFF3FB950),
-      border: Color(0xFF30363D),
       error: Color(0xFFF85149),
     ),
     PaletteColors(
       background: Color(0xFFFFFFFF),
-      panel: Color(0xFFF6F8FA),
-      text: Color(0xFF24292F),
-      muted: Color(0xFF57606A),
+      containerLow: Color(0xFFF6F8FA),
+      container: Color(0xFFF6F8FA),
+      containerHigh: Color(0xFFEAEEF2),
+      containerHighest: Color(0xFFD8DEE4),
+      border: Color(0xFFD0D7DE),
+      line: Color(0xFFAFB8C1),
+      text: Color(0xFF1F2328),
+      muted: Color(0xFF656D76),
       primary: Color(0xFF0969DA),
       secondary: Color(0xFF8250DF),
       tertiary: Color(0xFF1A7F37),
-      border: Color(0xFFD0D7DE),
       error: Color(0xFFCF222E),
     ),
   ),

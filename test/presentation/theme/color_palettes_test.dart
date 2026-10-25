@@ -18,6 +18,22 @@ const _curated = [
   ColorPalette.github,
 ];
 
+/// Themes that ship one polarity only. Their day scheme is generated from the
+/// accent instead of pretending to be a light variant.
+const _darkOnly = [ColorPalette.nord, ColorPalette.monokai];
+
+/// Every (palette, brightness) pair that has curated colours.
+Iterable<(ColorPalette, Brightness)> get _variants sync* {
+  for (final palette in _curated) {
+    for (final brightness in Brightness.values) {
+      if (brightness == Brightness.light && _darkOnly.contains(palette)) {
+        continue;
+      }
+      yield (palette, brightness);
+    }
+  }
+}
+
 double _luminance(Color color) {
   double channel(double value) {
     return value <= 0.03928
@@ -47,112 +63,149 @@ void main() {
         isNull,
       );
 
-      for (final palette in _curated) {
+      for (final (palette, brightness) in _variants) {
+        expect(
+          paletteColorsFor(palette, brightness),
+          isNotNull,
+          reason: '${palette.name} has no ${brightness.name} palette',
+        );
+      }
+
+      for (final palette in _darkOnly) {
         expect(
           paletteColorsFor(palette, Brightness.light),
-          isNotNull,
-          reason: '${palette.name} has no light palette',
-        );
-        expect(
-          paletteColorsFor(palette, Brightness.dark),
-          isNotNull,
-          reason: '${palette.name} has no dark palette',
+          isNull,
+          reason: '${palette.name} only ships a dark variant',
         );
       }
     });
 
     test('each palette paints its own page instead of a shared ramp', () {
       for (final brightness in Brightness.values) {
-        final backgrounds = _curated
+        final palettes = _variants
+            .where((it) => it.$2 == brightness)
+            .map((it) => it.$1)
+            .toList();
+        final backgrounds = palettes
             .map((it) => paletteColorsFor(it, brightness)!.background)
             .toSet();
-        final panels = _curated
-            .map((it) => paletteColorsFor(it, brightness)!.panel)
+        final panels = palettes
+            .map((it) => paletteColorsFor(it, brightness)!.container)
             .toSet();
 
         expect(
           backgrounds.length,
-          _curated.length,
+          palettes.length,
           reason: 'two ${brightness.name} palettes share a background',
         );
         expect(
           panels.length,
-          _curated.length,
+          palettes.length,
           reason: 'two ${brightness.name} palettes share a panel',
         );
       }
     });
 
-    test('body and secondary text stay readable on both surfaces', () {
-      for (final palette in _curated) {
-        for (final brightness in Brightness.values) {
-          final colors = paletteColorsFor(palette, brightness)!;
-          final where = '${palette.name}/${brightness.name}';
+    test('the elevated steps move away from the page in order', () {
+      for (final (palette, brightness) in _variants) {
+        final colors = paletteColorsFor(palette, brightness)!;
+        final where = '${palette.name}/${brightness.name}';
+        final ramp = [
+          colors.container,
+          colors.containerHigh,
+          colors.containerHighest,
+        ];
 
+        for (var i = 1; i < ramp.length; i++) {
           expect(
-            _contrast(colors.text, colors.background),
-            greaterThanOrEqualTo(4.5),
-            reason: 'text on background, $where',
-          );
-          expect(
-            _contrast(colors.muted, colors.background),
-            greaterThanOrEqualTo(4.5),
-            reason: 'muted on background, $where',
-          );
-          expect(
-            _contrast(colors.text, colors.panel),
-            greaterThanOrEqualTo(4.5),
-            reason: 'text on panel, $where',
-          );
-          expect(
-            _contrast(colors.muted, colors.panel),
-            greaterThanOrEqualTo(4.5),
-            reason: 'muted on panel, $where',
+            _contrast(ramp[i], colors.background),
+            greaterThan(_contrast(ramp[i - 1], colors.background)),
+            reason: 'step $i does not lift off the page, $where',
           );
         }
+        expect(
+          colors.containerLow,
+          isNot(colors.containerHighest),
+          reason: 'the low and highest steps collapse, $where',
+        );
       }
     });
 
-    test('accents stay visible against the page', () {
-      for (final palette in _curated) {
-        for (final brightness in Brightness.values) {
-          final colors = paletteColorsFor(palette, brightness)!;
-          final where = '${palette.name}/${brightness.name}';
+    test('body and secondary text stay readable on both surfaces', () {
+      for (final (palette, brightness) in _variants) {
+        final colors = paletteColorsFor(palette, brightness)!;
+        final where = '${palette.name}/${brightness.name}';
 
-          for (final accent in [
-            colors.primary,
-            colors.secondary,
-            colors.tertiary,
-            colors.error,
-          ]) {
-            expect(
-              _contrast(accent, colors.background),
-              greaterThanOrEqualTo(3.0),
-              reason: 'accent $accent on background, $where',
-            );
-          }
+        expect(
+          _contrast(colors.text, colors.background),
+          greaterThanOrEqualTo(4.5),
+          reason: 'text on background, $where',
+        );
+        expect(
+          _contrast(colors.text, colors.container),
+          greaterThanOrEqualTo(4.5),
+          reason: 'text on panel, $where',
+        );
+
+        final scheme = colors.toScheme(brightness);
+        expect(
+          _contrast(scheme.onSurfaceVariant, scheme.surface),
+          greaterThanOrEqualTo(4.5),
+          reason: 'shipped muted on background, $where',
+        );
+        expect(
+          _contrast(scheme.onSurfaceVariant, scheme.surfaceContainer),
+          greaterThanOrEqualTo(4.5),
+          reason: 'shipped muted on panel, $where',
+        );
+      }
+    });
+
+    test('every shipped accent reads against the page', () {
+      for (final (palette, brightness) in _variants) {
+        final colors = paletteColorsFor(palette, brightness)!;
+        final scheme = colors.toScheme(brightness);
+        final where = '${palette.name}/${brightness.name}';
+
+        for (final accent in [
+          scheme.primary,
+          scheme.secondary,
+          scheme.tertiary,
+          scheme.error,
+        ]) {
+          expect(
+            _contrast(accent, scheme.surface),
+            greaterThanOrEqualTo(4.5),
+            reason: 'accent $accent on the page, $where',
+          );
         }
       }
     });
 
     test('the scheme carries the palette through every surface role', () {
-      for (final palette in _curated) {
-        for (final brightness in Brightness.values) {
-          final colors = paletteColorsFor(palette, brightness)!;
-          final scheme = colors.toScheme(brightness);
+      for (final (palette, brightness) in _variants) {
+        final colors = paletteColorsFor(palette, brightness)!;
+        final scheme = colors.toScheme(brightness);
+        final where = '${palette.name}/${brightness.name}';
 
-          expect(scheme.brightness, brightness);
-          expect(scheme.surface, colors.background);
-          expect(scheme.onSurface, colors.text);
-          expect(scheme.onSurfaceVariant, colors.muted);
-          expect(scheme.primary, colors.primary);
-          expect(scheme.outline, colors.border);
-          expect(
-            scheme.surfaceContainerHighest,
-            isNot(scheme.surface),
-            reason: '${palette.name}/${brightness.name} has no card step',
-          );
-        }
+        expect(scheme.brightness, brightness);
+        expect(scheme.surface, colors.background);
+        expect(scheme.onSurface, colors.text);
+        expect(scheme.surfaceContainerLow, colors.containerLow);
+        expect(scheme.surfaceContainer, colors.container);
+        expect(scheme.surfaceContainerHigh, colors.containerHigh);
+        expect(scheme.surfaceContainerHighest, colors.containerHighest);
+        expect(scheme.outline, colors.line, reason: 'strong line, $where');
+        expect(
+          scheme.outlineVariant,
+          colors.border,
+          reason: 'soft hairline, $where',
+        );
+        expect(
+          scheme.outline,
+          isNot(scheme.outlineVariant),
+          reason: 'one line tone for both roles, $where',
+        );
       }
     });
 
@@ -164,13 +217,22 @@ void main() {
       expect(theme.scaffoldBackgroundColor, dracula.background);
       expect(theme.colorScheme.primary, dracula.primary);
 
-      final light = paletteColorsFor(ColorPalette.dracula, Brightness.light)!;
+      final alucard = paletteColorsFor(ColorPalette.dracula, Brightness.light)!;
       expect(
         AppThemeData.from(
           colorPalette: ColorPalette.dracula,
         ).day.colorScheme.surface,
-        light.background,
+        alucard.background,
       );
+    });
+
+    test('a dark-only theme seeds its day scheme from its accent', () {
+      final nord = paletteColorsFor(ColorPalette.nord, Brightness.dark)!;
+      final theme = AppThemeData.from(colorPalette: ColorPalette.nord);
+
+      expect(theme.night.colorScheme.surface, nord.background);
+      expect(theme.day.colorScheme.surface, isNot(nord.background));
+      expect(theme.day.colorScheme.brightness, Brightness.light);
     });
 
     test('midnight keeps the palette accents on black', () {

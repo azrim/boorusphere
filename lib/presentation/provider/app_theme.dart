@@ -41,26 +41,27 @@ class AppThemeData {
               ));
     // Harmonizing blends the scheme toward the wallpaper palette, which is
     // right for dynamic color and wrong for a palette the user picked by name.
-    final harmonize = accent == null && lightPreset == null;
-    final preset = lightPreset != null;
+    final harmonize = accent == null;
 
     return AppThemeData(
       day: _createThemeData(
         lightScheme,
         Brightness.light,
         harmonize: harmonize,
-        preset: preset,
+        // A theme that only ships a dark variant has no day ramp of its own,
+        // so its day scheme is the generated one and keeps the tonal steps.
+        preset: lightPreset != null,
       ),
       night: _createThemeData(
         darkScheme,
         Brightness.dark,
         harmonize: harmonize,
-        preset: preset,
+        preset: darkPreset != null,
       ),
       midnight: _createThemeDataMidnight(
         darkScheme,
         harmonize: harmonize,
-        preset: preset,
+        preset: darkPreset != null,
       ),
     );
   }
