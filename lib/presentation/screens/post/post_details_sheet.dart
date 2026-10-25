@@ -51,10 +51,30 @@ class PostDetailsSheet extends ConsumerStatefulWidget {
   ConsumerState<PostDetailsSheet> createState() => _PostDetailsSheetState();
 }
 
-class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
+class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
+    with SingleTickerProviderStateMixin {
+  /// How far a swipe has to travel, or how fast it has to be, before it
+  /// counts as a request for the neighbouring panel.
+  static const double _swipeDistance = 48;
+  static const double _swipeVelocity = 300;
+
   final Set<String> _selectedTags = {};
   int? _lastPostId;
   _Panel _panel = _Panel.details;
+
+  /// The panel sliding out, kept only while the switch animation runs.
+  _Panel? _leavingPanel;
+
+  /// Which way the panels travel: 1 towards the end, -1 towards the start.
+  int _panelDirection = 1;
+
+  /// Horizontal travel of the swipe in progress, in logical pixels.
+  double _travelled = 0;
+
+  late final AnimationController _panelAnimation = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+  )..addStatusListener(_onPanelAnimationStatus);
 
   @override
   void initState() {
@@ -75,8 +95,38 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
 
   @override
   void dispose() {
+    _panelAnimation.dispose();
     widget.postNotifier.removeListener(_onPostChanged);
     super.dispose();
+  }
+
+  void _onPanelAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed && _leavingPanel != null) {
+      setState(() => _leavingPanel = null);
+    }
+  }
+
+  void _goToPanel(int index) {
+    if (index < 0 || index >= _Panel.values.length) return;
+    if (index == _panel.index) return;
+
+    setState(() {
+      _panelDirection = index > _panel.index ? 1 : -1;
+      _leavingPanel = _panel;
+      _panel = _Panel.values[index];
+    });
+    _panelAnimation
+      ..duration = context.motionDuration(const Duration(milliseconds: 220))
+      ..forward(from: 0);
+  }
+
+  void _onSwipeEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (_travelled < -_swipeDistance || velocity < -_swipeVelocity) {
+      _goToPanel(_panel.index + 1);
+    } else if (_travelled > _swipeDistance || velocity > _swipeVelocity) {
+      _goToPanel(_panel.index - 1);
+    }
   }
 
   void _onPostChanged() {
@@ -101,6 +151,53 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
 
   void _clearSelection() {
     setState(_selectedTags.clear);
+  }
+
+  Widget _panelBody(Post post, Map<String, String> headers) {
+    final incoming = _panelOf(_panel, post, headers);
+    final leaving = _leavingPanel;
+    if (leaving == null) return incoming;
+
+    // Both panels are built once and reused across the frames, so a long tag
+    // list is not laid out again on every tick.
+    final outgoing = _panelOf(leaving, post, headers);
+
+    return AnimatedBuilder(
+      animation: _panelAnimation,
+      builder: (context, _) {
+        final progress = DesignTokens.curveStandard.transform(
+          _panelAnimation.value,
+        );
+
+        return ClipRect(
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              FractionalTranslation(
+                translation: Offset(-_panelDirection * progress, 0),
+                child: Opacity(opacity: 1 - progress, child: outgoing),
+              ),
+              FractionalTranslation(
+                translation: Offset(_panelDirection * (1 - progress), 0),
+                child: Opacity(opacity: progress, child: incoming),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _panelOf(_Panel panel, Post post, Map<String, String> headers) {
+    return switch (panel) {
+      _Panel.details => _DetailsPanel(post: post),
+      _Panel.tags => _TagsPanel(
+        post: post,
+        selectedTags: _selectedTags,
+        onTagPressed: _onTagPressed,
+      ),
+      _Panel.links => _LinksPanel(post: post, headers: headers),
+    };
   }
 
   /// Collapses the sheet back over the image instead of leaving the viewer.
@@ -176,27 +273,26 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet> {
                               ),
                             ],
                             index: _panel.index,
-                            onChanged: (index) =>
-                                setState(() => _panel = _Panel.values[index]),
+                            onChanged: _goToPanel,
                           ),
-                          AnimatedSize(
-                            duration: context.motionDuration(
-                              DesignTokens.durationFast,
+                          GestureDetector(
+                            // A horizontal swipe moves to the neighbouring
+                            // panel, so the strip is a shortcut rather than the
+                            // only way in. Opaque so the swipe also starts on
+                            // the blank part of a panel.
+                            behavior: HitTestBehavior.opaque,
+                            onHorizontalDragStart: (_) => _travelled = 0,
+                            onHorizontalDragUpdate: (details) =>
+                                _travelled += details.delta.dx,
+                            onHorizontalDragEnd: _onSwipeEnd,
+                            child: AnimatedSize(
+                              duration: context.motionDuration(
+                                DesignTokens.durationFast,
+                              ),
+                              curve: DesignTokens.curveStandard,
+                              alignment: Alignment.topCenter,
+                              child: _panelBody(post, headers),
                             ),
-                            curve: DesignTokens.curveStandard,
-                            alignment: Alignment.topCenter,
-                            child: switch (_panel) {
-                              _Panel.details => _DetailsPanel(post: post),
-                              _Panel.tags => _TagsPanel(
-                                post: post,
-                                selectedTags: _selectedTags,
-                                onTagPressed: _onTagPressed,
-                              ),
-                              _Panel.links => _LinksPanel(
-                                post: post,
-                                headers: headers,
-                              ),
-                            },
                           ),
                           // The action bar floats over the panel, so the
                           // content only makes room for it while it is up.
