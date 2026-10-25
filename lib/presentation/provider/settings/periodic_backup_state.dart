@@ -57,8 +57,11 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
     );
     return PeriodicBackupState(
       enabled: repo.get(Setting.periodicBackupEnabled, or: false),
-      frequency: BackupFrequency.fromIndex(
-        repo.get(Setting.periodicBackupFrequency, or: 0),
+      frequency: _frequencyFrom(
+        repo.get<Object>(
+          Setting.periodicBackupFrequency,
+          or: BackupFrequency.daily.name,
+        ),
       ),
       deleteOldBackups: repo.get(Setting.periodicBackupDeleteOld, or: true),
       maxBackupCount: repo.get(Setting.periodicBackupMaxCount, or: 3),
@@ -73,6 +76,17 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
     );
   }
 
+  /// Reads the stored frequency. A name is what this build writes, so a
+  /// reordered [BackupFrequency] keeps its meaning; an index is what an older
+  /// build left behind, and is still read the way that build wrote it.
+  BackupFrequency _frequencyFrom(Object stored) {
+    if (stored is int) return BackupFrequency.fromIndex(stored);
+    return BackupFrequency.values.firstWhere(
+      (it) => it.name == stored,
+      orElse: () => BackupFrequency.daily,
+    );
+  }
+
   Future<void> setEnabled(bool value) async {
     final repo = ref.read(settingsRepoProvider);
     state = state.copyWith(enabled: value);
@@ -82,7 +96,7 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
   Future<void> setFrequency(BackupFrequency value) async {
     final repo = ref.read(settingsRepoProvider);
     state = state.copyWith(frequency: value);
-    await repo.put(Setting.periodicBackupFrequency, value.index);
+    await repo.put(Setting.periodicBackupFrequency, value.name);
   }
 
   Future<void> setDeleteOldBackups(bool value) async {

@@ -67,6 +67,22 @@ void main() async {
       expect(state().themeMode, ThemeMode.light);
     });
 
+    test('themeMode is stored by name', () async {
+      await notifier().setThemeMode(ThemeMode.light);
+
+      final box = Hive.box(UserSettingsRepo.key);
+      expect(box.get(Setting.uiThemeMode.name), 'light');
+    });
+
+    test('a themeMode stored as an index still reads back', () async {
+      final box = Hive.box(UserSettingsRepo.key);
+      await box.put(Setting.uiThemeMode.name, ThemeMode.dark.index);
+      await box.flush();
+
+      ref.invalidate(uiSettingStateProvider);
+      expect(state().themeMode, ThemeMode.dark);
+    });
+
     test('midnightMode', () async {
       await notifier().setMidnightMode(true);
 

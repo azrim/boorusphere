@@ -39,8 +39,14 @@ class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
   GestureSettingState build() {
     final repo = ref.read(settingsRepoProvider);
     return GestureSettingState(
+      // The stored value is read as an Object: a name is what this build
+      // writes, an index is what an older build left behind, and
+      // [SwipeMode.parse] accepts both.
       swipeMode: SwipeMode.parse(
-        repo.get(Setting.gestureSwipeMode, or: SwipeMode.horizontal.index),
+        repo.get<Object>(
+          Setting.gestureSwipeMode,
+          or: SwipeMode.horizontal.name,
+        ),
       ),
       swipeDownThreshold: repo.get(
         Setting.gestureSwipeDownThreshold,
@@ -60,7 +66,7 @@ class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
   Future<void> updateSwipeMode(SwipeMode mode) async {
     final repo = ref.read(settingsRepoProvider);
     state = state.copyWith(swipeMode: mode);
-    await repo.put(Setting.gestureSwipeMode, mode.index);
+    await repo.put(Setting.gestureSwipeMode, mode.name);
   }
 
   Future<void> updateSwipeDownThreshold(double threshold) async {
@@ -86,7 +92,7 @@ class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
   Future<void> reset() async {
     final repo = ref.read(settingsRepoProvider);
     state = const GestureSettingState();
-    await repo.put(Setting.gestureSwipeMode, SwipeMode.horizontal.index);
+    await repo.put(Setting.gestureSwipeMode, SwipeMode.horizontal.name);
     await repo.put(Setting.gestureSwipeDownThreshold, 100.0);
     await repo.put(Setting.gestureEnableSwipeToDetails, true);
     await repo.put(Setting.gestureEnableSwipeToDismiss, true);

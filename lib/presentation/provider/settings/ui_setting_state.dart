@@ -17,16 +17,27 @@ class UiSettingState extends _$UiSettingState {
       blur: repo.get(Setting.uiBlur, or: true),
       grid: repo.get(Setting.uiTimelineGrid, or: 1),
       locale: localeFromStr(repo.get(Setting.uiLanguage, or: '')),
-      themeMode:
-          ThemeMode.values.elementAtOrNull(
-            repo.get(Setting.uiThemeMode, or: ThemeMode.system.index),
-          ) ??
-          ThemeMode.system,
+      themeMode: _themeModeFrom(
+        repo.get<Object>(Setting.uiThemeMode, or: ThemeMode.system.name),
+      ),
       midnightMode: repo.get(Setting.uiMidnightMode, or: false),
       imeIncognito: repo.get(Setting.imeIncognito, or: false),
       colorPalette: ColorPalette.fromName(
         repo.get(Setting.uiColorPalette, or: ColorPalette.system.name),
       ),
+    );
+  }
+
+  /// Reads the stored theme mode. A name is what this build writes, so a
+  /// reordered [ThemeMode] keeps its meaning; an index is what an older build
+  /// left behind, and is still read the way that build wrote it.
+  ThemeMode _themeModeFrom(Object stored) {
+    if (stored is int) {
+      return ThemeMode.values.elementAtOrNull(stored) ?? ThemeMode.system;
+    }
+    return ThemeMode.values.firstWhere(
+      (it) => it.name == stored,
+      orElse: () => ThemeMode.system,
     );
   }
 
@@ -71,7 +82,7 @@ class UiSettingState extends _$UiSettingState {
     final repo = ref.read(settingsRepoProvider);
 
     state = state.copyWith(themeMode: mode);
-    await repo.put(Setting.uiThemeMode, mode.index);
+    await repo.put(Setting.uiThemeMode, mode.name);
     return state.themeMode;
   }
 

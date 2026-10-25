@@ -52,6 +52,25 @@ void main() {
       expect(notifier().hasPassphrase, isFalse);
     });
 
+    test('setFrequency stores the name instead of the index', () async {
+      await notifier().setFrequency(BackupFrequency.monthly);
+
+      final box = Hive.box(UserSettingsRepo.key);
+      expect(box.get(Setting.periodicBackupFrequency.name), 'monthly');
+    });
+
+    test('a frequency stored as an index still reads back', () async {
+      final box = Hive.box(UserSettingsRepo.key);
+      await box.put(
+        Setting.periodicBackupFrequency.name,
+        BackupFrequency.weekly.index,
+      );
+      await box.flush();
+
+      ref.invalidate(periodicBackupSettingStateProvider);
+      expect(state().frequency, BackupFrequency.weekly);
+    });
+
     test('backups are not encrypted until the switch is turned on', () {
       expect(state().encryptBackup, isFalse);
     });
