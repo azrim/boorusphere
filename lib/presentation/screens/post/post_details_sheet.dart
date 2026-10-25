@@ -53,23 +53,36 @@ class PostDetailsSheet extends ConsumerStatefulWidget {
 
 class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     with SingleTickerProviderStateMixin {
-  /// How far a swipe has to travel, or how fast it has to be, before it
-  /// counts as a request for the neighbouring panel.
-  static const double _swipeDistance = 48;
-  static const double _swipeVelocity = 300;
+  /// Share of the sheet's width a drag covers before it commits — the same
+  /// half-page rule the platform pagers use.
+  static const double _commitFraction = 0.5;
+
+  /// A flick this fast commits without waiting for the half-way mark.
+  static const double _flingVelocity = 250;
 
   final Set<String> _selectedTags = {};
   int? _lastPostId;
   _Panel _panel = _Panel.details;
 
-  /// The panel sliding out, kept only while the switch animation runs.
-  _Panel? _leavingPanel;
+  /// How far the panels have travelled, in pages: -1 means the next panel has
+  /// arrived, 1 the previous one, and 0 is settled.
+  double _fraction = 0;
 
-  /// Which way the panels travel: 1 towards the end, -1 towards the start.
-  int _panelDirection = 1;
+  /// The neighbouring panel travelling alongside, while a drag or a tab switch
+  /// is in flight.
+  _Panel? _incomingPanel;
 
-  /// Horizontal travel of the swipe in progress, in logical pixels.
-  double _travelled = 0;
+  bool _dragging = false;
+
+  /// Start and end of the settle animation, in pages.
+  double _from = 0;
+  double _to = 0;
+
+  /// The widget built for [_incomingPanel], reused across the frames of one
+  /// gesture so a long tag list is not laid out again on every tick.
+  Widget? _incomingWidget;
+  _Panel? _builtPanel;
+  int? _builtPostId;
 
   late final AnimationController _panelAnimation = AnimationController(
     vsync: this,
@@ -100,33 +113,110 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     super.dispose();
   }
 
+  /// Where the panels sit right now, in pages: the finger while it is down,
+  /// the settle animation after it lifts.
+  double get _travelled => _dragging
+      ? _fraction
+      : _from +
+            (_to - _from) *
+                DesignTokens.curveStandard.transform(_panelAnimation.value);
+
+  /// The panel [offset] pages away, or null at either end of the strip.
+  _Panel? _panelAt(int offset) {
+    final index = _panel.index - offset;
+    if (index < 0 || index >= _Panel.values.length) return null;
+    return _Panel.values[index];
+  }
+
   void _onPanelAnimationStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed && _leavingPanel != null) {
-      setState(() => _leavingPanel = null);
-    }
+    if (status != AnimationStatus.completed) return;
+
+    final offset = _to == 0 ? 0 : (_to < 0 ? -1 : 1);
+    setState(() {
+      if (offset != 0) _panel = _panelAt(offset)!;
+      _fraction = 0;
+      _from = 0;
+      _to = 0;
+      _incomingPanel = null;
+      _incomingWidget = null;
+    });
+  }
+
+  /// Runs the panels to [to] pages and hands over when they land.
+  void _settle(double to) {
+    final from = _travelled;
+    setState(() {
+      _dragging = false;
+      _from = from;
+      _to = to;
+    });
+    _panelAnimation
+      ..duration = context.motionDuration(const Duration(milliseconds: 240))
+      ..forward(from: 0);
   }
 
   void _goToPanel(int index) {
     if (index < 0 || index >= _Panel.values.length) return;
     if (index == _panel.index) return;
 
+    final offset = index > _panel.index ? -1 : 1;
     setState(() {
-      _panelDirection = index > _panel.index ? 1 : -1;
-      _leavingPanel = _panel;
-      _panel = _Panel.values[index];
+      _dragging = false;
+      _from = 0;
+      _to = offset.toDouble();
+      _incomingPanel = _panelAt(offset);
+      _incomingWidget = null;
     });
     _panelAnimation
-      ..duration = context.motionDuration(const Duration(milliseconds: 220))
+      ..duration = context.motionDuration(const Duration(milliseconds: 240))
       ..forward(from: 0);
   }
 
-  void _onSwipeEnd(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-    if (_travelled < -_swipeDistance || velocity < -_swipeVelocity) {
-      _goToPanel(_panel.index + 1);
-    } else if (_travelled > _swipeDistance || velocity > _swipeVelocity) {
-      _goToPanel(_panel.index - 1);
+  void _onDragStart(DragStartDetails details) {
+    _panelAnimation.stop();
+    setState(() {
+      _dragging = true;
+      _fraction = 0;
+      _from = 0;
+      _to = 0;
+      _incomingPanel = null;
+      _incomingWidget = null;
+    });
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    final width = context.size?.width ?? 0;
+    if (width == 0) return;
+
+    var next = _fraction + details.delta.dx / width;
+    final neighbour = _panelAt(next < 0 ? -1 : 1);
+
+    // At either end the panel only leans, so the edge is felt instead of the
+    // gesture silently doing nothing.
+    if (neighbour == null) {
+      next = _fraction + details.delta.dx / width * 0.25;
     }
+
+    setState(() {
+      _fraction = next.clamp(-1.0, 1.0);
+      if (_incomingPanel != neighbour) {
+        _incomingPanel = neighbour;
+        _incomingWidget = null;
+      }
+    });
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    final direction = _fraction < 0 ? -1 : 1;
+    final fling =
+        velocity.abs() >= _flingVelocity &&
+        velocity.isNegative == (direction < 0);
+    final commit =
+        _panelAt(direction) != null &&
+        (_fraction.abs() >= _commitFraction || fling);
+
+    _settle(commit ? direction.toDouble() : 0);
   }
 
   void _onPostChanged() {
@@ -154,38 +244,54 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
   }
 
   Widget _panelBody(Post post, Map<String, String> headers) {
-    final incoming = _panelOf(_panel, post, headers);
-    final leaving = _leavingPanel;
-    if (leaving == null) return incoming;
+    final current = _panelOf(_panel, post, headers);
+    final incomingPanel = _incomingPanel;
+    if (incomingPanel == null || _travelled == 0) return current;
 
-    // Both panels are built once and reused across the frames, so a long tag
-    // list is not laid out again on every tick.
-    final outgoing = _panelOf(leaving, post, headers);
+    final incoming = _incomingWidgetFor(incomingPanel, post, headers);
 
     return AnimatedBuilder(
       animation: _panelAnimation,
       builder: (context, _) {
-        final progress = DesignTokens.curveStandard.transform(
-          _panelAnimation.value,
-        );
+        final travelled = _travelled;
 
         return ClipRect(
           child: Stack(
             alignment: Alignment.topCenter,
             children: [
               FractionalTranslation(
-                translation: Offset(-_panelDirection * progress, 0),
-                child: Opacity(opacity: 1 - progress, child: outgoing),
+                translation: Offset(travelled, 0),
+                child: current,
               ),
               FractionalTranslation(
-                translation: Offset(_panelDirection * (1 - progress), 0),
-                child: Opacity(opacity: progress, child: incoming),
+                // The neighbour waits one page away on the side the strip is
+                // travelling from.
+                translation: Offset(travelled + (travelled < 0 ? 1 : -1), 0),
+                child: incoming,
               ),
             ],
           ),
         );
       },
     );
+  }
+
+  /// Builds the neighbouring panel once per gesture, so dragging across a long
+  /// tag list does not lay it out again on every frame.
+  Widget _incomingWidgetFor(
+    _Panel panel,
+    Post post,
+    Map<String, String> headers,
+  ) {
+    if (_incomingWidget == null ||
+        _builtPanel != panel ||
+        _builtPostId != post.id) {
+      _incomingWidget = _panelOf(panel, post, headers);
+      _builtPanel = panel;
+      _builtPostId = post.id;
+    }
+
+    return _incomingWidget!;
   }
 
   Widget _panelOf(_Panel panel, Post post, Map<String, String> headers) {
@@ -240,43 +346,42 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                 ),
                 child: Stack(
                   children: [
-                    SingleChildScrollView(
-                      controller: scrollController,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const DragHandle(
-                            margin: EdgeInsets.only(
-                              top: DesignTokens.spacingCardInset,
-                              bottom: DesignTokens.spacingXs,
+                    GestureDetector(
+                      // The swipe belongs to the whole sheet, not to the panel
+                      // box: with a short panel most of the sheet is empty
+                      // space, and a gesture that only works on the rows is a
+                      // gesture nobody finds. Opaque so blank space counts.
+                      behavior: HitTestBehavior.opaque,
+                      onHorizontalDragStart: _onDragStart,
+                      onHorizontalDragUpdate: _onDragUpdate,
+                      onHorizontalDragEnd: _onDragEnd,
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const DragHandle(
+                              margin: EdgeInsets.only(
+                                top: DesignTokens.spacingCardInset,
+                                bottom: DesignTokens.spacingXs,
+                              ),
                             ),
-                          ),
-                          SheetTabs(
-                            tabs: [
-                              SheetTab(context.t.details),
-                              SheetTab(
-                                context.t.tags,
-                                count: '${post.allTags.length}',
-                              ),
-                              SheetTab(
-                                context.t.links,
-                                count: '${_linkCount(post)}',
-                              ),
-                            ],
-                            index: _panel.index,
-                            onChanged: _goToPanel,
-                          ),
-                          GestureDetector(
-                            // A horizontal swipe moves to the neighbouring
-                            // panel, so the strip is a shortcut rather than the
-                            // only way in. Opaque so the swipe also starts on
-                            // the blank part of a panel.
-                            behavior: HitTestBehavior.opaque,
-                            onHorizontalDragStart: (_) => _travelled = 0,
-                            onHorizontalDragUpdate: (details) =>
-                                _travelled += details.delta.dx,
-                            onHorizontalDragEnd: _onSwipeEnd,
-                            child: AnimatedSize(
+                            SheetTabs(
+                              tabs: [
+                                SheetTab(context.t.details),
+                                SheetTab(
+                                  context.t.tags,
+                                  count: '${post.allTags.length}',
+                                ),
+                                SheetTab(
+                                  context.t.links,
+                                  count: '${_linkCount(post)}',
+                                ),
+                              ],
+                              index: _panel.index,
+                              onChanged: _goToPanel,
+                            ),
+                            AnimatedSize(
                               duration: context.motionDuration(
                                 DesignTokens.durationFast,
                               ),
@@ -284,18 +389,18 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                               alignment: Alignment.topCenter,
                               child: _panelBody(post, headers),
                             ),
-                          ),
-                          // The action bar floats over the panel, so the
-                          // content only makes room for it while it is up.
-                          SafeArea(
-                            top: false,
-                            child: SizedBox(
-                              height: _selectedTags.isEmpty
-                                  ? DesignTokens.spacingMd
-                                  : DesignTokens.spacingXl * 3,
+                            // The action bar floats over the panel, so the
+                            // content only makes room for it while it is up.
+                            SafeArea(
+                              top: false,
+                              child: SizedBox(
+                                height: _selectedTags.isEmpty
+                                    ? DesignTokens.spacingMd
+                                    : DesignTokens.spacingXl * 3,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     if (_selectedTags.isNotEmpty)

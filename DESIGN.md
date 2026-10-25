@@ -196,7 +196,7 @@ One container for every bottom sheet in the app — post details, settings picke
 ### Sheet Tabs
 - **Use**: only when a sheet holds more than one kind of answer — the post details split into Details / Tags / Links
 - **Layout**: directly under the header at 48 dp, inside thumb reach; labels at `labelLarge`, the active one `onSurface` w600 over a 2 dp `primary` underline, and the strip closes with the panel hairline
-- **Swipe**: the panels also move on a horizontal swipe — 48 dp of travel or 300 dp/s — and the underline follows, so the strip is a shortcut rather than the only way in
+- **Swipe**: the panels follow the finger, and the gesture belongs to the whole sheet rather than to the rows — with a short panel most of the sheet is empty space, and a swipe that only works on the rows is a swipe nobody finds. It commits at half a page or a 250 dp/s flick, leans against a rubber band at either end, and the underline follows, so the strip is a shortcut rather than the only way in
 - **Count**: a tab may carry a muted count, so the size of what is behind it is known before the tap
 - **Motion**: underline and label weight animate at 150 ms, and the panel below resizes with `AnimatedSize`, so the sheet never jumps
 
