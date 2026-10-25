@@ -206,17 +206,12 @@ class UserServerRepo implements ServerRepo {
     await _migrateOneBasedPageParam();
   }
 
+  /// Exports the servers with their credentials, so restoring on a new device
+  /// does not ask the user to sign in again. The archive can still be encrypted
+  /// through the backup encryption option.
   @override
   Future<BackupItem> export() async {
-    return BackupItem(
-      key,
-      box.values.map((e) {
-        final json = e.toJson();
-        json['login'] = '';
-        json['apiKey'] = '';
-        return json;
-      }).toList(),
-    );
+    return BackupItem(key, box.values.map((e) => e.toJson()).toList());
   }
 
   static const String key = 'server';

@@ -175,4 +175,41 @@ void main() {
       expect(box.values.single.id, 'keep');
     });
   });
+
+  group('UserServerRepo.export', () {
+    late Box<Server> box;
+    late UserServerRepo repo;
+
+    setUp(() async {
+      box = await Hive.openBox<Server>(UserServerRepo.key);
+      await box.clear();
+      repo = UserServerRepo(defaultServers: const {}, box: box);
+    });
+
+    test('the export carries the stored credentials', () async {
+      await box.put(
+        '@srv',
+        const Server(id: 'srv', login: 'user', apiKey: 'secret'),
+      );
+
+      final exported = (await repo.export()).value as List;
+
+      expect(exported.single['login'], 'user');
+      expect(exported.single['apiKey'], 'secret');
+    });
+
+    test('a round-trip import keeps the credentials', () async {
+      await box.put(
+        '@srv',
+        const Server(id: 'srv', login: 'user', apiKey: 'secret'),
+      );
+      final payload = jsonEncode((await repo.export()).value);
+
+      await box.clear();
+      await repo.import(payload);
+
+      expect(box.values.single.login, 'user');
+      expect(box.values.single.apiKey, 'secret');
+    });
+  });
 }
