@@ -59,13 +59,19 @@ A scheme is produced one of two ways. The **System** palette takes the wallpaper
 
 ### What a curated palette decides
 
-- **Page**: the surface every screen paints behind its content.
-- **Panel**: cards, sheets, inputs and menus — the surface that sits on the page.
-- **Text / Muted**: primary and secondary text, both held at or above 4.5:1 on the page and on the panel.
-- **Primary / Secondary / Tertiary**: accents, each at or above 3:1 on the page.
-- **Border**: hairlines and section dividers.
+An editor theme ships a surface ramp — a page, the panels that float on it, the tone a selected row takes, and two grades of rule. That ramp is what a curated palette stores; `toScheme` maps it onto Material roles and never mixes a new surface out of two others.
 
-Containers, inverse roles and the intermediate surface steps are derived from those in `PaletteColors.toScheme`, so every palette keeps the same structure.
+- **Page** (`background`): the surface every screen paints behind its content.
+- **Steps** (`containerLow` → `containerHighest`): the theme's own background-light, floating, background-lighter and selection tones, mapped straight onto `surfaceContainerLow` through `surfaceContainerHighest`. A chip is the theme's selection colour, not a wash of its text colour.
+- **Lines** (`border`, `line`): the soft hairline (`outlineVariant`) and the theme's emphasis rule (`outline`) stay two different tones. Collapsing them into one is what made every edge read as a drawn line.
+- **Text / Muted**: the theme's foreground and comment tones.
+- **Primary / Secondary / Tertiary**: the theme's own syntax accents.
+
+A comment tone is written for syntax, not for UI, and a light theme's pink or yellow often lands under 4.5:1. `toScheme` therefore lifts the muted role and each accent towards the page's opposite, one small step at a time, and stops the moment the floor is met. The hue is always the theme's; only lightness moves, and only where it has to.
+
+Two themes ship one polarity only: **Nord** and **Monokai**. Their day scheme is generated from their accent, because inventing a light variant is exactly what this system stopped doing.
+
+**The Ramp Rule.** A surface is never mixed out of two other colours to produce a new tone. If the theme does not define a step, it is not invented — the role that would need it falls back to the nearest tone the theme does define.
 
 ### Generated palettes
 
