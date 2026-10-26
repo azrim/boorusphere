@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:boorusphere/data/dio/headers_factory.dart';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
@@ -15,63 +14,37 @@ import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 class BatchDownloadResult {
   const BatchDownloadResult({
     required this.success,
-    this.savedPath,
     this.error,
     this.savedCount = 0,
     this.failedCount = 0,
   });
 
   final bool success;
-
-  /// ZIP written for an archived batch, or the folder the files landed in.
-  final String? savedPath;
   final String? error;
 
-  /// Files that reached the disk; an archived batch counts its members.
+  /// Files that reached the disk.
   final int savedCount;
 
   /// URLs that produced no usable file.
   final int failedCount;
 }
 
-/// Runs in a background isolate: reads files from [filePaths], builds an
-/// [Archive], and encodes it as ZIP. Returns null on failure.
-List<int>? _encodeZip(List<String> filePaths) {
-  final archive = Archive();
-  for (final path in filePaths) {
-    final file = File(path);
-    if (file.existsSync()) {
-      final data = file.readAsBytesSync();
-      final fileName = path.split('/').last;
-      archive.addFile(ArchiveFile(fileName, data.length, data));
-    }
-  }
-  return ZipEncoder().encode(archive);
-}
-
 class BatchDownloadProvider {
-  /// Downloads images from [imageUrls] into the shared download folder.
-  ///
-  /// When [asArchive] is true, the files are bundled into a ZIP written next to
-  /// them. When false (default), individual files are saved to [storage].
+  /// Downloads [imageUrls] into the shared download folder, one file per URL.
   ///
   /// [posts] lets a request carry the Referer of the post it came from and, on
   /// top of that, gets every written file registered as a [DownloadEntry] when
-  /// [ref] is supplied, so the Downloads page lists what this batch saved. An
-  /// archived batch is the exception: its files only live inside the ZIP. A
+  /// [ref] is supplied, so the Downloads page lists what this batch saved. A
   /// URL that fails, or that answers with something which is not media, is
   /// dropped and counted in [BatchDownloadResult.failedCount] instead of
   /// ending the rest of the batch.
   static Future<BatchDownloadResult> download(
     List<String> imageUrls, {
-    bool asArchive = false,
     required SharedStorageHandle storage,
     WidgetRef? ref,
     List<Post>? posts,
@@ -92,17 +65,9 @@ class BatchDownloadProvider {
     // out of reach and a bare client is all that is left.
     final client = ref?.read(dioProvider) ?? Dio();
     final versionRepo = ref?.read(versionRepoProvider);
-    // An archived batch keeps its files only inside the ZIP, and the folder
-    // they were fetched into is deleted once it is written: recording them
-    // would leave the Downloads page listing files that are not on disk.
-    final entryState = asArchive
-        ? null
-        : ref?.read(downloadEntryStateProvider.notifier);
-    final progressState = asArchive
-        ? null
-        : ref?.read(downloadProgressStateProvider.notifier);
+    final entryState = ref?.read(downloadEntryStateProvider.notifier);
+    final progressState = ref?.read(downloadProgressStateProvider.notifier);
 
-    Directory? batchDir;
     try {
       await storage.init();
       final downloadsDir = Directory(storage.path);
@@ -110,28 +75,19 @@ class BatchDownloadProvider {
         downloadsDir.createSync(recursive: true);
       }
 
-      if (asArchive) {
-        final tempDir = await getTemporaryDirectory();
-        batchDir = Directory(
-          '${tempDir.path}/batch_download_${DateTime.now().millisecondsSinceEpoch}',
-        );
-        await batchDir.create(recursive: true);
-      }
-
-      final targetDir = asArchive ? batchDir! : downloadsDir;
       final usedNames = <String>{};
       final downloads = <Future<String?>>[];
 
       for (final imageUrl in imageUrls) {
         if (imageUrl.isEmpty) continue;
 
-        final fileName = _uniqueFileName(imageUrl, targetDir, usedNames);
+        final fileName = _uniqueFileName(imageUrl, downloadsDir, usedNames);
         downloads.add(
           _downloadOne(
             client: client,
             url: imageUrl,
             fileName: fileName,
-            destPath: '${targetDir.path}/$fileName',
+            destPath: '${downloadsDir.path}/$fileName',
             storage: storage,
             post: _findPost(imageUrl, posts),
             versionRepo: versionRepo,
@@ -143,45 +99,10 @@ class BatchDownloadProvider {
 
       final results = await Future.wait(downloads);
       final saved = results.whereType<String>().toList();
-      final savedCount = saved.length;
-      final failedCount = results.length - savedCount;
-
-      if (asArchive) {
-        if (savedCount == 0) {
-          return BatchDownloadResult(
-            success: false,
-            error: 'No files downloaded',
-            failedCount: failedCount,
-          );
-        }
-
-        final filePaths = batchDir!
-            .listSync()
-            .whereType<File>()
-            .map((f) => f.path)
-            .toList();
-
-        final zipData = await compute(_encodeZip, filePaths);
-        if (zipData == null) {
-          throw Exception('Failed to create ZIP archive');
-        }
-
-        final zipFileName =
-            'batch_${DateTime.now().millisecondsSinceEpoch}.zip';
-        final finalZipPath = '${downloadsDir.path}/$zipFileName';
-        await File(finalZipPath).writeAsBytes(zipData);
-        await storage.rescanFile(finalZipPath);
-
-        return BatchDownloadResult(
-          success: true,
-          savedPath: finalZipPath,
-          savedCount: savedCount,
-          failedCount: failedCount,
-        );
-      }
+      final failedCount = results.length - saved.length;
 
       await Future.wait(saved.map(storage.rescanFile));
-      if (savedCount == 0) {
+      if (saved.isEmpty) {
         return BatchDownloadResult(
           success: false,
           error: 'No files downloaded',
@@ -191,17 +112,11 @@ class BatchDownloadProvider {
 
       return BatchDownloadResult(
         success: true,
-        savedPath: downloadsDir.path,
-        savedCount: savedCount,
+        savedCount: saved.length,
         failedCount: failedCount,
       );
     } catch (e) {
       return BatchDownloadResult(success: false, error: e.toString());
-    } finally {
-      // Always clean up temp directory
-      if (batchDir != null && batchDir.existsSync()) {
-        batchDir.deleteSync(recursive: true);
-      }
     }
   }
 

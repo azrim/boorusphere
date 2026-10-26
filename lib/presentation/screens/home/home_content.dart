@@ -318,7 +318,7 @@ class HomeContent extends HookConsumerWidget {
             right: DesignTokens.spacingMd,
             child: _SelectionActionBar(
               selectedCount: selectedCount,
-              onDownload: (asArchive) async {
+              onDownload: () async {
                 final selection = ref.read(postSelectionProvider);
                 final selectedPosts = filteredPosts
                     .where((post) => selection.contains(post.id))
@@ -348,7 +348,6 @@ class HomeContent extends HookConsumerWidget {
 
                 final result = await BatchDownloadProvider.download(
                   imageUrls,
-                  asArchive: asArchive,
                   storage: ref.read(sharedStorageHandleProvider),
                   ref: ref,
                   posts: selectedPosts,
@@ -359,17 +358,13 @@ class HomeContent extends HookConsumerWidget {
                     // The count comes from the batch, not from the request:
                     // a URL that answered with something other than media was
                     // dropped, and the message reports what reached the disk.
-                    final msg = asArchive
-                        ? context.t.batch.downloaded(
-                            n: result.savedCount,
-                            filename:
-                                result.savedPath?.split('/').last ??
-                                'batch.zip',
-                          )
-                        : context.t.batch.downloadedFiles(n: result.savedCount);
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text(msg)));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          context.t.batch.downloadedFiles(n: result.savedCount),
+                        ),
+                      ),
+                    );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(context.t.batch.failed)),
@@ -512,7 +507,7 @@ class _SelectionActionBar extends StatelessWidget {
   });
 
   final int selectedCount;
-  final void Function(bool asArchive) onDownload;
+  final VoidCallback onDownload;
   final VoidCallback onFavorite;
   final VoidCallback onClear;
 
@@ -538,32 +533,10 @@ class _SelectionActionBar extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            PopupMenuButton<bool>(
-              tooltip: context.t.downloads.title,
+            IconButton(
+              onPressed: onDownload,
+              tooltip: context.t.batch.downloadFiles,
               icon: const Icon(Icons.download_rounded),
-              onSelected: onDownload,
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: false,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.download_outlined),
-                      const SizedBox(width: DesignTokens.spacingMd),
-                      Flexible(child: Text(context.t.batch.downloadFiles)),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: true,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.folder_zip_outlined),
-                      const SizedBox(width: DesignTokens.spacingMd),
-                      Flexible(child: Text(context.t.batch.asArchive)),
-                    ],
-                  ),
-                ),
-              ],
             ),
             IconButton(
               onPressed: onFavorite,
