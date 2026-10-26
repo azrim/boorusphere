@@ -89,6 +89,23 @@ void main() {
 
   tearDown(() => container.dispose());
 
+  group('DownloadEntryState.add', () {
+    test('publishes the record before the box write', () async {
+      const entry = DownloadEntry(id: 'new', dest: 'b.jpg');
+
+      final pending = notifier().add(entry);
+
+      // A completion event arriving during the write has to find the entry.
+      expect(container.read(downloadEntryStateProvider).map((it) => it.id), [
+        'old',
+        'new',
+      ]);
+
+      await pending;
+      expect(repo.hasEntry('new'), isTrue);
+    });
+  });
+
   group('DownloadEntryState.update', () {
     test('writes the replacement before dropping the old record', () async {
       await notifier().update('old', oldEntry.copyWith(id: 'new'));

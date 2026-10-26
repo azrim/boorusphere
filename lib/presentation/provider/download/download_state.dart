@@ -16,10 +16,15 @@ class DownloadEntryState extends _$DownloadEntryState {
     return repo.getEntries().toList();
   }
 
+  /// Records [entry] and publishes it before the box write.
+  ///
+  /// A task can finish before its record lands, and the download completion
+  /// callback drops an event it cannot find an entry for: publishing first
+  /// keeps the record readable while the write is still in flight.
   Future<void> add(DownloadEntry entry) async {
     final repo = ref.read(downloadsRepoProvider);
-    await repo.addEntry(entry);
     state = [...state.where((it) => it.id != entry.id), entry];
+    await repo.addEntry(entry);
   }
 
   Future<void> remove(String id) async {

@@ -254,17 +254,21 @@ class Downloader {
       await ref.read(downloadEntryStateProvider.notifier).add(entry);
       // The plugin's ENQUEUED event has no Dart handler, so without this row
       // the entry keeps reporting an empty status until the worker starts,
-      // which never happens while the device is offline.
-      await ref
-          .read(downloadProgressStateProvider.notifier)
-          .update(
-            DownloadProgress(
-              id: taskId,
-              status: DownloadStatus.pending,
-              progress: 0,
-              timestamp: DateTime.now().millisecondsSinceEpoch,
-            ),
-          );
+      // which never happens while the device is offline. A task that already
+      // reported itself keeps the status it wrote.
+      final current = ref.read(downloadProgressStateProvider).getById(taskId);
+      if (current.status.isEmpty) {
+        await ref
+            .read(downloadProgressStateProvider.notifier)
+            .update(
+              DownloadProgress(
+                id: taskId,
+                status: DownloadStatus.pending,
+                progress: 0,
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
+      }
     }
     return taskId;
   }
