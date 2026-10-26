@@ -3,6 +3,7 @@ import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/text_match.dart';
@@ -84,11 +85,14 @@ class SuggestionState extends _$SuggestionState {
           .getSuggestion(word);
       if (word != _lastWord) return;
 
+      // Scoped like the timeline: a tag blocked on one server is still a
+      // usable tag on the others, and the cached state saves a box read per
+      // keystroke.
       final blockedNames = ref
-          .read(tagsBlockerRepoProvider)
-          .get()
+          .read(tagsBlockerStateProvider)
           .values
-          .map((e) => e.name)
+          .where((it) => it.serverId.isEmpty || it.serverId == server.id)
+          .map((it) => it.name)
           .toSet();
 
       final seen = <String>{};
