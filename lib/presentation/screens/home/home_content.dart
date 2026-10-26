@@ -23,6 +23,7 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -141,6 +142,14 @@ class HomeContent extends HookConsumerWidget {
     final selectedCount = ref.watch(
       postSelectionProvider.select((it) => it.length),
     );
+
+    // Batch progress lives in a notifier so the action bar repaints on it
+    // without rebuilding the grid behind it.
+    final downloadProgress = useMemoized(
+      () => ValueNotifier<BatchDownloadProgress?>(null),
+      const [],
+    );
+    useEffect(() => downloadProgress.dispose, [downloadProgress]);
 
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final barHeight = useValueListenable(HomeSearchBar.height);
@@ -324,6 +333,7 @@ class HomeContent extends HookConsumerWidget {
             right: DesignTokens.spacingMd,
             child: _SelectionActionBar(
               selectedCount: selectedCount,
+              progress: downloadProgress,
               onDownload: () async {
                 final selection = ref.read(postSelectionProvider);
                 final selectedPosts = filteredPosts
@@ -331,17 +341,6 @@ class HomeContent extends HookConsumerWidget {
                     .toList();
 
                 if (selectedPosts.isEmpty) return;
-
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        context.t.batch.downloading(n: selectedPosts.length),
-                      ),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
 
                 final imageUrls = selectedPosts
                     .map(
@@ -352,12 +351,28 @@ class HomeContent extends HookConsumerWidget {
                     .where((url) => url.isNotEmpty)
                     .toList();
 
-                final result = await BatchDownloadProvider.download(
-                  imageUrls,
-                  storage: ref.read(sharedStorageHandleProvider),
-                  ref: ref,
-                  posts: selectedPosts,
-                );
+                // The bar carries the status: it counts the settled files and
+                // moves its own progress line while the batch runs.
+                if (imageUrls.isNotEmpty) {
+                  downloadProgress.value = (
+                    done: 0,
+                    total: imageUrls.length,
+                    fraction: 0,
+                  );
+                }
+
+                final BatchDownloadResult result;
+                try {
+                  result = await BatchDownloadProvider.download(
+                    imageUrls,
+                    storage: ref.read(sharedStorageHandleProvider),
+                    ref: ref,
+                    posts: selectedPosts,
+                    onProgress: (progress) => downloadProgress.value = progress,
+                  );
+                } finally {
+                  downloadProgress.value = null;
+                }
 
                 if (context.mounted) {
                   if (result.success) {
@@ -507,56 +522,93 @@ class _BackToTopButton extends StatelessWidget {
 class _SelectionActionBar extends StatelessWidget {
   const _SelectionActionBar({
     required this.selectedCount,
+    required this.progress,
     required this.onDownload,
     required this.onFavorite,
     required this.onClear,
   });
 
   final int selectedCount;
+
+  /// Progress of a running batch, null when nothing is downloading. The bar
+  /// turns into the status of that batch while it is set, so the actions that
+  /// would start another one are disabled.
+  final ValueListenable<BatchDownloadProgress?> progress;
+
   final VoidCallback onDownload;
   final VoidCallback onFavorite;
   final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
+    return ValueListenableBuilder<BatchDownloadProgress?>(
+      valueListenable: progress,
+      builder: (context, value, _) {
+        final colorScheme = context.colorScheme;
 
-    return Card(
-      elevation: 0,
-      color: colorScheme.surfaceContainerHigh,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingXs),
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DesignTokens.spacingSm,
+        return Card(
+          elevation: 0,
+          color: colorScheme.surfaceContainerHigh,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingXs,
+                ),
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: DesignTokens.spacingSm,
+                      ),
+                      child: Text(
+                        value == null
+                            ? '$selectedCount'
+                            : '${value.done}/${value.total}',
+                        style: context.theme.textTheme.titleMedium,
+                        semanticsLabel: value == null
+                            ? context.t.batch.selected(n: selectedCount)
+                            : context.t.batch.downloading(n: value.total),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: value == null ? onDownload : null,
+                      tooltip: context.t.batch.downloadFiles,
+                      icon: value == null
+                          ? const Icon(Icons.download_rounded)
+                          : SizedBox.square(
+                              dimension: DesignTokens.iconInline,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                value: value.fraction,
+                              ),
+                            ),
+                    ),
+                    IconButton(
+                      onPressed: value == null ? onFavorite : null,
+                      tooltip: context.t.favorites.title,
+                      icon: const Icon(Icons.favorite_border),
+                    ),
+                    IconButton(
+                      onPressed: value == null ? onClear : null,
+                      tooltip: context.t.clearSelection,
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
               ),
-              child: Text(
-                '$selectedCount',
-                style: context.theme.textTheme.titleMedium,
-                semanticsLabel: context.t.batch.selected(n: selectedCount),
-              ),
-            ),
-            const Spacer(),
-            IconButton(
-              onPressed: onDownload,
-              tooltip: context.t.batch.downloadFiles,
-              icon: const Icon(Icons.download_rounded),
-            ),
-            IconButton(
-              onPressed: onFavorite,
-              tooltip: context.t.favorites.title,
-              icon: const Icon(Icons.favorite_border),
-            ),
-            IconButton(
-              onPressed: onClear,
-              tooltip: context.t.clearSelection,
-              icon: const Icon(Icons.close_rounded),
-            ),
-          ],
-        ),
-      ),
+              if (value != null)
+                LinearProgressIndicator(
+                  value: value.fraction,
+                  minHeight: DesignTokens.spacingXs,
+                  semanticsLabel: context.t.batch.downloading(n: value.total),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

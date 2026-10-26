@@ -16,6 +16,11 @@ import 'package:boorusphere/utils/logger.dart';
 import 'package:dio/dio.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+/// How far a running batch has got: [done] files settled out of [total], and
+/// [fraction] of the whole batch that has arrived. A settled file counts as
+/// arrived, so the bar still ends at 1 when a URL failed.
+typedef BatchDownloadProgress = ({int done, int total, double fraction});
+
 class BatchDownloadResult {
   const BatchDownloadResult({
     required this.success,
@@ -43,11 +48,15 @@ class BatchDownloadProvider {
   /// URL that fails, or that answers with something which is not media, is
   /// dropped and counted in [BatchDownloadResult.failedCount] instead of
   /// ending the rest of the batch.
+  ///
+  /// [onProgress] is called as the batch advances, throttled to changes worth
+  /// a repaint: the caller may be rebuilding a UI with it.
   static Future<BatchDownloadResult> download(
     List<String> imageUrls, {
     required SharedStorageHandle storage,
     WidgetRef? ref,
     List<Post>? posts,
+    void Function(BatchDownloadProgress progress)? onProgress,
   }) async {
     if (imageUrls.isEmpty) {
       return const BatchDownloadResult(
@@ -75,12 +84,41 @@ class BatchDownloadProvider {
         downloadsDir.createSync(recursive: true);
       }
 
+      final urls = imageUrls.where((it) => it.isNotEmpty).toList();
       final usedNames = <String>{};
       final downloads = <Future<String?>>[];
 
-      for (final imageUrl in imageUrls) {
-        if (imageUrl.isEmpty) continue;
+      // One fraction per queued file: the batch runs them side by side, so a
+      // single "current file" would jump around as they settle.
+      final fractions = List<double>.filled(urls.length, 0);
+      var settled = 0;
+      var lastFraction = -1.0;
+      var lastSettled = -1;
 
+      void report() {
+        final sum = fractions.fold<double>(0, (total, it) => total + it);
+        final fraction = urls.isEmpty
+            ? 0.0
+            : (sum / urls.length).clamp(0.0, 1.0);
+        // A progress that moves by less than a hundredth of the batch is not
+        // worth a rebuild of the bar.
+        if (settled == lastSettled && (fraction - lastFraction).abs() < 0.01) {
+          return;
+        }
+        lastFraction = fraction;
+        lastSettled = settled;
+        onProgress?.call((
+          done: settled,
+          total: urls.length,
+          fraction: fraction,
+        ));
+      }
+
+      report();
+
+      for (var i = 0; i < urls.length; i++) {
+        final index = i;
+        final imageUrl = urls[i];
         final fileName = _uniqueFileName(imageUrl, downloadsDir, usedNames);
         downloads.add(
           _downloadOne(
@@ -93,7 +131,16 @@ class BatchDownloadProvider {
             versionRepo: versionRepo,
             entryState: entryState,
             progressState: progressState,
-          ),
+            onReceiveProgress: (received, total) {
+              if (total <= 0) return;
+              fractions[index] = (received / total).clamp(0.0, 1.0);
+              report();
+            },
+          ).whenComplete(() {
+            settled++;
+            fractions[index] = 1;
+            report();
+          }),
         );
       }
 
@@ -132,11 +179,13 @@ class BatchDownloadProvider {
     required VersionRepo? versionRepo,
     required DownloadEntryState? entryState,
     required DownloadProgressState? progressState,
+    void Function(int received, int total)? onReceiveProgress,
   }) async {
     try {
       await client.download(
         url,
         destPath,
+        onReceiveProgress: onReceiveProgress,
         options: Options(
           // Media URLs are served through CDN redirects, while the app client
           // leaves redirects to its callers.
