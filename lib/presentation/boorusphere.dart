@@ -203,7 +203,7 @@ class Boorusphere extends HookConsumerWidget {
           return;
         }
 
-        await storage.rescan();
+        await storage.rescanFile(entry.dest);
         await progressState.update(progress);
       });
       return null;

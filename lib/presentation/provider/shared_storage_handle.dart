@@ -147,8 +147,20 @@ class SharedStorageHandle {
     }
   }
 
+  /// Asks the platform to scan the download folder.
+  ///
+  /// The scanner takes files, so this only refreshes the folder entry itself:
+  /// a file that has to show up in the gallery goes through [rescanFile].
   Future<void> rescan() async {
     await StorageUtil().scanMedia(path);
+  }
+
+  /// Indexes the file at [dest] into the platform media database.
+  ///
+  /// A file written into the folder stays out of the gallery and the media
+  /// pickers until the system scans it by path.
+  Future<void> rescanFile(String dest) async {
+    await StorageUtil().scanMedia(_resolveFile(dest).path);
   }
 
   Future<void> hide(bool hide) async {

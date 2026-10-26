@@ -120,7 +120,7 @@ class BatchDownloadProvider {
 
       final targetDir = asArchive ? batchDir! : downloadsDir;
       final usedNames = <String>{};
-      final downloads = <Future<bool>>[];
+      final downloads = <Future<String?>>[];
 
       for (final imageUrl in imageUrls) {
         if (imageUrl.isEmpty) continue;
@@ -142,7 +142,8 @@ class BatchDownloadProvider {
       }
 
       final results = await Future.wait(downloads);
-      final savedCount = results.where((it) => it).length;
+      final saved = results.whereType<String>().toList();
+      final savedCount = saved.length;
       final failedCount = results.length - savedCount;
 
       if (asArchive) {
@@ -169,7 +170,7 @@ class BatchDownloadProvider {
             'batch_${DateTime.now().millisecondsSinceEpoch}.zip';
         final finalZipPath = '${downloadsDir.path}/$zipFileName';
         await File(finalZipPath).writeAsBytes(zipData);
-        await storage.rescan();
+        await storage.rescanFile(finalZipPath);
 
         return BatchDownloadResult(
           success: true,
@@ -179,7 +180,7 @@ class BatchDownloadProvider {
         );
       }
 
-      await storage.rescan();
+      await Future.wait(saved.map(storage.rescanFile));
       if (savedCount == 0) {
         return BatchDownloadResult(
           success: false,
@@ -204,9 +205,9 @@ class BatchDownloadProvider {
     }
   }
 
-  /// Fetches [url] into [destPath] and reports whether a media file ended up
-  /// there.
-  static Future<bool> _downloadOne({
+  /// Fetches [url] into [destPath] and reports the name of the media file that
+  /// ended up there, or null when the URL produced no usable file.
+  static Future<String?> _downloadOne({
     required Dio client,
     required String url,
     required String fileName,
@@ -230,13 +231,13 @@ class BatchDownloadProvider {
       );
     } catch (e) {
       mainLog.e('BatchDownloadProvider: failed to fetch $url', e);
-      return false;
+      return null;
     }
 
     if (!storage.isValidMedia(destPath)) {
       mainLog.w('BatchDownloadProvider: $url did not return media');
       _deleteQuietly(File(destPath));
-      return false;
+      return null;
     }
 
     if (post != null && entryState != null && progressState != null) {
@@ -247,7 +248,7 @@ class BatchDownloadProvider {
         dest: fileName,
       );
     }
-    return true;
+    return fileName;
   }
 
   /// Request headers the single-download path sends: a booru behind hotlink
