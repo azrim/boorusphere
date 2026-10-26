@@ -110,6 +110,9 @@ class PageState extends _$PageState {
   /// Used for the first load, retry and pull-to-refresh. An option marked with
   /// `clear` (a new query) restarts from the first page.
   Future<void> load() async {
+    // A caller can hand this over and the page can be gone by the time it
+    // runs (a rating picked while the timeline closes).
+    if (!ref.mounted) return;
     if (!_hasServer()) return;
     if (_fetching) return;
 
@@ -149,6 +152,9 @@ class PageState extends _$PageState {
       state = FetchResult.loading(state.data.copyWith(option: option));
 
       final result = await _fetchPage(option, _page);
+      // The page can be popped while the request is on the wire; the element
+      // is gone then and every further write would throw.
+      if (!ref.mounted) return;
       if (result == null) {
         // No displayable posts on the first page: keep the existing
         // empty-result error behavior.
@@ -170,6 +176,7 @@ class PageState extends _$PageState {
         ),
       );
     } catch (err, stack) {
+      if (!ref.mounted) return;
       state = FetchResult.error(state.data, error: err, stackTrace: stack);
     } finally {
       _fetching = false;
@@ -213,12 +220,14 @@ class PageState extends _$PageState {
       limit: settings.postLimit,
       searchRating: settings.searchRating,
     );
-    // The page size changed while this page was on screen, so the index no
-    // longer maps to the same window; reload from the first page instead of
-    // showing posts the reader has already seen.
-    final limitChanged = option.limit != current.option.limit;
-    if (limitChanged) target = 0;
-    final direction = limitChanged || target >= _page ? 1 : -1;
+    // The result window changed while this page was on screen (a different
+    // page size or rating), so the index no longer maps to the same posts;
+    // reload from the first page instead of showing a shifted window.
+    final windowChanged =
+        option.limit != current.option.limit ||
+        option.searchRating != current.option.searchRating;
+    if (windowChanged) target = 0;
+    final direction = windowChanged || target >= _page ? 1 : -1;
 
     _fetching = true;
     try {
@@ -227,17 +236,18 @@ class PageState extends _$PageState {
       state = FetchResult.loading(current.copyWith(option: option));
 
       final result = await _fetchPage(option, target, direction: direction);
+      if (!ref.mounted) return;
       if (result == null) {
         // The navigation target has no displayable posts: keep the displayed
-        // posts and stay on the current page. Only a failed forward step says
-        // anything about what comes next; going back must not disable the
-        // forward arrow of the page still on screen. It does say that nothing
-        // is reachable behind this page, so the back arrow must stop offering
-        // a step that can never happen.
+        // posts and stay on the current page. Only a failed step to the page
+        // right next door proves the end of the results; a jump further ahead
+        // says nothing about the neighbour still on offer, and disabling that
+        // arrow would strand the reader on this page.
         state = FetchResult.data(
-          direction > 0
-              ? current.copyWith(hasNext: false)
-              : current.copyWith(hasPrev: false),
+          current.copyWith(
+            hasNext: target == _page + 1 ? false : current.hasNext,
+            hasPrev: target == _page - 1 ? false : current.hasPrev,
+          ),
         );
         return;
       }
@@ -253,6 +263,7 @@ class PageState extends _$PageState {
         ),
       );
     } catch (err, stack) {
+      if (!ref.mounted) return;
       _retryTarget = target;
       state = FetchResult.error(
         current.copyWith(option: option),
@@ -271,8 +282,10 @@ class PageState extends _$PageState {
     final pending = _pendingOption;
     if (pending == null) return;
     _pendingOption = null;
-    // A new query supersedes a retry meant for the previous one.
-    if (pending.clear) _retryTarget = null;
+    // The queued option is the last thing the reader asked for, so it always
+    // supersedes a retry aimed at the page that request failed on.
+    _retryTarget = null;
+    if (!ref.mounted) return;
     state = state.copyWith(data: state.data.copyWith(option: pending));
     unawaited(load());
   }

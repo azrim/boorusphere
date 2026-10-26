@@ -47,6 +47,9 @@ class _FakeRepo implements ImageboardRepo {
   /// When set, every fetch waits for it before answering.
   Completer<void>? gate;
 
+  /// Page indexes whose fetch fails.
+  final failing = <int>{};
+
   @override
   Server get server => _server;
 
@@ -58,6 +61,7 @@ class _FakeRepo implements ImageboardRepo {
     requested.add(index);
     final pending = gate;
     if (pending != null) await pending.future;
+    if (failing.contains(index)) throw Exception('page $index failed');
     return pages[index] ?? const ParsedPage.empty();
   }
 }
@@ -181,6 +185,66 @@ void main() {
     final requestedBefore = repo.requested.length;
     await notifier.prevPage();
     expect(repo.requested.length, requestedBefore);
+  });
+
+  test('a failed jump past the end keeps the next page on offer', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+      1: ParsedPage(posts: [_post(2)], rawCount: 1),
+    });
+    final container = _container(repo);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.goToPage(5);
+    expect(container.read(pageStateProvider).data.pageIndex, 1);
+    // The jump proved nothing about the page directly behind this one.
+    expect(container.read(pageStateProvider).data.hasNext, isTrue);
+
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider).data.pageIndex, 2);
+  });
+
+  test('a fetch that lands after the page is gone does not throw', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+    });
+    repo.gate = Completer<void>();
+    final container = _container(repo);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    final loading = notifier.load();
+    container.dispose();
+    repo.gate!.complete();
+    await loading;
+  });
+
+  test('an option queued behind a failed fetch is applied', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+      1: ParsedPage(posts: [_post(2)], rawCount: 1),
+    });
+    final container = _container(repo);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+    await notifier.load();
+
+    repo.gate = Completer<void>();
+    repo.failing.add(1);
+    final nav = notifier.nextPage();
+    // Queued while the navigation is still on the wire, and newer than the
+    // request that is about to fail.
+    await notifier.update((it) => it.copyWith(limit: 8));
+    repo.gate!.complete();
+    repo.gate = null;
+    await nav;
+    await pumpEventQueue();
+
+    // The queued option wins: the page it restarts is fetched again instead of
+    // the navigation that just failed being retried.
+    expect(repo.requested.last, 0);
+    expect(container.read(pageStateProvider).data.pageIndex, 1);
   });
 
   test('a page change queued during a fetch is not dropped', () async {
