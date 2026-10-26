@@ -64,7 +64,8 @@ class BatchDownloadProvider {
   ///
   /// [posts] lets a request carry the Referer of the post it came from and, on
   /// top of that, gets every written file registered as a [DownloadEntry] when
-  /// [ref] is supplied, so the Downloads page lists what this batch saved. A
+  /// [ref] is supplied, so the Downloads page lists what this batch saved. An
+  /// archived batch is the exception: its files only live inside the ZIP. A
   /// URL that fails, or that answers with something which is not media, is
   /// dropped and counted in [BatchDownloadResult.failedCount] instead of
   /// ending the rest of the batch.
@@ -91,8 +92,15 @@ class BatchDownloadProvider {
     // out of reach and a bare client is all that is left.
     final client = ref?.read(dioProvider) ?? Dio();
     final versionRepo = ref?.read(versionRepoProvider);
-    final entryState = ref?.read(downloadEntryStateProvider.notifier);
-    final progressState = ref?.read(downloadProgressStateProvider.notifier);
+    // An archived batch keeps its files only inside the ZIP, and the folder
+    // they were fetched into is deleted once it is written: recording them
+    // would leave the Downloads page listing files that are not on disk.
+    final entryState = asArchive
+        ? null
+        : ref?.read(downloadEntryStateProvider.notifier);
+    final progressState = asArchive
+        ? null
+        : ref?.read(downloadProgressStateProvider.notifier);
 
     Directory? batchDir;
     try {
