@@ -109,21 +109,27 @@ class HomeContent extends HookConsumerWidget {
       };
     }, [scrollController]);
 
-    // React to a successful page change: scroll back to the top and drop any
-    // selection that belonged to the previous page.
+    // React to a page change or a new query: scroll back to the top and drop
+    // any selection that belonged to the previous results.
     final pageIndex = data.pageIndex;
+    final query = data.option.query;
     final lastPageIndex = useMemoized(() => <int>[pageIndex]);
+    final lastQuery = useMemoized(() => <String>[query]);
     useEffect(() {
-      final previous = lastPageIndex[0];
+      final indexChanged = lastPageIndex[0] != pageIndex;
       lastPageIndex[0] = pageIndex;
-      if (previous == pageIndex) return null;
+      // A new query restarts at the first page, so the index alone does not
+      // change and the new results would open at the old offset.
+      final queryChanged = lastQuery[0] != query;
+      lastQuery[0] = query;
+      if (!indexChanged && !queryChanged) return null;
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (scrollController.hasClients) scrollController.jumpTo(0);
       });
       ref.read(postSelectionProvider.notifier).clear();
       return null;
-    }, [pageIndex, scrollController]);
+    }, [pageIndex, query, scrollController]);
 
     final isNewSearch = !isData && data.option.clear;
 
