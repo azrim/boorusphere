@@ -6,7 +6,13 @@ import 'package:dio/io.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 
-class AppDio with DioMixin implements Dio {
+/// App HTTP client: the platform client plus the cookie jar, the default
+/// headers and the retry policy.
+///
+/// Extends [DioForNative] rather than `DioMixin` alone: [Dio.download] is
+/// implemented by the concrete class, and a bare mixin answers it with
+/// `UnimplementedError` — which is what the batch download hit.
+class AppDio extends DioForNative {
   AppDio({required CookieJar cookieJar, required EnvRepo envRepo}) {
     options = BaseOptions(
       connectTimeout: const Duration(seconds: 15),
