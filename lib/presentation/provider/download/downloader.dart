@@ -384,6 +384,10 @@ class Downloader {
     try {
       final file = File(p.join(sharedStorageHandle.path, Uri.decodeFull(dest)));
       await file.delete();
+      // The bytes are gone but the gallery keeps its row for the path, which
+      // turns into a thumbnail that cannot be opened: scanning the removed
+      // path is what drops it.
+      await sharedStorageHandle.rescanFile(dest);
     } catch (e) {
       mainLog.e('Downloader: failed to delete $dest', e);
     }
