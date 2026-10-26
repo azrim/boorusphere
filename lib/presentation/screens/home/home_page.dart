@@ -4,6 +4,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
+import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/home_drawer.dart';
 import 'package:boorusphere/presentation/screens/home/home_content.dart';
@@ -61,6 +62,9 @@ class HomePage extends HookConsumerWidget {
         suggestionStateProvider.overrideWith(
           () => SuggestionState(session: session),
         ),
+        // A selection belongs to the feed it was made on; a scope per page
+        // keeps the ids of the previous server or query from carrying over.
+        postSelectionProvider.overrideWith(PostSelectionNotifier.new),
         timelineControllerProvider.overrideWith(
           (_) => TimelineController(
             scrollController: AutoScrollController(
