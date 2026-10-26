@@ -40,6 +40,10 @@ class Downloader {
   /// task id has to be skipped for them.
   static const _cacheTaskPrefix = 'cache_';
 
+  /// Names a download has claimed but not published as an entry yet, so two
+  /// downloads started in the same frame cannot settle on one name.
+  final _reservedNames = <String>{};
+
   static final _notifications = FlutterLocalNotificationsPlugin();
   static bool _notificationsInitialized = false;
 
@@ -151,10 +155,11 @@ class Downloader {
     final fileUrl = url != null && url.isNotEmpty ? url : post.originalFile;
     if (fileUrl.isEmpty) return null;
 
+    String? fileName;
     try {
       // Resolved once so the cache copy and the queued task write the same
       // path, and so the entry reports the name the file actually got.
-      final fileName = await _uniqueFileName(fileUrl);
+      fileName = await _uniqueFileName(fileUrl);
 
       // Try to use cached file first if enabled
       if (preferCache) {
@@ -174,11 +179,15 @@ class Downloader {
       // escape its pending flag and leave the control disabled for good.
       mainLog.e('Downloader: failed to start $fileUrl', e, stack);
       return null;
+    } finally {
+      // The claim covers only the gap before the entry is published, and the
+      // entry list is what keeps the name taken from then on.
+      if (fileName != null) _reservedNames.remove(fileName);
     }
   }
 
-  /// File name for [fileUrl] that neither a queued entry nor an existing file
-  /// in the download folder already claims.
+  /// File name for [fileUrl] that neither a queued entry, a download started
+  /// moments ago nor an existing file in the download folder already claims.
   ///
   /// The native worker opens the target path in append mode, so a second
   /// download resolving to a name already on disk would resume the first one's
@@ -204,9 +213,11 @@ class Downloader {
     var candidate = '$base$ext';
     var suffix = 1;
     while (taken.contains(candidate) ||
+        _reservedNames.contains(candidate) ||
         sharedStorageHandle.fileExists(candidate)) {
       candidate = '${base}_${suffix++}$ext';
     }
+    _reservedNames.add(candidate);
     return candidate;
   }
 
