@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
@@ -200,12 +201,14 @@ class _RatingButton extends ConsumerWidget {
       avatar: const Icon(Icons.star_outline, size: DesignTokens.iconInline),
       label: Text(_ratingLabel(context, rating)),
       onPressed: () async {
+        final pageState = ref.read(pageStateProvider.notifier);
+        final serverSetting = ref.read(serverSettingStateProvider.notifier);
         final selected = await _pickRating(context, rating);
-        if (selected != null) {
-          await ref
-              .read(serverSettingStateProvider.notifier)
-              .setRating(selected);
-        }
+        if (selected == null) return;
+        await serverSetting.setRating(selected);
+        // The feed on screen was fetched with the previous rating, so it still
+        // shows posts the filter now excludes.
+        unawaited(pageState.load());
       },
     );
   }
@@ -339,12 +342,16 @@ class _CollapsedRatingChip extends ConsumerWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
             onTap: () async {
+              final pageState = ref.read(pageStateProvider.notifier);
+              final serverSetting = ref.read(
+                serverSettingStateProvider.notifier,
+              );
               final selected = await _pickRating(context, rating);
-              if (selected != null) {
-                await ref
-                    .read(serverSettingStateProvider.notifier)
-                    .setRating(selected);
-              }
+              if (selected == null) return;
+              await serverSetting.setRating(selected);
+              // Same as the option bar: the visible posts belong to the old
+              // rating.
+              unawaited(pageState.load());
             },
             child: Center(
               child: Row(
