@@ -17,15 +17,19 @@ class BooruUtil {
       }
 
       final apiAddr = Uri.parse(server.apiAddress);
-      final scheme = apiAddr.scheme == 'https' ? Uri.https : Uri.http;
+      // An address without a scheme is served over plain http.
+      final scheme = apiAddr.scheme == 'https' ? 'https' : 'http';
 
       if (!uri.hasScheme) {
         final cpath = path.Context(style: path.Style.url);
         final newAuth = uri.hasAuthority ? uri.authority : apiAddr.authority;
-        final newPath = cpath.join(apiAddr.path, uri.path);
-        final newQuery = uri.hasQuery ? uri.queryParametersAll : null;
-        final newUri = scheme(newAuth, newPath, newQuery);
-        return newUri.toString();
+        // The root keeps a relative path from running into the authority.
+        final newPath = cpath.join('/', apiAddr.path, uri.path);
+        // Assembled as text on purpose: `Uri.https` takes a decoded path and
+        // escapes the `%` of every escape the server already applied, so
+        // `%20` would reach the network as `%2520` and the file would 404.
+        final newQuery = uri.hasQuery ? '?${uri.query}' : '';
+        return Uri.parse('$scheme://$newAuth$newPath$newQuery').toString();
       }
 
       // nothing we can do when there's no authority and path at all

@@ -122,6 +122,17 @@ void main() {
       expect(posts.single.previewFile, 'https://cdn.example.com/a-thumb.png');
     });
 
+    test('keeps the percent escapes a media url already carries', () {
+      final posts = buildPosts(_server, [
+        _validEntry(originalFile: '/images/my%20file.png'),
+      ], _mapEntry);
+
+      expect(
+        posts.single.originalFile,
+        'https://example.com/images/my%20file.png',
+      );
+    });
+
     test('falls back to q only when the rating is empty', () {
       final posts = buildPosts(_server, [
         _validEntry(id: 1, originalFile: 'https://cdn.example.com/1.png'),
