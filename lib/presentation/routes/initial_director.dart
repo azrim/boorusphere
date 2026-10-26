@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/presentation/provider/app_boot_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
@@ -13,16 +14,21 @@ class InitialDirectorPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final booted = ref.watch(appBootStateProvider);
     useEffect(() {
-      final serverSetting = ref.read(serverSettingStateProvider);
+      // The boot adopts a default server on a fresh install, so the active id
+      // is only known once it has finished; reading it earlier opens the
+      // timeline on a session that resolves to no server at all.
+      if (!booted) return null;
       SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+        if (!context.mounted) return;
+        final lastActiveId = ref.read(serverSettingStateProvider).lastActiveId;
         context.router.replace(
-          HomeRoute(
-            session: SearchSession(serverId: serverSetting.lastActiveId),
-          ),
+          HomeRoute(session: SearchSession(serverId: lastActiveId)),
         );
       });
-    }, []);
+      return null;
+    }, [booted]);
 
     return const Material();
   }

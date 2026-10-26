@@ -8,6 +8,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/settings_repo.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/app_boot_state.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/data_backup/periodic_backup_runner.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
@@ -131,6 +132,9 @@ class Boorusphere extends HookConsumerWidget {
       initializeAsyncStates(
         ref,
         onCompleted: (failure) {
+          // Whatever the outcome, the server list is settled now: the start
+          // page may open the timeline.
+          ref.read(appBootStateProvider.notifier).complete();
           initialized.value = true;
           if (failure != null) {
             _reportBootFailure(context, ref, messengerKey);
