@@ -271,7 +271,12 @@ class Downloader {
 
   Future<void> retry({required String id}) async {
     final newId = await FlutterDownloader.retry(taskId: id);
-    if (newId == null) return;
+    if (newId == null) {
+      // The plugin only retries a row it still has, so a task cleared from its
+      // database leaves the row here stuck in its last status.
+      mainLog.w('Downloader: the platform refused to retry $id');
+      return;
+    }
 
     final entry = ref.read(downloadEntryStateProvider).getById(id);
     if (entry.id.isEmpty) return;
@@ -298,12 +303,9 @@ class Downloader {
       return;
     }
 
+    // The task row is left in place: retry() re-enqueues from it, and boot
+    // reconciliation reads a canceled row back as canceled.
     await FlutterDownloader.cancel(taskId: id);
-    if (!id.startsWith(_cacheTaskPrefix)) {
-      // cancel() only stops the work; its database row survives and boot-time
-      // reconciliation would read it back as pending forever.
-      await FlutterDownloader.remove(taskId: id, shouldDeleteContent: false);
-    }
 
     // The task may have completed while the channel call was in flight.
     final progress = ref.read(downloadProgressStateProvider).getById(id);
