@@ -345,6 +345,10 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                   ),
                 ),
                 child: Stack(
+                  // Expanded so the scroll view — and with it the swipe and the
+                  // drag-to-dismiss — covers the sheet's full height instead of
+                  // stopping where the rows end.
+                  fit: StackFit.expand,
                   children: [
                     GestureDetector(
                       // The swipe belongs to the whole sheet, not to the panel
@@ -357,6 +361,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                       onHorizontalDragEnd: _onDragEnd,
                       child: SingleChildScrollView(
                         controller: scrollController,
+                        // A short panel leaves the sheet with nothing to
+                        // scroll, and a scroll view that cannot scroll cannot
+                        // be dragged either — which is how the sheet is
+                        // dismissed.
+                        physics: const AlwaysScrollableScrollPhysics(),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
