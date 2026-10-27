@@ -36,7 +36,7 @@ const double _kCardMaxWidth = 320;
 
 /// Backdrop blur radius and scrim opacity once fully revealed.
 const double _kBackdropBlur = 20;
-const double _kBackdropOpacity = 0.6;
+const double _kBackdropOpacity = 0.34;
 
 /// The backdrop blur is quantised into this many steps. The engine caches a
 /// blurred backdrop per filter, so a continuously changing sigma re-blurs the
@@ -129,7 +129,10 @@ class _ContextMenuView extends StatelessWidget {
                 ),
               );
             },
-            child: _MenuCard(animation: animation, groups: groups),
+            child: _MenuHalo(
+              animation: card,
+              child: _MenuCard(animation: animation, groups: groups),
+            ),
           ),
         ),
       ],
@@ -137,7 +140,10 @@ class _ContextMenuView extends StatelessWidget {
   }
 }
 
-/// Full-screen scrim that blurs the app behind the menu and dismisses it on tap.
+/// Dismisses the menu on tap and dims the app behind it.
+///
+/// The dim is all this layer does: the blur belongs to the card (see
+/// [_MenuHalo]), so opening one card does not turn the screen into a modal.
 class _MenuBackdrop extends StatelessWidget {
   const _MenuBackdrop({required this.animation, required this.onTap});
 
@@ -151,24 +157,55 @@ class _MenuBackdrop extends StatelessWidget {
       animation: animation,
       builder: (context, child) {
         final t = _clamp01(animation.value);
-        final veil = ColoredBox(
-          color: scrim.withValues(alpha: _kBackdropOpacity * t),
-        );
-        final blur = _steppedBackdropBlur(t);
-
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          // Skip the blur pass entirely at the endpoints, where it would be a
-          // no-op layer that still costs a full-screen rasterisation.
-          child: blur <= 0
-              ? veil
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                  child: veil,
-                ),
+          child: ColoredBox(
+            color: scrim.withValues(alpha: _kBackdropOpacity * t),
+          ),
         );
       },
+    );
+  }
+}
+
+/// The soft edge around the card: the card's own footprint plus a short
+/// margin, blurred, so the artwork directly behind the menu recedes while the
+/// rest of the grid stays readable.
+class _MenuHalo extends StatelessWidget {
+  const _MenuHalo({required this.animation, required this.child});
+
+  /// How far the blur reaches past the card.
+  static const double margin = DesignTokens.spacingLg;
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scrim = context.colorScheme.scrim;
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: animation,
+            builder: (context, _) {
+              final t = _clamp01(animation.value);
+              final blur = _steppedBackdropBlur(t);
+              if (blur <= 0) return const SizedBox.shrink();
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(_kCardRadius + margin),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                  child: ColoredBox(color: scrim.withValues(alpha: 0.16 * t)),
+                ),
+              );
+            },
+          ),
+        ),
+        Padding(padding: const EdgeInsets.all(margin), child: child),
+      ],
     );
   }
 }
