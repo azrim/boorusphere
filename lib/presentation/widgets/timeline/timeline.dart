@@ -344,14 +344,22 @@ class _ThumbnailCard extends HookConsumerWidget {
             onLongPress: handleLongPress,
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-                border: isSelected
-                    ? Border.all(
+                borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+              ),
+              // Painted over the image rather than as a decoration border: a
+              // border is part of the box's padding, so drawing it that way
+              // would inset the thumbnail and make a selected tile jump.
+              foregroundDecoration: isSelected
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(
+                        DesignTokens.radiusMd,
+                      ),
+                      border: Border.all(
                         color: context.theme.colorScheme.primary,
                         width: _kSelectionBorderWidth,
-                      )
-                    : null,
-              ),
+                      ),
+                    )
+                  : null,
               clipBehavior: Clip.hardEdge,
               child: Stack(
                 children: [
@@ -431,18 +439,20 @@ class _ThumbnailCard extends HookConsumerWidget {
                   // Selection checkbox overlay
                   if (isSelected)
                     Positioned(
-                      top: 6,
-                      left: 6,
+                      top: DesignTokens.spacingSm,
+                      left: DesignTokens.spacingSm,
                       child: Container(
                         decoration: BoxDecoration(
                           color: context.theme.colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
                         padding: const EdgeInsets.all(DesignTokens.spacingXs),
-                        child: const Icon(
+                        child: Icon(
                           Icons.check,
-                          color: Colors.white,
-                          size: 18,
+                          // A curated palette can have a light primary, so the
+                          // glyph comes from the scheme instead of being white.
+                          color: context.theme.colorScheme.onPrimary,
+                          size: DesignTokens.iconInline,
                         ),
                       ),
                     ),
@@ -826,39 +836,52 @@ class _ThumbnailImage extends ConsumerWidget {
       ),
     );
 
-    // Long thumbnails get a gradient indicator pinned to the bottom edge.
-    return isLong
-        ? Stack(
-            alignment: Alignment.bottomCenter,
-            children: [image, const _LongThumbnailIndicator()],
-          )
-        : image;
+    return image;
   }
 }
 
-class _LongThumbnailIndicator extends StatelessWidget {
-  const _LongThumbnailIndicator();
+/// The timeline at the shape it is about to take, drawn as shimmering tiles.
+///
+/// The first page of a search shows this instead of a spinner: the grid is the
+/// answer the reader is waiting for, so the empty screen is filled with its
+/// outline rather than a progress circle floating in the middle of nothing.
+class TimelineSkeleton extends ConsumerWidget {
+  const TimelineSkeleton({super.key, this.rows = 3});
+
+  /// How many tile heights of skeleton to draw.
+  final int rows;
 
   @override
-  Widget build(BuildContext context) {
-    return const Card(
-      color: Color(0xCC000000), // Pre-computed color
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(DesignTokens.radiusMd),
-          topRight: Radius.circular(DesignTokens.radiusMd),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
+    final columns = (MediaQuery.sizeOf(context).width / 200).round() + grid;
+    final scheme = context.colorScheme;
+    final base = context.isLightThemed
+        ? scheme.surfaceContainerHighest
+        : scheme.surfaceContainerHigh;
+    final highlight = context.isLightThemed
+        ? scheme.surfaceContainerLow
+        : scheme.surfaceContainer;
+    const ratios = [0.72, 1.0, 1.35, 0.85, 1.15, 0.95];
+
+    return MasonryGridView.count(
+      crossAxisCount: columns,
+      mainAxisSpacing: DesignTokens.spacingSm,
+      crossAxisSpacing: DesignTokens.spacingSm,
+      padding: const EdgeInsets.all(DesignTokens.spacingSm),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: columns * rows,
+      itemBuilder: (context, index) => AspectRatio(
+        aspectRatio: ratios[index % ratios.length],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+          child: Shimmer.fromColors(
+            baseColor: base,
+            highlightColor: highlight,
+            child: const ColoredBox(color: Colors.black),
+          ),
         ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          DesignTokens.spacingLg,
-          DesignTokens.spacingXs,
-          DesignTokens.spacingLg,
-          DesignTokens.spacingXs,
-        ),
-        child: Icon(Icons.gradient, size: 16),
       ),
     );
   }
