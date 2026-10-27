@@ -445,7 +445,7 @@ class _ClearCache extends ConsumerWidget {
         context.scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(context.t.clearing),
-            duration: const Duration(milliseconds: 500),
+            duration: DesignTokens.durationSnackbar,
           ),
         );
 
@@ -457,7 +457,7 @@ class _ClearCache extends ConsumerWidget {
           context.scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(context.t.settings.clearCache.done),
-              duration: const Duration(milliseconds: 500),
+              duration: DesignTokens.durationSnackbar,
             ),
           );
         }

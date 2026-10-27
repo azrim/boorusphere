@@ -2,6 +2,7 @@ import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_suggestion.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -20,7 +21,7 @@ class SearchScreen extends HookConsumerWidget {
     );
     final animation = CurvedAnimation(
       parent: animator,
-      curve: Curves.easeInOutCubic,
+      curve: DesignTokens.curveStandard,
     );
 
     useEffect(() {

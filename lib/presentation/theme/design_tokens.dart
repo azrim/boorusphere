@@ -52,6 +52,10 @@ class DesignTokens {
   static const Duration durationNormal = Duration(milliseconds: 300);
   static const Duration durationSlow = Duration(milliseconds: 500);
 
+  /// How long a message stays up: long enough to read a sentence, short
+  /// enough that it does not sit on top of the next action.
+  static const Duration durationSnackbar = Duration(seconds: 2);
+
   // Curves
   static const Curve curveStandard = Curves.easeOutCubic;
   static const Curve curveDecelerate = Curves.easeOut;
