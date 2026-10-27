@@ -90,7 +90,7 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 
 **The Palette Rule.** A curated palette is never harmonized and its surfaces are never re-shaded — the theme is shown as designed, down to its own page color.
 
-**The Midnight Rule.** Midnight mode uses pure black (#000) surfaces — no tinting, no elevation shadows. Curated accents survive; only the surface collapses to black.
+**The Midnight Rule.** Midnight mode paints the page pure black (#000) — no tinting. Curated accents survive. Anything that sits *above* the page keeps its container tone and its shadow, because a shadow drawn on black is invisible: the tone step is the only depth Midnight has, so dropping it would flatten every menu and sheet into the page.
 
 ## 3. Typography
 
@@ -120,18 +120,35 @@ Every row inside a grouped surface — drawer, settings, server lists, forms —
 
 ## 4. Elevation
 
-The system uses Material 3 tonal elevation, not shadows. Surfaces gain brightness (light mode) or reduce brightness (dark mode) as elevation increases, creating depth through color temperature rather than drop shadows.
+Depth is a ladder with four rungs, not a mood. Every surface picks one of them, and the rung says what the surface is doing:
+
+| Level | Token | Value | What sits here |
+| --- | --- | --- | --- |
+| Page | — | 0 | The field behind everything: `surface` |
+| Raised | `elevationRaised` | 1 | A block that groups rows: `SectionSurface`, cards, the app bar once content scrolls under it |
+| Floating | `elevationFloating` | 3 | Chrome that floats over the content: the pagination pill, back to top, the selection bar, snackbars, the favorites tab strip |
+| Overlay | `elevationOverlay` | 6 | Something that owns the screen until it is dismissed: menus, dropdowns, every bottom sheet |
+| Modal | `elevationModal` | 12 | A dialog that stops the screen |
+
+A step up the ladder does two things at once, never one of them:
+
+- **Tone.** The surface moves from `surface` to `surfaceContainer`, the tone that is one step off the page in the active palette. This is what carries the depth in Midnight, where a shadow on pure black is invisible.
+- **Shadow.** A shadow is drawn with `DesignTokens.shadowColor` — the scheme's own shadow pulled 18% towards the page, so it reads as a darker part of the surface instead of a grey smudge. Dark themes carry a heavier alpha because a light shadow cannot be faked by a tone step alone.
 
 ### Shadow Vocabulary
-- **Snackbars**: Top-rounded (12px radius), primary container background. No shadow — depth from color contrast.
-- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surface` with a hairline top edge and 16px top radius, no elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
-- **Popup menus**: `surface` fill, hairline `outlineVariant` outline, 16px radius, no elevation. Menus are flat cards, not floating shadows.
-- **Grid items**: No shadows on thumbnails. Content is flat; depth comes from the staggered layout itself.
-- **Bottom search bar**: A glass surface rather than an elevated one — `surface` at 72% over a 20 px backdrop blur, with a hairline `outlineVariant` on the top edge and no shadow. It is the one place blur is structural: the bar floats over moving art and has to stay legible without hiding it.
+- **Section blocks**: `surfaceContainer`, hairline `outlineVariant`, no shadow. A block groups rows; it does not float.
+- **Snackbars**: top-rounded (12px radius), `primaryContainer` fill, floating elevation.
+- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
+- **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
+- **Dialogs**: `surfaceContainer`, 16px radius, modal elevation.
+- **Grid items**: no shadow, no border, no elevation. Content is flat; depth comes from the staggered layout itself.
+- **Bottom search bar**: a glass surface rather than an elevated one — `surface` at 72% over a 20 px backdrop blur, with a hairline `outlineVariant` on the top edge and no shadow. It is the one place blur is structural: the bar floats over moving art and has to stay legible without hiding it.
 
 ### Named Rules
 
-**The Flat Content Rule.** Image thumbnails never have shadows, borders, or elevation. They are the content. The only elevated surfaces are interactive chrome (FABs, snackbars, bottom sheets).
+**The Four Rungs Rule.** A surface takes one of the four levels above. A shadow, a tone step and a hairline are not interchangeable: a block gets tone and a hairline, a floating control gets a shadow, and nothing gets two rungs at once.
+
+**The Flat Content Rule.** Image thumbnails never have shadows, borders, or elevation. They are the content. Everything with depth is chrome.
 
 ## 5. Components
 
@@ -285,6 +302,7 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
 - **Do** use curved transitions (easeOutCubic) for sheet expansion and page navigation
 - **Do** group related chrome rows into a section block with a small-caps label instead of scattering them as standalone cards
+- **Do** pick one of the four elevation rungs for anything that sits above the page, and take the tone step and the shadow together
 
 ### Don't:
 - **Don't** add shadows, borders, or elevation to image thumbnails — they are the content, not cards
@@ -295,3 +313,4 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Don't** use decorative animations — motion serves feedback (loading, transitions), not delight for its own sake
 - **Don't** nest a filled, elevated, or bordered card inside a section block — the block owns the only surface and border, and rows stay flat inside it
 - **Don't** invent a second label or row style per screen — the section label, row title, and supporting text come from the shared scale
+- **Don't** give a block a shadow or a shadowed surface a second tone step — one rung per surface

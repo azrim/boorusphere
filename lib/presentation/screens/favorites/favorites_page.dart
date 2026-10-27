@@ -106,9 +106,10 @@ class _Pager extends ConsumerWidget {
           ],
         ),
         bottomNavigationBar: Material(
-          color: context.theme.appBarTheme.backgroundColor,
+          color: context.colorScheme.surfaceContainer,
           surfaceTintColor: context.colorScheme.surfaceTint,
-          elevation: 3,
+          elevation: DesignTokens.elevationFloating,
+          shadowColor: DesignTokens.shadowColor(context.colorScheme),
           child: SafeArea(
             child: TabBar(
               dividerColor: Colors.transparent,

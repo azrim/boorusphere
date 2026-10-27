@@ -309,7 +309,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
   @override
   Widget build(BuildContext context) {
     final enableBlur = ref.watch(uiSettingStateProvider.select((s) => s.blur));
-    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    // The sheet is an overlay, so it takes the container tone the sheet theme
+    // gives every other sheet instead of the page tone behind the artwork.
+    final backgroundColor = context.colorScheme.surfaceContainer;
 
     return DraggableScrollableSheet(
       controller: widget.sheetController,
@@ -342,6 +344,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                       : backgroundColor,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(DesignTokens.radiusXl),
+                  ),
+                  // The same hairline every other sheet gets from the theme:
+                  // over bright artwork the top edge would otherwise dissolve.
+                  border: Border(
+                    top: BorderSide(color: context.colorScheme.outlineVariant),
                   ),
                 ),
                 child: Stack(

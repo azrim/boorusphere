@@ -504,7 +504,8 @@ class _BackToTopButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: context.colorScheme.surfaceContainerHighest,
-      elevation: 2,
+      elevation: DesignTokens.elevationFloating,
+      shadowColor: DesignTokens.shadowColor(context.colorScheme),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: IconButton(
@@ -670,7 +671,8 @@ class _PaginationPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: context.colorScheme.surfaceContainerHighest,
-      elevation: 2,
+      elevation: DesignTokens.elevationFloating,
+      shadowColor: DesignTokens.shadowColor(context.colorScheme),
       shape: const StadiumBorder(),
       clipBehavior: Clip.antiAlias,
       child: Padding(

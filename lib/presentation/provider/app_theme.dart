@@ -135,30 +135,55 @@ ThemeData _createThemeData(
       fontFeatures: const [FontFeature.tabularFigures()],
     ),
   );
+  // Depth is a ladder, not a mood: the page is flat, a block sits one step
+  // above it, chrome that floats over the content casts a shadow, and an
+  // overlay that owns the screen casts a longer one. Everything reads
+  // [DesignTokens.elevation*] so the ladder has four rungs and no more.
+  final shadowColor = DesignTokens.shadowColor(colorScheme);
   return origin.copyWith(
     colorScheme: colorScheme,
     textTheme: textTheme,
     extensions: [roles],
+    shadowColor: shadowColor,
     appBarTheme: AppBarTheme(
       backgroundColor: colorScheme.surface,
       foregroundColor: colorScheme.onSurface,
+      scrolledUnderElevation: DesignTokens.elevationRaised,
+      shadowColor: shadowColor,
     ),
     canvasColor: colorScheme.surface,
     scaffoldBackgroundColor: colorScheme.surface,
-    dialogTheme: DialogThemeData(backgroundColor: colorScheme.surface),
+    cardTheme: origin.cardTheme.copyWith(
+      color: colorScheme.surfaceContainer,
+      elevation: DesignTokens.elevationRaised,
+      shadowColor: shadowColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: colorScheme.surfaceContainer,
+      elevation: DesignTokens.elevationModal,
+      shadowColor: shadowColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+      ),
+    ),
     popupMenuTheme: PopupMenuThemeData(
-      color: colorScheme.surface,
-      elevation: 0,
+      color: colorScheme.surfaceContainer,
+      elevation: DesignTokens.elevationOverlay,
+      shadowColor: shadowColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
         side: BorderSide(color: colorScheme.outlineVariant),
       ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
-      backgroundColor: colorScheme.surface,
-      modalBackgroundColor: colorScheme.surface,
-      elevation: 0,
-      modalElevation: 0,
+      backgroundColor: colorScheme.surfaceContainer,
+      modalBackgroundColor: colorScheme.surfaceContainer,
+      elevation: DesignTokens.elevationOverlay,
+      modalElevation: DesignTokens.elevationOverlay,
+      shadowColor: shadowColor,
       dragHandleColor: colorScheme.onSurfaceVariant,
       shape: RoundedRectangleBorder(
         borderRadius: const BorderRadius.vertical(
@@ -171,6 +196,7 @@ ThemeData _createThemeData(
       backgroundColor: colorScheme.surfaceContainerLow,
     ),
     snackBarTheme: origin.snackBarTheme.copyWith(
+      elevation: DesignTokens.elevationFloating,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(DesignTokens.radiusLg),

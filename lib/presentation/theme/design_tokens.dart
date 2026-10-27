@@ -30,6 +30,23 @@ class DesignTokens {
   static const double drawerMaxWidth = 410.0;
   static const double drawerContentPeek = 84.0;
 
+  // Elevation. Four levels, each one a claim about what a surface is doing:
+  // a block that groups rows, chrome that floats over the content, an overlay
+  // that owns the screen, and a dialog that stops everything.
+  static const double elevationRaised = 1.0;
+  static const double elevationFloating = 3.0;
+  static const double elevationOverlay = 6.0;
+  static const double elevationModal = 12.0;
+
+  /// The colour every shadow is drawn with: the scheme's own shadow pulled a
+  /// step towards the page, so a shadow reads as a darker part of the surface
+  /// instead of a grey smudge laid on top of it.
+  static Color shadowColor(ColorScheme scheme) {
+    final tint = Color.lerp(scheme.shadow, scheme.surface, 0.18)!;
+    final alpha = scheme.brightness == Brightness.dark ? 0.62 : 0.22;
+    return tint.withValues(alpha: alpha);
+  }
+
   // Motion
   static const Duration durationFast = Duration(milliseconds: 150);
   static const Duration durationNormal = Duration(milliseconds: 300);

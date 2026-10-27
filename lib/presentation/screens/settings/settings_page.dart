@@ -398,10 +398,10 @@ class _PostLimit extends ConsumerWidget {
         value: ref.watch(
           serverSettingStateProvider.select((it) => it.postLimit),
         ),
-        elevation: 1,
+        elevation: DesignTokens.elevationOverlay.toInt(),
         underline: const SizedBox.shrink(),
         borderRadius: const BorderRadius.all(
-          Radius.circular(DesignTokens.radiusSm),
+          Radius.circular(DesignTokens.radiusXl),
         ),
         items: List<DropdownMenuItem<int>>.generate(10, (i) {
           final x = i * 10 + 10;
