@@ -48,6 +48,16 @@ void main() async {
     final text = await rootBundle.loadString('assets/fonts/OFL.txt');
     yield LicenseEntryWithLineBreaks(['Geist'], text);
   });
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/fonts/OFL-Poppins.txt');
+    yield LicenseEntryWithLineBreaks(['Poppins'], text);
+  });
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString(
+      'assets/fonts/OFL-NotoSansThai.txt',
+    );
+    yield LicenseEntryWithLineBreaks(['Noto Sans Thai'], text);
+  });
 
   // Opt into the highest available refresh rate on Android. By default Flutter
   // apps run at 60 Hz even on 90/120 Hz displays; this single call delivers a

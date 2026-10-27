@@ -125,6 +125,8 @@ flutter:
     - assets/icons/exported/logo.png
     - CHANGELOG.md
     - assets/fonts/OFL.txt
+    - assets/fonts/OFL-Poppins.txt
+    - assets/fonts/OFL-NotoSansThai.txt
 
   # One family for the whole app. Static instances are bundled instead of a
   # variable font so the weight a style asks for is the weight that renders.
@@ -139,6 +141,22 @@ flutter:
           weight: 600
         - asset: assets/fonts/Geist-700.ttf
           weight: 700
+    # The wordmark only: a geometric face against Geist's neutral grotesk, so
+    # the name reads as a lockup instead of as the first line of the UI.
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-600.ttf
+          weight: 600
+    # Fallback for a script Geist does not cover, at the same weights so a
+    # Thai title is not synthesised from a single face.
+    - family: Noto Sans Thai
+      fonts:
+        - asset: assets/fonts/NotoSansThai-400.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansThai-500.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansThai-600.ttf
+          weight: 600
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

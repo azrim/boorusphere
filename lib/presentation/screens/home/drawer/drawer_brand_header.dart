@@ -1,5 +1,6 @@
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
@@ -38,10 +39,13 @@ class HomeDrawerHeader extends ConsumerWidget {
     final themeMode = ref.watch(
       uiSettingStateProvider.select((ui) => ui.themeMode),
     );
+    // The name is a lockup, not a heading: it takes the display face so it
+    // reads as the app's mark rather than as the first line of the drawer.
     final wordmark = context.theme.textTheme.headlineSmall?.copyWith(
       color: scheme.onSurface,
-      fontWeight: FontWeight.w500,
-      letterSpacing: -1.2,
+      fontFamily: AppTypography.displayFamily,
+      fontWeight: AppTypography.semiBold,
+      letterSpacing: -0.6,
     );
 
     return Padding(

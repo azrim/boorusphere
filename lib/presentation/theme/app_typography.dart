@@ -15,6 +15,14 @@ class AppTypography {
 
   static const String fontFamily = 'Geist';
 
+  /// The display face, used by the wordmark alone.
+  static const String displayFamily = 'Poppins';
+
+  /// Scripts Geist does not cover. Thai has no regional glyph variants, so a
+  /// bundled face is safe; CJK is left to the platform, whose fallback is
+  /// locale aware and would otherwise render Chinese in Japanese forms.
+  static const List<String> fontFallback = ['Noto Sans Thai'];
+
   /// Weights the bundle ships. A request for anything else snaps to the
   /// nearest of these instead of synthesising a fake bold.
   static const FontWeight regular = FontWeight.w400;
@@ -58,6 +66,7 @@ class AppTypography {
   ) {
     return TextStyle(
       fontFamily: fontFamily,
+      fontFamilyFallback: fontFallback,
       fontSize: size,
       height: height,
       fontWeight: weight,
