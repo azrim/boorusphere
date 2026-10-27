@@ -135,6 +135,7 @@
     "share": "Share",
     "open_source": "Open source"
   },
+  "post_counter": "${index} of ${total}",
   "viewer": {
     "mute": "Mute",
     "unmute": "Unmute",

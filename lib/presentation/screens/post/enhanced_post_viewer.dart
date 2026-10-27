@@ -347,18 +347,23 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               right: 0,
                               child: ListenableBuilder(
                                 listenable: controller.overlayShownListenable,
-                                builder: (context, child) => SlideFadeVisibility(
-                                  direction: HidingDirection.toTop,
-                                  visible:
-                                      controller.overlayShownListenable.value &&
-                                      showAppbar.value,
-                                  child: _PostAppBar(
-                                    subtitle: post.describeTags,
-                                    title:
-                                        '#${currentPageIndex + 1} of ${postsList.length}',
-                                    swipeMode: swipeMode,
-                                  ),
-                                ),
+                                builder: (context, child) =>
+                                    SlideFadeVisibility(
+                                      direction: HidingDirection.toTop,
+                                      visible:
+                                          controller
+                                              .overlayShownListenable
+                                              .value &&
+                                          showAppbar.value,
+                                      child: _PostAppBar(
+                                        subtitle: post.describeTags,
+                                        title: context.t.postCounter(
+                                          index: currentPageIndex + 1,
+                                          total: postsList.length,
+                                        ),
+                                        swipeMode: swipeMode,
+                                      ),
+                                    ),
                               ),
                             ),
                             // Bottom toolbox
