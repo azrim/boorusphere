@@ -196,8 +196,10 @@ class _MenuCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(_kCardRadius),
           boxShadow: [
+            // The card floats over the timeline, so its shadow comes from the
+            // same tinted colour the rest of the chrome uses.
             BoxShadow(
-              color: scheme.shadow.withValues(alpha: 0.5),
+              color: DesignTokens.shadowColor(scheme),
               blurRadius: 40,
               offset: const Offset(0, 20),
             ),
@@ -218,7 +220,7 @@ class _MenuCard extends StatelessWidget {
               child: Material(
                 type: MaterialType.transparency,
                 child: Padding(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(DesignTokens.spacingSm),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -315,13 +317,17 @@ class _MenuRowTile extends StatelessWidget {
                   width: DesignTokens.spacingSm + DesignTokens.spacingXs,
                 ),
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: DesignTokens.iconChipSize,
+                  height: DesignTokens.iconChipSize,
                   decoration: BoxDecoration(
                     color: iconBackground,
                     borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
                   ),
-                  child: Icon(entry.icon, size: 16, color: iconColor),
+                  child: Icon(
+                    entry.icon,
+                    size: DesignTokens.iconInline,
+                    color: iconColor,
+                  ),
                 ),
                 const SizedBox(
                   width: DesignTokens.spacingSm + DesignTokens.spacingXs,

@@ -19,8 +19,8 @@ colors:
   accent-github: "#0381F0"
 typography:
   body:
-    fontFamily: "system-ui, -apple-system, sans-serif"
-    fontSize: "14sp"
+    fontFamily: "Geist"
+    fontSize: "16sp"
     fontWeight: 400
     lineHeight: 1.5
 rounded:
@@ -94,21 +94,34 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 
 ## 3. Typography
 
-**System Font Stack:** `system-ui, -apple-system, sans-serif`
+**Family:** Geist, bundled as four static weights (400 / 500 / 600 / 700) in `assets/fonts`. No variable axis, no network fetch: the weight a style asks for is the weight that renders. Latin, Latin Extended, Greek and Cyrillic ship with it; a locale outside that set (Thai, CJK) falls back to the platform face per glyph.
 
-**Character:** The type system is purely functional — system fonts at Material 3 defaults. No custom font loading, no display typeface. Typography serves clarity, not personality; personality comes from the color and motion system.
+**Character:** The family is quiet and the scale does the talking. Weights stop at bold, nothing is italic, and tracking carries the hierarchy a second typeface would otherwise carry: display sizes tighten, 11 sp labels open up so they stay legible at arm's length.
 
 ### Hierarchy
-- **Display / Headline**: Material 3 defaults from `ThemeData`. Used in app bars, dialog titles, section headers.
-- **Body** (14sp, regular): Primary reading weight. Post tags, search queries, settings labels.
-- **Label** (12sp, medium): Metadata — timestamps, file sizes, post counts, badge numbers.
+
+| Role | Size | Weight | Tracking | Used for |
+| --- | --- | --- | --- | --- |
+| `displayLarge` | 57 | bold | -1.5 | Not used in chrome; reserved for a future hero |
+| `headlineSmall` | 24 | semibold | -0.4 | The wordmark, an empty state's title |
+| `titleLarge` | 20 | semibold | -0.2 | A page's own name |
+| `titleMedium` | 16 | semibold | -0.1 | A sheet header |
+| `bodyLarge` | 16 | regular | 0 | Row titles, field values, body copy |
+| `bodyMedium` | 14 | regular | +0.1 | Secondary copy |
+| `bodySmall` | 12 | regular | +0.2 | The muted line under a row title |
+| `labelLarge` | 14 | semibold | 0 | Buttons |
+| `labelSmall` | 11 | medium | +0.2 | Badges, tab counts |
+
+**Numbers line up.** Any count, score, dimension or byte size is set with tabular figures (`AppTextRoles.numeric`), so a column of them does not drift with each digit.
 
 ### Named Rules
 
 **The Invisible Typography Rule.** Typography should never be the loudest element on screen. Images are the hero. Text exists to label, navigate, and inform — never to decorate.
 
+**The Four Roles Rule.** Chrome text is one of four roles, and they live on the theme as `AppTextRoles` — a section label, a field label, a row title, a row supporting line. A screen that needs a fifth is a screen that is doing too much; it picks the nearest role instead of a `copyWith` on a size of its own.
+
 ### Surface Type Scale
-Every row inside a grouped surface — drawer, settings, server lists, forms — uses the same roles:
+Every row inside a grouped surface — drawer, settings, server lists, forms, sheets — uses the same roles:
 
 - **Section label**: 11 sp, bold, 1.4 tracking, uppercase, `onSurfaceVariant`, hairline underline
 - **Row title**: 16 sp `bodyLarge`, `onSurface` — the only primary text in a row
@@ -116,7 +129,7 @@ Every row inside a grouped surface — drawer, settings, server lists, forms —
 - **Field label**: 11 sp `labelSmall`, `onSurfaceVariant`; the value stays 16 sp
 - **Section description / helper**: 12 sp `bodySmall`, `onSurfaceVariant`
 
-**The One Scale Rule.** These roles come from the theme (`ListTileTheme`, the field decoration), never from a per-widget `copyWith` on a different size, so a title is 16 sp in settings and in the server form alike. Spacing follows the same rhythm: 12 dp row inset, 8 dp between a label and its text, 8 dp between fields, 24 dp above a section label and 8 dp below it.
+**The One Scale Rule.** These roles come from the theme (`AppTextRoles`, `ListTileTheme`, the field decoration), never from a per-widget `copyWith` on a different size, so a title is 16 sp in settings, in a sheet, and in the server form alike. Spacing follows the same rhythm: 12 dp row inset, 8 dp between a title and its supporting line, 8 dp between fields, 24 dp above a section label and 8 dp below it.
 
 ## 4. Elevation
 
@@ -202,7 +215,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 ### Sheet Shell
 One container for every bottom sheet in the app — post details, settings pickers, text entry, gesture reference, What's New.
 
-- **Shape**: 16 dp top corners, `surface` fill, hairline `outlineVariant` along the top edge, no elevation. A 40×4 handle sits 8 dp from the top
+- **Shape**: 16 dp top corners, `surfaceContainer` fill, hairline `outlineVariant` along the top edge, overlay elevation. A 40×4 handle sits 8 dp from the top
 - **Header**: the sheet's own name at `titleMedium` semibold with a 48 dp close target on the trailing edge. The name is the thing the sheet is about — the post's identifying tag, the setting being changed — never a generic "Details"
 - **Height**: capped at 78% of the screen (90% for a long changelog) and grown by its content, so a three-option picker does not open half empty. Only the panel scrolls
 - **Panels**: one job at a time. Rows stack with a single hairline between them and none after the last, so a panel ends on the sheet's own edge
@@ -215,7 +228,7 @@ One container for every bottom sheet in the app — post details, settings picke
 - **Layout**: directly under the header at 48 dp, inside thumb reach; labels at `labelLarge`, the active one `onSurface` w600 over a 2 dp `primary` underline, and the strip closes with the panel hairline
 - **Swipe**: the panels follow the finger, and the gesture belongs to the whole sheet rather than to the rows — with a short panel most of the sheet is empty space, and a swipe that only works on the rows is a swipe nobody finds. It commits at half a page or a 250 dp/s flick, leans against a rubber band at either end, and the underline follows, so the strip is a shortcut rather than the only way in
 - **Count**: a tab may carry a muted count, so the size of what is behind it is known before the tap
-- **Motion**: underline and label weight animate at 150 ms, and the panel below resizes with `AnimatedSize`, so the sheet never jumps
+- **Motion**: underline and label weight animate at 150 ms; the panel slides and the sheet below it resizes on the same 300 ms, so the edge and the content land together instead of the edge arriving first
 
 ### Sheet Rows
 - **Fact row**: small-caps label on the leading edge, value on the trailing edge in `bodyMedium` with tabular figures, so scores and dimensions line up down the panel

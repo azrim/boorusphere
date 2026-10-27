@@ -36,7 +36,8 @@ const double _kSelectionBorderWidth = 3.0;
 /// Neutral scrim used by the on-image overlays. Image content is arbitrary, so
 /// these can't come from the [ColorScheme]; the fixed black gradient is one of
 /// two documented exceptions to the adaptive-palette rule.
-const Color _kScrimStrong = Color(0x8A000000); // ~54% black
+const Color _kScrimStrong = Color(0x80000000); // 50% black
+const Color _kScrimMid = Color(0x2E000000);
 const Color _kScrimClear = Color(0x00000000);
 const Color _kLabelBackground = Color(0xB3000000); // ~70% black
 
@@ -572,7 +573,10 @@ class _OverlayScrim extends StatelessWidget {
         gradient: LinearGradient(
           begin: top ? Alignment.topCenter : Alignment.bottomCenter,
           end: top ? Alignment.bottomCenter : Alignment.topCenter,
-          colors: const [_kScrimStrong, _kScrimClear],
+          // A mid stop clears the band faster than a straight ramp, so the
+          // label keeps its footing without a grey bar across the artwork.
+          colors: const [_kScrimStrong, _kScrimMid, _kScrimClear],
+          stops: const [0, 0.45, 1],
         ),
       ),
     );

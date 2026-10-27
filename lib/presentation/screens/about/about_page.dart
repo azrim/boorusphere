@@ -102,7 +102,11 @@ class AboutPage extends ConsumerWidget {
                   );
                 },
               ),
-              const Divider(height: DesignTokens.spacingXl),
+              const Divider(
+                height: DesignTokens.spacingXl,
+                indent: DesignTokens.spacingMd,
+                endIndent: DesignTokens.spacingMd,
+              ),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: DesignTokens.spacingMd,
