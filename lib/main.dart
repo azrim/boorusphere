@@ -31,6 +31,7 @@ import 'package:boorusphere/utils/logger.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -39,6 +40,14 @@ import 'package:path_provider/path_provider.dart';
 void main() async {
   setupLogger();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // The bundled typeface ships under the SIL Open Font License, which asks
+  // that the licence travel with it; registering it here puts Geist in the
+  // app's own licence list instead of leaving the text buried in the assets.
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/fonts/OFL.txt');
+    yield LicenseEntryWithLineBreaks(['Geist'], text);
+  });
 
   // Opt into the highest available refresh rate on Android. By default Flutter
   // apps run at 60 Hz even on 90/120 Hz displays; this single call delivers a

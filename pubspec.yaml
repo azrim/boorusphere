@@ -124,6 +124,7 @@ flutter:
     - assets/servers.json
     - assets/icons/exported/logo.png
     - CHANGELOG.md
+    - assets/fonts/OFL.txt
 
   # One family for the whole app. Static instances are bundled instead of a
   # variable font so the weight a style asks for is the weight that renders.
