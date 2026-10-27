@@ -83,6 +83,31 @@ class AppTextRoles extends ThemeExtension<AppTextRoles> {
     required this.numeric,
   });
 
+  /// Derives the four roles from a text theme and a scheme.
+  factory AppTextRoles.from({
+    required TextTheme textTheme,
+    required ColorScheme scheme,
+  }) {
+    return AppTextRoles(
+      sectionLabel: textTheme.labelSmall!.copyWith(
+        color: scheme.onSurfaceVariant,
+        fontWeight: AppTypography.bold,
+        letterSpacing: 1.4,
+      ),
+      fieldLabel: textTheme.labelSmall!.copyWith(
+        color: scheme.onSurfaceVariant,
+      ),
+      rowTitle: textTheme.bodyLarge!.copyWith(color: scheme.onSurface),
+      rowSupporting: textTheme.bodySmall!.copyWith(
+        color: scheme.onSurfaceVariant,
+      ),
+      numeric: textTheme.bodyMedium!.copyWith(
+        color: scheme.onSurface,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+  }
+
   /// 11 sp, bold, opened tracking: the small caps line that names a section.
   /// Callers uppercase the text; the role stays case-agnostic.
   final TextStyle sectionLabel;
@@ -100,10 +125,18 @@ class AppTextRoles extends ThemeExtension<AppTextRoles> {
   /// down a column instead of drifting with each digit.
   final TextStyle numeric;
 
+  /// The roles of the active theme.
+  ///
+  /// A theme without the extension — a test harness, a preview — gets the
+  /// roles derived from its own text theme instead of an assertion, so a
+  /// widget built outside the app still reads the shared scale.
   static AppTextRoles of(BuildContext context) {
-    final roles = Theme.of(context).extension<AppTextRoles>();
-    assert(roles != null, 'AppTextRoles is missing from the theme');
-    return roles!;
+    final theme = Theme.of(context);
+    return theme.extension<AppTextRoles>() ??
+        AppTextRoles.from(
+          textTheme: theme.textTheme,
+          scheme: theme.colorScheme,
+        );
   }
 
   @override

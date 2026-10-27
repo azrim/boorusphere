@@ -118,23 +118,7 @@ ThemeData _createThemeData(
     origin.textTheme,
     colorScheme.onSurface,
   );
-  final roles = AppTextRoles(
-    sectionLabel: textTheme.labelSmall!.copyWith(
-      color: colorScheme.onSurfaceVariant,
-      fontWeight: AppTypography.bold,
-      letterSpacing: 1.4,
-    ),
-    fieldLabel: textTheme.labelSmall!.copyWith(
-      color: colorScheme.onSurfaceVariant,
-    ),
-    rowTitle: textTheme.bodyLarge!,
-    rowSupporting: textTheme.bodySmall!.copyWith(
-      color: colorScheme.onSurfaceVariant,
-    ),
-    numeric: textTheme.bodyMedium!.copyWith(
-      fontFeatures: const [FontFeature.tabularFigures()],
-    ),
-  );
+  final roles = AppTextRoles.from(textTheme: textTheme, scheme: colorScheme);
   // Depth is a ladder, not a mood: the page is flat, a block sits one step
   // above it, chrome that floats over the content casts a shadow, and an
   // overlay that owns the screen casts a longer one. Everything reads
