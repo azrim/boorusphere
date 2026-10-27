@@ -86,7 +86,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
 
   late final AnimationController _panelAnimation = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 220),
+    duration: DesignTokens.durationNormal,
   )..addStatusListener(_onPanelAnimationStatus);
 
   @override
@@ -151,7 +151,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
       _to = to;
     });
     _panelAnimation
-      ..duration = context.motionDuration(const Duration(milliseconds: 240))
+      ..duration = context.motionDuration(DesignTokens.durationNormal)
       ..forward(from: 0);
   }
 
@@ -168,7 +168,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
       _incomingWidget = null;
     });
     _panelAnimation
-      ..duration = context.motionDuration(const Duration(milliseconds: 240))
+      ..duration = context.motionDuration(DesignTokens.durationNormal)
       ..forward(from: 0);
   }
 
@@ -321,7 +321,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
       snapSizes: const [_kMinSheetSize, PostDetailsSheet.openSize],
       snap: true,
       snapAnimationDuration: context.motionDuration(
-        const Duration(milliseconds: 200),
+        DesignTokens.durationNormal,
       ),
       builder: (context, scrollController) {
         return RepaintBoundary(
@@ -398,8 +398,11 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                               onChanged: _goToPanel,
                             ),
                             AnimatedSize(
+                              // Same duration as the panel sliding above it,
+                              // so the sheet's edge and its content land
+                              // together instead of the edge arriving early.
                               duration: context.motionDuration(
-                                DesignTokens.durationFast,
+                                DesignTokens.durationNormal,
                               ),
                               curve: DesignTokens.curveStandard,
                               alignment: Alignment.topCenter,
@@ -599,11 +602,14 @@ class _SampleLinkRowState extends State<_SampleLinkRow> {
     return FutureBuilder<PixelSize>(
       future: _size,
       builder: (context, snapshot) {
+        // Until the size resolves the row says what it knows — the format —
+        // instead of printing a placeholder where a measurement belongs.
         final size = snapshot.data ?? post.sampleSize;
+        final detail = size.hasPixels ? '$size, $ext' : ext;
 
         return SheetLinkRow(
           label: context.t.fileSample,
-          detail: '$size, $ext',
+          detail: detail,
           url: post.sampleFile,
           onOpen: () => _open(post.sampleFile),
           onCopy: () => _copy(context, post.sampleFile),
