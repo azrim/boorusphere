@@ -55,22 +55,27 @@ class QuickBar extends StatelessWidget {
           color: context.colorScheme.surface,
         ),
         padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingSm),
+        // The pill hugs its label: a max-width row stretched it across the
+        // screen, and a long translated label then overflowed it.
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (title != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DesignTokens.spacingMd,
-                  vertical: DesignTokens.spacingSm,
-                ),
-                child: DefaultTextStyle(
-                  style:
-                      context.theme.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurface,
-                      ) ??
-                      const TextStyle(),
-                  child: title,
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacingMd,
+                    vertical: DesignTokens.spacingSm,
+                  ),
+                  child: DefaultTextStyle(
+                    style:
+                        context.theme.textTheme.bodySmall?.copyWith(
+                          color: context.colorScheme.onSurface,
+                        ) ??
+                        const TextStyle(),
+                    child: title,
+                  ),
                 ),
               ),
             if (actionTitle != null)

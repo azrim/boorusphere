@@ -295,7 +295,9 @@ class PostDownloadButton extends HookConsumerWidget {
                     pending.value = false;
                   }
                 },
-          disabledColor: context.colorScheme.primary,
+          // A control that ignores the tap must not wear the accent that
+          // means "this is the live action".
+          disabledColor: context.colorScheme.onSurface.withValues(alpha: 0.38),
         ),
       ],
     );

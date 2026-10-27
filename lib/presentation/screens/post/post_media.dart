@@ -322,59 +322,67 @@ class _PostImage extends HookConsumerWidget {
                 minScale: 1,
                 panEnabled: !isBlur.value,
                 scaleEnabled: !isBlur.value,
-                child: CachedNetworkImage(
-                  key: ValueKey(
-                    'postImage_${post.viewId}_${contentSetting.loadOriginal}_${retryNonce.value}_${createdAt.value}',
+                // The image is the screen's content; without a label the only
+                // thing a screen reader found here was the chrome around it.
+                child: Semantics(
+                  image: true,
+                  label: post.describeTags.isEmpty
+                      ? '#${post.id}'
+                      : post.describeTags,
+                  child: CachedNetworkImage(
+                    key: ValueKey(
+                      'postImage_${post.viewId}_${contentSetting.loadOriginal}_${retryNonce.value}_${createdAt.value}',
+                    ),
+                    imageUrl: imageUrl,
+                    httpHeaders: headers,
+                    fit: BoxFit.contain,
+                    memCacheWidth: cacheWidth,
+                    memCacheHeight: cacheHeight,
+                    imageBuilder: (context, provider) {
+                      _scheduleLoadState(
+                        loadState,
+                        const _PostImageLoadState.completed(),
+                      );
+                      // ponytail: cacheWidth/cacheHeight live on CachedNetworkImage's
+                      // memCacheWidth/memCacheHeight above — the generic Image()
+                      // constructor doesn't expose them. The provider from
+                      // imageBuilder is already sized by those params.
+                      final image = Image(
+                        image: provider,
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
+                      );
+                      return isBlur.value
+                          ? ImageFiltered(
+                              imageFilter: _kExplicitBlur,
+                              child: image,
+                            )
+                          : image;
+                    },
+                    progressIndicatorBuilder: (context, url, progress) {
+                      _scheduleLoadState(
+                        loadState,
+                        _PostImageLoadState.loading(progress.progress),
+                      );
+                      return PostPlaceholderImage(
+                        post: post,
+                        shouldBlur: isBlur.value,
+                        headers: headers,
+                      );
+                    },
+                    errorWidget: (context, url, error) {
+                      _scheduleLoadState(
+                        loadState,
+                        const _PostImageLoadState.failed(),
+                      );
+                      return PostPlaceholderImage(
+                        post: post,
+                        shouldBlur: isBlur.value,
+                        headers: headers,
+                      );
+                    },
                   ),
-                  imageUrl: imageUrl,
-                  httpHeaders: headers,
-                  fit: BoxFit.contain,
-                  memCacheWidth: cacheWidth,
-                  memCacheHeight: cacheHeight,
-                  imageBuilder: (context, provider) {
-                    _scheduleLoadState(
-                      loadState,
-                      const _PostImageLoadState.completed(),
-                    );
-                    // ponytail: cacheWidth/cacheHeight live on CachedNetworkImage's
-                    // memCacheWidth/memCacheHeight above — the generic Image()
-                    // constructor doesn't expose them. The provider from
-                    // imageBuilder is already sized by those params.
-                    final image = Image(
-                      image: provider,
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                      height: double.infinity,
-                    );
-                    return isBlur.value
-                        ? ImageFiltered(
-                            imageFilter: _kExplicitBlur,
-                            child: image,
-                          )
-                        : image;
-                  },
-                  progressIndicatorBuilder: (context, url, progress) {
-                    _scheduleLoadState(
-                      loadState,
-                      _PostImageLoadState.loading(progress.progress),
-                    );
-                    return PostPlaceholderImage(
-                      post: post,
-                      shouldBlur: isBlur.value,
-                      headers: headers,
-                    );
-                  },
-                  errorWidget: (context, url, error) {
-                    _scheduleLoadState(
-                      loadState,
-                      const _PostImageLoadState.failed(),
-                    );
-                    return PostPlaceholderImage(
-                      post: post,
-                      shouldBlur: isBlur.value,
-                      headers: headers,
-                    );
-                  },
                 ),
               ),
             ),

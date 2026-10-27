@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
@@ -419,15 +420,14 @@ class ServerAddPage extends HookConsumerWidget {
                               ],
                               if (result != null) ...[
                                 const SizedBox(height: DesignTokens.spacingMd),
-                                Container(
-                                  padding: const EdgeInsets.all(
-                                    DesignTokens.spacingMd,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: context.colorScheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(
-                                      DesignTokens.radiusMd,
-                                    ),
+                                // A flat row inside the block rather than a
+                                // tinted card on top of it: the block owns
+                                // the only surface, and the icon carries the
+                                // outcome.
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: DesignTokens.spacingCardInset,
+                                    vertical: DesignTokens.spacingSm,
                                   ),
                                   child: Row(
                                     crossAxisAlignment:
@@ -435,9 +435,8 @@ class ServerAddPage extends HookConsumerWidget {
                                     children: [
                                       Icon(
                                         Icons.check_circle_outline,
-                                        color: context
-                                            .colorScheme
-                                            .onPrimaryContainer,
+                                        size: DesignTokens.iconInline,
+                                        color: context.colorScheme.primary,
                                       ),
                                       const SizedBox(
                                         width: DesignTokens.spacingSm,
@@ -456,15 +455,9 @@ class ServerAddPage extends HookConsumerWidget {
                                                 ? context.t.auto
                                                 : result.suggestionParserId,
                                           ),
-                                          style: context
-                                              .theme
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                color: context
-                                                    .colorScheme
-                                                    .onPrimaryContainer,
-                                              ),
+                                          style: AppTextRoles.of(
+                                            context,
+                                          ).rowSupporting,
                                         ),
                                       ),
                                     ],
@@ -473,15 +466,10 @@ class ServerAddPage extends HookConsumerWidget {
                               ],
                               if (scanFailed.value) ...[
                                 const SizedBox(height: DesignTokens.spacingMd),
-                                Container(
-                                  padding: const EdgeInsets.all(
-                                    DesignTokens.spacingMd,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: context.colorScheme.errorContainer,
-                                    borderRadius: BorderRadius.circular(
-                                      DesignTokens.radiusMd,
-                                    ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: DesignTokens.spacingCardInset,
+                                    vertical: DesignTokens.spacingSm,
                                   ),
                                   child: Row(
                                     crossAxisAlignment:
@@ -489,9 +477,8 @@ class ServerAddPage extends HookConsumerWidget {
                                     children: [
                                       Icon(
                                         Icons.error_outline,
-                                        color: context
-                                            .colorScheme
-                                            .onErrorContainer,
+                                        size: DesignTokens.iconInline,
+                                        color: context.colorScheme.error,
                                       ),
                                       const SizedBox(
                                         width: DesignTokens.spacingSm,
@@ -499,15 +486,9 @@ class ServerAddPage extends HookConsumerWidget {
                                       Expanded(
                                         child: Text(
                                           context.t.servers.scanFailed,
-                                          style: context
-                                              .theme
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                color: context
-                                                    .colorScheme
-                                                    .onErrorContainer,
-                                              ),
+                                          style: AppTextRoles.of(
+                                            context,
+                                          ).rowSupporting,
                                         ),
                                       ),
                                     ],

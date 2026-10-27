@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
+import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
@@ -147,14 +148,18 @@ class SearchSuggestion extends HookConsumerWidget {
                     controller: scrollController,
                     physics:
                         const BouncingScrollPhysics(), // Minimal cache for performance
-                    slivers: const [
-                      _SearchHistoryHeader(),
-                      _SearchHistory(),
-                      _SuggestionHeader(),
-                      _Suggestion(),
+                    slivers: [
+                      const _SearchHistoryHeader(),
+                      const _SearchHistory(),
+                      const _SuggestionHeader(),
+                      const _Suggestion(),
+                      // The measured height of the bar, not a guessed one: with
+                      // the rating row open the last suggestion sat under it.
                       SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: kBottomNavigationBarHeight + 38,
+                        child: ValueListenableBuilder<double>(
+                          valueListenable: HomeSearchBar.height,
+                          builder: (context, height, _) =>
+                              SizedBox(height: height + DesignTokens.spacingMd),
                         ),
                       ),
                     ],

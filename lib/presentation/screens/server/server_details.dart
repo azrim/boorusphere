@@ -5,6 +5,7 @@ import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
@@ -301,35 +302,39 @@ class ParserSelector extends HookWidget {
             left: DesignTokens.spacingXs,
             bottom: DesignTokens.spacingXs,
           ),
-          child: Text(
-            label,
-            style: context.theme.textTheme.labelSmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
+          child: Text(label, style: AppTextRoles.of(context).fieldLabel),
         ),
-        InkWell(
-          borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-          onTap: () async {
-            FocusScope.of(context).unfocus();
+        // A flat row inside the block, ruled like every other field, instead
+        // of a filled card stacked on the surface that already carries one.
+        Semantics(
+          button: true,
+          child: InkWell(
+            onTap: () async {
+              FocusScope.of(context).unfocus();
 
-            onChanged.call(await selectParser(context, label, parsers, value));
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacingCardInset,
-              vertical: DesignTokens.spacingCardInset,
-            ),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
-            ),
-            child: Row(
-              children: [
-                ParserLabel(id: value),
-                const Spacer(),
-                Icon(Icons.arrow_drop_down, color: scheme.onSurfaceVariant),
-              ],
+              onChanged.call(
+                await selectParser(context, label, parsers, value),
+              );
+            },
+            child: Container(
+              constraints: const BoxConstraints(
+                minHeight: DesignTokens.controlHeightMin,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingCardInset,
+              ),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: scheme.outlineVariant),
+                ),
+              ),
+              child: Row(
+                children: [
+                  ParserLabel(id: value),
+                  const Spacer(),
+                  Icon(Icons.arrow_drop_down, color: scheme.onSurfaceVariant),
+                ],
+              ),
             ),
           ),
         ),
@@ -363,11 +368,14 @@ class ParserLabel extends StatelessWidget {
           ),
         ),
         const SizedBox(width: DesignTokens.spacingXs),
-        Card(
-          margin: EdgeInsets.zero,
-          // The fill and its foreground come from the same scheme role, so the
-          // chip keeps its contrast when the accent palette changes.
-          color: isJson ? scheme.primary : scheme.tertiary,
+        Container(
+          // A chip, not a card: flat inside the block, with the fill and its
+          // foreground from the same scheme role so the contrast holds when
+          // the accent palette changes.
+          decoration: BoxDecoration(
+            color: isJson ? scheme.primary : scheme.tertiary,
+            borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: DesignTokens.spacingXs,
