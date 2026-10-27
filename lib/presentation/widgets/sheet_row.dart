@@ -1,4 +1,5 @@
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
@@ -10,22 +11,16 @@ const _rowPadding = EdgeInsets.symmetric(
 );
 
 /// The label role a sheet uses inside a panel: the small caps line that names
-/// what a value or a group is.
-TextStyle? sheetLabelStyle(BuildContext context) {
-  return context.theme.textTheme.labelSmall?.copyWith(
-    color: context.colorScheme.onSurfaceVariant,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 1,
-  );
+/// what a value or a group is. It is the shared section-label role, so a panel
+/// label and a section label above a block are the same type.
+TextStyle sheetLabelStyle(BuildContext context) {
+  return AppTextRoles.of(context).sectionLabel;
 }
 
 /// The value role: body size with tabular figures, so scores, counts and
 /// dimensions line up down a panel instead of drifting with each digit.
-TextStyle? sheetValueStyle(BuildContext context) {
-  return context.theme.textTheme.bodyMedium?.copyWith(
-    color: context.colorScheme.onSurface,
-    fontFeatures: const [FontFeature.tabularFigures()],
-  );
+TextStyle sheetValueStyle(BuildContext context) {
+  return AppTextRoles.of(context).numeric;
 }
 
 /// Stacks panel rows and rules them: one hairline between rows, none after the
@@ -91,7 +86,7 @@ class SheetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final textTheme = context.theme.textTheme;
+    final roles = AppTextRoles.of(context);
 
     final row = Container(
       constraints: const BoxConstraints(
@@ -110,18 +105,10 @@ class SheetRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
-                ),
+                Text(title, style: roles.rowTitle),
                 if (detail case final detail?) ...[
-                  const SizedBox(height: DesignTokens.spacingXs),
-                  Text(
-                    detail,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  const SizedBox(height: DesignTokens.spacingSm),
+                  Text(detail, style: roles.rowSupporting),
                 ],
               ],
             ),
@@ -134,9 +121,13 @@ class SheetRow extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) return row;
+    // The tint is the visible half of "this is the current value"; the
+    // semantics are the half a screen reader needs.
+    final marked = selected ? Semantics(selected: true, child: row) : row;
 
-    return InkWell(onTap: onTap, child: row);
+    if (onTap == null) return marked;
+
+    return InkWell(onTap: onTap, child: marked);
   }
 }
 
@@ -223,10 +214,10 @@ class SheetLinkRow extends StatelessWidget {
                   style: sheetLabelStyle(context),
                 ),
                 if (detail case final detail?) ...[
-                  const SizedBox(height: DesignTokens.spacingXs + 2),
+                  const SizedBox(height: DesignTokens.spacingSm),
                   Text(detail, style: sheetValueStyle(context)),
                 ],
-                const SizedBox(height: DesignTokens.spacingXs + 2),
+                const SizedBox(height: DesignTokens.spacingSm),
                 Text(
                   url,
                   maxLines: 1,

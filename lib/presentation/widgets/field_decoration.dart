@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
@@ -16,9 +17,8 @@ InputDecoration flatFieldDecoration(
 }) {
   final scheme = context.colorScheme;
   final textTheme = context.theme.textTheme;
-  final labelStyle = textTheme.labelSmall?.copyWith(
-    color: scheme.onSurfaceVariant,
-  );
+  final roles = AppTextRoles.of(context);
+  final labelStyle = roles.fieldLabel;
   final hairline = UnderlineInputBorder(
     borderSide: BorderSide(color: scheme.outlineVariant),
   );

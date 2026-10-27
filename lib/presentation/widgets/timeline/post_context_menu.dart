@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
@@ -330,10 +331,9 @@ class _MenuRowTile extends StatelessWidget {
                     entry.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: context.theme.textTheme.labelLarge?.copyWith(
-                      color: labelColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppTextRoles.of(
+                      context,
+                    ).rowTitle.copyWith(color: labelColor),
                   ),
                 ),
                 const SizedBox(

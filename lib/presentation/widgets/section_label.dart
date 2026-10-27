@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
@@ -25,11 +26,7 @@ class SectionLabel extends StatelessWidget {
       ),
       child: Text(
         label.toUpperLocale(context),
-        style: context.theme.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.4,
-        ),
+        style: AppTextRoles.of(context).sectionLabel,
       ),
     );
 
@@ -49,10 +46,13 @@ class SectionLabel extends StatelessWidget {
 /// A [SectionLabel] with the spacing a section needs above and below it, and
 /// an optional trailing action on the same line.
 class SectionHeading extends StatelessWidget {
-  const SectionHeading(this.label, {super.key, this.action});
+  const SectionHeading(this.label, {super.key, this.action, this.count});
 
   final String label;
   final Widget? action;
+
+  /// How many items the section holds, shown beside the label.
+  final int? count;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +66,10 @@ class SectionHeading extends StatelessWidget {
       child: Row(
         children: [
           SectionLabel(label),
+          if (count != null) ...[
+            const SizedBox(width: DesignTokens.spacingSm),
+            Text('$count', style: AppTextRoles.of(context).sectionLabel),
+          ],
           const Spacer(),
           if (action != null) action!,
         ],

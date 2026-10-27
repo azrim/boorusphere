@@ -174,7 +174,6 @@ class DownloadEntryView extends ConsumerWidget {
         server: servers.getById(entry.post.serverId, or: servers.firstOrNull),
         isFileExists: isFileExists,
       ),
-      dense: true,
       onTap: !progress.status.isDownloaded || !isFileExists
           ? null
           : () => ref.read(downloaderProvider).openFile(id: entry.id),

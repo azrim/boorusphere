@@ -7,12 +7,14 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -193,18 +195,22 @@ class _SearchHistoryHeader extends HookConsumerWidget {
       sliver: SliverToBoxAdapter(
         child: Row(
           children: [
-            Expanded(
-              child: Text(
-                query.trim().isEmpty
-                    ? context.t.recently
-                    : '${context.t.recently}: $query',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+            // The query sits beside the label in the supporting role instead
+            // of inside it: a small-caps heading with a user string glued on
+            // stops being a heading.
+            SectionLabel(context.t.recently),
+            if (query.trim().isNotEmpty) ...[
+              const SizedBox(width: DesignTokens.spacingSm),
+              Flexible(
+                child: Text(
+                  query,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextRoles.of(context).rowSupporting,
                 ),
               ),
-            ),
+            ],
+            const Spacer(),
             TextButton(
               onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
               child: Text(context.t.clear),
@@ -360,11 +366,8 @@ class _SuggestionHeader extends HookConsumerWidget {
         DesignTokens.spacingSm,
       ),
       sliver: SliverToBoxAdapter(
-        child: Text(
+        child: SectionLabel(
           context.t.suggestion.suggested(serverName: server.name),
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
         ),
       ),
     );

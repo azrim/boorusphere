@@ -1,4 +1,5 @@
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/color_palettes.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -113,8 +114,31 @@ ThemeData _createThemeData(
           outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.45),
         );
   final origin = isDark ? ThemeData.dark() : ThemeData.light();
+  final textTheme = AppTypography.textTheme(
+    origin.textTheme,
+    colorScheme.onSurface,
+  );
+  final roles = AppTextRoles(
+    sectionLabel: textTheme.labelSmall!.copyWith(
+      color: colorScheme.onSurfaceVariant,
+      fontWeight: AppTypography.bold,
+      letterSpacing: 1.4,
+    ),
+    fieldLabel: textTheme.labelSmall!.copyWith(
+      color: colorScheme.onSurfaceVariant,
+    ),
+    rowTitle: textTheme.bodyLarge!,
+    rowSupporting: textTheme.bodySmall!.copyWith(
+      color: colorScheme.onSurfaceVariant,
+    ),
+    numeric: textTheme.bodyMedium!.copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
+    ),
+  );
   return origin.copyWith(
     colorScheme: colorScheme,
+    textTheme: textTheme,
+    extensions: [roles],
     appBarTheme: AppBarTheme(
       backgroundColor: colorScheme.surface,
       foregroundColor: colorScheme.onSurface,
@@ -161,13 +185,8 @@ ThemeData _createThemeData(
     listTileTheme: origin.listTileTheme.copyWith(
       minVerticalPadding: DesignTokens.spacingCardInset,
       iconColor: colorScheme.onSurfaceVariant,
-      titleTextStyle: origin.textTheme.bodyLarge?.copyWith(
-        color: colorScheme.onSurface,
-      ),
-      subtitleTextStyle: origin.textTheme.bodySmall?.copyWith(
-        color: colorScheme.onSurfaceVariant,
-        height: 1.4,
-      ),
+      titleTextStyle: roles.rowTitle,
+      subtitleTextStyle: roles.rowSupporting,
     ),
   );
 }

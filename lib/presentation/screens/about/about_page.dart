@@ -50,12 +50,7 @@ class AboutPage extends ConsumerWidget {
                   color: context.colorScheme.onPrimaryContainer,
                 ),
               ),
-              Text(
-                'Boorusphere',
-                style: context.theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w300,
-                ),
-              ),
+              Text('Boorusphere', style: context.theme.textTheme.titleLarge),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: DesignTokens.spacingCardInset,
