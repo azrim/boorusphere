@@ -1,4 +1,14 @@
 ## 2.0.24
+* **Feat**: set the app in Geist, bundled with four weights, on a single type scale, so headings tighten, labels open up and every row reads the same size across settings, sheets, the drawer and the server forms
+* **Feat**: give the app a four-rung elevation ladder — a block takes the container tone, chrome that floats over the content takes a shadow, and menus, sheets and dialogs lift in turn
+* **Feat**: draw the first page of a search as a grid of shimmering tiles at the shape it will take, instead of a spinner on an empty screen
+* **Feat**: open every one-value choice in the same bottom sheet, so picking a rating, a download filter and a server parser no longer look like three different apps
+* **Feat**: give the tags blocker field a label and a visible submit control, so a typed tag is no longer lost by tapping away
+* **Fix**: paint the selection ring over a thumbnail instead of inside it, which had been shrinking the image every time a post was selected
+* **Fix**: drop the sixth on-image overlay, which collided with the tag and dimension labels and repeated what the tile shape already said
+* **Fix**: keep the post details sheet's bottom edge in step with the panel above it, and stop the sample row reporting "unknown size" while it loads
+* **Fix**: announce the post image to screen readers, name the parser picker as a control and give it a 48 dp target, and translate the post position in the viewer
+* **Fix**: keep the last search suggestion above the measured search bar, and stop a failed license read from spinning forever
 * **Feat**: rebuild every bottom sheet on one shell - a header named after what it is about with a close control, one job per panel, and rows ruled by a single hairline
 * **Feat**: split the post details sheet into Details, Tags and Links panels, with a tab strip that shows how much sits behind each one
 * **Fix**: keep the post details sheet readable over a bright image, and right-align its values so scores and dimensions line up
