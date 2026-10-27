@@ -327,6 +327,17 @@ class ServerAddPage extends HookConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.all(DesignTokens.spacingSm),
                     child: SegmentedButton<_AddMode>(
+                      // The mode switch is a control, so the chosen mode takes
+                      // the same primary fill the page's own button takes
+                      // instead of the neutral tonal default.
+                      style: SegmentedButton.styleFrom(
+                        selectedBackgroundColor: context.colorScheme.primary,
+                        selectedForegroundColor: context.colorScheme.onPrimary,
+                        foregroundColor: context.colorScheme.onSurfaceVariant,
+                        side: BorderSide(
+                          color: context.colorScheme.outlineVariant,
+                        ),
+                      ),
                       segments: [
                         ButtonSegment(
                           value: _AddMode.scan,
@@ -369,7 +380,7 @@ class ServerAddPage extends HookConsumerWidget {
                                     ),
                               ),
                               const SizedBox(height: DesignTokens.spacingSm),
-                              FilledButton.tonalIcon(
+                              FilledButton.icon(
                                 onPressed: isScanning ? null : onScan,
                                 icon: const Icon(Icons.search),
                                 label: Text(
@@ -385,38 +396,7 @@ class ServerAddPage extends HookConsumerWidget {
                                   ),
                                   child: LinearProgressIndicator(),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: DesignTokens.spacingSm,
-                                  ),
-                                  child: ValueListenableBuilder<List<String>>(
-                                    valueListenable: scanner.logs,
-                                    builder: (context, logs, _) {
-                                      if (logs.isEmpty) {
-                                        return const SizedBox.shrink();
-                                      }
-
-                                      return Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: logs
-                                            .map(
-                                              (line) => Text(
-                                                line,
-                                                style: context
-                                                    .theme
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      fontFamily: 'monospace',
-                                                    ),
-                                              ),
-                                            )
-                                            .toList(),
-                                      );
-                                    },
-                                  ),
-                                ),
+                                _ScanLog(scanner: scanner),
                               ],
                               if (result != null) ...[
                                 const SizedBox(height: DesignTokens.spacingMd),
@@ -671,6 +651,89 @@ class ServerAddPage extends HookConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The scanner's running log, in a box of its own.
+///
+/// The box keeps its height while the scan runs and the lines scroll inside
+/// it: the page under it must not move, because the Add button sits below the
+/// log and the reader is aiming for it.
+class _ScanLog extends StatefulWidget {
+  const _ScanLog({required this.scanner});
+
+  final BooruScanner scanner;
+
+  @override
+  State<_ScanLog> createState() => _ScanLogState();
+}
+
+class _ScanLogState extends State<_ScanLog> {
+  final _controller = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.scanner.logs.addListener(_follow);
+  }
+
+  @override
+  void dispose() {
+    widget.scanner.logs.removeListener(_follow);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Keeps the newest line in view. The log is a stream of facts rather than a
+  /// transition, so it jumps instead of animating.
+  void _follow() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_controller.hasClients) return;
+      _controller.jumpTo(_controller.position.maxScrollExtent);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.colorScheme;
+    final style = context.theme.textTheme.bodySmall?.copyWith(
+      fontFamily: 'monospace',
+      color: scheme.onSurfaceVariant,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
+      child: Container(
+        height: DesignTokens.controlHeightMin * 2,
+        padding: const EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacingCardInset,
+          vertical: DesignTokens.spacingSm,
+        ),
+        decoration: BoxDecoration(
+          // A well rather than a card: darker than the block it sits in, so
+          // the text reads as an inset readout.
+          color: scheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+        ),
+        child: ValueListenableBuilder<List<String>>(
+          valueListenable: widget.scanner.logs,
+          builder: (context, logs, _) => Scrollbar(
+            controller: _controller,
+            child: ListView.builder(
+              controller: _controller,
+              padding: EdgeInsets.zero,
+              itemCount: logs.length,
+              itemBuilder: (context, index) => Text(
+                logs[index],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: style,
+              ),
+            ),
           ),
         ),
       ),
