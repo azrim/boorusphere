@@ -26,9 +26,6 @@ class PostContextMenuEntry {
   final bool enabled;
 }
 
-/// Spring entrance curve for the floating card: a quick overshoot that settles.
-const Curve _kSpringCurve = Cubic(0.34, 1.56, 0.64, 1);
-
 /// Fixed geometry of the menu card.
 const double _kRowHeight = 48;
 const double _kCardRadius = 24;
@@ -36,7 +33,7 @@ const double _kCardMaxWidth = 320;
 
 /// Backdrop blur radius and scrim opacity once fully revealed.
 const double _kBackdropBlur = 20;
-const double _kBackdropOpacity = 0.34;
+const double _kBackdropOpacity = 0.12;
 
 /// The backdrop blur is quantised into this many steps. The engine caches a
 /// blurred backdrop per filter, so a continuously changing sigma re-blurs the
@@ -49,13 +46,6 @@ double _steppedBackdropBlur(double t) {
   return _kBackdropBlur * step.clamp(0.0, 1.0);
 }
 
-/// Same idea for the card: a quantised sigma lets the engine reuse a cached
-/// filter during the entrance instead of re-rasterising every frame.
-double _quantizedBlur(double value) {
-  const steps = 5;
-  return (value * steps).round() / steps;
-}
-
 /// Shows the post context menu as a floating glass card over a blurred,
 /// tap-to-dismiss backdrop, resolving to the tapped action (or `null` when
 /// dismissed).
@@ -65,17 +55,22 @@ double _quantizedBlur(double value) {
 Future<PostContextMenuAction?> showPostContextMenu(
   BuildContext context, {
   required List<List<PostContextMenuEntry>> groups,
+  Offset? position,
 }) {
   return showGeneralDialog<PostContextMenuAction>(
     context: context,
     // Dismissible so the barrier exposes a dismiss action to screen readers;
-    // the blurred backdrop below still handles the pointer tap.
+    // the backdrop below still handles the pointer tap.
     barrierDismissible: true,
     barrierColor: Colors.transparent,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
     transitionDuration: context.motionDuration(DesignTokens.durationNormal),
     pageBuilder: (context, animation, secondaryAnimation) {
-      return _ContextMenuView(animation: animation, groups: groups);
+      return _ContextMenuView(
+        animation: animation,
+        groups: groups,
+        position: position,
+      );
     },
   );
 }
@@ -83,10 +78,19 @@ Future<PostContextMenuAction?> showPostContextMenu(
 double _clamp01(double value) => value < 0 ? 0 : (value > 1 ? 1 : value);
 
 class _ContextMenuView extends StatelessWidget {
-  const _ContextMenuView({required this.animation, required this.groups});
+  const _ContextMenuView({
+    required this.animation,
+    required this.groups,
+    this.position,
+  });
 
   final Animation<double> animation;
   final List<List<PostContextMenuEntry>> groups;
+
+  /// Where the finger went down, in global coordinates. The card opens beside
+  /// that point the way a desktop menu opens at the cursor; without it (a
+  /// screen-reader long-press) the card is centred.
+  final Offset? position;
 
   @override
   Widget build(BuildContext context) {
@@ -97,8 +101,8 @@ class _ContextMenuView extends StatelessWidget {
     );
     final card = CurvedAnimation(
       parent: animation,
-      curve: _kSpringCurve,
-      reverseCurve: Curves.easeInCubic,
+      curve: DesignTokens.curveStandard,
+      reverseCurve: DesignTokens.curveAccelerate,
     );
 
     return Stack(
@@ -109,29 +113,31 @@ class _ContextMenuView extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(),
           ),
         ),
-        Center(
-          child: AnimatedBuilder(
-            animation: card,
-            builder: (context, child) {
-              final t = card.value;
-              final blur = _quantizedBlur(math.max(0.0, 1 - t) * 10);
-              return Opacity(
-                opacity: _clamp01(t),
-                child: Transform.translate(
-                  offset: Offset(0, 18 * (1 - t)),
-                  child: Transform.scale(
-                    scale: 0.82 + 0.18 * t,
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                      child: child,
-                    ),
-                  ),
-                ),
-              );
-            },
-            child: _MenuHalo(
+        Positioned.fill(
+          child: CustomSingleChildLayout(
+            delegate: _MenuLayout(
+              anchor: position,
+              margin: DesignTokens.spacingMd,
+            ),
+            child: AnimatedBuilder(
               animation: card,
-              child: _MenuCard(animation: animation, groups: groups),
+              builder: (context, child) {
+                final t = _clamp01(card.value);
+                // A menu that appears where the finger already is has no room
+                // for a long entrance: it fades in and slides the last few
+                // pixels, the way a cursor menu does.
+                return Opacity(
+                  opacity: t,
+                  child: Transform.translate(
+                    offset: Offset(0, 8 * (1 - t)),
+                    child: child,
+                  ),
+                );
+              },
+              child: _MenuHalo(
+                animation: card,
+                child: _MenuCard(animation: animation, groups: groups),
+              ),
             ),
           ),
         ),
@@ -169,6 +175,54 @@ class _MenuBackdrop extends StatelessWidget {
   }
 }
 
+/// Places the card beside the point that opened it and keeps it on screen.
+///
+/// The menu opens to the lower right of the finger, the way a desktop context
+/// menu opens at the cursor, and flips to the other side of that point when
+/// the preferred corner would push it past the margin.
+class _MenuLayout extends SingleChildLayoutDelegate {
+  _MenuLayout({required this.anchor, required this.margin});
+
+  final Offset? anchor;
+  final double margin;
+
+  static const double _gap = 6;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final point = anchor;
+    if (point == null) {
+      return Offset(
+        (size.width - childSize.width) / 2,
+        (size.height - childSize.height) / 2,
+      );
+    }
+
+    // The child carries the halo's margin, so the card itself lands [_gap]
+    // away from the finger.
+    var dx = point.dx + _gap - _MenuHalo.margin;
+    var dy = point.dy + _gap - _MenuHalo.margin;
+    if (dx + childSize.width > size.width - margin) {
+      dx = point.dx - childSize.width - _gap + _MenuHalo.margin;
+    }
+    if (dy + childSize.height > size.height - margin) {
+      dy = point.dy - childSize.height - _gap + _MenuHalo.margin;
+    }
+
+    final maxX = math.max(margin, size.width - childSize.width - margin);
+    final maxY = math.max(margin, size.height - childSize.height - margin);
+    return Offset(dx.clamp(margin, maxX), dy.clamp(margin, maxY));
+  }
+
+  @override
+  bool shouldRelayout(_MenuLayout oldDelegate) =>
+      oldDelegate.anchor != anchor || oldDelegate.margin != margin;
+}
+
 /// The soft edge around the card: the card's own footprint plus a short
 /// margin, blurred, so the artwork directly behind the menu recedes while the
 /// rest of the grid stays readable.
@@ -176,7 +230,7 @@ class _MenuHalo extends StatelessWidget {
   const _MenuHalo({required this.animation, required this.child});
 
   /// How far the blur reaches past the card.
-  static const double margin = DesignTokens.spacingLg;
+  static const double margin = DesignTokens.spacingMd;
 
   final Animation<double> animation;
   final Widget child;

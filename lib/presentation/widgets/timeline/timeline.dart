@@ -315,9 +315,9 @@ class _ThumbnailCard extends HookConsumerWidget {
       }
     }
 
-    void handleLongPress() {
+    void handleLongPress(Offset? position) {
       HapticFeedback.mediumImpact();
-      unawaited(_showCardMenu(context, ref));
+      unawaited(_showCardMenu(context, ref, position));
     }
 
     return AutoScrollTag(
@@ -335,14 +335,17 @@ class _ThumbnailCard extends HookConsumerWidget {
         selected: enableSelection ? isSelected : null,
         label: _cardSemanticsLabel(context, post),
         onTap: handleTap,
-        onLongPress: handleLongPress,
+        // A screen-reader long-press carries no finger position, so the menu
+        // falls back to placing itself beside the card.
+        onLongPress: () => handleLongPress(null),
         child: ExcludeSemantics(
           child: GestureDetector(
             // Opaque so taps anywhere on the card (including the overlay
             // labels) open the viewer like taps on the thumbnail do.
             behavior: HitTestBehavior.opaque,
             onTap: handleTap,
-            onLongPress: handleLongPress,
+            onLongPressStart: (details) =>
+                handleLongPress(details.globalPosition),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
@@ -468,7 +471,11 @@ class _ThumbnailCard extends HookConsumerWidget {
 
   /// Opens the card's quick-action menu (select, favorite, download, share,
   /// open source) as a floating glass card over the timeline.
-  Future<void> _showCardMenu(BuildContext context, WidgetRef ref) async {
+  Future<void> _showCardMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Offset? position,
+  ) async {
     final (_, post) = postdata;
     final isSelected = ref.read(postSelectionProvider).contains(post.id);
     final isFavorite = ref
@@ -482,6 +489,7 @@ class _ThumbnailCard extends HookConsumerWidget {
 
     final action = await showPostContextMenu(
       context,
+      position: position,
       groups: [
         [
           if (enableSelection)

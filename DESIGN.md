@@ -198,12 +198,12 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 
 ### Context Menu (Post Actions)
 - **Trigger**: long-press a timeline card (medium haptic) — never a plain tap
-- **Presentation**: a floating glass card centered over the timeline — translucent scheme surface with `BackdropFilter` blur, 24px radius, hairline outline, soft shadow
-- **Backdrop**: full-screen `ColorScheme.scrim` scrim with a progressive blur; tap the backdrop or press back to dismiss
-- **Rows**: 48px, each a tinted icon chip (`secondaryContainer` / `onSecondaryContainer`) plus a label; grouped by intent (select / favorite · download / share · open source) with hairline dividers; disabled rows dim to 38%
-- **Motion**: the card springs in (scale + slide + blur, ~300ms) and rows fade/slide in with a short stagger; the reverse plays on dismiss
+- **Placement**: the card opens beside the point the finger went down, the way a desktop menu opens at the cursor, not centred on the screen. It prefers the lower right of that point and flips above or to the left when the preferred corner would push it past the margin. A screen-reader long-press carries no point, so that path centres it
+- **Presentation**: a floating glass card — translucent scheme surface over a backdrop filter, 24px radius, hairline outline, tinted shadow
+- **Backdrop**: the blur belongs to the card, not the screen: a halo the size of the card plus 16 dp is blurred, and the rest of the grid stays legible under a 12% veil. Tap anywhere or press back to dismiss
+- **Rows**: 48px, each a tinted icon chip (`secondaryContainer` / `onSecondaryContainer`) plus a label; grouped by intent (select / favorite · download / share / open source) with hairline dividers; disabled rows dim to 38%
+- **Motion**: the card fades in and travels the last 8 dp on the standard curve — a menu that appears where the finger already is has no room for a long entrance. Rows fade and slide in with a short stagger; the reverse plays on dismiss
 - **Colors**: scheme-only — icon chips and labels come from `ColorScheme`, with no per-action accent colors
-
 ### Navigation (Home Drawer)
 - **Style**: Navigation drawer, opened by the leading server chip in the search bar or by a swipe anywhere on the grid (a narrow edge zone loses the gesture race to the system back gesture on gesture-nav phones, so the drag zone is the full width while the search bar is closed); rounded right edge, width capped to the viewport
 - **Search bar**: the leading chip opens the drawer (and cancels the search while it is open); the trailing button only cycles grid density, so a control never changes meaning mid-scroll. An active non-default rating shows as a tinted chip with a filter icon beside the field, so a filtered feed is a visible state. The bar is a glass surface — `surface` at 72% over a 20 px backdrop blur — because the grid scrolls beneath it; the Interface → Blur setting switches it back to an opaque surface, which is also the cheaper path on slow devices
