@@ -36,6 +36,13 @@ class _TagsBlockerContent extends HookConsumerWidget {
       uiSettingStateProvider.select((it) => it.imeIncognito),
     );
 
+    void submit(String value) {
+      final values = value.toWordList();
+      if (values.isEmpty) return;
+      ref.read(tagsBlockerStateProvider.notifier).pushAll(tags: values);
+      controller.clear();
+    }
+
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd),
       children: [
@@ -63,17 +70,22 @@ class _TagsBlockerContent extends HookConsumerWidget {
                   TextField(
                     controller: controller,
                     enableIMEPersonalizedLearning: !imeIncognito,
-                    onSubmitted: (value) {
-                      final values = value.toWordList();
-                      ref
-                          .read(tagsBlockerStateProvider.notifier)
-                          .pushAll(tags: values);
-                      controller.clear();
-                    },
-                    decoration: flatFieldDecoration(
-                      context,
-                      label: context.t.tagsBlocker.hint,
-                    ),
+                    onSubmitted: submit,
+                    textInputAction: TextInputAction.done,
+                    decoration:
+                        flatFieldDecoration(
+                          context,
+                          label: context.t.tagsBlocker.title,
+                          hint: context.t.tagsBlocker.hint,
+                        ).copyWith(
+                          // A field whose only way in is the keyboard's done key
+                          // loses whatever was typed when the reader taps away.
+                          suffixIcon: IconButton(
+                            onPressed: () => submit(controller.text),
+                            tooltip: context.t.add,
+                            icon: const Icon(Icons.add),
+                          ),
+                        ),
                   ),
                 ],
               ),

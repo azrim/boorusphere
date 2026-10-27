@@ -73,7 +73,6 @@ Future<String?> showTextSheet({
   required BuildContext context,
   required String title,
   required String saveLabel,
-  required String cancelLabel,
   String? hint,
   String? initialValue,
   TextInputType? keyboardType,
@@ -84,7 +83,6 @@ Future<String?> showTextSheet({
     builder: (context) => _TextSheet(
       title: title,
       saveLabel: saveLabel,
-      cancelLabel: cancelLabel,
       hint: hint,
       initialValue: initialValue,
       keyboardType: keyboardType,
@@ -97,7 +95,6 @@ class _TextSheet extends HookWidget {
   const _TextSheet({
     required this.title,
     required this.saveLabel,
-    required this.cancelLabel,
     this.hint,
     this.initialValue,
     this.keyboardType,
@@ -106,7 +103,6 @@ class _TextSheet extends HookWidget {
 
   final String title;
   final String saveLabel;
-  final String cancelLabel;
   final String? hint;
   final String? initialValue;
   final TextInputType? keyboardType;
@@ -120,23 +116,13 @@ class _TextSheet extends HookWidget {
 
     return SheetShell(
       title: title,
-      footer: Row(
-        children: [
-          Expanded(
-            child: TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(cancelLabel),
-            ),
-          ),
-          const SizedBox(width: DesignTokens.spacingSm),
-          Expanded(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(elevation: 0),
-              onPressed: save,
-              child: Text(saveLabel),
-            ),
-          ),
-        ],
+      // One action. The shell already carries a close control and the
+      // backdrop dismisses, so a Cancel button was a third way out taking half
+      // the width of the only action that matters.
+      footer: ElevatedButton(
+        style: ElevatedButton.styleFrom(elevation: 0),
+        onPressed: save,
+        child: Text(saveLabel),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(

@@ -13,6 +13,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/expandable_group_list_view.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
+import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -180,37 +181,17 @@ class DownloadsPage extends HookConsumerWidget {
   Future<DownloadFilter?> showFilterDialog(
     BuildContext context,
     DownloadFilter current,
-  ) {
-    return showDialog<DownloadFilter?>(
+  ) async {
+    final picked = await showChoiceSheet<DownloadFilter>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(context.t.downloads.filterByStatus),
-          icon: const Icon(Icons.file_download),
-          contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: RadioGroup<DownloadFilter>(
-            groupValue: current,
-            onChanged: (value) {
-              context.navigator.pop(value);
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: DownloadFilter.values
-                  .map(
-                    (e) => ListTile(
-                      leading: Radio<DownloadFilter>(value: e),
-                      title: Text(e.describe(context)),
-                      onTap: () {
-                        context.navigator.pop(e);
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        );
-      },
+      title: context.t.downloads.filterByStatus,
+      selected: current,
+      choices: [
+        for (final filter in DownloadFilter.values)
+          Choice(value: filter, label: filter.describe(context)),
+      ],
     );
+    return picked?.value;
   }
 
   Future<bool?> showClearDialog(BuildContext context) {

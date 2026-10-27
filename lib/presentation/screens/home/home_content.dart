@@ -18,6 +18,7 @@ import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_screen.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -183,42 +184,50 @@ class HomeContent extends HookConsumerWidget {
         !showHint;
 
     if (servers.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(DesignTokens.spacingXl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.explore,
-                size: 72,
-                color: context.colorScheme.primary.withValues(alpha: 0.6),
-              ),
-              const SizedBox(height: DesignTokens.spacingLg),
-              Text(
-                context.t.onboarding.welcomeTitle,
-                style: context.theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: DesignTokens.spacingSm),
-              Text(
-                context.t.onboarding.welcomeDesc,
-                textAlign: TextAlign.center,
-                style: context.theme.textTheme.bodyMedium?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
+      // The first screen a new install shows. It scrolls because a large font
+      // scale or a short window would otherwise cut the only action off.
+      return LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(DesignTokens.spacingXl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.explore,
+                      size: DesignTokens.spacingXl * 2,
+                      color: context.colorScheme.primary.withValues(alpha: 0.6),
+                    ),
+                    const SizedBox(height: DesignTokens.spacingLg),
+                    Text(
+                      context.t.onboarding.welcomeTitle,
+                      style: context.theme.textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: DesignTokens.spacingSm),
+                    Text(
+                      context.t.onboarding.welcomeDesc,
+                      textAlign: TextAlign.center,
+                      style: AppTextRoles.of(context).rowSupporting,
+                    ),
+                    const SizedBox(height: DesignTokens.spacingLg),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          context.router.push(const ServerAddRoute()),
+                      icon: const Icon(Icons.add),
+                      label: Text(context.t.onboarding.addFirstServer),
+                    ),
+                    const SizedBox(height: DesignTokens.spacingSm),
+                    TextButton(
+                      onPressed: () => context.router.push(ServerPresetRoute()),
+                      child: Text(context.t.onboarding.browsePresets),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: DesignTokens.spacingLg),
-              FilledButton.icon(
-                onPressed: () => context.router.push(const ServerAddRoute()),
-                icon: const Icon(Icons.add),
-                label: Text(context.t.onboarding.addFirstServer),
-              ),
-              const SizedBox(height: DesignTokens.spacingSm),
-              TextButton(
-                onPressed: () => context.router.push(ServerPresetRoute()),
-                child: Text(context.t.onboarding.browsePresets),
-              ),
-            ],
+            ),
           ),
         ),
       );

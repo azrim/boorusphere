@@ -15,6 +15,7 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
+import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -26,22 +27,12 @@ class HomeStatus extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pageState = ref.watch(pageStateProvider);
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        switch (pageState) {
-          IdleFetchResult() || DataFetchResult() => const SizedBox.shrink(),
-          LoadingFetchResult() => Container(
-            height: 50,
-            alignment: Alignment.topCenter,
-            child: const RefreshProgressIndicator(),
-          ),
-          ErrorFetchResult(:final data, :final error, :final stackTrace) =>
-            _ErrorStatus(data: data, error: error, stackTrace: stackTrace),
-        },
-      ],
-    );
+    return switch (pageState) {
+      IdleFetchResult() || DataFetchResult() => const SizedBox.shrink(),
+      LoadingFetchResult() => const TimelineSkeleton(),
+      ErrorFetchResult(:final data, :final error, :final stackTrace) =>
+        _ErrorStatus(data: data, error: error, stackTrace: stackTrace),
+    };
   }
 }
 

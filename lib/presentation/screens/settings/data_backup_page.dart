@@ -762,7 +762,6 @@ class _TelegramChatIdTile extends HookWidget {
                   FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
                 ],
                 saveLabel: context.t.save,
-                cancelLabel: context.t.cancel,
               );
               if (result != null) {
                 await notifier.setTelegramChatId(result);
@@ -802,7 +801,6 @@ class _TelegramBotTokenTile extends HookWidget {
                 hint: context.t.periodicBackup.telegram.botTokenHint,
                 initialValue: state.telegramBotToken,
                 saveLabel: context.t.save,
-                cancelLabel: context.t.cancel,
               );
               if (result != null) {
                 await notifier.setTelegramBotToken(result);

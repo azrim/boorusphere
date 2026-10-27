@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/utils/extensions/booru_rating.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
+import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -221,37 +222,23 @@ String _ratingLabel(BuildContext context, BooruRating rating) {
 }
 
 /// Rating picker shared by the option bar and the collapsed bar chip.
-Future<BooruRating?> _pickRating(BuildContext context, BooruRating current) {
-  return showDialog<BooruRating>(
+///
+/// The same sheet every other one-value choice in the app opens, so picking a
+/// rating and picking a palette look like the same kind of question.
+Future<BooruRating?> _pickRating(
+  BuildContext context,
+  BooruRating current,
+) async {
+  final picked = await showChoiceSheet<BooruRating>(
     context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text(context.t.rating.title),
-        icon: const Icon(Icons.star),
-        contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-        content: RadioGroup<BooruRating>(
-          groupValue: current,
-          onChanged: (x) {
-            context.navigator.pop(x);
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: BooruRating.values
-                .map(
-                  (e) => ListTile(
-                    leading: Radio<BooruRating>(value: e),
-                    title: Text(_ratingLabel(context, e)),
-                    onTap: () {
-                      context.navigator.pop(e);
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      );
-    },
+    title: context.t.rating.title,
+    selected: current,
+    choices: [
+      for (final rating in BooruRating.values)
+        Choice(value: rating, label: _ratingLabel(context, rating)),
+    ],
   );
+  return picked?.value;
 }
 
 class _Button extends StatelessWidget {

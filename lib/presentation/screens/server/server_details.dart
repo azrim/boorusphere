@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
+import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -271,37 +272,21 @@ class ParserSelector extends HookWidget {
     String title,
     List<BooruParser> parsers,
     String current,
-  ) {
-    return showDialog<String>(
+  ) async {
+    final picked = await showChoiceSheet<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(title),
-          icon: const Icon(Icons.star),
-          contentPadding: const EdgeInsets.only(top: 16, bottom: 16),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: RadioGroup<String>(
-              groupValue: current,
-              onChanged: (x) {
-                context.navigator.pop(x);
-              },
-              child: ListView.builder(
-                itemCount: parsers.length,
-                shrinkWrap: true,
-                itemBuilder: (context, index) => ListTile(
-                  leading: Radio<String>(value: parsers[index].id),
-                  title: ParserLabel(id: parsers[index].id),
-                  onTap: () {
-                    context.navigator.pop(parsers[index].id);
-                  },
-                ),
-              ),
-            ),
+      title: title,
+      selected: current,
+      choices: [
+        for (final parser in parsers)
+          Choice(
+            value: parser.id,
+            label: parser.id.fileNameNoExt,
+            detail: parser.id.fileExt.toUpperCase(),
           ),
-        );
-      },
+      ],
     );
+    return picked?.value;
   }
 
   @override

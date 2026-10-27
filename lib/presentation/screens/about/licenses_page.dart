@@ -3,6 +3,8 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/error_info.dart';
+import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -51,7 +53,7 @@ class LicensesPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t.ossLicense)),
       body: SafeArea(
-        child: registry.maybeWhen(
+        child: registry.when(
           data: (data) {
             return ListView.builder(
               padding: EdgeInsets.zero,
@@ -76,10 +78,28 @@ class LicensesPage extends ConsumerWidget {
               },
             );
           },
-          orElse: () => const Center(
+          loading: () => const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 32),
               child: LinearProgressIndicator(),
+            ),
+          ),
+          // A registry that cannot be read is an answer, not a longer wait:
+          // the bar would spin forever and never offer a way out.
+          error: (error, stackTrace) => Center(
+            child: NoticeCard(
+              icon: const Icon(Icons.description_outlined),
+              margin: const EdgeInsets.all(DesignTokens.spacingMd),
+              children: Column(
+                children: [
+                  ErrorInfo(error: error, stackTrace: stackTrace),
+                  const SizedBox(height: DesignTokens.spacingMd),
+                  OutlinedButton(
+                    onPressed: () => ref.invalidate(licenseRegistryProvider),
+                    child: Text(context.t.retry),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
