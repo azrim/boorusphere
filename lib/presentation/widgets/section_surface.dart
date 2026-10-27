@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
@@ -15,9 +16,13 @@ class SectionSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    // Midnight paints the page black on purpose; a block there stays on the
+    // page tone and is separated by its hairline alone. Every other theme
+    // lifts the block a step so the grouping reads at a glance.
+    final flat = AppSurfacePolicy.of(context).flat;
 
     return Material(
-      color: scheme.surfaceContainer,
+      color: flat ? scheme.surface : scheme.surfaceContainerHigh,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),

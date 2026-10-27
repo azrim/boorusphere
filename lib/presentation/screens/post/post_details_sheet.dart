@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -311,7 +312,10 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     final enableBlur = ref.watch(uiSettingStateProvider.select((s) => s.blur));
     // The sheet is an overlay, so it takes the container tone the sheet theme
     // gives every other sheet instead of the page tone behind the artwork.
-    final backgroundColor = context.colorScheme.surfaceContainer;
+    // Midnight keeps its black sheet: that theme has no tone to step to.
+    final backgroundColor = AppSurfacePolicy.of(context).flat
+        ? context.colorScheme.surface
+        : context.colorScheme.surfaceContainer;
 
     return DraggableScrollableSheet(
       controller: widget.sheetController,

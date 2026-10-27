@@ -1,4 +1,5 @@
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/color_palettes.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -127,7 +128,7 @@ ThemeData _createThemeData(
   return origin.copyWith(
     colorScheme: colorScheme,
     textTheme: textTheme,
-    extensions: [roles],
+    extensions: [roles, const AppSurfacePolicy(flat: false)],
     shadowColor: shadowColor,
     appBarTheme: AppBarTheme(
       backgroundColor: colorScheme.surface,
@@ -176,8 +177,11 @@ ThemeData _createThemeData(
         side: BorderSide(color: colorScheme.outlineVariant),
       ),
     ),
+    // The drawer sits on the page tone: a block inside it needs a step to
+    // lift from, and `surfaceContainerLow` was too close to the block's own
+    // tone for the step to read.
     drawerTheme: origin.drawerTheme.copyWith(
-      backgroundColor: colorScheme.surfaceContainerLow,
+      backgroundColor: colorScheme.surface,
     ),
     snackBarTheme: origin.snackBarTheme.copyWith(
       elevation: DesignTokens.elevationFloating,
@@ -212,7 +216,34 @@ ThemeData _createThemeDataMidnight(
     harmonize: harmonize,
     preset: preset,
   );
+  final shadowColor = DesignTokens.shadowColor(origin.colorScheme);
   return origin.copyWith(
+    // Midnight is the one theme that stays flat: the page is black on
+    // purpose, so a block keeps the page tone and a hairline separates it, and
+    // overlays drop their shadow because a shadow on black draws nothing.
+    extensions: [
+      ...origin.extensions.values,
+      const AppSurfacePolicy(flat: true),
+    ],
+    popupMenuTheme: origin.popupMenuTheme.copyWith(
+      color: Colors.black,
+      elevation: 0,
+    ),
+    dialogTheme: origin.dialogTheme.copyWith(
+      backgroundColor: Colors.black,
+      elevation: 0,
+    ),
+    bottomSheetTheme: origin.bottomSheetTheme.copyWith(
+      backgroundColor: Colors.black,
+      modalBackgroundColor: Colors.black,
+      elevation: 0,
+      modalElevation: 0,
+    ),
+    cardTheme: origin.cardTheme.copyWith(
+      color: Colors.black,
+      elevation: 0,
+      shadowColor: shadowColor,
+    ),
     // The midnight rule is pure black with no tinting, so the app bar must not
     // pick up the surface tint when content scrolls under it.
     appBarTheme: AppBarTheme(

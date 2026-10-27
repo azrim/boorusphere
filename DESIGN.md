@@ -90,11 +90,15 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 
 **The Palette Rule.** A curated palette is never harmonized and its surfaces are never re-shaded — the theme is shown as designed, down to its own page color.
 
-**The Midnight Rule.** Midnight mode paints the page pure black (#000) — no tinting. Curated accents survive. Anything that sits *above* the page keeps its container tone and its shadow, because a shadow drawn on black is invisible: the tone step is the only depth Midnight has, so dropping it would flatten every menu and sheet into the page.
+**The Midnight Rule.** Midnight mode is the one theme that stays flat: the page is pure black (#000), a block keeps the page tone and a hairline separates it, and menus, sheets, cards and dialogs are black with no elevation. Curated accents survive. `AppSurfacePolicy.flat` carries this so a widget asks the theme instead of guessing from brightness.
 
 ## 3. Typography
 
-**Family:** Geist, bundled as four static weights (400 / 500 / 600 / 700) in `assets/fonts`. No variable axis, no network fetch: the weight a style asks for is the weight that renders. Latin, Latin Extended, Greek and Cyrillic ship with it; a locale outside that set (Thai, CJK) falls back to the platform face per glyph.
+**Family:** Geist, bundled as four static weights (400 / 500 / 600 / 700) in `assets/fonts`. No variable axis, no network fetch: the weight a style asks for is the weight that renders. Latin, Latin Extended, Greek and Cyrillic ship with it.
+
+**Display face:** Poppins 600, used by the wordmark alone. The name is a lockup rather than a heading, and a geometric face against Geist's neutral grotesk is what makes it read as a mark instead of as the first line of the drawer. No other text may use it.
+
+**Fallback:** Noto Sans Thai ships at 400/500/600 so a Thai title keeps its weight. CJK is left to the platform, whose fallback is locale aware: a bundled Japanese face would render Chinese in Japanese glyph forms, which is worse than the system's own Noto.
 
 **Character:** The family is quiet and the scale does the talking. Weights stop at bold, nothing is italic, and tracking carries the hierarchy a second typeface would otherwise carry: display sizes tighten, 11 sp labels open up so they stay legible at arm's length.
 
@@ -145,11 +149,11 @@ Depth is a ladder with four rungs, not a mood. Every surface picks one of them, 
 
 A step up the ladder does two things at once, never one of them:
 
-- **Tone.** The surface moves from `surface` to `surfaceContainer`, the tone that is one step off the page in the active palette. This is what carries the depth in Midnight, where a shadow on pure black is invisible.
+- **Tone.** The surface moves from `surface` to `surfaceContainerHigh`, the tone two steps off the page. One step was not enough: in the drawer, where a block sits inside a panel, the delta between `surfaceContainerLow` and `surfaceContainer` disappeared. The drawer itself paints the page tone so its blocks have something to lift from.
 - **Shadow.** A shadow is drawn with `DesignTokens.shadowColor` — the scheme's own shadow pulled 18% towards the page, so it reads as a darker part of the surface instead of a grey smudge. Dark themes carry a heavier alpha because a light shadow cannot be faked by a tone step alone.
 
 ### Shadow Vocabulary
-- **Section blocks**: `surfaceContainer`, hairline `outlineVariant`, no shadow. A block groups rows; it does not float.
+- **Section blocks**: `surfaceContainerHigh`, hairline `outlineVariant`, no shadow. A block groups rows; it does not float. In Midnight the block stays on the page tone and only the hairline separates it.
 - **Snackbars**: top-rounded (12px radius), `primaryContainer` fill, floating elevation.
 - **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
 - **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
