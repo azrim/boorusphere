@@ -11,8 +11,9 @@ import 'package:boorusphere/presentation/screens/downloads/download_filter.dart'
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
+import 'package:boorusphere/presentation/widgets/empty_state.dart';
 import 'package:boorusphere/presentation/widgets/expandable_group_list_view.dart';
-import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -85,7 +86,7 @@ class DownloadsPage extends HookConsumerWidget {
                       break;
                     case 'clear-all':
                       showClearDialog(context).then((value) {
-                        if (value ?? false) {
+                        if (value) {
                           ref.read(downloadEntryStateProvider.notifier).clear();
                         }
                       });
@@ -123,56 +124,66 @@ class DownloadsPage extends HookConsumerWidget {
           ],
         ),
         body: SafeArea(
-          child: filteredEntries.isEmpty
-              ? Column(
-                  children: [
-                    Center(
-                      child: NoticeCard(
+          child: Column(
+            children: [
+              // A filtered list has to say so: the chip names the filter and
+              // is the control that turns it off again.
+              if (filter.value != DownloadFilter.none)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    DesignTokens.spacingMd,
+                    DesignTokens.spacingSm,
+                    DesignTokens.spacingMd,
+                    0,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: InputChip(
+                      avatar: const Icon(
+                        Icons.filter_list,
+                        size: DesignTokens.iconInline,
+                      ),
+                      label: Text(filter.value.describe(context)),
+                      onDeleted: () => filter.value = DownloadFilter.none,
+                      deleteIcon: const Icon(
+                        Icons.close_rounded,
+                        size: DesignTokens.iconInline,
+                      ),
+                      deleteButtonTooltipMessage: context.t.clear,
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: filteredEntries.isEmpty
+                    ? EmptyState(
                         icon: Icon(
                           downloadEntries.isEmpty
                               ? Icons.cloud_download
                               : Icons.filter_list_off,
                         ),
-                        margin: const EdgeInsets.only(
-                          top: DesignTokens.spacingXl * 2,
+                        title: downloadEntries.isEmpty
+                            ? context.t.downloads.placeholder
+                            : context.t.downloads.noMatch,
+                        body: downloadEntries.isEmpty
+                            ? context.t.downloadsHint
+                            : null,
+                      )
+                    : ExpandableGroupListView<DownloadEntry, String>(
+                        items: filteredEntries,
+                        groupedBy: (item) => item.post.serverId,
+                        groupTitle: (id) => Text(
+                          servers.getById(id, or: servers.firstOrNull).name,
+                          style: context.theme.textTheme.bodyLarge,
                         ),
-                        children: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              downloadEntries.isEmpty
-                                  ? context.t.downloads.placeholder
-                                  : context.t.downloads.noMatch,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: DesignTokens.spacingSm),
-                            Text(
-                              context.t.downloadsHint,
-                              textAlign: TextAlign.center,
-                              style: context.theme.textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: context.colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                          ],
+                        itemBuilder: (item) => DownloadEntryView(
+                          entry: item,
+                          groupByServer: groupByServer,
                         ),
+                        ungroup: !groupByServer,
                       ),
-                    ),
-                  ],
-                )
-              : ExpandableGroupListView<DownloadEntry, String>(
-                  items: filteredEntries,
-                  groupedBy: (item) => item.post.serverId,
-                  groupTitle: (id) => Text(
-                    servers.getById(id, or: servers.firstOrNull).name,
-                    style: context.theme.textTheme.bodyLarge,
-                  ),
-                  itemBuilder: (item) => DownloadEntryView(
-                    entry: item,
-                    groupByServer: groupByServer,
-                  ),
-                  ungroup: !groupByServer,
-                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -194,30 +205,13 @@ class DownloadsPage extends HookConsumerWidget {
     return picked?.value;
   }
 
-  Future<bool?> showClearDialog(BuildContext context) {
-    return showDialog<bool?>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(context.t.downloads.clearAll),
-          icon: const Icon(Icons.delete_forever),
-          content: Text(context.t.downloads.clearAllWarning),
-          actions: [
-            TextButton(
-              onPressed: () {
-                context.navigator.pop();
-              },
-              child: Text(context.t.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                context.navigator.pop(true);
-              },
-              child: Text(context.t.clear),
-            ),
-          ],
-        );
-      },
+  Future<bool> showClearDialog(BuildContext context) {
+    return confirmDestructive(
+      context,
+      icon: Icons.delete_forever,
+      title: context.t.downloads.clearAll,
+      message: context.t.downloads.clearAllWarning,
+      confirmLabel: context.t.clear,
     );
   }
 }
