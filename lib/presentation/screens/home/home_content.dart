@@ -557,7 +557,8 @@ class _SelectionActionBar extends StatelessWidget {
         final colorScheme = context.colorScheme;
 
         return Card(
-          elevation: 0,
+          elevation: DesignTokens.elevationFloating,
+          shadowColor: DesignTokens.shadowColor(colorScheme),
           color: colorScheme.surfaceContainerHigh,
           child: Column(
             mainAxisSize: MainAxisSize.min,
