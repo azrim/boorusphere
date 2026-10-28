@@ -6,9 +6,9 @@ import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
-import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -44,32 +44,19 @@ class _Content extends ConsumerWidget {
         actions: [
           PopupMenuButton(
             tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-            onSelected: (value) {
+            onSelected: (value) async {
               switch (value) {
                 case 'reset':
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text(context.t.resetToDefault),
-                      icon: const Icon(Icons.restore),
-                      content: Text(context.t.servers.resetWarning),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            context.navigator.pop();
-                          },
-                          child: Text(context.t.cancel),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.navigator.pop();
-                            ref.read(serverStateProvider.notifier).reset();
-                          },
-                          child: Text(context.t.reset),
-                        ),
-                      ],
-                    ),
+                  final confirmed = await confirmDestructive(
+                    context,
+                    icon: Icons.restore,
+                    title: context.t.resetToDefault,
+                    message: context.t.servers.resetWarning,
+                    confirmLabel: context.t.reset,
                   );
+                  if (confirmed) {
+                    await ref.read(serverStateProvider.notifier).reset();
+                  }
                   break;
                 default:
                   break;
@@ -92,18 +79,9 @@ class _Content extends ConsumerWidget {
             horizontal: DesignTokens.spacingMd,
           ),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                DesignTokens.spacingXs,
-                DesignTokens.spacingMd,
-                DesignTokens.spacingXs,
-                DesignTokens.spacingSm,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: SectionLabel(context.t.servers.title),
-              ),
-            ),
+            // The app bar already names the page; a section label repeating it
+            // would be a second heading for the same list.
+            const SizedBox(height: DesignTokens.spacingMd),
             TileGroup(
               children: [
                 ...servers.map((it) {
@@ -115,16 +93,18 @@ class _Content extends ConsumerWidget {
                       tooltip: MaterialLocalizations.of(
                         context,
                       ).showMenuTooltip,
-                      onSelected: (value) {
+                      onSelected: (value) async {
                         switch (value) {
                           case 'edit':
-                            context.router.push(ServerEditorRoute(server: it));
+                            await context.router.push(
+                              ServerEditorRoute(server: it),
+                            );
                             break;
                           case 'remove':
                             if (servers.length == 1) {
                               context.scaffoldMessenger.showSnackBar(
                                 SnackBar(
-                                  duration: const Duration(seconds: 1),
+                                  duration: DesignTokens.durationSnackbar,
                                   content: Text(
                                     context.t.servers.removeLastError,
                                   ),
@@ -133,7 +113,20 @@ class _Content extends ConsumerWidget {
                               break;
                             }
 
-                            ref.read(serverStateProvider.notifier).remove(it);
+                            // The drawer asks before removing a server; this
+                            // page is the same action and answers the same way.
+                            final confirmed = await confirmDestructive(
+                              context,
+                              title: context.t.remove,
+                              message: context.t.servers.removeWarning(
+                                name: it.name,
+                              ),
+                              confirmLabel: context.t.remove,
+                            );
+                            if (!confirmed) break;
+                            await ref
+                                .read(serverStateProvider.notifier)
+                                .remove(it);
                             break;
                           default:
                             break;
