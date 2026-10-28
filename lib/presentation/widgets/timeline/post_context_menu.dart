@@ -42,31 +42,6 @@ const double _kChipSize = 24;
 const double _kBackdropBlur = 11;
 const double _kBackdropOpacity = 0.16;
 
-/// The backdrop blur is quantised into this many steps. The engine caches a
-/// blurred backdrop per filter, so a continuously changing sigma re-blurs the
-/// whole screen on every frame of the entrance; eight steps still read as a
-/// progressive blur and cost eight rasterisations instead of ~18.
-const int _kBackdropBlurSteps = 8;
-
-/// Share of the entrance the blur spends arriving.
-///
-/// The card fades in on a decelerating curve, so it reads as settled at around
-/// half of the transition. A blur that only reaches full strength at the end
-/// arrives visibly late: the eye sees a sharp grid behind a finished menu. The
-/// blur therefore finishes first, at 40%, and the two are done together.
-const double _kBlurRevealAt = 0.4;
-
-double _revealProgress(double t) {
-  final progress = (t / _kBlurRevealAt).clamp(0.0, 1.0);
-  return Curves.easeOut.transform(progress);
-}
-
-double _steppedBackdropBlur(double t) {
-  final step =
-      (_revealProgress(t) * _kBackdropBlurSteps).round() / _kBackdropBlurSteps;
-  return _kBackdropBlur * step;
-}
-
 /// Shows the post context menu as a floating glass card over a blurred,
 /// tap-to-dismiss backdrop, resolving to the tapped action (or `null` when
 /// dismissed).
@@ -115,11 +90,6 @@ class _ContextMenuView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backdrop = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOut,
-      reverseCurve: Curves.easeIn,
-    );
     final card = CurvedAnimation(
       parent: animation,
       curve: DesignTokens.curveStandard,
@@ -129,10 +99,7 @@ class _ContextMenuView extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: _MenuBackdrop(
-            animation: backdrop,
-            onTap: () => Navigator.of(context).pop(),
-          ),
+          child: _MenuBackdrop(onTap: () => Navigator.of(context).pop()),
         ),
         Positioned.fill(
           child: CustomSingleChildLayout(
@@ -144,15 +111,12 @@ class _ContextMenuView extends StatelessWidget {
               animation: card,
               builder: (context, child) {
                 final t = _clamp01(card.value);
-                // A menu that appears where the finger already is has no room
-                // for a long entrance: it fades in and slides the last few
-                // pixels, the way a cursor menu does.
-                return Opacity(
-                  opacity: t,
-                  child: Transform.translate(
-                    offset: Offset(0, 8 * (1 - t)),
-                    child: child,
-                  ),
+                // Only the travel is animated here. The fade belongs to the
+                // route, which fades the backdrop and the card together, so
+                // the blur cannot arrive after the menu it belongs to.
+                return Transform.translate(
+                  offset: Offset(0, 8 * (1 - t)),
+                  child: child,
                 );
               },
               child: _MenuCard(animation: animation, groups: groups),
@@ -165,41 +129,28 @@ class _ContextMenuView extends StatelessWidget {
 }
 
 /// Blurs and dims the app behind the menu, and dismisses it on tap.
+///
+/// Both the blur and the veil are painted at full strength from the first
+/// frame: the dialog route already fades the whole page in, and animating the
+/// blur as well multiplied two fades into one late blur.
 class _MenuBackdrop extends StatelessWidget {
-  const _MenuBackdrop({required this.animation, required this.onTap});
+  const _MenuBackdrop({required this.onTap});
 
-  final Animation<double> animation;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scrim = context.colorScheme.scrim;
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        final t = _clamp01(animation.value);
-        // The veil rides the same ramp as the blur, so the layer behind the
-        // menu arrives as one surface instead of dimming after it.
-        final veil = ColoredBox(
-          color: scrim.withValues(
-            alpha: _kBackdropOpacity * _revealProgress(t),
-          ),
-        );
-        final blur = _steppedBackdropBlur(t);
-
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          // Skip the blur pass at the endpoints, where it would be a no-op
-          // layer that still costs a full-screen rasterisation.
-          child: blur <= 0
-              ? veil
-              : BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                  child: veil,
-                ),
-        );
-      },
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: _kBackdropBlur,
+          sigmaY: _kBackdropBlur,
+        ),
+        child: ColoredBox(color: scrim.withValues(alpha: _kBackdropOpacity)),
+      ),
     );
   }
 }
