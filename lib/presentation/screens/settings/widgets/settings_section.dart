@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
@@ -95,9 +96,7 @@ class SettingsSliderTile extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: DesignTokens.spacingSm),
               child: Text(
                 helper,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: context.colorScheme.onSurfaceVariant,
-                ),
+                style: AppTextRoles.of(context).rowSupporting,
               ),
             ),
         ],

@@ -2,8 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
@@ -61,9 +61,7 @@ class _TagsBlockerContent extends HookConsumerWidget {
                     ),
                     child: Text(
                       context.t.tagsBlocker.desc,
-                      style: context.theme.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
-                      ),
+                      style: AppTextRoles.of(context).rowSupporting,
                     ),
                   ),
                   const SizedBox(height: DesignTokens.spacingSm),

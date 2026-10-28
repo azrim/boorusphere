@@ -2,8 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
@@ -40,9 +40,7 @@ class GestureSettingsPage extends ConsumerWidget {
                     ),
                     child: Text(
                       context.t.settingsPage.swipeModeDesc,
-                      style: context.theme.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
-                      ),
+                      style: AppTextRoles.of(context).rowSupporting,
                     ),
                   ),
                   RadioGroup<SwipeMode>(
@@ -112,33 +110,24 @@ class GestureSettingsPage extends ConsumerWidget {
                   ),
                 ],
               ),
+              // An action is a row, like every other immediate action in
+              // settings; a button floating inside a block was the only one of
+              // its kind.
               SettingsSection(
                 title: context.t.settingsPage.reset,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingCardInset,
-                      DesignTokens.spacingSm,
-                      DesignTokens.spacingCardInset,
-                      DesignTokens.spacingMd,
-                    ),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          gestureNotifier.reset();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                context.t.settingsPage.resetSuccess,
-                              ),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        child: Text(context.t.resetToDefault),
-                      ),
-                    ),
+                  ListTile(
+                    title: Text(context.t.resetToDefault),
+                    leading: const Icon(Icons.restore),
+                    onTap: () {
+                      gestureNotifier.reset();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(context.t.settingsPage.resetSuccess),
+                          duration: DesignTokens.durationSnackbar,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

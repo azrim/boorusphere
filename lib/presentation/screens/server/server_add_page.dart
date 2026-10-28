@@ -373,11 +373,7 @@ class ServerAddPage extends HookConsumerWidget {
                             children: [
                               Text(
                                 context.t.servers.scanHint,
-                                style: context.theme.textTheme.bodySmall
-                                    ?.copyWith(
-                                      color:
-                                          context.colorScheme.onSurfaceVariant,
-                                    ),
+                                style: AppTextRoles.of(context).rowSupporting,
                               ),
                               const SizedBox(height: DesignTokens.spacingSm),
                               FilledButton.icon(
@@ -595,9 +591,7 @@ class ServerAddPage extends HookConsumerWidget {
                           ),
                           child: Text(
                             context.t.servers.credentials.desc,
-                            style: context.theme.textTheme.bodySmall?.copyWith(
-                              color: context.colorScheme.onSurfaceVariant,
-                            ),
+                            style: AppTextRoles.of(context).rowSupporting,
                           ),
                         ),
                         const SizedBox(height: DesignTokens.spacingSm),

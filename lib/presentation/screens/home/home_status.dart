@@ -10,8 +10,8 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
@@ -100,9 +100,7 @@ class _ErrorStatus extends ConsumerWidget {
                   data.option.searchRating == BooruRating.safe
                       ? context.t.pageStatusEmptyHintRating
                       : context.t.pageStatusEmptyHint,
-                  style: context.theme.textTheme.bodySmall?.copyWith(
-                    color: context.colorScheme.onSurfaceVariant,
-                  ),
+                  style: AppTextRoles.of(context).rowSupporting,
                 ),
               ),
             Wrap(
