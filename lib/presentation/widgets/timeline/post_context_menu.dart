@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
@@ -27,13 +26,21 @@ class PostContextMenuEntry {
 }
 
 /// Fixed geometry of the menu card.
-const double _kRowHeight = 48;
-const double _kCardRadius = 24;
-const double _kCardMaxWidth = 320;
+///
+/// A context menu is a list of verbs, not a panel: it stays narrow enough to
+/// sit beside the finger and short enough that the grid behind it is still the
+/// thing being looked at.
+const double _kRowHeight = 44;
+const double _kCardRadius = DesignTokens.radiusXl;
+const double _kCardMaxWidth = 232;
+const double _kChipSize = 24;
 
 /// Backdrop blur radius and scrim opacity once fully revealed.
-const double _kBackdropBlur = 20;
-const double _kBackdropOpacity = 0.12;
+///
+/// The blur covers the screen so the menu reads as a layer above it, but it is
+/// thin: the grid has to stay recognisable, not disappear.
+const double _kBackdropBlur = 11;
+const double _kBackdropOpacity = 0.16;
 
 /// The backdrop blur is quantised into this many steps. The engine caches a
 /// blurred backdrop per filter, so a continuously changing sigma re-blurs the
@@ -134,10 +141,7 @@ class _ContextMenuView extends StatelessWidget {
                   ),
                 );
               },
-              child: _MenuHalo(
-                animation: card,
-                child: _MenuCard(animation: animation, groups: groups),
-              ),
+              child: _MenuCard(animation: animation, groups: groups),
             ),
           ),
         ),
@@ -146,10 +150,7 @@ class _ContextMenuView extends StatelessWidget {
   }
 }
 
-/// Dismisses the menu on tap and dims the app behind it.
-///
-/// The dim is all this layer does: the blur belongs to the card (see
-/// [_MenuHalo]), so opening one card does not turn the screen into a modal.
+/// Blurs and dims the app behind the menu, and dismisses it on tap.
 class _MenuBackdrop extends StatelessWidget {
   const _MenuBackdrop({required this.animation, required this.onTap});
 
@@ -163,12 +164,22 @@ class _MenuBackdrop extends StatelessWidget {
       animation: animation,
       builder: (context, child) {
         final t = _clamp01(animation.value);
+        final veil = ColoredBox(
+          color: scrim.withValues(alpha: _kBackdropOpacity * t),
+        );
+        final blur = _steppedBackdropBlur(t);
+
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: ColoredBox(
-            color: scrim.withValues(alpha: _kBackdropOpacity * t),
-          ),
+          // Skip the blur pass at the endpoints, where it would be a no-op
+          // layer that still costs a full-screen rasterisation.
+          child: blur <= 0
+              ? veil
+              : BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                  child: veil,
+                ),
         );
       },
     );
@@ -202,15 +213,13 @@ class _MenuLayout extends SingleChildLayoutDelegate {
       );
     }
 
-    // The child carries the halo's margin, so the card itself lands [_gap]
-    // away from the finger.
-    var dx = point.dx + _gap - _MenuHalo.margin;
-    var dy = point.dy + _gap - _MenuHalo.margin;
+    var dx = point.dx + _gap;
+    var dy = point.dy + _gap;
     if (dx + childSize.width > size.width - margin) {
-      dx = point.dx - childSize.width - _gap + _MenuHalo.margin;
+      dx = point.dx - childSize.width - _gap;
     }
     if (dy + childSize.height > size.height - margin) {
-      dy = point.dy - childSize.height - _gap + _MenuHalo.margin;
+      dy = point.dy - childSize.height - _gap;
     }
 
     final maxX = math.max(margin, size.width - childSize.width - margin);
@@ -221,47 +230,6 @@ class _MenuLayout extends SingleChildLayoutDelegate {
   @override
   bool shouldRelayout(_MenuLayout oldDelegate) =>
       oldDelegate.anchor != anchor || oldDelegate.margin != margin;
-}
-
-/// The soft edge around the card: the card's own footprint plus a short
-/// margin, blurred, so the artwork directly behind the menu recedes while the
-/// rest of the grid stays readable.
-class _MenuHalo extends StatelessWidget {
-  const _MenuHalo({required this.animation, required this.child});
-
-  /// How far the blur reaches past the card.
-  static const double margin = DesignTokens.spacingMd;
-
-  final Animation<double> animation;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final scrim = context.colorScheme.scrim;
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: AnimatedBuilder(
-            animation: animation,
-            builder: (context, _) {
-              final t = _clamp01(animation.value);
-              final blur = _steppedBackdropBlur(t);
-              if (blur <= 0) return const SizedBox.shrink();
-
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(_kCardRadius + margin),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                  child: ColoredBox(color: scrim.withValues(alpha: 0.16 * t)),
-                ),
-              );
-            },
-          ),
-        ),
-        Padding(padding: const EdgeInsets.all(margin), child: child),
-      ],
-    );
-  }
 }
 
 /// The floating glass card holding the grouped menu rows.
@@ -311,7 +279,7 @@ class _MenuCard extends StatelessWidget {
               child: Material(
                 type: MaterialType.transparency,
                 child: Padding(
-                  padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                  padding: const EdgeInsets.all(DesignTokens.spacingXs),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -404,38 +372,28 @@ class _MenuRowTile extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: _kRowHeight),
             child: Row(
               children: [
-                const SizedBox(
-                  width: DesignTokens.spacingSm + DesignTokens.spacingXs,
-                ),
+                const SizedBox(width: DesignTokens.spacingSm),
                 Container(
-                  width: DesignTokens.iconChipSize,
-                  height: DesignTokens.iconChipSize,
+                  width: _kChipSize,
+                  height: _kChipSize,
                   decoration: BoxDecoration(
                     color: iconBackground,
-                    borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+                    borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
                   ),
-                  child: Icon(
-                    entry.icon,
-                    size: DesignTokens.iconInline,
-                    color: iconColor,
-                  ),
+                  child: Icon(entry.icon, size: 16, color: iconColor),
                 ),
-                const SizedBox(
-                  width: DesignTokens.spacingSm + DesignTokens.spacingXs,
-                ),
+                const SizedBox(width: DesignTokens.spacingSm),
                 Expanded(
                   child: Text(
                     entry.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextRoles.of(
-                      context,
-                    ).rowTitle.copyWith(color: labelColor),
+                    style: context.theme.textTheme.labelLarge?.copyWith(
+                      color: labelColor,
+                    ),
                   ),
                 ),
-                const SizedBox(
-                  width: DesignTokens.spacingSm + DesignTokens.spacingXs,
-                ),
+                const SizedBox(width: DesignTokens.spacingSm),
               ],
             ),
           ),

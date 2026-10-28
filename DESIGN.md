@@ -199,9 +199,10 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 ### Context Menu (Post Actions)
 - **Trigger**: long-press a timeline card (medium haptic) — never a plain tap
 - **Placement**: the card opens beside the point the finger went down, the way a desktop menu opens at the cursor, not centred on the screen. It prefers the lower right of that point and flips above or to the left when the preferred corner would push it past the margin. A screen-reader long-press carries no point, so that path centres it
-- **Presentation**: a floating glass card — translucent scheme surface over a backdrop filter, 24px radius, hairline outline, tinted shadow
-- **Backdrop**: the blur belongs to the card, not the screen: a halo the size of the card plus 16 dp is blurred, and the rest of the grid stays legible under a 12% veil. Tap anywhere or press back to dismiss
-- **Rows**: 48px, each a tinted icon chip (`secondaryContainer` / `onSecondaryContainer`) plus a label; grouped by intent (select / favorite · download / share / open source) with hairline dividers; disabled rows dim to 38%
+- **Size**: 232 dp at most, 44 dp rows, 14 sp semibold labels and 24 dp icon chips. A context menu is a list of verbs, not a panel: it stays narrow enough to sit beside the finger and short enough that the grid behind it is still the thing being looked at
+- **Presentation**: a floating glass card — translucent scheme surface over a backdrop filter, 16 px radius, hairline outline, tinted shadow
+- **Backdrop**: the whole screen is blurred, thinly (sigma 11) under a 16% veil, so the menu reads as a layer above the app while the grid stays recognisable. Tap anywhere or press back to dismiss
+- **Rows**: each a tinted icon chip (`secondaryContainer` / `onSecondaryContainer`) plus a label; grouped by intent (select / favorite · download / share / open source) with hairline dividers; disabled rows dim to 38%
 - **Motion**: the card fades in and travels the last 8 dp on the standard curve — a menu that appears where the finger already is has no room for a long entrance. Rows fade and slide in with a short stagger; the reverse plays on dismiss
 - **Colors**: scheme-only — icon chips and labels come from `ColorScheme`, with no per-action accent colors
 ### Navigation (Home Drawer)
