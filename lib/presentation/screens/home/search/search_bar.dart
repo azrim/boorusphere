@@ -379,7 +379,11 @@ class _TrailingButton extends ConsumerWidget {
     return _Button(
       tooltip: context.t.changeGrid,
       onTap: ref.read(uiSettingStateProvider.notifier).cycleGrid,
-      child: Icon(key: ValueKey(grid), Icons.grid_view, size: 20),
+      child: Icon(
+        key: ValueKey(grid),
+        Icons.grid_view,
+        size: DesignTokens.iconAction,
+      ),
     );
   }
 }

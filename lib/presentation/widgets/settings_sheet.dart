@@ -54,7 +54,7 @@ Future<Choice<T>?> showChoiceSheet<T>({
                   trailing: choice.value == selected
                       ? Icon(
                           Icons.check_rounded,
-                          size: 20,
+                          size: DesignTokens.iconAction,
                           color: scheme.primary,
                         )
                       : null,

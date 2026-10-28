@@ -551,7 +551,7 @@ class _SuggestionEntryTile extends StatelessWidget {
           children: [
             Icon(
               data.isHistory ? Icons.history : Icons.tag,
-              size: 20,
+              size: DesignTokens.iconAction,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: DesignTokens.spacingCardInset),
@@ -569,9 +569,7 @@ class _SuggestionEntryTile extends StatelessWidget {
                   if (data.server.isNotEmpty)
                     Text(
                       context.t.suggestion.desc(serverName: data.server),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: AppTextRoles.of(context).rowSupporting,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -581,9 +579,7 @@ class _SuggestionEntryTile extends StatelessWidget {
             if (data.postCount > 0) ...[
               Text(
                 data.postCount.toString(),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                style: AppTextRoles.of(context).rowSupporting,
               ),
               const SizedBox(width: DesignTokens.spacingSm),
             ],
@@ -599,7 +595,7 @@ class _SuggestionEntryTile extends StatelessWidget {
                   child: Icon(
                     Icons.add,
                     semanticLabel: context.t.actionTag.append,
-                    size: 20,
+                    size: DesignTokens.iconAction,
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),

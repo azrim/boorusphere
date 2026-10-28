@@ -440,11 +440,13 @@ class _ThumbnailCard extends HookConsumerWidget {
                       ],
                     ),
                   ),
-                  // Selection checkbox overlay
+                  // Selection checkbox overlay. It takes the same corner
+                  // inset as the score it replaces, so the card does not shift
+                  // when the selection starts.
                   if (isSelected)
                     Positioned(
-                      top: DesignTokens.spacingSm,
-                      left: DesignTokens.spacingSm,
+                      top: DesignTokens.spacingXs,
+                      left: DesignTokens.spacingXs,
                       child: Container(
                         decoration: BoxDecoration(
                           color: context.theme.colorScheme.primary,

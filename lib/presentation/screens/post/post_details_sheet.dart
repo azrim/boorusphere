@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -827,14 +828,15 @@ class _TagActionBar extends ConsumerWidget {
                     context.t.batch.selected(n: selectedTags.length),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: context.theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: AppTextRoles.of(context).rowSupporting,
                   ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.copy_rounded, size: 20),
+                icon: const Icon(
+                  Icons.copy_rounded,
+                  size: DesignTokens.iconAction,
+                ),
                 tooltip: context.t.actionTag.copy,
                 onPressed: () {
                   _copy(context, selectedTags.join(' '));
@@ -842,22 +844,25 @@ class _TagActionBar extends ConsumerWidget {
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.block, size: 20),
+                icon: const Icon(Icons.block, size: DesignTokens.iconAction),
                 tooltip: context.t.actionTag.block,
                 onPressed: () => _blockTags(context, ref),
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle_outline, size: 20),
+                icon: const Icon(
+                  Icons.add_circle_outline,
+                  size: DesignTokens.iconAction,
+                ),
                 tooltip: context.t.actionTag.append,
                 onPressed: () => _appendTags(context),
               ),
               IconButton(
-                icon: const Icon(Icons.search, size: 20),
+                icon: const Icon(Icons.search, size: DesignTokens.iconAction),
                 tooltip: context.t.actionTag.search,
                 onPressed: () => _searchTags(context),
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 20),
+                icon: const Icon(Icons.close, size: DesignTokens.iconAction),
                 tooltip: context.t.clear,
                 onPressed: onClearSelection,
               ),

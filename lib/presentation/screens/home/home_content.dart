@@ -512,7 +512,7 @@ class _BackToTopButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: context.colorScheme.surfaceContainerHighest,
+      color: context.colorScheme.surfaceContainerHigh,
       elevation: DesignTokens.elevationFloating,
       shadowColor: DesignTokens.shadowColor(context.colorScheme),
       shape: const CircleBorder(),
@@ -520,7 +520,10 @@ class _BackToTopButton extends StatelessWidget {
       child: IconButton(
         onPressed: onTap,
         tooltip: context.t.backToTop,
-        icon: const Icon(Icons.arrow_upward_rounded, size: 20),
+        icon: const Icon(
+          Icons.arrow_upward_rounded,
+          size: DesignTokens.iconAction,
+        ),
       ),
     );
   }
@@ -682,7 +685,7 @@ class _PaginationPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: context.colorScheme.surfaceContainerHighest,
+      color: context.colorScheme.surfaceContainerHigh,
       elevation: DesignTokens.elevationFloating,
       shadowColor: DesignTokens.shadowColor(context.colorScheme),
       shape: const StadiumBorder(),
@@ -695,7 +698,7 @@ class _PaginationPill extends StatelessWidget {
             IconButton(
               onPressed: hasPrev && !loading ? onPrev : null,
               tooltip: context.t.pagination.previous,
-              iconSize: 20,
+              iconSize: DesignTokens.iconAction,
               icon: const Icon(Icons.chevron_left),
             ),
             ConstrainedBox(
@@ -715,7 +718,7 @@ class _PaginationPill extends StatelessWidget {
             IconButton(
               onPressed: hasNext && !loading ? onNext : null,
               tooltip: context.t.pagination.next,
-              iconSize: 20,
+              iconSize: DesignTokens.iconAction,
               icon: const Icon(Icons.chevron_right),
             ),
           ],

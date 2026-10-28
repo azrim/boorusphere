@@ -89,7 +89,10 @@ class SheetShell extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: DesignTokens.iconAction,
+                      ),
                       tooltip: context.t.dismiss,
                       onPressed: () => Navigator.pop(context),
                     ),

@@ -24,6 +24,10 @@ class DesignTokens {
   // Sizes
   static const double iconChipSize = 32.0;
   static const double iconInline = 18.0;
+
+  /// The glyph inside a 48 dp icon button: one step up from inline, so an
+  /// action reads as tappable without competing with the row it sits in.
+  static const double iconAction = 20.0;
   static const double brandMarkSize = 40.0;
   static const double brandLogoSize = 24.0;
   static const double controlHeightMin = 48.0;
