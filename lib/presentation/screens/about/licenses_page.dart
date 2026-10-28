@@ -1,11 +1,14 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -55,25 +58,53 @@ class LicensesPage extends ConsumerWidget {
       body: SafeArea(
         child: registry.when(
           data: (data) {
+            // Several hundred packages as one flat list is a wall; the
+            // first letter groups them into the same blocks every other list
+            // page uses, so a package can be walked to instead of scanned for.
+            final groups =
+                <String, List<MapEntry<String, Iterable<LicenseEntry>>>>{};
+            for (final entry in data.entries) {
+              final letter = entry.key.isEmpty
+                  ? '#'
+                  : entry.key.substring(0, 1).toUpperCase();
+              groups.putIfAbsent(letter, () => []).add(entry);
+            }
+            final letters = groups.keys.toList()..sort();
+
             return ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: data.length,
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingMd,
+              ),
+              itemCount: letters.length,
               itemBuilder: (context, index) {
-                final packageName = data.keys.elementAt(index);
-                final packageLicenses = data.values.elementAt(index);
-                final count = packageLicenses.length;
-                return ListTile(
-                  title: Text(packageName),
-                  subtitle: RowSubtitle(
-                    Text(context.t.license.counted(n: count)),
-                  ),
-                  onTap: () {
-                    PackageLicenses.display(
-                      context: context,
-                      packageLicenses: packageLicenses,
-                      packageName: packageName,
-                    );
-                  },
+                final letter = letters[index];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SectionHeading(letter, count: groups[letter]!.length),
+                    TileGroup(
+                      children: [
+                        for (final entry in groups[letter]!)
+                          ListTile(
+                            title: Text(entry.key),
+                            subtitle: RowSubtitle(
+                              Text(
+                                context.t.license.counted(
+                                  n: entry.value.length,
+                                ),
+                              ),
+                            ),
+                            onTap: () {
+                              PackageLicenses.display(
+                                context: context,
+                                packageLicenses: entry.value,
+                                packageName: entry.key,
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ],
                 );
               },
             );
@@ -141,9 +172,7 @@ class PackageLicenses extends StatelessWidget {
               context.t.license.package(name: packageName),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: context.theme.textTheme.bodySmall?.copyWith(
-                color: context.colorScheme.onSurfaceVariant,
-              ),
+              style: AppTextRoles.of(context).rowSupporting,
             ),
           ),
         ),

@@ -219,30 +219,19 @@ class _InlineChangelog extends ConsumerWidget {
             horizontal: DesignTokens.spacingMd,
             vertical: DesignTokens.spacingSm,
           ),
-          child: Card(
-            margin: EdgeInsets.zero,
-            elevation: 0,
-            color: context.colorScheme.surfaceContainerHighest,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 320),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  DesignTokens.spacingSm,
-                  DesignTokens.spacingCardInset,
-                  DesignTokens.spacingSm,
-                  DesignTokens.spacingCardInset,
-                ),
-                child: ChangelogDataView(
-                  changelog: entries.first,
-                  showVersion: false,
-                ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 320),
+            child: SingleChildScrollView(
+              child: ChangelogDataView(
+                changelog: entries.first,
+                showVersion: false,
               ),
             ),
           ),
         );
       },
       loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: EdgeInsets.symmetric(vertical: DesignTokens.spacingMd),
         child: SizedBox(
           height: 20,
           width: 20,

@@ -4,7 +4,9 @@ import 'package:boorusphere/data/repository/version/entity/app_version.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/widgets/notice_card.dart';
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/empty_state.dart';
+import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -34,37 +36,36 @@ class ChangelogPage extends ConsumerWidget {
       body: SafeArea(
         child: changelog.when(
           data: (data) => data.length == 1
-              ? Padding(
-                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacingMd,
+                  ),
                   child: ChangelogDataView(
                     changelog: data.first,
                     showVersion: false,
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacingMd,
+                  ),
                   itemCount: data.length,
                   itemBuilder: (context, index) {
                     return ChangelogDataView(changelog: data[index]);
                   },
                 ),
-          error: (e, s) => Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Center(
-                child: NoticeCard(
-                  icon: const Icon(Icons.cancel_rounded),
-                  children: Text(context.t.changelog.none),
-                ),
-              ),
-            ],
+          // A changelog that could not be fetched is an answer, not a wait:
+          // the notice offers the retry instead of leaving the page stuck.
+          error: (e, s) => EmptyState(
+            icon: const Icon(Icons.cancel_rounded),
+            title: context.t.changelog.none,
+            action: FilledButton(
+              onPressed: () =>
+                  ref.invalidate(changelogStateProvider(type, version)),
+              child: Text(context.t.retry),
+            ),
           ),
-          loading: () => const Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [Center(child: RefreshProgressIndicator())],
-          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
         ),
       ),
     );
@@ -88,38 +89,39 @@ class ChangelogDataView extends StatelessWidget {
     final textContent = changelog.logs
         .map((it) => '- ${it.replaceAll('\n', '\n  ')}')
         .join('\n');
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        DesignTokens.spacingSm,
-        0,
-        DesignTokens.spacingSm,
-        DesignTokens.spacingMd,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (showVersion)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: DesignTokens.spacingSm,
-              ),
-              child: Text(
-                '${changelog.version}',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showVersion)
           Padding(
-            padding: const EdgeInsets.all(DesignTokens.spacingSm),
-            child: MarkdownBody(
-              data: textContent,
-              styleSheet: MarkdownStyleSheet(
-                p: const TextStyle(height: 1.5),
-                listBullet: const TextStyle(height: 1.5),
-              ),
+            padding: const EdgeInsets.fromLTRB(
+              DesignTokens.spacingXs,
+              DesignTokens.spacingLg,
+              DesignTokens.spacingXs,
+              DesignTokens.spacingSm,
+            ),
+            child: Text(
+              '${changelog.version}',
+              style: context.theme.textTheme.titleLarge,
             ),
           ),
-        ],
-      ),
+        // The notes are a block like any other: the same container tone and
+        // hairline the rest of the app groups content with.
+        SectionSurface(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(DesignTokens.spacingCardInset),
+              child: MarkdownBody(
+                data: textContent,
+                styleSheet: MarkdownStyleSheet(
+                  p: const TextStyle(height: 1.5),
+                  listBullet: const TextStyle(height: 1.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
