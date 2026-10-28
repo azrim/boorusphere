@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -7,6 +9,7 @@ import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -77,7 +80,7 @@ class DrawerFooter extends ConsumerWidget {
                 icon: Icons.logout,
                 label: context.t.exit,
                 danger: true,
-                onTap: () => _showExitDialog(context),
+                onTap: () => unawaited(_showExitDialog(context)),
               ),
             ],
           ),
@@ -131,30 +134,13 @@ class DrawerFooter extends ConsumerWidget {
   }
 }
 
-void _showExitDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(context.t.exit),
-      content: Text(context.t.exitConfirmation),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.t.cancel),
-        ),
-        TextButton(
-          // The row that opened this dialog is tinted with the error colour,
-          // so the confirm has to carry the same weight.
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.error,
-          ),
-          onPressed: () {
-            Navigator.of(context).pop();
-            SystemNavigator.pop();
-          },
-          child: Text(context.t.exit),
-        ),
-      ],
-    ),
+Future<void> _showExitDialog(BuildContext context) async {
+  final confirmed = await confirmDestructive(
+    context,
+    icon: Icons.logout,
+    title: context.t.exit,
+    message: context.t.exitConfirmation,
+    confirmLabel: context.t.exit,
   );
+  if (confirmed) unawaited(SystemNavigator.pop());
 }

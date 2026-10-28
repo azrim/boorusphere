@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
@@ -87,25 +88,13 @@ Future<void> _removeServer(
   WidgetRef ref,
   Server server,
 ) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      icon: const Icon(Icons.delete_outline),
-      title: Text(context.t.remove),
-      content: Text(context.t.servers.removeWarning(name: server.name)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(context.t.cancel),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: Text(context.t.remove),
-        ),
-      ],
-    ),
+  final confirmed = await confirmDestructive(
+    context,
+    title: context.t.remove,
+    message: context.t.servers.removeWarning(name: server.name),
+    confirmLabel: context.t.remove,
   );
-  if (confirmed != true || !context.mounted) return;
+  if (!confirmed || !context.mounted) return;
 
   try {
     await ref.read(serverStateProvider.notifier).remove(server);
@@ -215,7 +204,7 @@ class _ServerRow extends StatelessWidget {
                               url: server.homepage,
                               shape: BoxShape.circle,
                               size: DesignTokens.iconChipSize,
-                              iconSize: 20,
+                              iconSize: DesignTokens.iconAction,
                             ),
                           ),
                           const SizedBox(width: DesignTokens.spacingMd),
