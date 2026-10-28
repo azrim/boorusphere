@@ -105,9 +105,7 @@ class ChangelogDataView extends StatelessWidget {
               ),
               child: Text(
                 '${changelog.version}',
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineSmall?.copyWith(height: 1.5),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
           Padding(

@@ -289,7 +289,11 @@ class _Downloader extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(
               horizontal: DesignTokens.spacingSm,
             ),
-            child: Text('${progress.progress}%', textAlign: TextAlign.end),
+            child: Text(
+              '${progress.progress}%',
+              textAlign: TextAlign.end,
+              style: AppTextRoles.of(context).numeric,
+            ),
           ),
           Expanded(
             child: ClipRRect(
@@ -307,7 +311,7 @@ class _Downloader extends ConsumerWidget {
             },
             icon: const Icon(Icons.close),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: DesignTokens.spacingMd),
         ],
         if (hasUpdateApk)
           ElevatedButton(

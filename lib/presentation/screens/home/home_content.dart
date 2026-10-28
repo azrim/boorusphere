@@ -577,7 +577,9 @@ class _SelectionActionBar extends StatelessWidget {
                         value == null
                             ? '$selectedCount'
                             : '${value.done}/${value.total}',
-                        style: context.theme.textTheme.titleMedium,
+                        style: context.theme.textTheme.titleMedium?.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                         semanticsLabel: value == null
                             ? context.t.batch.selected(n: selectedCount)
                             : context.t.batch.downloading(n: value.total),
