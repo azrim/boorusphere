@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -12,13 +11,12 @@ import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
-import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/screens/home/first_run_view.dart';
 import 'package:boorusphere/presentation/screens/home/home_status.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_screen.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
-import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -183,55 +181,7 @@ class HomeContent extends HookConsumerWidget {
         !searchBar.isOpen &&
         !showHint;
 
-    if (servers.isEmpty) {
-      // The first screen a new install shows. It scrolls because a large font
-      // scale or a short window would otherwise cut the only action off.
-      return LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(DesignTokens.spacingXl),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.explore,
-                      size: DesignTokens.spacingXl * 2,
-                      color: context.colorScheme.primary.withValues(alpha: 0.6),
-                    ),
-                    const SizedBox(height: DesignTokens.spacingLg),
-                    Text(
-                      context.t.onboarding.welcomeTitle,
-                      style: context.theme.textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: DesignTokens.spacingSm),
-                    Text(
-                      context.t.onboarding.welcomeDesc,
-                      textAlign: TextAlign.center,
-                      style: AppTextRoles.of(context).rowSupporting,
-                    ),
-                    const SizedBox(height: DesignTokens.spacingLg),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          context.router.push(const ServerAddRoute()),
-                      icon: const Icon(Icons.add),
-                      label: Text(context.t.onboarding.addFirstServer),
-                    ),
-                    const SizedBox(height: DesignTokens.spacingSm),
-                    TextButton(
-                      onPressed: () => context.router.push(ServerPresetRoute()),
-                      child: Text(context.t.onboarding.browsePresets),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    if (servers.isEmpty) return const FirstRunView();
 
     return Stack(
       alignment: Alignment.center,

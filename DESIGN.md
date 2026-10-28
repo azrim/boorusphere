@@ -186,6 +186,13 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Layout**: centred, one block wide, and scrollable, so a large font scale or a short window never cuts the action off
 - **Where**: timeline errors and empty results, Favorites, Downloads, the changelog, licenses, and the first run
 
+### First Run
+- **The page is the list**: a new install opens on the server presets, built from the same block, rows and plus the drawer uses with one server in it. The first decision is a pick, not a page explaining what a server is
+- **Header**: the wordmark, then the question the list answers as the page title, with one supporting line under it
+- **Rows**: favicon, name and homepage per preset, closed by the add row that scans an address, so a booru outside the list is still one tap away
+- **Limit**: five presets, then the section action opens the full list
+- **Why**: onboarding in the app's own vocabulary teaches the drawer before the drawer is ever opened, and it costs no extra screen
+
 ### Timeline Grid
 - **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders

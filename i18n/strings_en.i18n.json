@@ -395,6 +395,7 @@
   },
   "onboarding": {
     "welcome_title": "Welcome to Boorusphere",
+    "question": "Where do you want to browse?",
     "welcome_desc": "Add a booru server to start discovering and collecting images",
     "add_first_server": "Add your first server",
     "browse_presets": "Browse presets",
