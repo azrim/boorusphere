@@ -4,7 +4,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'favorite_post_state.g.dart';
 
-@riverpod
+// Favorites mirror the repo, and every screen reads them: the drawer badge,
+// the Favorites page, the timeline menu. A batch write awaits between saves, so
+// an auto-disposed provider would be gone before the second one landed.
+@Riverpod(keepAlive: true)
 class FavoritePostState extends _$FavoritePostState {
   @override
   Iterable<Post> build() {
