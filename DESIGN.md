@@ -154,6 +154,8 @@ A step up the ladder does two things at once, never one of them:
 
 ### Shadow Vocabulary
 - **Section blocks**: `surfaceContainerHigh`, hairline `outlineVariant`, no shadow. A block groups rows; it does not float. In Midnight the block stays on the page tone and only the hairline separates it.
+- **Empty and error notices**: the same block vocabulary — container tone (the page tone in midnight), a hairline, no shadow; the icon stays muted.
+- **Buttons**: flat. The fill carries the affordance, never a shadow.
 - **Snackbars**: top-rounded (12px radius), `primaryContainer` fill, floating elevation.
 - **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
 - **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
@@ -172,7 +174,7 @@ A step up the ladder does two things at once, never one of them:
 ### Section Block
 The one primitive shared by the drawer, the settings pages, and the server pages.
 
-- **Surface**: `SectionSurface` — rounded (`radiusXl`) block painting `surface` with a hairline `outlineVariant` border and 4 dp inner padding. Painting `surface` keeps the block pure black in midnight
+- **Surface**: `SectionSurface` — rounded (`radiusXl`) block painting `surfaceContainerHigh` with a hairline `outlineVariant` border and 4 dp inner padding. In midnight it keeps the page tone, so the block stays pure black and the hairline alone separates it
 - **Label**: `SectionLabel` — small caps, hairline underline hugging the text; `SectionHeading` adds the 24 dp space above, the 8 dp below, and an optional trailing action
 - **Rows**: `TileGroup` wraps `ListTile`s in the shared `ListTileTheme` (12 dp inset, rounded ink); custom rows (`DrawerTile`) match the same inset
 - **Why**: the container carries the only border, so a section reads as one block instead of a stack of separate cards
@@ -209,7 +211,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Style**: Navigation drawer, opened by the leading server chip in the search bar or by a swipe anywhere on the grid (a narrow edge zone loses the gesture race to the system back gesture on gesture-nav phones, so the drag zone is the full width while the search bar is closed); rounded right edge, width capped to the viewport
 - **Search bar**: the leading chip opens the drawer (and cancels the search while it is open); the trailing button only cycles grid density, so a control never changes meaning mid-scroll. An active non-default rating shows as a tinted chip with a filter icon beside the field, so a filtered feed is a visible state. The bar is a glass surface — `surface` at 72% over a 20 px backdrop blur — because the grid scrolls beneath it; the Interface → Blur setting switches it back to an opaque surface, which is also the cheaper path on slow devices
 - **Header**: the wordmark, closed by a `primary` exclamation mark — the name is a shout, not a full stop; the theme switcher (light / dark / system) sits on the trailing edge inside a hairline-bordered square
-- **Sections**: each section is one grouped surface — a rounded `surface` block with a hairline `outlineVariant` border — and the rows inside stay flat and transparent, so the container carries the only border. Painting `surface` keeps the block pure black in midnight instead of lifting it off the black drawer. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
+- **Sections**: each section is one grouped surface — a rounded `surfaceContainerHigh` block with a hairline `outlineVariant` border — and the rows inside stay flat and transparent, so the container carries the only border. In midnight the block keeps the page tone so it never lifts off the black drawer. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
 - **Servers**: one compact row per server — favicon chip with a hairline border and the server name. The active server fills `secondaryContainer` with a `primary` hairline, and is exposed to TalkBack as `selected`. Removing a server asks for confirmation first; the add-server row closes the group with a `primary` plus
 - **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
 - **Preferences**: Settings, Gestures & tags (a reference sheet for the gestures and the rating letters), and Reset to default
@@ -277,7 +279,7 @@ The one piece of chrome every timeline screen carries. It is a surface, not glas
 
 ### Selection Action Bar
 - **Trigger**: choosing *Select* in the [Context Menu](#context-menu-post-actions)
-- **Layout**: floating card on `surfaceContainerHigh`, full width minus `spacingMd`, docked above the system inset — a count readout on the left, then download (menu: files or ZIP), favorite, and clear
+- **Layout**: floating card on `surfaceContainerHigh` at floating elevation, full width minus `spacingMd`, docked above the system inset — a count readout on the left, then download (menu: files or ZIP), favorite, and clear
 - **Count**: a readout, not a button label; announced as "N selected"
 - **Download**: opens a menu choosing between individual files and a ZIP archive, so no hidden mode is carried between actions
 - **Controls**: icon buttons with tooltips, 48 dp targets
@@ -288,7 +290,7 @@ Every settings screen (Settings, Gesture Settings, Data Backup) uses one row sys
 - **Containers**: a settings row opens a sheet or a page according to what it holds. Picking one value (language, color palette, download quality, backup frequency) or editing one short value (Telegram chat id, bot token) opens a bottom sheet, so the page stays behind it and the list sits within thumb reach. Opening an area with several independent controls (Backup and restore, Gestures) pushes a page. An `AlertDialog` is reserved for confirming something that discards state and for progress that blocks the screen; it never carries a list of options
 
 - **Section label**: small caps, `onSurfaceVariant`, `labelSmall` bold with 1.4 letter spacing and a hairline underline that hugs the text, exposed to screen readers as a heading. The label owns its own line; it never merges into the row below it
-- **Section surface**: rows of one section sit inside a rounded `surface` block with a hairline `outlineVariant` border; painting `surface` keeps it pure black in midnight. The page keeps 16 dp side padding and each block owns the only border
+- **Section surface**: rows of one section sit inside a rounded `surfaceContainerHigh` block with a hairline `outlineVariant` border; in midnight it keeps the page tone, so it stays pure black. The page keeps 16 dp side padding and each block owns the only border
 - **Rows**: flat rows inside the block, 12 dp inset, no dividers, no shadows; title plus optional subtitle, 8 dp between them; switches, dropdowns and sliders sit on the trailing edge and carry their own state
 - **Trailing affordance**: a `chevron_right` marks every row that opens a page, sheet, or dialog. Rows that act immediately (clear cache) and rows with an inline control (switch, dropdown, slider) carry none
 - **Sliders**: label on the left, current value on the right, slider across the full row width underneath, optional helper line below. Never a fixed-width slider in the trailing slot — it squeezes the label into a column

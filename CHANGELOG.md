@@ -1,4 +1,9 @@
 ## 2.0.24
+* **Feat**: sign the About page with the same brand lockup as the drawer and group its rows into the shared section blocks
+* **Fix**: lift the selection action bar onto the floating rung, so it casts the same shadow as the controls that share its band
+* **Fix**: read empty and error notices as section blocks — container tone, hairline, no shadow — instead of cards off both vocabularies
+* **Fix**: line up the update percentage and the selection count with tabular figures, and set the changelog's per-version heading at the title size
+* **Refactor**: own the flat button look in the theme instead of repeating it per widget
 * **Feat**: set the app in Geist, bundled with four weights, on a single type scale, so headings tighten, labels open up and every row reads the same size across settings, sheets, the drawer and the server forms
 * **Feat**: give the app a four-rung elevation ladder — a block takes the container tone, chrome that floats over the content takes a shadow, and menus, sheets and dialogs lift in turn
 * **Feat**: draw the first page of a search as a grid of shimmering tiles at the shape it will take, instead of a spinner on an empty screen
