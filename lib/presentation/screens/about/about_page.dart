@@ -10,9 +10,13 @@ import 'package:boorusphere/presentation/provider/app_versions/app_versions_stat
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/about/changelog_page.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/presentation/widgets/tile_group.dart';
+import 'package:boorusphere/presentation/widgets/wordmark.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -50,7 +54,9 @@ class AboutPage extends ConsumerWidget {
                   color: context.colorScheme.onPrimaryContainer,
                 ),
               ),
-              Text('Boorusphere', style: context.theme.textTheme.titleLarge),
+              // The page is the app's own front door, so it signs with the
+              // same lockup the drawer uses instead of a plain heading.
+              Wordmark(textStyle: context.theme.textTheme.headlineSmall),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: DesignTokens.spacingCardInset,
@@ -99,50 +105,61 @@ class AboutPage extends ConsumerWidget {
                   );
                 },
               ),
-              const Divider(
-                height: DesignTokens.spacingXl,
-                indent: DesignTokens.spacingMd,
-                endIndent: DesignTokens.spacingMd,
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
+              Padding(
+                padding: const EdgeInsets.symmetric(
                   horizontal: DesignTokens.spacingMd,
                 ),
-                title: Text(context.t.changelog.title),
-                leading: const Icon(Icons.list_alt_rounded),
-                trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () {
-                  context.router.push(
-                    ChangelogRoute(type: ChangelogType.assets),
-                  );
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: DesignTokens.spacingMd,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SectionHeading(context.t.projectSection),
+                    TileGroup(
+                      children: [
+                        ListTile(
+                          title: Text(context.t.changelog.title),
+                          leading: const Icon(Icons.list_alt_rounded),
+                          trailing: const Icon(
+                            Icons.chevron_right,
+                            size: DesignTokens.iconInline,
+                          ),
+                          onTap: () {
+                            context.router.push(
+                              ChangelogRoute(type: ChangelogType.assets),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          title: Text(context.t.github),
+                          leading: const FaIcon(FontAwesomeIcons.github),
+                          // Leaves the app, so it takes the outgoing mark
+                          // instead of the chevron that promises another
+                          // screen.
+                          trailing: const Icon(
+                            Icons.open_in_new,
+                            size: DesignTokens.iconInline,
+                          ),
+                          onTap: () {
+                            launchUrlString(
+                              AppVersionRepo.gitUrl,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                        ),
+                        ListTile(
+                          title: Text(context.t.ossLicense),
+                          leading: const Icon(Icons.collections_bookmark),
+                          trailing: const Icon(
+                            Icons.chevron_right,
+                            size: DesignTokens.iconInline,
+                          ),
+                          onTap: () {
+                            context.router.push(const LicensesRoute());
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                title: Text(context.t.github),
-                leading: const FaIcon(FontAwesomeIcons.github),
-                // Leaves the app, so it takes the outgoing mark instead of the
-                // chevron that promises another screen.
-                trailing: const Icon(Icons.open_in_new, size: 18),
-                onTap: () {
-                  launchUrlString(
-                    AppVersionRepo.gitUrl,
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-              ),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: DesignTokens.spacingMd,
-                ),
-                title: Text(context.t.ossLicense),
-                leading: const Icon(Icons.collections_bookmark),
-                trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () {
-                  context.router.push(const LicensesRoute());
-                },
               ),
             ],
           ),

@@ -1,8 +1,8 @@
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
-import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/wordmark.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -39,14 +39,6 @@ class HomeDrawerHeader extends ConsumerWidget {
     final themeMode = ref.watch(
       uiSettingStateProvider.select((ui) => ui.themeMode),
     );
-    // The name is a lockup, not a heading: it takes the display face so it
-    // reads as the app's mark rather than as the first line of the drawer.
-    final wordmark = context.theme.textTheme.headlineSmall?.copyWith(
-      color: scheme.onSurface,
-      fontFamily: AppTypography.displayFamily,
-      fontWeight: AppTypography.semiBold,
-      letterSpacing: -0.6,
-    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -58,23 +50,7 @@ class HomeDrawerHeader extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: 'Boorusphere', style: wordmark),
-                  TextSpan(
-                    text: '!',
-                    style: wordmark?.copyWith(
-                      color: scheme.primary,
-                      // The wordmark is set tight; the mark needs its own air.
-                      letterSpacing: 0,
-                    ),
-                  ),
-                ],
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Wordmark(textStyle: context.theme.textTheme.headlineSmall),
           ),
           const SizedBox(width: DesignTokens.spacingSm),
           IconButton(
