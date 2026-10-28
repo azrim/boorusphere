@@ -146,6 +146,10 @@ ThemeData _createThemeData(
         borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
       ),
     ),
+    // Buttons stay flat: the fill carries the affordance, not a shadow.
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(elevation: 0),
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: colorScheme.surfaceContainer,
       elevation: DesignTokens.elevationModal,

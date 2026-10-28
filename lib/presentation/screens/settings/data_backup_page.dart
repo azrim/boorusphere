@@ -381,7 +381,6 @@ class _BackupOptionSheet extends HookConsumerWidget {
       footer: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          style: ElevatedButton.styleFrom(elevation: 0),
           onPressed: option.value.isValid()
               ? () => Navigator.pop(context, option.value)
               : null,

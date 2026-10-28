@@ -73,7 +73,6 @@ class AboutPage extends ConsumerWidget {
                           onPressed: () {
                             ref.invalidate(appVersionsStateProvider);
                           },
-                          style: ElevatedButton.styleFrom(elevation: 0),
                           icon: const Icon(Icons.done),
                           label: Text(context.t.updater.onLatest),
                         );
@@ -81,7 +80,6 @@ class AboutPage extends ConsumerWidget {
                 loading: () {
                   return ElevatedButton.icon(
                     onPressed: null,
-                    style: ElevatedButton.styleFrom(elevation: 0),
                     icon: Container(
                       width: 24,
                       height: 24,
@@ -96,7 +94,6 @@ class AboutPage extends ConsumerWidget {
                     onPressed: () {
                       ref.invalidate(appVersionsStateProvider);
                     },
-                    style: ElevatedButton.styleFrom(elevation: 0),
                     icon: const Icon(Icons.update),
                     label: Text(context.t.updater.check),
                   );
@@ -267,7 +264,6 @@ class _Downloader extends ConsumerWidget {
                 }
               });
             },
-            style: ElevatedButton.styleFrom(elevation: 0),
             child: Text(context.t.updater.download(version: version)),
           ),
         if (progress.status.isDownloading) ...[
