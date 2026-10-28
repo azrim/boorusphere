@@ -8,8 +8,8 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/empty_state.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
-import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:collection/collection.dart';
@@ -39,40 +39,23 @@ class FavoritesPage extends ConsumerWidget {
       ],
       child: favoritePostState.isNotEmpty
           ? _Pager(favoritePostState)
-          : _EmptyView(),
+          : const _EmptyView(),
     );
   }
 }
 
 class _EmptyView extends StatelessWidget {
+  const _EmptyView();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.t.favorites.title)),
       body: SafeArea(
-        child: Column(
-          children: [
-            Center(
-              child: NoticeCard(
-                icon: const Icon(Icons.favorite),
-                margin: const EdgeInsets.only(top: DesignTokens.spacingXl * 2),
-                children: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(context.t.favorites.placeholder),
-                    const SizedBox(height: DesignTokens.spacingSm),
-                    Text(
-                      context.t.favoritesHint,
-                      textAlign: TextAlign.center,
-                      style: context.theme.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+        child: EmptyState(
+          icon: const Icon(Icons.favorite),
+          title: context.t.favorites.placeholder,
+          body: context.t.favoritesHint,
         ),
       ),
     );
