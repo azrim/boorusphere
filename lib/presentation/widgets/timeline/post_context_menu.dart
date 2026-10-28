@@ -44,13 +44,27 @@ const double _kBackdropOpacity = 0.16;
 
 /// The backdrop blur is quantised into this many steps. The engine caches a
 /// blurred backdrop per filter, so a continuously changing sigma re-blurs the
-/// whole screen on every frame of the entrance; six steps still read as a
-/// progressive blur and cost six rasterisations instead of ~18.
-const int _kBackdropBlurSteps = 6;
+/// whole screen on every frame of the entrance; eight steps still read as a
+/// progressive blur and cost eight rasterisations instead of ~18.
+const int _kBackdropBlurSteps = 8;
+
+/// Share of the entrance the blur spends arriving.
+///
+/// The card fades in on a decelerating curve, so it reads as settled at around
+/// half of the transition. A blur that only reaches full strength at the end
+/// arrives visibly late: the eye sees a sharp grid behind a finished menu. The
+/// blur therefore finishes first, at 40%, and the two are done together.
+const double _kBlurRevealAt = 0.4;
+
+double _revealProgress(double t) {
+  final progress = (t / _kBlurRevealAt).clamp(0.0, 1.0);
+  return Curves.easeOut.transform(progress);
+}
 
 double _steppedBackdropBlur(double t) {
-  final step = (t * _kBackdropBlurSteps).round() / _kBackdropBlurSteps;
-  return _kBackdropBlur * step.clamp(0.0, 1.0);
+  final step =
+      (_revealProgress(t) * _kBackdropBlurSteps).round() / _kBackdropBlurSteps;
+  return _kBackdropBlur * step;
 }
 
 /// Shows the post context menu as a floating glass card over a blurred,
@@ -164,8 +178,12 @@ class _MenuBackdrop extends StatelessWidget {
       animation: animation,
       builder: (context, child) {
         final t = _clamp01(animation.value);
+        // The veil rides the same ramp as the blur, so the layer behind the
+        // menu arrives as one surface instead of dimming after it.
         final veil = ColoredBox(
-          color: scrim.withValues(alpha: _kBackdropOpacity * t),
+          color: scrim.withValues(
+            alpha: _kBackdropOpacity * _revealProgress(t),
+          ),
         );
         final blur = _steppedBackdropBlur(t);
 
