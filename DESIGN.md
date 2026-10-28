@@ -159,7 +159,7 @@ A step up the ladder does two things at once, never one of them:
 - **Snackbars**: top-rounded (12px radius), `primaryContainer` fill, floating elevation.
 - **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
 - **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
-- **Dialogs**: `surfaceContainer`, 16px radius, modal elevation.
+- **Dialogs**: `surfaceContainer`, 16px radius, modal elevation. A confirm that destroys something takes the error colour as a text button, never a filled primary one: the destructive verb is not the most attractive control in the dialog, and every screen asks with the same dialog so the answer reads the same from the drawer, a page, or a sheet.
 - **Grid items**: no shadow, no border, no elevation. Content is flat; depth comes from the staggered layout itself.
 - **Bottom search bar**: a glass surface rather than an elevated one — `surface` at 72% over a 20 px backdrop blur, with a hairline `outlineVariant` on the top edge and no shadow. It is the one place blur is structural: the bar floats over moving art and has to stay legible without hiding it.
 
@@ -179,6 +179,13 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Rows**: `TileGroup` wraps `ListTile`s in the shared `ListTileTheme` (12 dp inset, rounded ink); custom rows (`DrawerTile`) match the same inset
 - **Why**: the container carries the only border, so a section reads as one block instead of a stack of separate cards
 
+### Empty States
+- **Shape**: the [Section Block](#section-block) vocabulary — `surfaceContainerHigh` (the page tone in midnight), a hairline, no shadow, and a muted icon. A notice is a block, not a floating card
+- **Type**: the title is the only primary line (`rowTitle`), the body explains the state in `rowSupporting`, and there is never a third line
+- **Action**: a state that has a way forward offers it as one filled button under the body. A state that only says no is a dead end, and the reader has to guess which screen would fix it
+- **Layout**: centred, one block wide, and scrollable, so a large font scale or a short window never cuts the action off
+- **Where**: timeline errors and empty results, Favorites, Downloads, the changelog, licenses, and the first run
+
 ### Timeline Grid
 - **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders
@@ -193,7 +200,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
 - **Accessibility**: each card is one screen-reader node — the overlays are folded into a single label (tag, rating, score, file type, dimensions), the tap and long-press actions ride on that node, and the selected state is announced rather than drawn as an unlabelled check. A post with none of those falls back to its id so the node is never nameless
 - **Loading**: Shimmer placeholders with desaturated surface color
-- **States**: A spinner while a page is loading; a notice card for empty or failed results
+- **States**: A spinner while a page is loading; an [empty state](#empty-states) for empty or failed results
 - **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar. While the list is moving the pill drops to 30% opacity, so it reads as a hint instead of asking for a decision mid-scroll
 - **Back to top**: a circular button appears at the trailing edge of the same band once the grid is 600 dp down, and leaves again at the top. It is the only control that changes with scroll position
 - **Long-press hint**: a one-shot pill above the bar teaches the gesture behind every post action. It disappears on dismiss or on entering selection mode and is never shown again
@@ -300,7 +307,8 @@ Every settings screen (Settings, Gesture Settings, Data Backup) uses one row sys
 ### Server Pages
 Server management reuses the same block language as the drawer and settings: a small-caps section label over a rounded `surface` block.
 
-- **Manage**: the saved servers are one block — favicon, name, and homepage per row, with edit / remove in the row menu — closed by an add row whose plus carries `primary`. Reset to default lives in the app bar menu
+- **Manage**: the saved servers are one block — favicon, name, and homepage per row, with edit / remove in the row menu — closed by an add row whose plus carries `primary`. The app bar names the page, so the block carries no second heading. Reset to default lives in the app bar menu
+- **Removal**: removing a server asks first, from the drawer and from this page alike. The same verb answers the same way wherever it is offered
 - **Add and Edit are one page**: the add-server row, the drawer action, and the search-bar shortcut all open the same flow, which detects the engine by scanning or lets the user pick one manually
 - **Fields**: flat inputs with no fill and a hairline `outlineVariant` underline, with the label in small caps; a form reads as rows inside its block instead of slabs drawn on top of it. The label always sits above the field at the 11 sp label role, in every state, so it never takes the slot the value belongs to; an example belongs in the hint (`e.g. https://…`), never in the label
 - **Edit sections**: server (engine, homepage, alias, optional custom API address), server query (parser pickers plus the search / suggestion / post templates, with "From Preset" as the section action), and credentials
@@ -308,6 +316,7 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Save**: one filled button pinned under the form
 
 ### Download Entry
+- **Filter**: a filter that is on is a chip above the list, naming itself and turning itself off; a shortened list never looks like a full one, and its empty state says no match instead of no files
 - **Layout**: Horizontal card with thumbnail, progress bar, status icon, actions
 - **Progress**: Linear progress indicator with percentage label
 - **States**: Pending, downloading, paused, completed, failed
