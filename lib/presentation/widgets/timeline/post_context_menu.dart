@@ -30,7 +30,7 @@ class PostContextMenuEntry {
 /// A context menu is a list of verbs, not a panel: it stays narrow enough to
 /// sit beside the finger and short enough that the grid behind it is still the
 /// thing being looked at.
-const double _kRowHeight = 44;
+const double _kRowHeight = 48;
 const double _kCardRadius = DesignTokens.radiusXl;
 const double _kCardMaxWidth = 232;
 const double _kChipSize = 24;

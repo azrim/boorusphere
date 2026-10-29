@@ -474,6 +474,9 @@ class _PassphraseDialog extends HookWidget {
   Widget build(BuildContext context) {
     final passphrase = useTextEditingController();
     final confirmation = useTextEditingController();
+    final passphraseFocus = useFocusNode();
+    final confirmationFocus = useFocusNode();
+    final showPassphrase = useState(false);
     final save = useState(true);
     final error = useState<String?>(null);
 
@@ -483,10 +486,12 @@ class _PassphraseDialog extends HookWidget {
         error.value = _confirm
             ? context.t.dataBackup.passphraseTooShort(n: _minLength)
             : context.t.dataBackup.wrongPassphrase;
+        passphraseFocus.requestFocus();
         return;
       }
       if (_confirm && value != confirmation.text) {
         error.value = context.t.dataBackup.passphraseMismatch;
+        confirmationFocus.requestFocus();
         return;
       }
       Navigator.of(context).pop(
@@ -505,8 +510,9 @@ class _PassphraseDialog extends HookWidget {
         children: [
           TextField(
             controller: passphrase,
+            focusNode: passphraseFocus,
             autofocus: true,
-            obscureText: true,
+            obscureText: !showPassphrase.value,
             autocorrect: false,
             enableSuggestions: false,
             textInputAction: _confirm
@@ -515,6 +521,19 @@ class _PassphraseDialog extends HookWidget {
             decoration: InputDecoration(
               labelText: context.t.dataBackup.passphrase,
               helperText: context.t.dataBackup.passphraseHint(n: _minLength),
+              suffixIcon: IconButton(
+                tooltip: showPassphrase.value
+                    ? context.t.hidePassword
+                    : context.t.showPassword,
+                icon: Icon(
+                  showPassphrase.value
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+                onPressed: () {
+                  showPassphrase.value = !showPassphrase.value;
+                },
+              ),
             ),
             onSubmitted: _confirm ? null : (_) => submit(),
           ),
@@ -522,13 +541,26 @@ class _PassphraseDialog extends HookWidget {
             const SizedBox(height: DesignTokens.spacingSm),
             TextField(
               controller: confirmation,
-              obscureText: true,
+              focusNode: confirmationFocus,
+              obscureText: !showPassphrase.value,
               autocorrect: false,
               enableSuggestions: false,
               decoration: InputDecoration(
                 labelText: context.t.dataBackup.passphraseConfirm,
               ),
               onSubmitted: (_) => submit(),
+            ),
+          ],
+          if (error.value case final message?) ...[
+            const SizedBox(height: DesignTokens.spacingSm),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
             ),
           ],
           if (mode == _PassphraseMode.backup)
@@ -539,15 +571,6 @@ class _PassphraseDialog extends HookWidget {
               controlAffinity: ListTileControlAffinity.leading,
               contentPadding: EdgeInsets.zero,
             ),
-          if (error.value case final message?) ...[
-            const SizedBox(height: DesignTokens.spacingSm),
-            Text(
-              message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.error,
-              ),
-            ),
-          ],
         ],
       ),
       actions: [
@@ -835,10 +858,13 @@ class _TestConnectionTile extends HookConsumerWidget {
       enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.testConnection),
       trailing: isLoading.value
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
+          ? Semantics(
+              label: context.t.periodicBackup.telegram.connecting,
+              child: const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             )
           : const Icon(Icons.send),
       onTap: !enabled || isLoading.value

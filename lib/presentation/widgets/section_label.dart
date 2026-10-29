@@ -27,6 +27,8 @@ class SectionLabel extends StatelessWidget {
       child: Text(
         label.toUpperLocale(context),
         style: AppTextRoles.of(context).sectionLabel,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
 
@@ -63,15 +65,25 @@ class SectionHeading extends StatelessWidget {
         DesignTokens.spacingXs,
         DesignTokens.spacingSm,
       ),
+      // The label yields before the action does: at a large font scale a long
+      // title has to ellipsize instead of pushing the action off the row.
       child: Row(
         children: [
-          SectionLabel(label),
-          if (count != null) ...[
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(child: SectionLabel(label)),
+                if (count != null) ...[
+                  const SizedBox(width: DesignTokens.spacingSm),
+                  Text('$count', style: AppTextRoles.of(context).sectionLabel),
+                ],
+              ],
+            ),
+          ),
+          if (action != null) ...[
             const SizedBox(width: DesignTokens.spacingSm),
-            Text('$count', style: AppTextRoles.of(context).sectionLabel),
+            action!,
           ],
-          const Spacer(),
-          if (action != null) action!,
         ],
       ),
     );

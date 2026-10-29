@@ -265,8 +265,11 @@ class _Button extends StatelessWidget {
     );
 
     final tooltip = this.tooltip;
-    if (tooltip == null) return button;
-    return Tooltip(message: tooltip, child: button);
+    if (tooltip == null) return Semantics(button: true, child: button);
+    return Semantics(
+      button: true,
+      child: Tooltip(message: tooltip, child: button),
+    );
   }
 }
 
