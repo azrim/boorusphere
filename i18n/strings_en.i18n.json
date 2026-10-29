@@ -121,7 +121,9 @@
     "history_empty": "No search history yet",
     "history_no_match": "No matching history found",
     "history_hint": "Your recent searches will appear here",
-    "history_hint_query": "Try a different search term"
+    "history_hint_query": "Try a different search term",
+    "clear_history": "Clear search history",
+    "clear_history_warning": "Every saved search will be removed. This cannot be undone."
   },
   "action_tag": {
     "copy": "Copy tag",

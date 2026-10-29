@@ -13,6 +13,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
@@ -207,24 +208,10 @@ class _SearchHistoryHeader extends HookConsumerWidget {
       sliver: SliverToBoxAdapter(
         child: Row(
           children: [
-            // The query sits beside the label in the supporting role instead
-            // of inside it: a small-caps heading with a user string glued on
-            // stops being a heading.
             SectionLabel(context.t.recently),
-            if (query.trim().isNotEmpty) ...[
-              const SizedBox(width: DesignTokens.spacingSm),
-              Flexible(
-                child: Text(
-                  query,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextRoles.of(context).rowSupporting,
-                ),
-              ),
-            ],
             const Spacer(),
             TextButton(
-              onPressed: ref.read(searchHistoryStateProvider.notifier).clear,
+              onPressed: () => _confirmClearHistory(context, ref),
               child: Text(context.t.clear),
             ),
           ],
@@ -232,6 +219,18 @@ class _SearchHistoryHeader extends HookConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _confirmClearHistory(BuildContext context, WidgetRef ref) async {
+  final confirmed = await confirmDestructive(
+    context,
+    icon: Icons.delete_sweep_outlined,
+    title: context.t.suggestion.clearHistory,
+    message: context.t.suggestion.clearHistoryWarning,
+    confirmLabel: context.t.clear,
+  );
+  if (!confirmed) return;
+  await ref.read(searchHistoryStateProvider.notifier).clear();
 }
 
 class _SearchHistory extends HookConsumerWidget {
