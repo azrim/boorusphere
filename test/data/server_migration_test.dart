@@ -72,4 +72,74 @@ void main() {
     expect(box.get('@c')?.id, 'c');
     expect(await Hive.boxExists(migrationBox), isFalse);
   });
+
+  group('UserServerRepo.populate suggestion URLs', () {
+    const safebooruHome = 'https://safebooru.org';
+    const autocompleteUrl = 'autocomplete.php?q={tag-part}';
+    const gelbooruAutocompleteUrl =
+        'index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}';
+
+    late Box<Server> box;
+    late UserServerRepo repo;
+
+    setUp(() async {
+      box = await Hive.openBox<Server>('server_url_test');
+      await box.clear();
+      repo = UserServerRepo(
+        defaultServers: const {'@seed': Server(id: 'seed')},
+        box: box,
+      );
+    });
+
+    tearDown(() => box.close());
+
+    test('restores the autocomplete URL a Safebooru entry lost', () async {
+      await box.put(
+        '@safebooru',
+        const Server(
+          id: 'Safebooru',
+          homepage: safebooruHome,
+          tagSuggestionUrl: gelbooruAutocompleteUrl,
+          suggestionParserId: 'Gelbooru.autocomplete',
+        ),
+      );
+
+      await repo.populate();
+
+      final server = box.get('@safebooru')!;
+      expect(server.tagSuggestionUrl, autocompleteUrl);
+      expect(server.suggestionParserId, isEmpty);
+    });
+
+    test('keeps a Safebooru entry on its own autocomplete URL', () async {
+      await box.put(
+        '@safebooru',
+        const Server(
+          id: 'Safebooru',
+          homepage: safebooruHome,
+          tagSuggestionUrl: autocompleteUrl,
+        ),
+      );
+
+      await repo.populate();
+
+      expect(box.get('@safebooru')!.tagSuggestionUrl, autocompleteUrl);
+    });
+
+    test('still points a Gelbooru entry at autocomplete2', () async {
+      await box.put(
+        '@gelbooru',
+        const Server(
+          id: 'Gelbooru',
+          homepage: 'https://gelbooru.com',
+          tagSuggestionUrl:
+              'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%&orderby=count&limit={post-limit}&json=1',
+        ),
+      );
+
+      await repo.populate();
+
+      expect(box.get('@gelbooru')!.tagSuggestionUrl, gelbooruAutocompleteUrl);
+    });
+  });
 }

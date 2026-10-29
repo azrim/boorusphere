@@ -45,8 +45,12 @@ class UserServerRepo implements ServerRepo {
     final mapped = Map<String, Server>.from(box.toMap());
     for (final entry in mapped.entries) {
       final server = entry.value;
-      if (server.tagSuggestionUrl == oldDapiUrl ||
-          server.tagSuggestionUrl == oldAutocompleteUrl) {
+      // Safebooru serves that autocomplete path itself, so its entry is not a
+      // Gelbooru one wearing the same template.
+      final isStaleAutocomplete =
+          server.tagSuggestionUrl == oldAutocompleteUrl &&
+          !_isSafebooru(server);
+      if (server.tagSuggestionUrl == oldDapiUrl || isStaleAutocomplete) {
         await box.put(
           entry.key,
           server.copyWith(
@@ -57,6 +61,36 @@ class UserServerRepo implements ServerRepo {
       }
     }
     await box.flush();
+  }
+
+  /// Restores Safebooru's own autocomplete URL on entries the Gelbooru
+  /// rewrite above already converted, where it answers with the homepage
+  /// instead of a tag list.
+  Future<void> _migrateSafebooruSuggestionUrl() async {
+    const autocompleteUrl = 'autocomplete.php?q={tag-part}';
+    const gelbooruAutocompleteUrl =
+        'index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}';
+
+    final mapped = Map<String, Server>.from(box.toMap());
+    for (final entry in mapped.entries) {
+      final server = entry.value;
+      final wasRewritten = server.tagSuggestionUrl == gelbooruAutocompleteUrl;
+      if (!wasRewritten || !_isSafebooru(server)) continue;
+
+      await box.put(
+        entry.key,
+        server.copyWith(
+          tagSuggestionUrl: autocompleteUrl,
+          suggestionParserId: '',
+        ),
+      );
+    }
+    await box.flush();
+  }
+
+  bool _isSafebooru(Server server) {
+    final host = Uri.tryParse(server.homepage)?.host ?? '';
+    return host == 'safebooru.org' || host.endsWith('.safebooru.org');
   }
 
   /// Rule34 serves its API from its own host, which also rejects anonymous
@@ -131,6 +165,7 @@ class UserServerRepo implements ServerRepo {
     } else {
       await _migrateKeys();
       await _migrateGelbooruSuggestionUrl();
+      await _migrateSafebooruSuggestionUrl();
       await _migrateRule34ApiHost();
       await _migrateOneBasedPageParam();
     }
@@ -202,6 +237,7 @@ class UserServerRepo implements ServerRepo {
 
     // Run migrations after import to fix any outdated server configs
     await _migrateGelbooruSuggestionUrl();
+    await _migrateSafebooruSuggestionUrl();
     await _migrateRule34ApiHost();
     await _migrateOneBasedPageParam();
   }
