@@ -139,7 +139,7 @@ ThemeData _createThemeData(
     canvasColor: colorScheme.surface,
     scaffoldBackgroundColor: colorScheme.surface,
     cardTheme: origin.cardTheme.copyWith(
-      color: colorScheme.surfaceContainer,
+      color: colorScheme.surfaceContainerHigh,
       elevation: DesignTokens.elevationRaised,
       shadowColor: shadowColor,
       shape: RoundedRectangleBorder(
