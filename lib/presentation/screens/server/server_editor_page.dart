@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -6,6 +8,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/screens/server/server_add_page.dart';
 import 'package:boorusphere/presentation/screens/server/server_details.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
@@ -64,6 +67,8 @@ class _ServerEditor extends HookConsumerWidget {
     final apiAddr = useTextEditingController(
       text: server.apiAddr.isEmpty ? 'https://' : server.apiAddr,
     );
+    final homepageFocus = useFocusNode();
+    final apiAddrFocus = useFocusNode();
     final selectedEngine = useState<BooruEngine?>(_detectEngine(server));
 
     validateAddress(String? value) {
@@ -132,6 +137,9 @@ class _ServerEditor extends HookConsumerWidget {
                           const SizedBox(height: DesignTokens.spacingSm),
                           TextFormField(
                             controller: homepage,
+                            focusNode: homepageFocus,
+                            keyboardType: TextInputType.url,
+                            autocorrect: false,
                             enableIMEPersonalizedLearning: !imeIncognito,
                             decoration: flatFieldDecoration(
                               context,
@@ -169,6 +177,9 @@ class _ServerEditor extends HookConsumerWidget {
                             const SizedBox(height: DesignTokens.spacingSm),
                             TextFormField(
                               controller: apiAddr,
+                              focusNode: apiAddrFocus,
+                              keyboardType: TextInputType.url,
+                              autocorrect: false,
                               enableIMEPersonalizedLearning: !imeIncognito,
                               decoration: flatFieldDecoration(
                                 context,
@@ -190,6 +201,28 @@ class _ServerEditor extends HookConsumerWidget {
         ServerDetails(
           server: current.value,
           onSubmitted: (newServer) {
+            // The address fields live in this page's form, so the details
+            // form below can validate itself without ever seeing them.
+            if (formKey.currentState?.validate() != true) {
+              final target = validateAddress(homepage.text) != null
+                  ? homepageFocus
+                  : apiAddrFocus;
+              target.requestFocus();
+              final targetContext = target.context;
+              if (targetContext != null) {
+                unawaited(
+                  Scrollable.ensureVisible(
+                    targetContext,
+                    duration: context.motionDuration(
+                      DesignTokens.durationNormal,
+                    ),
+                    curve: DesignTokens.curveStandard,
+                  ),
+                );
+              }
+              return;
+            }
+
             final serverPod = ref.read(serverStateProvider.notifier);
             serverPod.edit(
               server,

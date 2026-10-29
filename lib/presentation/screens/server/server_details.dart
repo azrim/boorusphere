@@ -43,6 +43,7 @@ class ServerDetails extends HookConsumerWidget {
     final imeIncognito = ref.watch(
       uiSettingStateProvider.select((it) => it.imeIncognito),
     );
+    final showApiKey = useState(false);
     final formKey = useMemoized(GlobalKey<FormState>.new);
     final cSearchUrl = useTextEditingController(text: server.searchUrl);
     final cSuggestUrl = useTextEditingController(text: server.tagSuggestionUrl);
@@ -224,11 +225,26 @@ class ServerDetails extends HookConsumerWidget {
                           TextFormField(
                             controller: cApiKey,
                             enableIMEPersonalizedLearning: !imeIncognito,
-                            obscureText: true,
-                            decoration: flatFieldDecoration(
-                              context,
-                              label: context.t.servers.credentials.apiKey,
-                            ),
+                            obscureText: !showApiKey.value,
+                            decoration:
+                                flatFieldDecoration(
+                                  context,
+                                  label: context.t.servers.credentials.apiKey,
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    tooltip: showApiKey.value
+                                        ? context.t.hidePassword
+                                        : context.t.showPassword,
+                                    icon: Icon(
+                                      showApiKey.value
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                    ),
+                                    onPressed: () {
+                                      showApiKey.value = !showApiKey.value;
+                                    },
+                                  ),
+                                ),
                           ),
                         ],
                       ),

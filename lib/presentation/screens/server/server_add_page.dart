@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/provider.dart';
@@ -130,6 +132,11 @@ class ServerAddPage extends HookConsumerWidget {
     final apiAddr = useTextEditingController(text: 'https://');
     final login = useTextEditingController();
     final apiKey = useTextEditingController();
+    final profileNameFocus = useFocusNode();
+    final siteUrlFocus = useFocusNode();
+    final apiAddrFocus = useFocusNode();
+    final showApiKey = useState(false);
+    final isSubmitting = useState(false);
     final server = useState(Server.empty);
     // Result of the last successful scan, or null when a (re)scan is needed.
     final scanResult = useState<Server?>(null);
@@ -173,7 +180,7 @@ class ServerAddPage extends HookConsumerWidget {
         return context.t.servers.addrError;
       }
       if (isPrivateIp(uri.host)) {
-        return context.t.servers.addrError;
+        return context.t.servers.addrLocal;
       }
       return null;
     }
@@ -269,50 +276,75 @@ class ServerAddPage extends HookConsumerWidget {
     /// A name that resolves to an existing key is refused: saving it would
     /// replace that server's configuration, credentials included.
     Future<void> submit() async {
-      final serverPod = ref.read(serverStateProvider.notifier);
-      final lastActiveId = ref.read(serverSettingStateProvider).lastActiveId;
-      final hadActiveServer = ref
-          .read(serverStateProvider)
-          .any((it) => it.id == lastActiveId);
+      if (isSubmitting.value) return;
+      isSubmitting.value = true;
       try {
-        await serverPod.add(server.value);
-      } on ServerAlreadyExistsException {
-        if (!context.mounted) return;
-        context.scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              context.t.servers.alreadyExists(name: server.value.name),
+        final serverPod = ref.read(serverStateProvider.notifier);
+        final lastActiveId = ref.read(serverSettingStateProvider).lastActiveId;
+        final hadActiveServer = ref
+            .read(serverStateProvider)
+            .any((it) => it.id == lastActiveId);
+        try {
+          await serverPod.add(server.value);
+        } on ServerAlreadyExistsException {
+          if (!context.mounted) return;
+          context.scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                context.t.servers.alreadyExists(name: server.value.name),
+              ),
+              duration: DesignTokens.durationSnackbar,
             ),
-            duration: DesignTokens.durationSnackbar,
-          ),
-        );
-        return;
-      } catch (e, stack) {
-        mainLog.e('Servers: failed to save ${server.value.key}', e, stack);
+          );
+          return;
+        } catch (e, stack) {
+          mainLog.e('Servers: failed to save ${server.value.key}', e, stack);
+          if (!context.mounted) return;
+          context.scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(context.t.error.unknown),
+              duration: DesignTokens.durationSnackbar,
+            ),
+          );
+          return;
+        }
+
         if (!context.mounted) return;
-        context.scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(context.t.error.unknown),
-            duration: DesignTokens.durationSnackbar,
+
+        // A server saved while the session has none (a boot that could not open
+        // the server box) is the only one the timeline behind this page could
+        // show. Opening its timeline here saves a manual switch through the
+        // drawer, which is the state the page would otherwise stay in.
+        if (!hadActiveServer) {
+          await context.router.replaceAll([
+            HomeRoute(session: SearchSession(serverId: server.value.id)),
+          ]);
+          return;
+        }
+
+        await context.router.maybePop();
+      } finally {
+        if (context.mounted) isSubmitting.value = false;
+      }
+    }
+
+    void focusFirstInvalid() {
+      final target = validateName(profileName.text) != null
+          ? profileNameFocus
+          : validateAddress(siteUrl.text) != null
+          ? siteUrlFocus
+          : apiAddrFocus;
+      target.requestFocus();
+      final targetContext = target.context;
+      if (targetContext != null) {
+        unawaited(
+          Scrollable.ensureVisible(
+            targetContext,
+            duration: context.motionDuration(DesignTokens.durationNormal),
+            curve: DesignTokens.curveStandard,
           ),
         );
-        return;
       }
-
-      if (!context.mounted) return;
-
-      // A server saved while the session has none (a boot that could not open
-      // the server box) is the only one the timeline behind this page could
-      // show. Opening its timeline here saves a manual switch through the
-      // drawer, which is the state the page would otherwise stay in.
-      if (!hadActiveServer) {
-        await context.router.replaceAll([
-          HomeRoute(session: SearchSession(serverId: server.value.id)),
-        ]);
-        return;
-      }
-
-      await context.router.maybePop();
     }
 
     return Scaffold(
@@ -540,6 +572,7 @@ class ServerAddPage extends HookConsumerWidget {
                               ],
                               TextFormField(
                                 controller: profileName,
+                                focusNode: profileNameFocus,
                                 enableIMEPersonalizedLearning: !imeIncognito,
                                 decoration: flatFieldDecoration(
                                   context,
@@ -555,6 +588,9 @@ class ServerAddPage extends HookConsumerWidget {
                               const SizedBox(height: DesignTokens.spacingSm),
                               TextFormField(
                                 controller: siteUrl,
+                                focusNode: siteUrlFocus,
+                                keyboardType: TextInputType.url,
+                                autocorrect: false,
                                 enableIMEPersonalizedLearning: !imeIncognito,
                                 decoration: flatFieldDecoration(
                                   context,
@@ -588,6 +624,9 @@ class ServerAddPage extends HookConsumerWidget {
                                 const SizedBox(height: DesignTokens.spacingSm),
                                 TextFormField(
                                   controller: apiAddr,
+                                  focusNode: apiAddrFocus,
+                                  keyboardType: TextInputType.url,
+                                  autocorrect: false,
                                   enableIMEPersonalizedLearning: !imeIncognito,
                                   decoration: flatFieldDecoration(
                                     context,
@@ -638,11 +677,27 @@ class ServerAddPage extends HookConsumerWidget {
                               TextFormField(
                                 controller: apiKey,
                                 enableIMEPersonalizedLearning: !imeIncognito,
-                                obscureText: true,
-                                decoration: flatFieldDecoration(
-                                  context,
-                                  label: context.t.servers.credentials.apiKey,
-                                ),
+                                obscureText: !showApiKey.value,
+                                decoration:
+                                    flatFieldDecoration(
+                                      context,
+                                      label:
+                                          context.t.servers.credentials.apiKey,
+                                    ).copyWith(
+                                      suffixIcon: IconButton(
+                                        tooltip: showApiKey.value
+                                            ? context.t.hidePassword
+                                            : context.t.showPassword,
+                                        icon: Icon(
+                                          showApiKey.value
+                                              ? Icons.visibility_off_outlined
+                                              : Icons.visibility_outlined,
+                                        ),
+                                        onPressed: () {
+                                          showApiKey.value = !showApiKey.value;
+                                        },
+                                      ),
+                                    ),
                                 onChanged: (_) {
                                   resetScan();
                                   updateServer();
@@ -663,9 +718,12 @@ class ServerAddPage extends HookConsumerWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: mode.value == _AddMode.manual
+                  onPressed: isSubmitting.value
+                      ? null
+                      : mode.value == _AddMode.manual
                       ? () {
                           if (formKey.currentState?.validate() != true) {
+                            focusFirstInvalid();
                             return;
                           }
 
@@ -673,7 +731,13 @@ class ServerAddPage extends HookConsumerWidget {
                           submit();
                         }
                       : (scanResult.value == null ? null : submit),
-                  child: Text(context.t.servers.add),
+                  child: isSubmitting.value
+                      ? const SizedBox(
+                          width: DesignTokens.iconAction,
+                          height: DesignTokens.iconAction,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(context.t.servers.add),
                 ),
               ),
             ),
