@@ -155,7 +155,7 @@ A step up the ladder does two things at once, never one of them:
 ### Shadow Vocabulary
 - **Section blocks**: `surfaceContainerHigh`, hairline `outlineVariant`, no shadow. A block groups rows; it does not float. In Midnight the block stays on the page tone and only the hairline separates it.
 - **Empty and error notices**: the same block vocabulary — container tone (the page tone in midnight), a hairline, no shadow; the icon stays muted.
-- **Buttons**: flat. The fill carries the affordance, never a shadow.
+- **Buttons**: flat. The fill carries the affordance, never a shadow. One primary variant — the filled primary button — carries the action a page or sheet is asking for; `OutlinedButton` and `TextButton` are the ways out beside it, and a destructive confirm is a text button in the error colour.
 - **Snackbars**: top-rounded (12px radius), `primaryContainer` fill, floating elevation.
 - **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
 - **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
@@ -266,7 +266,7 @@ One container for every bottom sheet in the app — post details, settings picke
 - **Gesture**: swipe up or the info button opens it; one swipe down or Back dismisses it, which is why the sheet carries no dismiss control of its own
 
 ### Chips (Tags)
-- **Style**: Filled, primaryContainer background, onPrimaryContainer text
+- **Style**: Filled. An unselected tag sits on `surfaceContainerHighest` with a hairline `outlineVariant` border; selecting it fills `primaryContainer` with `onPrimaryContainer` text and drops the border, so selection reads as a state change rather than a second accent colour
 - **Shape**: Rounded full (999px)
 - **States**: Tappable for tag navigation
 
@@ -284,9 +284,9 @@ One container for every bottom sheet in the app — post details, settings picke
 
 The one piece of chrome every timeline screen carries. It is a surface, not glass: the bar paints `scaffoldBackgroundColor` at full opacity (black in midnight) with a hairline `outlineVariant` top border, and the query field sits on `surfaceContainerHighest` at `radiusLg`.
 
-- **Collapsed**: leading drawer chip (server favicon, with the active rating as a corner badge), the query as centered text, and a trailing control that toggles grid columns — or becomes *back to top* once the timeline is scrolled
+- **Collapsed**: leading drawer chip (server favicon), the query as centered text, and a trailing control that toggles grid columns — or becomes *back to top* once the timeline is scrolled. An active non-default rating joins the field as a one-letter filter chip, so a filtered feed is a state the reader can see rather than decode
 - **Expanded** (tap the field): a rating chip row appears above the field, the field goes left-aligned and editable, and a reset control joins the trailing close button; the suggestion panel (`BlurBackdrop`) rises behind it
-- **Rating badge**: one-letter pill — S / Q / E / SN — filled with the scheme role (safe → primary, questionable → tertiary, sensitive → secondary, explicit → error) and drawn at a fixed size so it stays a badge under font scaling; the rating is announced through semantics, not the glyph
+- **Rating chip**: one letter — S / Q / E / SN — beside a filter icon, tinted with the scheme role (safe → primary, questionable → tertiary, sensitive → secondary, explicit → error) inside the same 48 dp control as every other button, so it stays a badge under font scaling; the rating is announced through semantics, not the glyph
 - **Touch targets**: every control in the bar is at least 48 dp, including the rating chip and the icon buttons
 - **Height**: measured at runtime (`HomeSearchBar.height`), never assumed — the pagination pill's offset and the grid's bottom padding both read it so they track font scaling
 - **Selection mode**: while posts are selected the bar is removed and the [selection action bar](#selection-action-bar) takes the bottom of the screen
