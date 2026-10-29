@@ -56,6 +56,11 @@ class _EmptyView extends StatelessWidget {
           icon: const Icon(Icons.favorite),
           title: context.t.favorites.placeholder,
           body: context.t.favoritesHint,
+          // The only way to fill this list is the feed behind the page.
+          action: FilledButton(
+            onPressed: () => context.navigator.maybePop(),
+            child: Text(context.t.browseFeed),
+          ),
         ),
       ),
     );

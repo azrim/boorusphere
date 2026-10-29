@@ -444,6 +444,7 @@
   },
   "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
   "downloads_hint": "Open any post and tap download to save it to your device.",
+  "browse_feed": "Browse the feed",
   "page_status_empty_hint": "Try different tags, or check the rating filter above.",
   "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
 }

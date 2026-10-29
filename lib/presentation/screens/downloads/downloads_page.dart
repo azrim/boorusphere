@@ -14,6 +14,7 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/empty_state.dart';
 import 'package:boorusphere/presentation/widgets/expandable_group_list_view.dart';
+import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -167,13 +168,20 @@ class DownloadsPage extends HookConsumerWidget {
                         body: downloadEntries.isEmpty
                             ? context.t.downloadsHint
                             : null,
+                        // The filter header above is the way out of a no-match
+                        // list; an empty library needs a way back to the feed.
+                        action: downloadEntries.isEmpty
+                            ? FilledButton(
+                                onPressed: () => context.navigator.maybePop(),
+                                child: Text(context.t.browseFeed),
+                              )
+                            : null,
                       )
                     : ExpandableGroupListView<DownloadEntry, String>(
                         items: filteredEntries,
                         groupedBy: (item) => item.post.serverId,
-                        groupTitle: (id) => Text(
+                        groupTitle: (id) => SectionLabel(
                           servers.getById(id, or: servers.firstOrNull).name,
-                          style: context.theme.textTheme.bodyLarge,
                         ),
                         itemBuilder: (item) => DownloadEntryView(
                           entry: item,

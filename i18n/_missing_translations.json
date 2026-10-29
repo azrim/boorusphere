@@ -11,6 +11,7 @@
     "meta": "Meta",
     "artist": "Artist",
     "copyright": "Copyright",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -77,6 +78,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -167,9 +169,11 @@
       "restore": {
         "title": "Restore data",
         "desc": "Restore app data from backup file",
-        "success": "App data has been restored",
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now",
         "invalid": "Invalid backup file",
-        "warning": "Warning! this action will overwrite any existing data.\nAre you sure you want to continue ?",
+        "warningFile": "Restore \"${file}\"?\nThis overwrites any existing data.\nAre you sure you want to continue?",
         "loading": "Restoring data..."
       },
       "encrypt": "Encrypt with passphrase",
@@ -239,6 +243,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -287,6 +292,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -295,6 +301,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -354,6 +361,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -411,6 +419,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -478,6 +491,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -526,6 +540,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -534,6 +549,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -585,6 +601,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -622,6 +639,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -689,6 +711,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -737,6 +760,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -745,6 +769,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -796,6 +821,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -833,6 +859,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -900,6 +931,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -948,6 +980,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -956,6 +989,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1007,6 +1041,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -1044,6 +1079,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1111,6 +1151,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -1159,6 +1200,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -1208,6 +1250,7 @@
       "history_hint": "Your recent searches will appear here",
       "history_hint_query": "Try a different search term"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -1245,6 +1288,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1312,6 +1360,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -1367,6 +1416,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1418,6 +1468,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -1455,6 +1506,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1522,6 +1578,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -1570,6 +1627,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -1578,6 +1636,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1629,6 +1688,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -1666,6 +1726,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1733,6 +1798,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -1781,6 +1847,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -1789,6 +1856,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1841,6 +1909,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -1889,6 +1958,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1956,6 +2030,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -2004,6 +2079,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -2012,6 +2088,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -2063,6 +2140,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -2100,6 +2178,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -2167,6 +2250,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -2215,6 +2299,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
@@ -2223,6 +2308,7 @@
     "dimensions": "Dimensions",
     "format": "Format",
     "links": "Links",
+    "project_section": "Project",
     "load_video_failed": "Failed to load video",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -2274,6 +2360,7 @@
       "share": "Share",
       "open_source": "Open source"
     },
+    "post_counter": "${index} of ${total}",
     "viewer": {
       "mute": "Mute",
       "unmute": "Unmute",
@@ -2311,6 +2398,11 @@
       }
     },
     "data_backup": {
+      "restore": {
+        "completed": "Restore complete — ${file}",
+        "completedDesc": "Restart the app so the restored data is loaded.",
+        "restartNow": "Restart now"
+      },
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -2378,6 +2470,7 @@
     },
     "onboarding": {
       "welcome_title": "Welcome to Boorusphere",
+      "question": "Where do you want to browse?",
       "welcome_desc": "Add a booru server to start discovering and collecting images",
       "add_first_server": "Add your first server",
       "browse_presets": "Browse presets",
@@ -2426,6 +2519,7 @@
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
     "downloads_hint": "Open any post and tap download to save it to your device.",
+    "browse_feed": "Browse the feed",
     "page_status_empty_hint": "Try different tags, or check the rating filter above.",
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   }

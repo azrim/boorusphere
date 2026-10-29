@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
@@ -112,58 +113,73 @@ class DownloadEntryView extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: RowSubtitle(
-        Wrap(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SeparatedRow(
-              separatorBuilder: (_, __) =>
-                  const SizedBox(width: DesignTokens.spacingXs),
-              mainAxisSize: MainAxisSize.min,
+            Wrap(
               children: [
-                if (progress.status.isDownloading ||
-                    progress.status.isPending) ...[
-                  SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: Padding(
-                      padding: const EdgeInsets.all(DesignTokens.spacingXs),
-                      child: CircularProgressIndicator(
+                SeparatedRow(
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(width: DesignTokens.spacingXs),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _buildStatusIcon(progress, isFileExists),
+                      color: _buildStatusColor(
+                        context.colorScheme,
+                        progress,
+                        isFileExists,
+                      ),
+                      size: DesignTokens.iconInline,
+                    ),
+                    Text(_buildStatusDesc(context, progress, isFileExists)),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: DesignTokens.iconInline,
+                      child: Center(child: Text('•')),
+                    ),
+                    Text(
+                      servers
+                          .getById(entry.post.serverId, or: servers.firstOrNull)
+                          .name,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            // A download is a length, not a turn: the bar fills the row under
+            // the status line and the percentage reads beside it.
+            if (progress.status.isDownloading || progress.status.isPending) ...[
+              const SizedBox(height: DesignTokens.spacingXs),
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        DesignTokens.radiusSm,
+                      ),
+                      child: LinearProgressIndicator(
                         value: progress.status.isPending
                             ? null
                             : progress.progress.ratio,
-                        strokeWidth: 2.5,
+                        minHeight: 3,
                         backgroundColor:
                             context.colorScheme.surfaceContainerHighest,
                       ),
                     ),
                   ),
-                  Text('${progress.progress}%'),
-                ] else
-                  Icon(
-                    _buildStatusIcon(progress, isFileExists),
-                    color: _buildStatusColor(
-                      context.colorScheme,
-                      progress,
-                      isFileExists,
-                    ),
-                    size: 18,
+                  const SizedBox(width: DesignTokens.spacingSm),
+                  Text(
+                    '${progress.progress}%',
+                    style: AppTextRoles.of(context).numeric,
                   ),
-                Text(_buildStatusDesc(context, progress, isFileExists)),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: DesignTokens.iconInline,
-                  child: Center(child: Text('•')),
-                ),
-                Text(
-                  servers
-                      .getById(entry.post.serverId, or: servers.firstOrNull)
-                      .name,
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
