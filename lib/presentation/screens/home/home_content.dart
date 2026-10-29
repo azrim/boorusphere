@@ -82,9 +82,16 @@ class HomeContent extends HookConsumerWidget {
 
     // One scroll listener for both transient controls: the pagination pill
     // fades while the list is moving, and back-to-top appears once the grid
-    // is far enough down to be worth leaving.
-    final isScrolling = useState(false);
-    final canBackToTop = useState(false);
+    // is far enough down to be worth leaving. Both live in notifiers so a
+    // scroll tick repaints the two controls, not the grid between them.
+    final isScrolling = useMemoized(() => ValueNotifier(false));
+    final canBackToTop = useMemoized(() => ValueNotifier(false));
+    useEffect(() {
+      return () {
+        isScrolling.dispose();
+        canBackToTop.dispose();
+      };
+    }, const []);
     useEffect(() {
       Timer? settle;
 
@@ -237,24 +244,27 @@ class HomeContent extends HookConsumerWidget {
               ),
             ),
           ),
-        if (canBackToTop.value &&
-            !hasSelection &&
-            !searchBar.isOpen &&
-            !showHint)
-          Positioned(
-            right: DesignTokens.spacingMd,
-            bottom: barHeight + DesignTokens.spacingSm,
-            child: _BackToTopButton(
-              onTap: () => unawaited(
-                scrollController.animateTo(
-                  0,
-                  duration: context.motionDuration(
-                    const Duration(milliseconds: 500),
+        if (!hasSelection && !searchBar.isOpen && !showHint)
+          ValueListenableBuilder<bool>(
+            valueListenable: canBackToTop,
+            builder: (context, canBack, _) {
+              if (!canBack) return const SizedBox.shrink();
+              return Positioned(
+                right: DesignTokens.spacingMd,
+                bottom: barHeight + DesignTokens.spacingSm,
+                child: _BackToTopButton(
+                  onTap: () => unawaited(
+                    scrollController.animateTo(
+                      0,
+                      duration: context.motionDuration(
+                        const Duration(milliseconds: 500),
+                      ),
+                      curve: DesignTokens.curveStandard,
+                    ),
                   ),
-                  curve: DesignTokens.curveStandard,
                 ),
-              ),
-            ),
+              );
+            },
           ),
         if (showPagination)
           Positioned(
@@ -262,11 +272,15 @@ class HomeContent extends HookConsumerWidget {
             right: 0,
             bottom: barHeight + DesignTokens.spacingSm,
             child: Center(
-              child: AnimatedOpacity(
-                // While the grid is moving the pill drops back to a quiet
-                // hint instead of asking for a decision mid-scroll.
-                opacity: isScrolling.value ? 0.3 : 1,
-                duration: context.motionDuration(DesignTokens.durationFast),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: isScrolling,
+                builder: (context, scrolling, child) => AnimatedOpacity(
+                  // While the grid is moving the pill drops back to a quiet
+                  // hint instead of asking for a decision mid-scroll.
+                  opacity: scrolling ? 0.3 : 1,
+                  duration: context.motionDuration(DesignTokens.durationFast),
+                  child: child,
+                ),
                 child: _PaginationPill(
                   pageIndex: data.pageIndex,
                   hasPrev: data.hasPrev,

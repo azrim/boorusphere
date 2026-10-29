@@ -896,6 +896,7 @@ class TimelineSkeleton extends ConsumerWidget {
           child: Shimmer.fromColors(
             baseColor: base,
             highlightColor: highlight,
+            enabled: !context.reducedMotion,
             child: const ColoredBox(color: Colors.black),
           ),
         ),
