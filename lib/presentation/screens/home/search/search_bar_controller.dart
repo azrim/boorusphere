@@ -32,6 +32,7 @@ class SearchBarController extends ChangeNotifier {
   final SearchSession session;
 
   late final textEditingController = TextEditingController(text: initial);
+  final focusNode = FocusNode(debugLabel: 'search field');
 
   Timer? _textTimer;
   bool _open = false;
@@ -101,11 +102,19 @@ class SearchBarController extends ChangeNotifier {
     // waiting for another keystroke.
     _requestSuggestion();
     notifyListeners();
+
+    // `autofocus` only fires when the field first mounts, so an explicit
+    // request is what raises the keyboard on every open after that. The field
+    // only becomes focusable on the rebuild above, hence the post-frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_open) focusNode.requestFocus();
+    });
   }
 
   void close() {
     _textTimer?.cancel();
     _open = false;
+    focusNode.unfocus();
     notifyListeners();
   }
 
@@ -124,6 +133,7 @@ class SearchBarController extends ChangeNotifier {
     _textTimer?.cancel();
     textEditingController.removeListener(_fetch);
     textEditingController.dispose();
+    focusNode.dispose();
     super.dispose();
   }
 }

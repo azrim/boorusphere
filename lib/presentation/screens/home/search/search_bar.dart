@@ -64,51 +64,69 @@ class HomeSearchBar extends HookConsumerWidget {
             ),
             // No maintained bottom padding: when the IME is up the bar should
             // sit on the keyboard instead of keeping the nav-bar gap above it.
+            // The transparent Material is what controls painted straight on the
+            // bar draw their ink on: the bar paints its own background above
+            // the scaffold's Material, so without it those taps would be silent.
             child: SafeArea(
               top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (searchBar.isOpen) const _OptionBar(),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: context.colorScheme.surfaceContainerHighest,
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(DesignTokens.radiusLg),
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (searchBar.isOpen) const _OptionBar(),
+                    // The fill belongs to a Material rather than a painted
+                    // Container: a decoration above the ink surface would hide
+                    // every ripple in the row.
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(
+                        DesignTokens.spacingMd,
+                        DesignTokens.spacingMd - DesignTokens.spacingXs,
+                        DesignTokens.spacingMd,
+                        DesignTokens.spacingMd - DesignTokens.spacingXs,
+                      ),
+                      child: Material(
+                        color: context.colorScheme.surfaceContainerHighest,
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(DesignTokens.radiusLg),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Row(
+                          children: [
+                            const _LeadingButton(),
+                            const Expanded(child: _SearchField()),
+                            // An active non-default rating is a state, so it gets a
+                            // chip here instead of a 9 sp corner badge.
+                            if (!searchBar.isOpen && rating != BooruRating.all)
+                              const _CollapsedRatingChip(),
+                            if (!searchBar.isOpen) const _TrailingButton(),
+                            if (searchBar.isOpen)
+                              // The bar itself does not rebuild per keystroke, so
+                              // the reset control listens to the field's text
+                              // instead of reading it once during this build.
+                              ListenableBuilder(
+                                listenable: searchBar.textEditingController,
+                                builder: (context, _) =>
+                                    searchBar.value == searchBar.initial
+                                    ? const SizedBox.shrink()
+                                    : _Button(
+                                        onTap: searchBar.reset,
+                                        tooltip: context.t.resetQuery,
+                                        child: const Icon(Icons.rotate_left),
+                                      ),
+                              ),
+                            if (searchBar.isOpen)
+                              _Button(
+                                onTap: searchBar.clear,
+                                tooltip: context.t.clearQuery,
+                                child: const Icon(Icons.close_rounded),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                    margin: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingMd,
-                      DesignTokens.spacingMd - DesignTokens.spacingXs,
-                      DesignTokens.spacingMd,
-                      DesignTokens.spacingMd - DesignTokens.spacingXs,
-                    ),
-                    child: Row(
-                      children: [
-                        const _LeadingButton(),
-                        const Expanded(child: _SearchField()),
-                        // An active non-default rating is a state, so it gets a
-                        // chip here instead of a 9 sp corner badge.
-                        if (!searchBar.isOpen && rating != BooruRating.all)
-                          const _CollapsedRatingChip(),
-                        if (!searchBar.isOpen) const _TrailingButton(),
-                        if (searchBar.isOpen &&
-                            searchBar.value != searchBar.initial)
-                          _Button(
-                            onTap: searchBar.reset,
-                            tooltip: context.t.resetQuery,
-                            child: const Icon(Icons.rotate_left),
-                          ),
-                        if (searchBar.isOpen)
-                          _Button(
-                            onTap: searchBar.clear,
-                            tooltip: context.t.clearQuery,
-                            child: const Icon(Icons.close_rounded),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -132,7 +150,7 @@ class _SearchField extends HookConsumerWidget {
 
     final hint = context.t.searchHint(serverName: server.name);
     final field = TextField(
-      autofocus: searchBar.isOpen,
+      focusNode: searchBar.focusNode,
       canRequestFocus: searchBar.isOpen,
       enableIMEPersonalizedLearning: !imeIncognito,
       controller: searchBar.textEditingController,

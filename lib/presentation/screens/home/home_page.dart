@@ -62,6 +62,13 @@ class HomePage extends HookConsumerWidget {
         suggestionStateProvider.overrideWith(
           () => SuggestionState(session: session),
         ),
+        // The controller asks the suggestion provider for results, so it has
+        // to live in this scope too. Left to the root it would resolve the
+        // default, session-less suggestion state and type into a list this
+        // page never sees.
+        searchBarControllerProvider.overrideWith(
+          (ref, session) => SearchBarController(ref, session: session),
+        ),
         // A selection belongs to the feed it was made on; a scope per page
         // keeps the ids of the previous server or query from carrying over.
         postSelectionProvider.overrideWith(PostSelectionNotifier.new),

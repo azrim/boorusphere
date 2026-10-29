@@ -20,6 +20,7 @@ import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/presentation/widgets/timeline/post_context_menu.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/number_format.dart';
 import 'package:boorusphere/utils/url_validator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -70,17 +71,6 @@ double _overlayScale(double tileWidth) =>
 TextStyle _overlayLabelStyle(BuildContext context, double scale) {
   final base = context.theme.textTheme.labelSmall ?? const TextStyle();
   return base.copyWith(fontSize: (base.fontSize ?? 11) * scale);
-}
-
-/// Compact post score for the on-image badge: `42`, `1.4k`, `12k`, `1.2M`.
-String _compactCount(int value) {
-  final abs = value.abs();
-  if (abs < 1000) return '$value';
-  if (abs < 1000000) {
-    final scaled = value / 1000;
-    return '${scaled.toStringAsFixed(abs < 10000 ? 1 : 0)}k';
-  }
-  return '${(value / 1000000).toStringAsFixed(1)}M';
 }
 
 /// Shared explicit-content blur for thumbnails. A single top-level
@@ -617,7 +607,7 @@ class _ScoreRatingOverlay extends StatelessWidget {
           const SizedBox(width: 2),
           Flexible(
             child: Text(
-              _compactCount(post.score),
+              compactCount(post.score),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textScaler: TextScaler.noScaling,

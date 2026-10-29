@@ -16,6 +16,7 @@ import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/utils/number_format.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -30,7 +31,7 @@ class SearchSuggestion extends HookConsumerWidget {
   });
 
   final AnimationController animator;
-  final dynamic searchBar; // SearchBarController
+  final SearchBarController searchBar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,118 +56,124 @@ class SearchSuggestion extends HookConsumerWidget {
             ? backgroundColor.withValues(alpha: 0.85)
             : backgroundColor,
         child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Swipe handle with gesture detection - positioned below status bar
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onVerticalDragStart: (details) {
-                  // Only allow dragging when search is open
-                  canBeDragged.value = searchBar.isOpen;
-                },
-                onVerticalDragUpdate: (details) {
-                  if (!canBeDragged.value) return;
+          // The panel paints an opaque pane above the scaffold's Material, so
+          // the rows need their own transparent Material to draw ink on.
+          child: Material(
+            type: MaterialType.transparency,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Swipe handle with gesture detection - positioned below status bar
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragStart: (details) {
+                    // Only allow dragging when search is open
+                    canBeDragged.value = searchBar.isOpen;
+                  },
+                  onVerticalDragUpdate: (details) {
+                    if (!canBeDragged.value) return;
 
-                  final delta = details.primaryDelta;
-                  if (delta == null) return;
+                    final delta = details.primaryDelta;
+                    if (delta == null) return;
 
-                  // Only allow downward drag (positive delta)
-                  if (delta > 0) {
-                    // Update animation value based on drag distance
-                    animator.value -= delta / (screenHeight * 0.3);
-                    animator.value = animator.value.clamp(0.0, 1.0);
-                  }
-                },
-                onVerticalDragEnd: (details) async {
-                  if (!canBeDragged.value) return;
+                    // Only allow downward drag (positive delta)
+                    if (delta > 0) {
+                      // Update animation value based on drag distance
+                      animator.value -= delta / (screenHeight * 0.3);
+                      animator.value = animator.value.clamp(0.0, 1.0);
+                    }
+                  },
+                  onVerticalDragEnd: (details) async {
+                    if (!canBeDragged.value) return;
 
-                  final velocity = details.velocity.pixelsPerSecond.dy;
+                    final velocity = details.velocity.pixelsPerSecond.dy;
 
-                  if (velocity > 300 || animator.value < 0.7) {
-                    // Close search bar
-                    await animator.reverse();
-                    searchBar.close();
-                  } else {
-                    // Snap back to open
-                    await animator.forward();
-                  }
-                },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(
-                    vertical: DesignTokens.spacingSm,
-                  ),
-                  child: DragHandle(
-                    margin: EdgeInsets.only(
-                      top: DesignTokens.spacingXs,
-                      bottom: DesignTokens.spacingCardInset,
+                    if (velocity > 300 || animator.value < 0.7) {
+                      // Close search bar
+                      await animator.reverse();
+                      searchBar.close();
+                    } else {
+                      // Snap back to open
+                      await animator.forward();
+                    }
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: DesignTokens.spacingSm,
+                    ),
+                    child: DragHandle(
+                      margin: EdgeInsets.only(
+                        top: DesignTokens.spacingXs,
+                        bottom: DesignTokens.spacingCardInset,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Listener(
-                  onPointerMove: (event) {
-                    if (!searchBar.isOpen) return;
+                Expanded(
+                  child: Listener(
+                    onPointerMove: (event) {
+                      if (!searchBar.isOpen) return;
 
-                    if (!isDragging.value && isAtTop()) {
-                      // Start drag if at top and moving down
-                      if (event.delta.dy > 2) {
-                        isDragging.value = true;
-                        dragStartY.value = event.position.dy;
+                      if (!isDragging.value && isAtTop()) {
+                        // Start drag if at top and moving down
+                        if (event.delta.dy > 2) {
+                          isDragging.value = true;
+                          dragStartY.value = event.position.dy;
+                        }
                       }
-                    }
 
-                    if (isDragging.value) {
-                      final delta = event.position.dy - dragStartY.value;
-                      if (delta > 0) {
-                        // Update animation value based on drag distance
-                        animator.value = 1.0 - (delta / (screenHeight * 0.3));
-                        animator.value = animator.value.clamp(0.0, 1.0);
+                      if (isDragging.value) {
+                        final delta = event.position.dy - dragStartY.value;
+                        if (delta > 0) {
+                          // Update animation value based on drag distance
+                          animator.value = 1.0 - (delta / (screenHeight * 0.3));
+                          animator.value = animator.value.clamp(0.0, 1.0);
+                        }
                       }
-                    }
-                  },
-                  onPointerUp: (_) async {
-                    if (isDragging.value) {
-                      if (animator.value < 0.7) {
-                        await animator.reverse();
-                        searchBar.close();
-                      } else {
+                    },
+                    onPointerUp: (_) async {
+                      if (isDragging.value) {
+                        if (animator.value < 0.7) {
+                          await animator.reverse();
+                          searchBar.close();
+                        } else {
+                          await animator.forward();
+                        }
+                        isDragging.value = false;
+                      }
+                    },
+                    onPointerCancel: (_) async {
+                      if (isDragging.value) {
                         await animator.forward();
+                        isDragging.value = false;
                       }
-                      isDragging.value = false;
-                    }
-                  },
-                  onPointerCancel: (_) async {
-                    if (isDragging.value) {
-                      await animator.forward();
-                      isDragging.value = false;
-                    }
-                  },
-                  child: CustomScrollView(
-                    scrollCacheExtent: const ScrollCacheExtent.pixels(100),
-                    controller: scrollController,
-                    physics:
-                        const BouncingScrollPhysics(), // Minimal cache for performance
-                    slivers: [
-                      const _SearchHistoryHeader(),
-                      const _SearchHistory(),
-                      const _SuggestionHeader(),
-                      const _Suggestion(),
-                      // The measured height of the bar, not a guessed one: with
-                      // the rating row open the last suggestion sat under it.
-                      SliverToBoxAdapter(
-                        child: ValueListenableBuilder<double>(
-                          valueListenable: HomeSearchBar.height,
-                          builder: (context, height, _) =>
-                              SizedBox(height: height + DesignTokens.spacingMd),
+                    },
+                    child: CustomScrollView(
+                      scrollCacheExtent: const ScrollCacheExtent.pixels(100),
+                      controller: scrollController,
+                      physics:
+                          const BouncingScrollPhysics(), // Minimal cache for performance
+                      slivers: [
+                        const _SearchHistoryHeader(),
+                        const _SearchHistory(),
+                        const _SuggestionHeader(),
+                        const _Suggestion(),
+                        // The measured height of the bar, not a guessed one: with
+                        // the rating row open the last suggestion sat under it.
+                        SliverToBoxAdapter(
+                          child: ValueListenableBuilder<double>(
+                            valueListenable: HomeSearchBar.height,
+                            builder: (context, height, _) => SizedBox(
+                              height: height + DesignTokens.spacingMd,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -248,8 +255,13 @@ class _SearchHistory extends HookConsumerWidget {
       return const SliverToBoxAdapter();
     }
 
-    // Show empty state if no history
+    // An empty history only speaks for an empty field. Once something is
+    // typed, the suggestion section below answers the query; a "no matching
+    // history" block sitting above it would deny matches the list right under
+    // it is showing.
     if (history.isEmpty) {
+      if (query.trim().isNotEmpty) return const SliverToBoxAdapter();
+
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(DesignTokens.spacingXl),
@@ -264,9 +276,7 @@ class _SearchHistory extends HookConsumerWidget {
               ),
               const SizedBox(height: DesignTokens.spacingMd),
               Text(
-                query.trim().isEmpty
-                    ? context.t.suggestion.historyEmpty
-                    : context.t.suggestion.historyNoMatch,
+                context.t.suggestion.historyEmpty,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -274,9 +284,7 @@ class _SearchHistory extends HookConsumerWidget {
               ),
               const SizedBox(height: DesignTokens.spacingSm),
               Text(
-                query.trim().isEmpty
-                    ? context.t.suggestion.historyHint
-                    : context.t.suggestion.historyHintQuery,
+                context.t.suggestion.historyHint,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -339,8 +347,10 @@ class _SuggestionHeader extends HookConsumerWidget {
       () => searchBar.textEditingController.text,
     );
 
-    // Only show suggestion header when user starts typing
-    if (!searchBar.isOpen || query.trim().length < 2) {
+    // Only show suggestion header when user starts typing. A query ending in
+    // a space has no word left to complete — it is what appending a tag
+    // leaves behind — so the header would sit over an empty list.
+    if (!searchBar.isOpen || query.trim().length < 2 || query.endsWith(' ')) {
       return const SliverToBoxAdapter();
     }
 
@@ -578,28 +588,25 @@ class _SuggestionEntryTile extends StatelessWidget {
             ),
             if (data.postCount > 0) ...[
               Text(
-                data.postCount.toString(),
-                style: AppTextRoles.of(context).rowSupporting,
+                // A six-digit count pushes the tag it belongs to aside; the
+                // same compact form the timeline score uses keeps the row
+                // readable at a glance.
+                compactCount(data.postCount),
+                style: AppTextRoles.of(context).rowSupporting.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
               const SizedBox(width: DesignTokens.spacingSm),
             ],
-            ConstrainedBox(
-              constraints: const BoxConstraints(
-                minWidth: DesignTokens.controlHeightMin,
-                minHeight: DesignTokens.controlHeightMin,
-              ),
-              child: InkWell(
-                onTap: () => onAdded.call(data.text),
-                borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
-                child: Center(
-                  child: Icon(
-                    Icons.add,
-                    semanticLabel: context.t.actionTag.append,
-                    size: DesignTokens.iconAction,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
+            // An IconButton instead of a bare InkWell: the append action gets
+            // its 48 dp target and a spoken name without a hand-built
+            // semantics wrapper around the icon.
+            IconButton(
+              onPressed: () => onAdded.call(data.text),
+              tooltip: context.t.actionTag.append,
+              iconSize: DesignTokens.iconAction,
+              color: Theme.of(context).colorScheme.primary,
+              icon: const Icon(Icons.add),
             ),
           ],
         ),
