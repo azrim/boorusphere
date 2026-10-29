@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
@@ -23,7 +24,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:separated_row/separated_row.dart';
 
-class DownloadEntryView extends ConsumerWidget {
+class DownloadEntryView extends HookConsumerWidget {
   const DownloadEntryView({
     super.key,
     required this.entry,
@@ -102,9 +103,13 @@ class DownloadEntryView extends ConsumerWidget {
     final progress = ref.watch(
       downloadProgressStateProvider.select((it) => it.getById(entry.id)),
     );
-    final isFileExists = ref
-        .watch(sharedStorageHandleProvider)
-        .fileExists(entry.dest);
+    // A stat per rebuild would run for every percent tick of a running
+    // download, so the answer is kept until the folder or the status changes.
+    final revision = ref.watch(downloadFileRevisionProvider);
+    final isFileExists = useMemoized(
+      () => ref.read(sharedStorageHandleProvider).fileExists(entry.dest),
+      [revision, entry.dest, progress.status],
+    );
 
     return ListTile(
       title: Text(
@@ -250,11 +255,11 @@ class _EntryPopupMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton(
       tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-      onSelected: (value) {
+      onSelected: (value) async {
         final downloader = ref.read(downloaderProvider);
         switch (value) {
           case 'redownload':
-            DownloaderDialog.show(
+            await DownloaderDialog.show(
               context,
               ref,
               entry.post,
@@ -264,16 +269,23 @@ class _EntryPopupMenu extends ConsumerWidget {
             );
             break;
           case 'retry':
-            downloader.retry(id: entry.id);
+            await downloader.retry(id: entry.id);
             break;
           case 'cancel':
-            downloader.cancel(id: entry.id);
+            await downloader.cancel(id: entry.id);
             break;
           case 'delete-file':
-            downloader.deleteContent(entry);
+            final confirmed = await confirmDestructive(
+              context,
+              title: context.t.downloads.deleteFile,
+              message: context.t.downloads.deleteFileWarning,
+              confirmLabel: context.t.downloads.deleteFile,
+            );
+            if (!confirmed) return;
+            await downloader.deleteContent(entry);
             break;
           case 'clear':
-            downloader.clear(id: entry.id);
+            await downloader.clear(id: entry.id);
             break;
           default:
             break;

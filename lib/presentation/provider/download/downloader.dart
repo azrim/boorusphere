@@ -388,6 +388,7 @@ class Downloader {
       // turns into a thumbnail that cannot be opened: scanning the removed
       // path is what drops it.
       await sharedStorageHandle.rescanFile(dest);
+      ref.read(downloadFileRevisionProvider.notifier).bump();
     } catch (e) {
       mainLog.e('Downloader: failed to delete $dest', e);
     }

@@ -55,6 +55,19 @@ class DownloadEntryState extends _$DownloadEntryState {
   }
 }
 
+/// Bumped after the download folder gains or loses a file.
+///
+/// A row memoizes whether its file exists, otherwise every progress tick of a
+/// running download would hit the disk for every entry; this is the signal that
+/// tells the memoized rows to look again.
+@Riverpod(keepAlive: true)
+class DownloadFileRevision extends _$DownloadFileRevision {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
 @Riverpod(keepAlive: true)
 class DownloadProgressState extends _$DownloadProgressState {
   @override
