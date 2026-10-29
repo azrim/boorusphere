@@ -554,7 +554,10 @@ class _ThumbnailCard extends HookConsumerWidget {
         // failed.
         if (started == false && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.t.downloads.failedToStart)),
+            SnackBar(
+              content: Text(context.t.downloads.failedToStart),
+              duration: DesignTokens.durationSnackbar,
+            ),
           );
         }
       case PostContextMenuAction.share:

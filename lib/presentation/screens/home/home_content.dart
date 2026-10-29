@@ -343,11 +343,15 @@ class HomeContent extends HookConsumerWidget {
                         content: Text(
                           context.t.batch.downloadedFiles(n: result.savedCount),
                         ),
+                        duration: DesignTokens.durationSnackbar,
                       ),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.t.batch.failed)),
+                      SnackBar(
+                        content: Text(context.t.batch.failed),
+                        duration: DesignTokens.durationSnackbar,
+                      ),
                     );
                   }
                 }
@@ -371,6 +375,9 @@ class HomeContent extends HookConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(context.t.batch.favorited(n: added.length)),
+                      // An undo stays until it is used; the timer only applies
+                      // to the message when there is nothing to undo.
+                      duration: DesignTokens.durationSnackbar,
                       action: added.isEmpty
                           ? null
                           : SnackBarAction(
@@ -513,6 +520,9 @@ class _SelectionActionBar extends StatelessWidget {
           elevation: DesignTokens.elevationFloating,
           shadowColor: DesignTokens.shadowColor(colorScheme),
           color: colorScheme.surfaceContainerHigh,
+          // The other floating controls place their own inset, so the bar must
+          // not pick up the Card's default margin on top of it.
+          margin: EdgeInsets.zero,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

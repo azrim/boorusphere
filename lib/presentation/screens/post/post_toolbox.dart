@@ -288,6 +288,7 @@ class PostDownloadButton extends HookConsumerWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(context.t.downloads.failedToStart),
+                          duration: DesignTokens.durationSnackbar,
                         ),
                       );
                     }

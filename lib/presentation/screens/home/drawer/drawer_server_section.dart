@@ -101,7 +101,10 @@ Future<void> _removeServer(
   } on Exception {
     if (!context.mounted) return;
     context.scaffoldMessenger.showSnackBar(
-      SnackBar(content: Text(context.t.servers.removeLastError)),
+      SnackBar(
+        content: Text(context.t.servers.removeLastError),
+        duration: DesignTokens.durationSnackbar,
+      ),
     );
   }
 }
