@@ -152,7 +152,7 @@ class _PostImage extends HookConsumerWidget {
     final isBlur = useState(post.rating.isExplicit && shouldBlurExplicit);
     final transformController = useTransformationController();
     final zoomAnimator = useAnimationController(
-      duration: context.motionDuration(const Duration(milliseconds: 150)),
+      duration: context.motionDuration(DesignTokens.durationFast),
     );
     final wasZoomed = useRef(false);
     // Zoom is a threshold, not a continuous value. The transform controller
@@ -163,9 +163,15 @@ class _PostImage extends HookConsumerWidget {
     final tapPosition = useRef(Offset.zero);
     final retryNonce = useState(0);
     final createdAt = useState(DateTime.now().millisecondsSinceEpoch);
-    final loadState = useState<_PostImageLoadState>(
-      const _PostImageLoadState.loading(null),
+    // Only the status pill reads the load state, so it lives in a notifier:
+    // rebuilding the zoomable image subtree on every progress tick is wasted
+    // work while a large sample downloads.
+    final loadState = useMemoized(
+      () => ValueNotifier<_PostImageLoadState>(
+        const _PostImageLoadState.loading(null),
+      ),
     );
+    useEffect(() => loadState.dispose, [loadState]);
 
     final deviceRatio = MediaQuery.sizeOf(context).aspectRatio;
     final imageRatio = post.aspectRatio;
@@ -429,13 +435,16 @@ class _PostImage extends HookConsumerWidget {
             if (!isBlur.value)
               Positioned(
                 bottom: QuickBar.preferredBottomPosition(context),
-                child: _PostMediaStatus(
-                  state: loadState.value,
-                  onRetry: () {
-                    CachedNetworkImage.evictFromCache(imageUrl);
-                    retryNonce.value += 1;
-                    loadState.value = const _PostImageLoadState.loading(null);
-                  },
+                child: ValueListenableBuilder<_PostImageLoadState>(
+                  valueListenable: loadState,
+                  builder: (context, state, _) => _PostMediaStatus(
+                    state: state,
+                    onRetry: () {
+                      CachedNetworkImage.evictFromCache(imageUrl);
+                      retryNonce.value += 1;
+                      loadState.value = const _PostImageLoadState.loading(null);
+                    },
+                  ),
                 ),
               ),
             if (isBlur.value)
@@ -611,9 +620,9 @@ class _PostMediaStatus extends StatelessWidget {
     // image was downloading. The pill's percent text and progress
     // value are now updated in-place inside a stable widget instead.
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
+      duration: context.motionDuration(DesignTokens.durationFast),
+      switchInCurve: DesignTokens.curveDecelerate,
+      switchOutCurve: DesignTokens.curveAccelerate,
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
       child: switch (state) {
@@ -762,9 +771,17 @@ class _PostVideoContent extends HookConsumerWidget {
       showPauseOverlay.value = value;
     }
 
+    // Hiding the toolbox assumes the viewer can tap the picture to bring it
+    // back. Under TalkBack, or with animations removed, that tap is not
+    // discoverable, so the controls stay up instead of timing out.
+    final keepControlsVisible =
+        context.reducedMotion ||
+        (MediaQuery.maybeAccessibleNavigationOf(context) ?? false);
+
     scheduleHide() {
       if (!context.mounted) return;
       hideTimer.value.cancel();
+      if (keepControlsVisible) return;
       hideTimer.value = Timer(const Duration(seconds: 2), () {
         if (context.mounted) {
           onVisibilityChange.call(false);
@@ -1093,6 +1110,9 @@ class _PlayPauseOverlay extends StatelessWidget {
 class _Progress extends StatelessWidget {
   const _Progress({required this.source});
 
+  /// How far a screen-reader adjust step moves the playhead.
+  static const _seekStep = Duration(seconds: 5);
+
   final VideoPostSource source;
 
   @override
@@ -1112,16 +1132,51 @@ class _Progress extends StatelessWidget {
       );
     }
 
-    return VideoProgressIndicator(
-      controller,
-      colors: VideoProgressColors(
-        playedColor: colorScheme.primary,
-        backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.3,
+    final value = controller.value;
+    final duration = value.duration;
+    final position = value.position;
+
+    String clock(Duration time) {
+      final seconds = time.inSeconds.remainder(60).toString().padLeft(2, '0');
+      return '${time.inMinutes}:$seconds';
+    }
+
+    Duration clamp(Duration time) {
+      if (time < Duration.zero) return Duration.zero;
+      if (time > duration) return duration;
+      return time;
+    }
+
+    void seek(Duration time) {
+      if (duration <= Duration.zero) return;
+      controller.seekTo(clamp(time));
+    }
+
+    // The bar is a thin drag target. A slider node gives TalkBack and switch
+    // access a way to read the playhead and move it without aiming at it.
+    return Semantics(
+      slider: true,
+      label: context.t.videoPosition,
+      value: '${clock(position)} / ${clock(duration)}',
+      increasedValue: clock(clamp(position + _seekStep)),
+      decreasedValue: clock(clamp(position - _seekStep)),
+      onIncrease: duration > Duration.zero
+          ? () => seek(position + _seekStep)
+          : null,
+      onDecrease: duration > Duration.zero
+          ? () => seek(position - _seekStep)
+          : null,
+      child: VideoProgressIndicator(
+        controller,
+        colors: VideoProgressColors(
+          playedColor: colorScheme.primary,
+          backgroundColor: colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
         ),
+        allowScrubbing: true,
+        padding: const EdgeInsets.only(top: 16, bottom: 16),
       ),
-      allowScrubbing: true,
-      padding: const EdgeInsets.only(top: 16, bottom: 16),
     );
   }
 }
