@@ -62,12 +62,7 @@ class SheetShell extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const DragHandle(
-                margin: EdgeInsets.only(
-                  top: DesignTokens.spacingSm,
-                  bottom: DesignTokens.spacingXs,
-                ),
-              ),
+              const DragHandle(),
               Padding(
                 padding: const EdgeInsets.only(
                   left: DesignTokens.spacingMd,

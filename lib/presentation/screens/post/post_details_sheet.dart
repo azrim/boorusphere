@@ -381,12 +381,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const DragHandle(
-                              margin: EdgeInsets.only(
-                                top: DesignTokens.spacingCardInset,
-                                bottom: DesignTokens.spacingXs,
-                              ),
-                            ),
+                            const DragHandle(),
                             SheetTabs(
                               tabs: [
                                 SheetTab(context.t.details),
@@ -484,7 +479,7 @@ void _copy(BuildContext context, String text) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(context.t.copySuccess),
-      duration: const Duration(seconds: 1),
+      duration: DesignTokens.durationSnackbar,
     ),
   );
 }
@@ -782,7 +777,7 @@ class _TagActionBar extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(context.t.actionTag.blocked),
-        duration: const Duration(seconds: 1),
+        duration: DesignTokens.durationSnackbar,
       ),
     );
     onClearSelection();

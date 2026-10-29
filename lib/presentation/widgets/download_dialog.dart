@@ -10,15 +10,17 @@ import 'package:boorusphere/presentation/utils/entity/pixel_size.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
-import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/permissions.dart';
+import 'package:boorusphere/presentation/widgets/sheet_row.dart';
+import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class DownloaderDialog extends ConsumerWidget {
+class DownloaderDialog extends HookConsumerWidget {
   const DownloaderDialog({super.key, required this.post, this.onItemClick});
 
   final Post post;
@@ -37,74 +39,72 @@ class DownloaderDialog extends ConsumerWidget {
     }
   }
 
+  Future<void> _download(
+    BuildContext context,
+    WidgetRef ref,
+    String type,
+    String url,
+  ) async {
+    // Resolved before the permission prompt: the reader can be disposed while
+    // it is open, and a read after that throws.
+    final downloader = ref.read(downloaderProvider);
+    // The permission only gates the completion notice, so a denial must not
+    // block the download.
+    await checkNotificationPermission(context);
+    onItemClick?.call(type);
+    unawaited(downloader.download(post, url: url));
+    if (context.mounted) {
+      context.navigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final headers = ref.watch(postHeadersFactoryProvider(post));
+    // A sample without its pixel size is probed once and kept: rebuilding the
+    // future per build would restart the read and blank the row.
+    final sampleSize = useMemoized<Future<PixelSize>>(() {
+      if ((post.content.isPhoto || post.content.isGif) &&
+          !post.sampleSize.hasPixels) {
+        return CachedNetworkImageProvider(
+          post.sampleFile,
+          headers: headers,
+        ).resolvePixelSize();
+      }
+      return Future.value(post.sampleSize);
+    }, [headers, post]);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(4, 8, 4, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            const DragHandle(),
-            ListTile(title: Text(context.t.downloads.title)),
-            if (post.sampleFile.isNotEmpty)
-              ListTile(
-                title: Text(context.t.fileSample),
-                subtitle: FutureBuilder<PixelSize>(
-                  future:
-                      (post.content.isPhoto || post.content.isGif) &&
-                          !post.sampleSize.hasPixels
-                      ? CachedNetworkImageProvider(
-                          post.sampleFile,
-                          headers: headers,
-                        ).resolvePixelSize()
-                      : Future.value(post.sampleSize),
-                  builder: (context, snapshot) {
-                    final size = snapshot.data ?? post.sampleSize;
-                    return Text('$size, ${post.sampleFile.fileExt}');
-                  },
+    return FutureBuilder<PixelSize>(
+      future: sampleSize,
+      builder: (context, snapshot) {
+        final size = snapshot.data ?? post.sampleSize;
+        return SheetShell(
+          title: context.t.downloads.title,
+          child: SingleChildScrollView(
+            child: SheetPanel(
+              children: [
+                if (post.sampleFile.isNotEmpty)
+                  SheetRow(
+                    title: context.t.fileSample,
+                    detail: '$size, ${post.sampleFile.fileExt}',
+                    leading: Icon(_getFileIcon(post.sampleFile)),
+                    onTap: () =>
+                        _download(context, ref, 'sample', post.sampleFile),
+                  ),
+                SheetRow(
+                  title: context.t.fileOg,
+                  detail:
+                      '${post.originalSize.toString()}, '
+                      '${post.originalFile.fileExt}',
+                  leading: Icon(_getFileIcon(post.originalFile)),
+                  onTap: () =>
+                      _download(context, ref, 'original', post.originalFile),
                 ),
-                leading: Icon(_getFileIcon(post.sampleFile)),
-                onTap: () async {
-                  // Resolved before the permission prompt: the reader can be
-                  // disposed while it is open, and a read after that throws.
-                  final downloader = ref.read(downloaderProvider);
-                  // The permission only gates the completion notice, so a
-                  // denial must not block the download.
-                  await checkNotificationPermission(context);
-                  onItemClick?.call('sample');
-                  unawaited(downloader.download(post, url: post.sampleFile));
-                  if (context.mounted) {
-                    context.navigator.pop();
-                  }
-                },
-              ),
-            ListTile(
-              title: Text(context.t.fileOg),
-              subtitle: Text(
-                '${post.originalSize.toString()}, ${post.originalFile.fileExt}',
-              ),
-              leading: Icon(_getFileIcon(post.originalFile)),
-              onTap: () async {
-                // Resolved before the permission prompt: the reader can be
-                // disposed while it is open, and a read after that throws.
-                final downloader = ref.read(downloaderProvider);
-                // The permission only gates the completion notice, so a
-                // denial must not block the download.
-                await checkNotificationPermission(context);
-                onItemClick?.call('original');
-                unawaited(downloader.download(post));
-                if (context.mounted) {
-                  context.navigator.pop();
-                }
-              },
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -126,7 +126,7 @@ class DownloaderDialog extends ConsumerWidget {
 
     if (quality == DownloadQuality.ask) {
       var chosen = false;
-      await showModalBottomSheet(
+      await showSheet<void>(
         context: context,
         builder: (_) => DownloaderDialog(
           post: post,

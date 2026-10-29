@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 /// Standard bottom-sheet drag handle used across the app.
 ///
 /// Renders a 40×4 rounded bar centered horizontally. Pass [margin] to
-/// control vertical spacing around the handle (defaults to top 4, bottom 8).
+/// control vertical spacing around the handle (defaults to the sheet shell's
+/// own: 8 dp above and 4 dp below).
 class DragHandle extends StatelessWidget {
   const DragHandle({super.key, this.margin});
 
@@ -14,7 +15,12 @@ class DragHandle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        margin: margin ?? const EdgeInsets.only(top: 4, bottom: 8),
+        margin:
+            margin ??
+            const EdgeInsets.only(
+              top: DesignTokens.spacingSm,
+              bottom: DesignTokens.spacingXs,
+            ),
         width: 40,
         height: 4,
         decoration: BoxDecoration(
