@@ -111,7 +111,7 @@ class LicensesPage extends ConsumerWidget {
           },
           loading: () => const Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32),
+              padding: EdgeInsets.symmetric(horizontal: DesignTokens.spacingXl),
               child: LinearProgressIndicator(),
             ),
           ),
@@ -125,7 +125,7 @@ class LicensesPage extends ConsumerWidget {
                 children: [
                   ErrorInfo(error: error, stackTrace: stackTrace),
                   const SizedBox(height: DesignTokens.spacingMd),
-                  OutlinedButton(
+                  FilledButton(
                     onPressed: () => ref.invalidate(licenseRegistryProvider),
                     child: Text(context.t.retry),
                   ),

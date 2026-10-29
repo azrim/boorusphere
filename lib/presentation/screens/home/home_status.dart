@@ -108,8 +108,11 @@ class _ErrorStatus extends ConsumerWidget {
               spacing: DesignTokens.spacingSm,
               runSpacing: DesignTokens.spacingSm,
               children: [
+                // One filled action: the fix the page is asking for. Every
+                // other way out is a text button, so the notice never shows
+                // two controls of the same weight.
                 if (data.option.searchRating == BooruRating.safe)
-                  ElevatedButton(
+                  FilledButton(
                     onPressed: () async {
                       await ref
                           .read(serverSettingStateProvider.notifier)
@@ -119,14 +122,20 @@ class _ErrorStatus extends ConsumerWidget {
                       }
                     },
                     child: Text(context.t.rating.disableRatingSafe),
+                  )
+                else
+                  FilledButton(
+                    onPressed: ref.read(pageStateProvider.notifier).load,
+                    child: Text(context.t.retry),
                   ),
-                OutlinedButton(
+                if (data.option.searchRating == BooruRating.safe)
+                  TextButton(
+                    onPressed: ref.read(pageStateProvider.notifier).load,
+                    child: Text(context.t.retry),
+                  ),
+                TextButton(
                   onPressed: () => Scaffold.of(context).openDrawer(),
                   child: Text(context.t.pageStatus.changeServer),
-                ),
-                ElevatedButton(
-                  onPressed: ref.read(pageStateProvider.notifier).load,
-                  child: Text(context.t.retry),
                 ),
               ],
             ),

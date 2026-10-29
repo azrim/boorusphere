@@ -23,7 +23,7 @@ Future<void>? showSystemAppSettingsDialog({
           },
           child: Text(context.t.cancel),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: () {
             context.navigator.pop();
             unawaited(openAppSettings());

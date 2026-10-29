@@ -32,8 +32,8 @@ class WhatsNewBottomSheet extends HookConsumerWidget {
       maxHeightFactor: 0.9,
       footer: SizedBox(
         width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
+        child: FilledButton(
+          style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(DesignTokens.controlHeightMin),
           ),
           onPressed: context.navigator.pop,

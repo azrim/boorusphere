@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/settings/periodic_backup_state
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/presentation/widgets/sheet_row.dart';
@@ -38,27 +39,12 @@ class _Content extends HookConsumerWidget {
   const _Content();
 
   Future<bool?> _warningDialog(BuildContext context, String fileName) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(context.t.dataBackup.restore.title),
-          icon: const Icon(Icons.restore),
-          content: Text(
-            context.t.dataBackup.restore.warningFile(file: fileName),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => context.navigator.pop(false),
-              child: Text(context.t.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => context.navigator.pop(true),
-              child: Text(context.t.restore),
-            ),
-          ],
-        );
-      },
+    return confirmDestructive(
+      context,
+      icon: Icons.restore,
+      title: context.t.dataBackup.restore.title,
+      message: context.t.dataBackup.restore.warningFile(file: fileName),
+      confirmLabel: context.t.restore,
     );
   }
 
@@ -114,7 +100,7 @@ class _Content extends HookConsumerWidget {
                     // Closing the activity is the whole point: the restored
                     // boxes are only read on a cold start, so the app has to
                     // be opened again for them to take effect.
-                    ElevatedButton(
+                    FilledButton(
                       onPressed: SystemNavigator.pop,
                       child: Text(context.t.dataBackup.restore.restartNow),
                     ),
@@ -127,14 +113,14 @@ class _Content extends HookConsumerWidget {
           context.scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(context.t.dataBackup.backup.success(dest: path)),
-              duration: const Duration(seconds: 2),
+              duration: DesignTokens.durationSnackbar,
             ),
           );
         case ErrorBackupResult():
           context.scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(context.t.dataBackup.restore.invalid),
-              duration: const Duration(seconds: 1),
+              duration: DesignTokens.durationSnackbar,
             ),
           );
         default:
@@ -380,7 +366,7 @@ class _BackupOptionSheet extends HookConsumerWidget {
       title: context.t.dataBackup.backup.title,
       footer: SizedBox(
         width: double.infinity,
-        child: ElevatedButton(
+        child: FilledButton(
           onPressed: option.value.isValid()
               ? () => Navigator.pop(context, option.value)
               : null,
@@ -576,7 +562,7 @@ class _PassphraseDialog extends HookWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(context.t.cancel),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: submit,
           child: Text(switch (mode) {
             _PassphraseMode.backup => context.t.backup,
@@ -885,7 +871,10 @@ class _TestConnectionTile extends HookConsumerWidget {
               };
 
               context.scaffoldMessenger.showSnackBar(
-                SnackBar(content: Text(message)),
+                SnackBar(
+                  content: Text(message),
+                  duration: DesignTokens.durationSnackbar,
+                ),
               );
             },
     );
@@ -934,6 +923,7 @@ class _BackupNowTile extends HookConsumerWidget {
                         content: Text(
                           context.t.periodicBackup.telegram.backupFailed,
                         ),
+                        duration: DesignTokens.durationSnackbar,
                       ),
                     );
                   }
@@ -957,7 +947,10 @@ class _BackupNowTile extends HookConsumerWidget {
                     : context.t.periodicBackup.telegram.backupFailed;
 
                 context.scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text(message)),
+                  SnackBar(
+                    content: Text(message),
+                    duration: DesignTokens.durationSnackbar,
+                  ),
                 );
               } finally {
                 // The spinner is the only feedback while this runs, so it has

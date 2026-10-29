@@ -6,6 +6,7 @@ import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_sect
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/gesture_help_sheet.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:flutter/material.dart';
@@ -50,7 +51,7 @@ class DrawerPreferencesSection extends ConsumerWidget {
             DrawerTile(
               icon: Icons.restore,
               label: context.t.resetToDefault,
-              onTap: () => _showResetDialog(context, ref),
+              onTap: () => _confirmReset(context, ref),
             ),
           ],
         ),
@@ -59,26 +60,14 @@ class DrawerPreferencesSection extends ConsumerWidget {
   }
 }
 
-void _showResetDialog(BuildContext context, WidgetRef ref) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(context.t.resetToDefault),
-      icon: const Icon(Icons.restore),
-      content: Text(context.t.servers.resetWarning),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.t.cancel),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            ref.read(serverStateProvider.notifier).reset();
-          },
-          child: Text(context.t.reset),
-        ),
-      ],
-    ),
+Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
+  final confirmed = await confirmDestructive(
+    context,
+    icon: Icons.restore,
+    title: context.t.resetToDefault,
+    message: context.t.servers.resetWarning,
+    confirmLabel: context.t.reset,
   );
+  if (!confirmed) return;
+  await ref.read(serverStateProvider.notifier).reset();
 }

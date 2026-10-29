@@ -119,7 +119,10 @@ class _TextSheet extends HookWidget {
       // One action. The shell already carries a close control and the
       // backdrop dismisses, so a Cancel button was a third way out taking half
       // the width of the only action that matters.
-      footer: ElevatedButton(onPressed: save, child: Text(saveLabel)),
+      footer: SizedBox(
+        width: double.infinity,
+        child: FilledButton(onPressed: save, child: Text(saveLabel)),
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           DesignTokens.spacingMd,

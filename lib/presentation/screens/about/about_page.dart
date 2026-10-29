@@ -75,7 +75,7 @@ class AboutPage extends ConsumerWidget {
                 data: (data) {
                   return data.latest.isNewerThan(data.current)
                       ? _Updater(data.latest)
-                      : ElevatedButton.icon(
+                      : FilledButton.icon(
                           onPressed: () {
                             ref.invalidate(appVersionsStateProvider);
                           },
@@ -84,7 +84,7 @@ class AboutPage extends ConsumerWidget {
                         );
                 },
                 loading: () {
-                  return ElevatedButton.icon(
+                  return FilledButton.icon(
                     onPressed: null,
                     icon: Container(
                       width: 24,
@@ -96,7 +96,7 @@ class AboutPage extends ConsumerWidget {
                   );
                 },
                 error: (e, s) {
-                  return ElevatedButton.icon(
+                  return FilledButton.icon(
                     onPressed: () {
                       ref.invalidate(appVersionsStateProvider);
                     },
@@ -262,7 +262,7 @@ class _Downloader extends ConsumerWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (!hasUpdateApk && showDownloadButton)
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
               checkNotificationPermission(context).then((hasPerm) {
                 if (hasPerm) {
@@ -303,7 +303,7 @@ class _Downloader extends ConsumerWidget {
           const SizedBox(width: DesignTokens.spacingMd),
         ],
         if (hasUpdateApk)
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
               ref.read(appUpdaterProvider).install(version);
             },
