@@ -12,7 +12,10 @@
     "artist": "Artist",
     "copyright": "Copyright",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -94,6 +97,7 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started",
       "quality": "Download quality",
@@ -113,6 +117,7 @@
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
       "alias": "Alias",
       "homepage": "Homepage",
+      "addr_local": "local network addresses are not supported",
       "api_addr": "API Address",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
@@ -230,6 +235,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -302,7 +308,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -376,6 +385,7 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started",
       "filter_by_status": "Filter by status",
@@ -385,6 +395,7 @@
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -478,6 +489,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -550,7 +562,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -613,11 +628,13 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -698,6 +715,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -770,7 +788,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -833,11 +854,13 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -918,6 +941,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -990,7 +1014,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -1053,11 +1080,13 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -1138,6 +1167,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1347,6 +1377,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1417,7 +1448,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -1480,11 +1514,13 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -1565,6 +1601,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1637,7 +1674,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -1700,11 +1740,13 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -1785,6 +1827,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1857,7 +1900,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -1924,6 +1970,7 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started",
       "clear_all": "Clear all",
@@ -1931,6 +1978,7 @@
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -2017,6 +2065,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -2089,7 +2138,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -2152,11 +2204,13 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -2237,6 +2291,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -2309,7 +2364,10 @@
     "format": "Format",
     "links": "Links",
     "project_section": "Project",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -2372,11 +2430,13 @@
     },
     "downloads": {
       "delete_file": "Delete file",
+      "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
+      "addr_local": "local network addresses are not supported",
       "engine_type": "Booru engine",
       "engine_required": "Please select a booru engine",
       "mode": {
@@ -2457,6 +2517,7 @@
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
+        "connecting": "Connecting…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
