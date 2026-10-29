@@ -283,6 +283,7 @@ class ServerAddPage extends HookConsumerWidget {
             content: Text(
               context.t.servers.alreadyExists(name: server.value.name),
             ),
+            duration: DesignTokens.durationSnackbar,
           ),
         );
         return;
@@ -290,7 +291,10 @@ class ServerAddPage extends HookConsumerWidget {
         mainLog.e('Servers: failed to save ${server.value.key}', e, stack);
         if (!context.mounted) return;
         context.scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text(context.t.error.unknown)),
+          SnackBar(
+            content: Text(context.t.error.unknown),
+            duration: DesignTokens.durationSnackbar,
+          ),
         );
         return;
       }
@@ -314,322 +318,350 @@ class ServerAddPage extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t.servers.add)),
       body: SafeArea(
-        child: Form(
-          key: formKey,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacingMd,
-            ),
-            children: [
-              const SizedBox(height: DesignTokens.spacingMd),
-              SectionSurface(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(DesignTokens.spacingSm),
-                    child: SegmentedButton<_AddMode>(
-                      // The mode switch is a control, so the chosen mode takes
-                      // the same primary fill the page's own button takes
-                      // instead of the neutral tonal default.
-                      style: SegmentedButton.styleFrom(
-                        selectedBackgroundColor: context.colorScheme.primary,
-                        selectedForegroundColor: context.colorScheme.onPrimary,
-                        foregroundColor: context.colorScheme.onSurfaceVariant,
-                        side: BorderSide(
-                          color: context.colorScheme.outlineVariant,
-                        ),
-                      ),
-                      segments: [
-                        ButtonSegment(
-                          value: _AddMode.scan,
-                          icon: const Icon(Icons.radar),
-                          label: Text(context.t.servers.mode.scan),
-                        ),
-                        ButtonSegment(
-                          value: _AddMode.manual,
-                          icon: const Icon(Icons.tune),
-                          label: Text(context.t.servers.mode.manual),
+        child: Column(
+          children: [
+            Expanded(
+              child: Form(
+                key: formKey,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spacingMd,
+                  ),
+                  children: [
+                    const SizedBox(height: DesignTokens.spacingMd),
+                    SectionSurface(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                          child: SegmentedButton<_AddMode>(
+                            // The mode switch is a control, so the chosen mode takes
+                            // the same primary fill the page's own button takes
+                            // instead of the neutral tonal default.
+                            style: SegmentedButton.styleFrom(
+                              selectedBackgroundColor:
+                                  context.colorScheme.primary,
+                              selectedForegroundColor:
+                                  context.colorScheme.onPrimary,
+                              foregroundColor:
+                                  context.colorScheme.onSurfaceVariant,
+                              side: BorderSide(
+                                color: context.colorScheme.outlineVariant,
+                              ),
+                            ),
+                            segments: [
+                              ButtonSegment(
+                                value: _AddMode.scan,
+                                icon: const Icon(Icons.radar),
+                                label: Text(context.t.servers.mode.scan),
+                              ),
+                              ButtonSegment(
+                                value: _AddMode.manual,
+                                icon: const Icon(Icons.tune),
+                                label: Text(context.t.servers.mode.manual),
+                              ),
+                            ],
+                            selected: {mode.value},
+                            onSelectionChanged: (selection) {
+                              mode.value = selection.first;
+                            },
+                          ),
                         ),
                       ],
-                      selected: {mode.value},
-                      onSelectionChanged: (selection) {
-                        mode.value = selection.first;
-                      },
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: DesignTokens.spacingSm),
-              if (mode.value == _AddMode.scan)
-                SectionSurface(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(DesignTokens.spacingSm),
-                      child: ValueListenableBuilder<bool>(
-                        valueListenable: scanner.isScanning,
-                        builder: (context, isScanning, _) {
-                          final result = scanResult.value;
-                          return Column(
+                    const SizedBox(height: DesignTokens.spacingSm),
+                    if (mode.value == _AddMode.scan)
+                      SectionSurface(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(
+                              DesignTokens.spacingSm,
+                            ),
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: scanner.isScanning,
+                              builder: (context, isScanning, _) {
+                                final result = scanResult.value;
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      context.t.servers.scanHint,
+                                      style: AppTextRoles.of(
+                                        context,
+                                      ).rowSupporting,
+                                    ),
+                                    const SizedBox(
+                                      height: DesignTokens.spacingSm,
+                                    ),
+                                    FilledButton.icon(
+                                      onPressed: isScanning ? null : onScan,
+                                      icon: const Icon(Icons.search),
+                                      label: Text(
+                                        isScanning
+                                            ? context.t.servers.scanning
+                                            : context.t.scan,
+                                      ),
+                                    ),
+                                    if (isScanning) ...[
+                                      const Padding(
+                                        padding: EdgeInsets.only(
+                                          top: DesignTokens.spacingMd,
+                                        ),
+                                        child: LinearProgressIndicator(),
+                                      ),
+                                      _ScanLog(scanner: scanner),
+                                    ],
+                                    if (result != null) ...[
+                                      const SizedBox(
+                                        height: DesignTokens.spacingMd,
+                                      ),
+                                      // A flat row inside the block rather than a
+                                      // tinted card on top of it: the block owns
+                                      // the only surface, and the icon carries the
+                                      // outcome.
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal:
+                                              DesignTokens.spacingCardInset,
+                                          vertical: DesignTokens.spacingSm,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle_outline,
+                                              size: DesignTokens.iconInline,
+                                              color:
+                                                  context.colorScheme.primary,
+                                            ),
+                                            const SizedBox(
+                                              width: DesignTokens.spacingSm,
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                context.t.servers.scanResult(
+                                                  search:
+                                                      result
+                                                          .searchParserId
+                                                          .isEmpty
+                                                      ? context.t.auto
+                                                      : result.searchParserId,
+                                                  suggestion:
+                                                      result
+                                                          .suggestionParserId
+                                                          .isEmpty
+                                                      ? context.t.auto
+                                                      : result
+                                                            .suggestionParserId,
+                                                ),
+                                                style: AppTextRoles.of(
+                                                  context,
+                                                ).rowSupporting,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    if (scanFailed.value) ...[
+                                      const SizedBox(
+                                        height: DesignTokens.spacingMd,
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal:
+                                              DesignTokens.spacingCardInset,
+                                          vertical: DesignTokens.spacingSm,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Icon(
+                                              Icons.error_outline,
+                                              size: DesignTokens.iconInline,
+                                              color: context.colorScheme.error,
+                                            ),
+                                            const SizedBox(
+                                              width: DesignTokens.spacingSm,
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                context.t.servers.scanFailed,
+                                                style: AppTextRoles.of(
+                                                  context,
+                                                ).rowSupporting,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    SectionHeading(context.t.servers.title),
+                    SectionSurface(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                context.t.servers.scanHint,
-                                style: AppTextRoles.of(context).rowSupporting,
+                              if (mode.value == _AddMode.manual) ...[
+                                DropdownButtonFormField<BooruEngine>(
+                                  decoration: flatFieldDecoration(
+                                    context,
+                                    label: context.t.servers.engineType,
+                                  ),
+                                  items: booruEngines.map((engine) {
+                                    return DropdownMenuItem(
+                                      value: engine,
+                                      child: Text(engine.name),
+                                    );
+                                  }).toList(),
+                                  onChanged: (engine) {
+                                    selectedEngine.value = engine;
+                                    updateServer();
+                                  },
+                                  validator: (value) {
+                                    if (value == null) {
+                                      return context.t.servers.engineRequired;
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: DesignTokens.spacingSm),
+                              ],
+                              TextFormField(
+                                controller: profileName,
+                                enableIMEPersonalizedLearning: !imeIncognito,
+                                decoration: flatFieldDecoration(
+                                  context,
+                                  label: context.t.servers.profileName,
+                                  hint: context.t.servers.profileNameHint,
+                                ),
+                                validator: validateName,
+                                onChanged: (_) {
+                                  resetScan();
+                                  updateServer();
+                                },
                               ),
                               const SizedBox(height: DesignTokens.spacingSm),
-                              FilledButton.icon(
-                                onPressed: isScanning ? null : onScan,
-                                icon: const Icon(Icons.search),
-                                label: Text(
-                                  isScanning
-                                      ? context.t.servers.scanning
-                                      : context.t.scan,
+                              TextFormField(
+                                controller: siteUrl,
+                                enableIMEPersonalizedLearning: !imeIncognito,
+                                decoration: flatFieldDecoration(
+                                  context,
+                                  label: context.t.servers.homepage,
+                                  hint: context.t.servers.homepageHint,
                                 ),
+                                validator: validateAddress,
+                                onChanged: (_) {
+                                  resetScan();
+                                  updateServer();
+                                },
                               ),
-                              if (isScanning) ...[
-                                const Padding(
-                                  padding: EdgeInsets.only(
-                                    top: DesignTokens.spacingMd,
-                                  ),
-                                  child: LinearProgressIndicator(),
+                              const SizedBox(height: DesignTokens.spacingSm),
+                              CheckboxListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: DesignTokens.spacingCardInset,
                                 ),
-                                _ScanLog(scanner: scanner),
-                              ],
-                              if (result != null) ...[
-                                const SizedBox(height: DesignTokens.spacingMd),
-                                // A flat row inside the block rather than a
-                                // tinted card on top of it: the block owns
-                                // the only surface, and the icon carries the
-                                // outcome.
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: DesignTokens.spacingCardInset,
-                                    vertical: DesignTokens.spacingSm,
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(
-                                        Icons.check_circle_outline,
-                                        size: DesignTokens.iconInline,
-                                        color: context.colorScheme.primary,
-                                      ),
-                                      const SizedBox(
-                                        width: DesignTokens.spacingSm,
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          context.t.servers.scanResult(
-                                            search:
-                                                result.searchParserId.isEmpty
-                                                ? context.t.auto
-                                                : result.searchParserId,
-                                            suggestion:
-                                                result
-                                                    .suggestionParserId
-                                                    .isEmpty
-                                                ? context.t.auto
-                                                : result.suggestionParserId,
-                                          ),
-                                          style: AppTextRoles.of(
-                                            context,
-                                          ).rowSupporting,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                value: useApiAddr.value,
+                                title: Text(context.t.servers.useCustomApi),
+                                subtitle: RowSubtitle(
+                                  Text(context.t.servers.useCustomApiDesc),
                                 ),
-                              ],
-                              if (scanFailed.value) ...[
-                                const SizedBox(height: DesignTokens.spacingMd),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: DesignTokens.spacingCardInset,
-                                    vertical: DesignTokens.spacingSm,
+                                onChanged: (isChecked) {
+                                  if (isChecked != null) {
+                                    useApiAddr.value = isChecked;
+                                    updateServer();
+                                  }
+                                },
+                              ),
+                              if (useApiAddr.value) ...[
+                                const SizedBox(height: DesignTokens.spacingSm),
+                                TextFormField(
+                                  controller: apiAddr,
+                                  enableIMEPersonalizedLearning: !imeIncognito,
+                                  decoration: flatFieldDecoration(
+                                    context,
+                                    label: context.t.servers.apiAddr,
+                                    hint: context.t.servers.apiAddrHint,
                                   ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline,
-                                        size: DesignTokens.iconInline,
-                                        color: context.colorScheme.error,
-                                      ),
-                                      const SizedBox(
-                                        width: DesignTokens.spacingSm,
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          context.t.servers.scanFailed,
-                                          style: AppTextRoles.of(
-                                            context,
-                                          ).rowSupporting,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  validator: validateAddress,
+                                  onChanged: (_) => updateServer(),
                                 ),
                               ],
                             ],
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              SectionHeading(context.t.servers.title),
-              SectionSurface(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(DesignTokens.spacingSm),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (mode.value == _AddMode.manual) ...[
-                          DropdownButtonFormField<BooruEngine>(
-                            decoration: flatFieldDecoration(
-                              context,
-                              label: context.t.servers.engineType,
-                            ),
-                            items: booruEngines.map((engine) {
-                              return DropdownMenuItem(
-                                value: engine,
-                                child: Text(engine.name),
-                              );
-                            }).toList(),
-                            onChanged: (engine) {
-                              selectedEngine.value = engine;
-                              updateServer();
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return context.t.servers.engineRequired;
-                              }
-                              return null;
-                            },
                           ),
-                          const SizedBox(height: DesignTokens.spacingSm),
-                        ],
-                        TextFormField(
-                          controller: profileName,
-                          enableIMEPersonalizedLearning: !imeIncognito,
-                          decoration: flatFieldDecoration(
-                            context,
-                            label: context.t.servers.profileName,
-                            hint: context.t.servers.profileNameHint,
-                          ),
-                          validator: validateName,
-                          onChanged: (_) {
-                            resetScan();
-                            updateServer();
-                          },
                         ),
-                        const SizedBox(height: DesignTokens.spacingSm),
-                        TextFormField(
-                          controller: siteUrl,
-                          enableIMEPersonalizedLearning: !imeIncognito,
-                          decoration: flatFieldDecoration(
-                            context,
-                            label: context.t.servers.homepage,
-                            hint: context.t.servers.homepageHint,
-                          ),
-                          validator: validateAddress,
-                          onChanged: (_) {
-                            resetScan();
-                            updateServer();
-                          },
-                        ),
-                        const SizedBox(height: DesignTokens.spacingSm),
-                        CheckboxListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: DesignTokens.spacingCardInset,
-                          ),
-                          value: useApiAddr.value,
-                          title: Text(context.t.servers.useCustomApi),
-                          subtitle: RowSubtitle(
-                            Text(context.t.servers.useCustomApiDesc),
-                          ),
-                          onChanged: (isChecked) {
-                            if (isChecked != null) {
-                              useApiAddr.value = isChecked;
-                              updateServer();
-                            }
-                          },
-                        ),
-                        if (useApiAddr.value) ...[
-                          const SizedBox(height: DesignTokens.spacingSm),
-                          TextFormField(
-                            controller: apiAddr,
-                            enableIMEPersonalizedLearning: !imeIncognito,
-                            decoration: flatFieldDecoration(
-                              context,
-                              label: context.t.servers.apiAddr,
-                              hint: context.t.servers.apiAddrHint,
-                            ),
-                            validator: validateAddress,
-                            onChanged: (_) => updateServer(),
-                          ),
-                        ],
                       ],
                     ),
-                  ),
-                ],
-              ),
-              SectionHeading(context.t.servers.credentials.title),
-              SectionSurface(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(DesignTokens.spacingSm),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    SectionHeading(context.t.servers.credentials.title),
+                    SectionSurface(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: DesignTokens.spacingCardInset,
-                            vertical: DesignTokens.spacingXs,
+                          padding: const EdgeInsets.all(DesignTokens.spacingSm),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: DesignTokens.spacingCardInset,
+                                  vertical: DesignTokens.spacingXs,
+                                ),
+                                child: Text(
+                                  context.t.servers.credentials.desc,
+                                  style: AppTextRoles.of(context).rowSupporting,
+                                ),
+                              ),
+                              const SizedBox(height: DesignTokens.spacingSm),
+                              TextFormField(
+                                controller: login,
+                                enableIMEPersonalizedLearning: !imeIncognito,
+                                decoration: flatFieldDecoration(
+                                  context,
+                                  label: context.t.servers.credentials.login,
+                                ),
+                                onChanged: (_) {
+                                  resetScan();
+                                  updateServer();
+                                },
+                              ),
+                              const SizedBox(height: DesignTokens.spacingSm),
+                              TextFormField(
+                                controller: apiKey,
+                                enableIMEPersonalizedLearning: !imeIncognito,
+                                obscureText: true,
+                                decoration: flatFieldDecoration(
+                                  context,
+                                  label: context.t.servers.credentials.apiKey,
+                                ),
+                                onChanged: (_) {
+                                  resetScan();
+                                  updateServer();
+                                },
+                              ),
+                            ],
                           ),
-                          child: Text(
-                            context.t.servers.credentials.desc,
-                            style: AppTextRoles.of(context).rowSupporting,
-                          ),
-                        ),
-                        const SizedBox(height: DesignTokens.spacingSm),
-                        TextFormField(
-                          controller: login,
-                          enableIMEPersonalizedLearning: !imeIncognito,
-                          decoration: flatFieldDecoration(
-                            context,
-                            label: context.t.servers.credentials.login,
-                          ),
-                          onChanged: (_) {
-                            resetScan();
-                            updateServer();
-                          },
-                        ),
-                        const SizedBox(height: DesignTokens.spacingSm),
-                        TextFormField(
-                          controller: apiKey,
-                          enableIMEPersonalizedLearning: !imeIncognito,
-                          obscureText: true,
-                          decoration: flatFieldDecoration(
-                            context,
-                            label: context.t.servers.credentials.apiKey,
-                          ),
-                          onChanged: (_) {
-                            resetScan();
-                            updateServer();
-                          },
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: DesignTokens.spacingMd,
+                    const SizedBox(height: DesignTokens.spacingMd),
+                  ],
                 ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(DesignTokens.spacingMd),
+              child: SizedBox(
+                width: double.infinity,
                 child: FilledButton(
                   onPressed: mode.value == _AddMode.manual
                       ? () {
@@ -644,8 +676,8 @@ class ServerAddPage extends HookConsumerWidget {
                   child: Text(context.t.servers.add),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -655,8 +687,7 @@ class ServerAddPage extends HookConsumerWidget {
 /// The scanner's running log, in a box of its own.
 ///
 /// The box keeps its height while the scan runs and the lines scroll inside
-/// it: the page under it must not move, because the Add button sits below the
-/// log and the reader is aiming for it.
+/// it, so the form below stays still instead of jumping with every line.
 class _ScanLog extends StatefulWidget {
   const _ScanLog({required this.scanner});
 
