@@ -1,52 +1,31 @@
-## 2.0.24
-* **Feat**: sign the About page with the same brand lockup as the drawer and group its rows into the shared section blocks
-* **Fix**: lift the selection action bar onto the floating rung, so it casts the same shadow as the controls that share its band
-* **Fix**: read empty and error notices as section blocks — container tone, hairline, no shadow — instead of cards off both vocabularies
-* **Fix**: line up the update percentage and the selection count with tabular figures, and set the changelog's per-version heading at the title size
-* **Refactor**: own the flat button look in the theme instead of repeating it per widget
-* **Feat**: set the app in Geist, bundled with four weights, on a single type scale, so headings tighten, labels open up and every row reads the same size across settings, sheets, the drawer and the server forms
-* **Feat**: give the app a four-rung elevation ladder — a block takes the container tone, chrome that floats over the content takes a shadow, and menus, sheets and dialogs lift in turn
-* **Feat**: draw the first page of a search as a grid of shimmering tiles at the shape it will take, instead of a spinner on an empty screen
-* **Feat**: open every one-value choice in the same bottom sheet, so picking a rating, a download filter and a server parser no longer look like three different apps
-* **Feat**: give the tags blocker field a label and a visible submit control, so a typed tag is no longer lost by tapping away
-* **Fix**: paint the selection ring over a thumbnail instead of inside it, which had been shrinking the image every time a post was selected
-* **Fix**: drop the sixth on-image overlay, which collided with the tag and dimension labels and repeated what the tile shape already said
-* **Fix**: keep the post details sheet's bottom edge in step with the panel above it, and stop the sample row reporting "unknown size" while it loads
-* **Fix**: announce the post image to screen readers, name the parser picker as a control and give it a 48 dp target, and translate the post position in the viewer
-* **Fix**: keep the last search suggestion above the measured search bar, and stop a failed license read from spinning forever
-* **Feat**: rebuild every bottom sheet on one shell - a header named after what it is about with a close control, one job per panel, and rows ruled by a single hairline
-* **Feat**: split the post details sheet into Details, Tags and Links panels, with a tab strip that shows how much sits behind each one
-* **Fix**: keep the post details sheet readable over a bright image, and right-align its values so scores and dimensions line up
-* **Fix**: run the drawer rows one step denser so more destinations fit, while the wordmark header keeps its size
-* **Fix**: keep every form label above its field instead of letting it sit where the value goes, and move the examples into the hint, so an empty field no longer reads as a filled one or as a second title
-* **Fix**: translate the search history empty state and the backup frequency labels, which still shipped English text inside translated screens
-* **Fix**: raise the contrast of field hints, helper lines and section counts in the light theme, where the muted role at 60-70% measured below the 4.5:1 floor
-* **Fix**: give every row the same 8 dp gap between its title and subtitle, so the settings, backup, gesture, language and license pages stop disagreeing
-* **Fix**: drop the post details labels to the small label size above their values, so the sheet reads as a hierarchy instead of two equal lines
-* **Fix**: keep the loading pill, the license package name and the update percentage inside their boxes when the system font is enlarged
-* **Fix**: name the downloads empty state for a filter that matched nothing instead of claiming the library is empty, and rebuild the tags blocker page on the shared section blocks
-* **Fix**: rebuild Gesture Settings on the shared settings row system, so the swipe threshold label no longer breaks mid-word and the page stops using a second visual language
-* **Fix**: show which language, color palette, and swipe mode are active
-* **Fix**: keep the midnight app bar pure black when content scrolls under it
-* **Refactor**: share one section and slider widget across the settings pages, and mark section labels as headings for screen readers
-* **Fix**: show an indeterminate spinner in the post viewer while the download size is unknown, instead of a pill stuck at 0%
-* **Fix**: give the bottom search bar 48 dp touch targets and accessible names for its icon buttons, so TalkBack can announce what they do
-* **Fix**: paint the bottom bar as an opaque surface so the search hint no longer sits on top of scrolling thumbnails
-* **Fix**: hide the search bar while posts are selected, so the selection action bar no longer covers it
-* **Fix**: size the pagination pill and the grid's bottom padding from the bar's measured height, so they stay clear of it at large font sizes
+## 3.0.0
 
+Version 3 is the pass that gave the app one visual language, moved the home screen onto the drawer's own vocabulary, and made the caches that keep a booru usable either work or say why they cannot.
 
-* **Feat**: restructure the home drawer into a brand header, server cards, and Library/Preferences sections with live count badges and a pinned version/update footer
-* **Feat**: add Scan and Manual modes to the Add Server page; Scan auto-detects the engine from the homepage while Manual keeps the engine picker
-* **Fix**: surface video playback failures with a manual retry button instead of failing silently
-* **Fix**: return an empty result instead of throwing when a search response has no posts, so empty XML pages no longer show an error state
-* **Feat**: timeline cards now show the media type, top tag, dimensions and score as compact overlays
-* **Feat**: long-press on a timeline card opens a quick-action menu (select, favorite, download, share, source) — a floating glass card with a blurred backdrop and a spring entrance, instead of selecting immediately
-* **Feat**: tint the timeline tag chip by its category (artist, copyright, character, general) and give it a translucent pill so the image shows through instead of the solid blue chip
-* **Fix**: scale the timeline card overlays with the tile width so the tag no longer disappears in 3- and 4-column grids
-* **Fix**: point Rule34 at its own API host, which the site now requires (user ID and API key needed), so posts and tag suggestions load again
-* **Fix**: stream videos instead of downloading the whole file before playback, so they start right away and large ones no longer stall
-* **Fix**: skip the `*` wildcard when the query is empty, which made Gelbooru scan its entire tag table (15s) before answering
+**Highlights since 2.0.23:**
+
+* **Design system**: set the app in Geist on a single type scale with tabular figures for counts, and a four-rung elevation ladder — a block takes the container tone, chrome that floats takes a shadow, and menus, sheets and dialogs lift in turn
+* **Palettes**: a preset now recolours the whole app from its own surface ramp, adds Tokyo Night and Ayu, keeps the warm paper palettes dark-only, and holds midnight surfaces pure black under a hairline instead of a shadow
+* **Surfaces**: one section block for the drawer, settings, server pages and About — signed with the same lockup as the drawer — and for every empty or error notice, so a section reads as one block instead of a stack of cards
+* **Messages**: every message is now one floating toast above the search bar, kept clear of the bar's measured height instead of a strip at the screen edge, and dialogs and primary buttons answer the same way everywhere
+* **Home**: the drawer is rebuilt as a brand header, server cards and Library/Preferences sections with live counts and a pinned version footer, its rows run one step denser, it opens from the search bar's leading chip and stays swipeable on gesture-nav phones, the long-press is taught once, and a new install opens on the preset list
+* **Search**: the bar floats as a glass surface over the grid while the bar itself stays opaque, keeps the last suggestion above its measured height, reloads the feed when the rating changes, starts a new query at the top, and draws the first page as a grid of shimmering tiles instead of a spinner
+* **Suggestions and history**: ranked by match position, the bar keeps its focus and ripples while the list changes, clearing the history asks first, and the repeated query is kept out of it
+* **Timeline**: cards carry score, rating, media type, top tag and dimensions as overlays that scale with the tile width, the tag pill takes its category's colour, a long-press opens a glass quick-action menu where the finger pressed, and the selection ring paints over the image instead of shrinking it
+* **Pagination**: pages replace the endless scroll, the controls stop at the end of the result set, and the pill that moves between them is sized from the bar so it stays clear of it at large font sizes
+* **Viewer**: swipe and pinch hand the arena over cleanly, a zoom resets before back leaves the viewer, videos stream instead of downloading first and offer a retry when playback fails, and the download size reads as an indeterminate pill until it is known
+* **Sheets**: every sheet shares one shell, the post details sheet opens at three quarters as a glass panel, splits into Details, Tags and Links that swipe into each other, stays readable over a bright image with its values right-aligned, and one-value choices — rating, download filter, parser — open in the same sheet
+* **Forms**: labels sit above their fields with the examples in the hint, the tags blocker gets a label and a submit control, save stays pinned under the form, and a failed save names the field it could not accept
+* **Settings**: the pages share one section and slider widget, show which language, palette and swipe mode are active, and announce their section labels as headings
+* **Servers**: the add-server page offers Scan and Manual modes, the scanner sends the credentials it needs and bounds each probe, requests follow the configured API address, Rule34 points at its own API host, Safebooru is back on its own autocomplete endpoint, removing a server asks first, a duplicate name is refused, and a stale active id is repaired
+* **Cloudflare**: a challenged server is cleared once in a web view whose cookie and user agent are then reused for the API and the image CDN
+* **Downloads**: progress draws as a bar, deleting asks first, clearing leaves the files alone, a cancelled task keeps its row so it can be retried, and a filter that matched nothing is named instead of called an empty library
+* **Batch selection**: a batch saves as individual files in the Downloads folder, its progress shows on the home screen, and every post in it can be favourited
+* **Data**: the server and settings boxes are encrypted, the server box migrates without losing the old copy, backups can take a passphrase, a backup now carries the server credentials it used to drop, restore reads the picked archive and only validated data, and the Telegram backup actually sends and records when it last ran
+* **Translations**: the search history, backup frequency, error messages and server reset copy that still shipped English now follow the app language
+* **Reliability**: a search response with no posts reads as an empty result while an unreadable one still says so, a media URL is no longer double-encoded on its way to the request, a box or a bootstrap step that fails no longer strands the app at launch, the updater installs the APK it downloaded, and Android's predictive back is on
+* **Performance**: thumbnails and placeholders decode at the size they are drawn, the session keeps one HTTP client, and per-item work left the fetch, scroll and progress paths
+* **Accessibility**: controls carry names — including the viewer's playback controls — every target is at least 48 dp, timeline cards fold their overlays into one label, and the app honours the platform's reduce-motion setting
 
 ## 2.0.23
 
