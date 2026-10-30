@@ -122,6 +122,30 @@ class PageState extends _$PageState {
     return next.limit != shown.limit || next.searchRating != shown.searchRating;
   }
 
+  /// [data] labeled with the page the arrows act on.
+  ///
+  /// A restart moves the landed page back to the first one before its request
+  /// lands. When that request fails, the data still carries the label of the
+  /// page that was on screen, so the page number and the enabled arrows would
+  /// point at positions the restarted window does not have.
+  PageData _alignPageLabel(PageData data) {
+    if (_page != 0) return data;
+    if (data.pageIndex == 1 && !data.hasPrev) return data;
+    return data.copyWith(pageIndex: 1, hasPrev: false);
+  }
+
+  /// Reports a query that contains a tag blocked on [server], and whether it
+  /// did.
+  ///
+  /// The query can be blocked after it was loaded, so every way into a fetch
+  /// runs this check: a page of a blocked query is still a page of that query.
+  bool _refuseBlockedQuery(Server server) {
+    final query = state.data.option.query;
+    if (!query.toWordList().any(_blockedTagsFor(server).contains)) return false;
+    state = FetchResult.error(state.data, error: BooruError.tagsBlocked);
+    return true;
+  }
+
   Future<void> update(PageOption Function(PageOption) updater) async {
     // A change queued during a fetch has not reached [state] yet; building the
     // next one from the committed option would silently drop it.
@@ -153,19 +177,16 @@ class PageState extends _$PageState {
       return;
     }
 
+    final server = _server;
+    if (_refuseBlockedQuery(server)) return;
+
     final retry = _retryTarget;
     if (retry != null) {
       await _navigateTo(retry);
       return;
     }
 
-    final server = _server;
     final query = state.data.option.query;
-    if (query.toWordList().any(blockedTags.contains)) {
-      state = FetchResult.error(state.data, error: BooruError.tagsBlocked);
-      return;
-    }
-
     _fetching = true;
     try {
       if (query.isNotEmpty) {
@@ -203,7 +224,10 @@ class PageState extends _$PageState {
       if (result == null) {
         // No displayable posts on the first page: keep the existing
         // empty-result error behavior.
-        state = FetchResult.error(state.data, error: BooruError.empty);
+        state = FetchResult.error(
+          _alignPageLabel(state.data),
+          error: BooruError.empty,
+        );
         return;
       }
 
@@ -222,7 +246,11 @@ class PageState extends _$PageState {
       );
     } catch (err, stack) {
       if (!ref.mounted) return;
-      state = FetchResult.error(state.data, error: err, stackTrace: stack);
+      state = FetchResult.error(
+        _alignPageLabel(state.data),
+        error: err,
+        stackTrace: stack,
+      );
     } finally {
       _fetching = false;
       _drainPending();
@@ -264,6 +292,8 @@ class PageState extends _$PageState {
     _retryTarget = null;
 
     final server = _server;
+    if (_refuseBlockedQuery(server)) return;
+
     final current = state.data;
     final settings = ref.read(serverSettingStateProvider);
     final option = current.option.copyWith(
@@ -301,13 +331,15 @@ class PageState extends _$PageState {
         // says nothing about the neighbour still on offer, and disabling that
         // arrow would strand the reader on this page.
         state = FetchResult.data(
-          current.copyWith(
-            hasNext: target == _page + 1 ? false : current.hasNext,
-            // A window reset already moved the landed page to the first one,
-            // so there is nothing before it either.
-            hasPrev: target == _page - 1 || _page == 0
-                ? false
-                : current.hasPrev,
+          _alignPageLabel(
+            current.copyWith(
+              hasNext: target == _page + 1 ? false : current.hasNext,
+              // A window reset already moved the landed page to the first one,
+              // so there is nothing before it either.
+              hasPrev: target == _page - 1 || _page == 0
+                  ? false
+                  : current.hasPrev,
+            ),
           ),
         );
         return;
@@ -327,7 +359,7 @@ class PageState extends _$PageState {
       if (!ref.mounted) return;
       _retryTarget = target;
       state = FetchResult.error(
-        current.copyWith(option: option),
+        _alignPageLabel(current.copyWith(option: option)),
         error: err,
         stackTrace: stack,
       );

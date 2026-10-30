@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
@@ -132,7 +133,8 @@ class _UnreadableServerState extends ServerState {
 }
 
 class _FakeTagsBlocker extends TagsBlockerState {
-  _FakeTagsBlocker(this.blocked, {this.serverId = ''});
+  _FakeTagsBlocker(Iterable<String> blocked, {this.serverId = ''})
+    : blocked = [...blocked];
 
   final List<String> blocked;
 
@@ -146,6 +148,12 @@ class _FakeTagsBlocker extends TagsBlockerState {
       for (var i = 0; i < blocked.length; i++)
         i: BooruTag(serverId: serverId, name: blocked[i]),
     };
+  }
+
+  /// Adds [tags] to the blocker set the way the blocker screen does.
+  void block(Iterable<String> tags) {
+    blocked.addAll(tags);
+    state = build();
   }
 }
 
@@ -162,6 +170,7 @@ ProviderContainer _container(
   _Window? window,
   List<String> blocked = const [],
   String blockerServerId = '',
+  TagsBlockerState? blocker,
   ServerState? servers,
 }) {
   final settings = window ?? _Window();
@@ -172,7 +181,7 @@ ProviderContainer _container(
         () => _FakeServerSetting(settings),
       ),
       tagsBlockerStateProvider.overrideWith(
-        () => _FakeTagsBlocker(blocked, serverId: blockerServerId),
+        () => blocker ?? _FakeTagsBlocker(blocked, serverId: blockerServerId),
       ),
       searchHistoryStateProvider.overrideWith(_FakeSearchHistory.new),
       pageStateProvider.overrideWith(
@@ -242,6 +251,65 @@ void main() {
     final requestedBefore = repo.requested.length;
     await notifier.prevPage();
     expect(repo.requested.length, requestedBefore);
+  });
+
+  test('pagination refuses a query blocked after it loaded', () async {
+    // The query passed the guard when it was loaded. Blocking one of its tags
+    // afterwards has to stop the next page as well: it is still a page of the
+    // same blocked query.
+    final repo = _FakeRepo({
+      for (var i = 0; i < 4; i++) i: ParsedPage(posts: [_post(i)], rawCount: 1),
+    });
+    final blocker = _FakeTagsBlocker(const []);
+    final container = _container(repo, blocker: blocker);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.update((option) => option.copyWith(query: 'ok'));
+    expect(container.read(pageStateProvider).data.pageIndex, 1);
+
+    blocker.block(['ok']);
+    repo.requested.clear();
+    await notifier.nextPage();
+
+    final refused = container.read(pageStateProvider);
+    expect(refused, isA<ErrorFetchResult>());
+    expect(switch (refused) {
+      ErrorFetchResult(:final error) => error,
+      _ => null,
+    }, BooruError.tagsBlocked);
+    expect(repo.requested, isEmpty);
+  });
+
+  test('a retry refuses a query blocked after it loaded', () async {
+    // A failed page leaves a retry aimed at the page the user asked for. That
+    // retry is a way into a fetch too, so it runs the same guard.
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+      1: ParsedPage(posts: [_post(2)], rawCount: 1),
+    });
+    final blocker = _FakeTagsBlocker(const []);
+    final container = _container(repo, blocker: blocker);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.update((option) => option.copyWith(query: 'ok'));
+    repo.failing.add(1);
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider), isA<ErrorFetchResult>());
+
+    blocker.block(['ok']);
+    repo.requested.clear();
+    repo.failing.clear();
+    await notifier.load();
+
+    final refused = container.read(pageStateProvider);
+    expect(refused, isA<ErrorFetchResult>());
+    expect(switch (refused) {
+      ErrorFetchResult(:final error) => error,
+      _ => null,
+    }, BooruError.tagsBlocked);
+    expect(repo.requested, isEmpty);
   });
 
   test('a failed jump past the end keeps the next page on offer', () async {
@@ -435,6 +503,44 @@ void main() {
     repo.requested.clear();
     await notifier.nextPage();
 
+    expect(repo.requested, [1]);
+    expect(container.read(pageStateProvider).data.pageIndex, 2);
+  });
+
+  test('a failed window reset names the first page of the new window', () async {
+    // The reset moves the landed page back before its request fails. The error
+    // card has to name that page: keeping the old number and an enabled back
+    // arrow would offer a step the restarted window cannot take.
+    final repo = _FakeRepo({
+      for (var i = 0; i < 4; i++) i: ParsedPage(posts: [_post(i)], rawCount: 1),
+    });
+    final window = _Window();
+    final container = _container(repo, window: window);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.nextPage();
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider).data.pageIndex, 3);
+
+    await container
+        .read(serverSettingStateProvider.notifier)
+        .setRating(BooruRating.explicit);
+    repo.failing.add(0);
+    await notifier.load();
+
+    final failed = container.read(pageStateProvider);
+    expect(failed, isA<ErrorFetchResult>());
+    expect(failed.data.pageIndex, 1);
+    expect(failed.data.hasPrev, isFalse);
+
+    repo.requested.clear();
+    await notifier.prevPage();
+    expect(repo.requested, isEmpty);
+
+    repo.failing.clear();
+    await notifier.nextPage();
     expect(repo.requested, [1]);
     expect(container.read(pageStateProvider).data.pageIndex, 2);
   });
