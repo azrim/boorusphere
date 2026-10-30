@@ -79,3 +79,9 @@ CODEBUDDY.md
 
 # Impeccable critique snapshots (repo-local cache)
 .impeccable/
+
+# Qoder agent workspace (installed skills, session state)
+.qoder/
+
+# Local build output (signed APK/AAB) — published by the release workflow
+dist/
