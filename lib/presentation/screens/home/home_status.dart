@@ -108,6 +108,10 @@ class _ErrorStatus extends ConsumerWidget {
     final server = ref.watch(serverStateProvider).getById(session.serverId);
     final safeRating = data.option.searchRating == BooruRating.safe;
     final challenged = isCloudflareChallenge(error);
+    // The session server is gone: the card carries no error of its own, and
+    // the only way out is a different server. Retrying or changing the rating
+    // cannot make this one resolve.
+    final missingServer = error == null;
 
     return Center(
       child: NoticeCard(
@@ -137,7 +141,12 @@ class _ErrorStatus extends ConsumerWidget {
                 // One filled action: the fix the page is asking for. Every
                 // other way out is a text button, so the notice never shows
                 // two controls of the same weight.
-                if (safeRating)
+                if (missingServer)
+                  FilledButton(
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                    child: Text(context.t.pageStatus.changeServer),
+                  )
+                else if (safeRating)
                   FilledButton(
                     onPressed: () async {
                       await ref
@@ -159,20 +168,21 @@ class _ErrorStatus extends ConsumerWidget {
                     onPressed: ref.read(pageStateProvider.notifier).load,
                     child: Text(context.t.retry),
                   ),
-                if (safeRating)
+                if (!missingServer && safeRating)
                   TextButton(
                     onPressed: ref.read(pageStateProvider.notifier).load,
                     child: Text(context.t.retry),
                   ),
-                if (safeRating && challenged)
+                if (!missingServer && safeRating && challenged)
                   TextButton(
                     onPressed: () => _verify(context, ref, server),
                     child: Text(context.t.pageStatus.verify),
                   ),
-                TextButton(
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  child: Text(context.t.pageStatus.changeServer),
-                ),
+                if (!missingServer)
+                  TextButton(
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                    child: Text(context.t.pageStatus.changeServer),
+                  ),
               ],
             ),
           ],
