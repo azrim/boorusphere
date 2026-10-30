@@ -77,19 +77,43 @@ class PageState extends _$PageState {
   /// The error is the generic one on purpose: the timeline must not look idle
   /// while every load and navigation quietly does nothing, and the status card
   /// that shows it also carries the "Change server" action that gets out.
+  ///
+  /// Resolving the server reads storage, so a failure there is reported the
+  /// same way as a missing server: an uncaught throw here would leave the feed
+  /// at `idle`, which renders no status card at all.
   bool _hasServer() {
-    if (_server != Server.empty) return true;
+    final Server server;
+    try {
+      server = _server;
+    } catch (err, stack) {
+      if (!ref.mounted) return false;
+      state = FetchResult.error(state.data, error: err, stackTrace: stack);
+      return false;
+    }
+    if (server != Server.empty) return true;
     state = FetchResult.error(state.data);
     return false;
   }
 
-  Iterable<String> get blockedTags {
+  Iterable<String> get blockedTags => _blockedTagsFor(_server);
+
+  /// The blockers that apply to [server]: a tag blocked on one booru is still
+  /// a usable tag on the others.
+  Iterable<String> _blockedTagsFor(Server server) {
     return ref
         .read(tagsBlockerStateProvider)
         .values
-        .where((it) => it.serverId.isEmpty || it.serverId == _server.id)
+        .where((it) => it.serverId.isEmpty || it.serverId == server.id)
         .map((it) => it.name)
         .toSet(); // Convert to Set for O(1) lookup performance
+  }
+
+  /// Whether the result window moved between [shown] (the option the displayed
+  /// posts were fetched with) and [next]. A different page size or rating
+  /// re-indexes the same query, so the landed page no longer points at the
+  /// posts the reader is looking at and every walk starts over from page one.
+  static bool _windowChanged(PageOption next, PageOption shown) {
+    return next.limit != shown.limit || next.searchRating != shown.searchRating;
   }
 
   Future<void> update(PageOption Function(PageOption) updater) async {
@@ -108,7 +132,8 @@ class PageState extends _$PageState {
   /// Loads (or reloads) the page currently being displayed.
   ///
   /// Used for the first load, retry and pull-to-refresh. An option marked with
-  /// `clear` (a new query) restarts from the first page.
+  /// `clear` (a new query) restarts from the first page, and so does a result
+  /// window that moved under the posts on screen (another page size or rating).
   Future<void> load() async {
     // A caller can hand this over and the page can be gone by the time it
     // runs (a rating picked while the timeline closes).
@@ -122,6 +147,7 @@ class PageState extends _$PageState {
       return;
     }
 
+    final server = _server;
     final query = state.data.option.query;
     if (query.toWordList().any(blockedTags.contains)) {
       state = FetchResult.error(state.data, error: BooruError.tagsBlocked);
@@ -131,30 +157,37 @@ class PageState extends _$PageState {
     _fetching = true;
     try {
       if (query.isNotEmpty) {
-        await ref
-            .read(searchHistoryStateProvider.notifier)
-            .save(query, _server);
+        await ref.read(searchHistoryStateProvider.notifier).save(query, server);
       }
 
       final settings = ref.read(serverSettingStateProvider);
-      final previousLimit = state.data.option.limit;
-      final option = state.data.option.copyWith(
+      final shown = state.data.option;
+      final option = shown.copyWith(
         limit: settings.postLimit,
         searchRating: settings.searchRating,
       );
 
-      // A new query and a different page size both restart the result set:
-      // keeping the old index would point at a window that has shifted.
-      if (option.clear || option.limit != previousLimit) {
+      // A new query restarts the result set, and a window that moved under the
+      // posts on screen re-indexes it: either way the landed page must go back
+      // to the first one, or the reader is pointed at other posts.
+      if (option.clear || _windowChanged(option, shown)) {
         _page = 0;
       }
 
       state = FetchResult.loading(state.data.copyWith(option: option));
 
-      final result = await _fetchPage(option, _page);
+      var result = await _fetchPage(option, server, _page);
       // The page can be popped while the request is on the wire; the element
       // is gone then and every further write would throw.
       if (!ref.mounted) return;
+      if (result == null && _page > 0) {
+        // An empty answer for a deep page only proves that page is past the
+        // end. The window can have shifted under a stale index, so ask for the
+        // first page before telling the reader the query has no results.
+        _page = 0;
+        result = await _fetchPage(option, server, 0);
+        if (!ref.mounted) return;
+      }
       if (result == null) {
         // No displayable posts on the first page: keep the existing
         // empty-result error behavior.
@@ -186,6 +219,7 @@ class PageState extends _$PageState {
 
   /// Loads the next page, replacing the currently displayed posts.
   Future<void> nextPage() async {
+    if (!ref.mounted) return;
     if (_fetching) return;
     if (!state.data.hasNext) return;
     if (state.data.posts.isEmpty) return;
@@ -194,6 +228,7 @@ class PageState extends _$PageState {
 
   /// Loads the previous page, replacing the currently displayed posts.
   Future<void> prevPage() async {
+    if (!ref.mounted) return;
     if (_fetching) return;
     if (!state.data.hasPrev) return;
     if (_page <= 0) return;
@@ -203,6 +238,7 @@ class PageState extends _$PageState {
 
   /// Loads [page] (1-based), replacing the currently displayed posts.
   Future<void> goToPage(int page) async {
+    if (!ref.mounted) return;
     if (_fetching) return;
     if (state.data.posts.isEmpty) return;
     final target = page - 1;
@@ -214,19 +250,22 @@ class PageState extends _$PageState {
     if (!_hasServer()) return;
     _retryTarget = null;
 
+    final server = _server;
     final current = state.data;
     final settings = ref.read(serverSettingStateProvider);
     final option = current.option.copyWith(
       limit: settings.postLimit,
       searchRating: settings.searchRating,
     );
-    // The result window changed while this page was on screen (a different
-    // page size or rating), so the index no longer maps to the same posts;
-    // reload from the first page instead of showing a shifted window.
-    final windowChanged =
-        option.limit != current.option.limit ||
-        option.searchRating != current.option.searchRating;
-    if (windowChanged) target = 0;
+    // The result window changed while this page was on screen, so the index no
+    // longer maps to the same posts. Move the landed page back to the first
+    // one as well: leaving it where it was would aim the next step at the old
+    // window when this reset fails to land.
+    final windowChanged = _windowChanged(option, current.option);
+    if (windowChanged) {
+      target = 0;
+      _page = 0;
+    }
     final direction = windowChanged || target >= _page ? 1 : -1;
 
     _fetching = true;
@@ -235,7 +274,12 @@ class PageState extends _$PageState {
       // flight so the grid doesn't flash empty.
       state = FetchResult.loading(current.copyWith(option: option));
 
-      final result = await _fetchPage(option, target, direction: direction);
+      final result = await _fetchPage(
+        option,
+        server,
+        target,
+        direction: direction,
+      );
       if (!ref.mounted) return;
       if (result == null) {
         // The navigation target has no displayable posts: keep the displayed
@@ -246,7 +290,11 @@ class PageState extends _$PageState {
         state = FetchResult.data(
           current.copyWith(
             hasNext: target == _page + 1 ? false : current.hasNext,
-            hasPrev: target == _page - 1 ? false : current.hasPrev,
+            // A window reset already moved the landed page to the first one,
+            // so there is nothing before it either.
+            hasPrev: target == _page - 1 || _page == 0
+                ? false
+                : current.hasPrev,
           ),
         );
         return;
@@ -290,18 +338,23 @@ class PageState extends _$PageState {
     unawaited(load());
   }
 
-  /// Fetches [startIndex] (0-based), skipping pages that yield no displayable
-  /// posts (up to [_maxSkippedPages]) in [direction].
+  /// Fetches [startIndex] (0-based) from [server], skipping pages that yield
+  /// no displayable posts (up to [_maxSkippedPages]) in [direction].
   ///
   /// Returns `null` when the response is empty (a literal empty response is
   /// terminal — it means the end of the results) or when every skipped page
   /// was fully blocked.
   Future<_PageFetch?> _fetchPage(
     PageOption option,
+    Server server,
     int startIndex, {
     int direction = 1,
   }) async {
-    final repo = ref.read(imageboardRepoProvider(_server));
+    final repo = ref.read(imageboardRepoProvider(server));
+    // One server, one request, one blocker set: both are resolved before the
+    // first await, so a session that loses its server mid-loop cannot answer
+    // with posts the blockers of the server that was actually asked exclude.
+    final blocked = _blockedTagsFor(server);
     var index = startIndex;
     var skips = 0;
 
@@ -310,9 +363,6 @@ class PageState extends _$PageState {
       // A literal empty response is terminal: the server has no more entries.
       if (res.rawCount == 0) return null;
 
-      // One blocked set per fetch: reading the getter inside the predicate
-      // rebuilt it for every post on the page.
-      final blocked = blockedTags;
       final posts = res
           .where((it) => !it.allTags.any(blocked.contains))
           .toList();

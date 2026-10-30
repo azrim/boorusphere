@@ -8,6 +8,7 @@ import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/imageboards_repo.dart';
+import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/presentation/provider/search_history_state.dart';
@@ -50,6 +51,10 @@ class _FakeRepo implements ImageboardRepo {
   /// Page indexes whose fetch fails.
   final failing = <int>{};
 
+  /// When set, pages at and beyond this index answer as if the server had no
+  /// more entries: a result window that shrank under the reader.
+  int? emptyFrom;
+
   @override
   Server get server => _server;
 
@@ -62,39 +67,84 @@ class _FakeRepo implements ImageboardRepo {
     final pending = gate;
     if (pending != null) await pending.future;
     if (failing.contains(index)) throw Exception('page $index failed');
+    final firstMissing = emptyFrom;
+    if (firstMissing != null && index >= firstMissing) {
+      return const ParsedPage.empty();
+    }
     return pages[index] ?? const ParsedPage.empty();
   }
 }
 
 class _FakeServerState extends ServerState {
+  Iterable<Server> list = const [_server];
+
   @override
-  Iterable<Server> build() => [_server];
+  Iterable<Server> build() => list;
+
+  /// Mirrors [ServerState.remove]: the drawer drops a server and every lookup
+  /// has to answer from the new list.
+  void replace(Iterable<Server> servers) {
+    list = servers;
+    state = servers;
+  }
+}
+
+/// The result window the settings page writes and the timeline reads on every
+/// fetch: a page index only means something together with these two.
+class _Window {
+  _Window({this.limit = 4});
+
+  int limit;
+  BooruRating rating = BooruRating.safe;
 }
 
 class _FakeServerSetting extends ServerSettingState {
-  _FakeServerSetting(this.limit);
+  _FakeServerSetting(this.window);
 
-  final int limit;
+  final _Window window;
 
   @override
   ServerSetting build() {
     return ServerSetting(
       lastActiveId: _server.id,
-      postLimit: limit,
-      searchRating: BooruRating.safe,
+      postLimit: window.limit,
+      searchRating: window.rating,
     );
+  }
+
+  @override
+  Future<void> setPostLimit(int value) async {
+    window.limit = value;
+    state = state.copyWith(postLimit: value);
+  }
+
+  @override
+  Future<void> setRating(BooruRating value) async {
+    window.rating = value;
+    state = state.copyWith(searchRating: value);
   }
 }
 
+/// A server list that cannot be read at all: the storage behind it failed.
+class _UnreadableServerState extends ServerState {
+  @override
+  Iterable<Server> build() => throw Exception('server box unreadable');
+}
+
 class _FakeTagsBlocker extends TagsBlockerState {
-  _FakeTagsBlocker(this.blocked);
+  _FakeTagsBlocker(this.blocked, {this.serverId = ''});
 
   final List<String> blocked;
+
+  /// The server the blockers belong to; empty for tags blocked on every
+  /// booru.
+  final String serverId;
 
   @override
   Map<int, BooruTag> build() {
     return {
-      for (var i = 0; i < blocked.length; i++) i: BooruTag(name: blocked[i]),
+      for (var i = 0; i < blocked.length; i++)
+        i: BooruTag(serverId: serverId, name: blocked[i]),
     };
   }
 }
@@ -109,14 +159,21 @@ class _FakeSearchHistory extends SearchHistoryState {
 
 ProviderContainer _container(
   ImageboardRepo repo, {
-  int limit = 4,
+  _Window? window,
   List<String> blocked = const [],
+  String blockerServerId = '',
+  ServerState? servers,
 }) {
+  final settings = window ?? _Window();
   final container = ProviderContainer(
     overrides: [
-      serverStateProvider.overrideWith(_FakeServerState.new),
-      serverSettingStateProvider.overrideWith(() => _FakeServerSetting(limit)),
-      tagsBlockerStateProvider.overrideWith(() => _FakeTagsBlocker(blocked)),
+      serverStateProvider.overrideWith(() => servers ?? _FakeServerState()),
+      serverSettingStateProvider.overrideWith(
+        () => _FakeServerSetting(settings),
+      ),
+      tagsBlockerStateProvider.overrideWith(
+        () => _FakeTagsBlocker(blocked, serverId: blockerServerId),
+      ),
       searchHistoryStateProvider.overrideWith(_FakeSearchHistory.new),
       pageStateProvider.overrideWith(
         () => PageState(session: const SearchSession(serverId: 'S')),
@@ -136,7 +193,7 @@ void main() {
       for (var i = 0; i < 3; i++)
         i: ParsedPage(posts: [_post(i * 2), _post(i * 2 + 1)], rawCount: 2),
     });
-    final container = _container(repo, limit: 4);
+    final container = _container(repo, window: _Window(limit: 4));
     addTearDown(container.dispose);
     final notifier = container.read(pageStateProvider.notifier);
 
@@ -264,5 +321,130 @@ void main() {
     await pumpEventQueue();
 
     expect(container.read(pageStateProvider).data.option.query, 'cat');
+  });
+
+  test('a rating switch restarts the first page', () async {
+    // The rating is part of the result window: the same page index addresses
+    // other posts once the safe-only list is swapped for another one, so a
+    // reload must not hand back the page the old window landed on.
+    final repo = _FakeRepo({
+      for (var i = 0; i < 4; i++) i: ParsedPage(posts: [_post(i)], rawCount: 1),
+    });
+    final window = _Window();
+    final container = _container(repo, window: window);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.nextPage();
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider).data.pageIndex, 3);
+
+    await container
+        .read(serverSettingStateProvider.notifier)
+        .setRating(BooruRating.explicit);
+    repo.requested.clear();
+    await notifier.load();
+
+    expect(repo.requested, [0]);
+    expect(container.read(pageStateProvider).data.pageIndex, 1);
+  });
+
+  test('a deep page that came back empty asks the first page first', () async {
+    final repo = _FakeRepo({
+      for (var i = 0; i < 3; i++) i: ParsedPage(posts: [_post(i)], rawCount: 1),
+    });
+    final container = _container(repo);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.nextPage();
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider).data.pageIndex, 3);
+
+    // The window shrank under the reader: the landed page is past the end now,
+    // which says nothing about the query having no results at all.
+    repo.emptyFrom = 1;
+    repo.requested.clear();
+    await notifier.load();
+
+    expect(repo.requested, [2, 0]);
+    expect(container.read(pageStateProvider).data.pageIndex, 1);
+    expect(container.read(pageStateProvider).data.hasPrev, isFalse);
+  });
+
+  test('a failed window reset steps through the new window', () async {
+    final repo = _FakeRepo({
+      for (var i = 0; i < 4; i++) i: ParsedPage(posts: [_post(i)], rawCount: 1),
+    });
+    final window = _Window();
+    final container = _container(repo, window: window);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.nextPage();
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider).data.pageIndex, 3);
+
+    // The page size doubles, so the next step restarts from the first page of
+    // the new window. That reset now fails, but it already moved the landed
+    // page back: the step after it must ask for the page behind the first one,
+    // not for the old index in the new window.
+    await container.read(serverSettingStateProvider.notifier).setPostLimit(8);
+    repo.failing.add(0);
+    await notifier.nextPage();
+    expect(repo.requested, [0, 1, 2, 0]);
+
+    repo.failing.clear();
+    repo.requested.clear();
+    await notifier.nextPage();
+
+    expect(repo.requested, [1]);
+    expect(container.read(pageStateProvider).data.pageIndex, 2);
+  });
+
+  test('a server lost mid-fetch keeps its blockers', () async {
+    // Blockers are scoped to the booru the request went to. Resolving them
+    // again after every await would read the empty server the session lost and
+    // publish a post that the asked booru blocks.
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1, tag: 'blocked')], rawCount: 1),
+      1: ParsedPage(posts: [_post(2, tag: 'blocked')], rawCount: 1),
+    });
+    final servers = _FakeServerState();
+    final container = _container(
+      repo,
+      servers: servers,
+      blocked: ['blocked'],
+      blockerServerId: _server.id,
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    repo.gate = Completer<void>();
+    final loading = notifier.load();
+    servers.replace(const []);
+    repo.gate!.complete();
+    await loading;
+
+    expect(repo.requested, [0, 1, 2]);
+    expect(container.read(pageStateProvider).data.posts, isEmpty);
+  });
+
+  test('a server list that cannot be read reports an error', () async {
+    // Resolving the session server reads storage. Left uncaught, the throw
+    // escaped the load and the feed stayed `idle` — a state the timeline
+    // renders as nothing at all, with no retry to get out.
+    final repo = _FakeRepo({});
+    final container = _container(repo, servers: _UnreadableServerState());
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+
+    expect(container.read(pageStateProvider), isA<ErrorFetchResult>());
+    expect(repo.requested, isEmpty);
   });
 }

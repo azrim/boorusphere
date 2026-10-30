@@ -139,7 +139,7 @@ class BooruRepo implements ImageboardRepo {
 
       if (parser.canParsePage(res)) {
         _log.i('getPage(${server.name}): using ${parser.id}_parser');
-        return _dedupe(parser.parsePage(server, res));
+        return parser.parsePage(server, res);
       }
 
       parser = parsers.firstWhere(
@@ -151,7 +151,7 @@ class BooruRepo implements ImageboardRepo {
         _log.i(
           'getPage(${server.name}): parser resolved, now using ${parser.id}_parser',
         );
-        return _dedupe(parser.parsePage(server, res));
+        return parser.parsePage(server, res);
       }
 
       // No parser recognised the payload. An empty result is still a valid
@@ -174,16 +174,6 @@ class BooruRepo implements ImageboardRepo {
       }
       rethrow;
     }
-  }
-
-  /// Collapses equal posts, matching the set semantics the page pipeline was
-  /// built around. Parsers already de-duplicate by id; this keeps that
-  /// guarantee at the repository boundary.
-  ParsedPage _dedupe(ParsedPage page) {
-    return ParsedPage(
-      posts: page.posts.toSet().toList(),
-      rawCount: page.rawCount,
-    );
   }
 
   /// Whether [res] is an empty result rather than a payload no parser reads.

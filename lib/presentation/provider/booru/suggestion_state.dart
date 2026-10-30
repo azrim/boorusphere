@@ -83,7 +83,10 @@ class SuggestionState extends _$SuggestionState {
       final res = await ref
           .read(imageboardRepoProvider(server))
           .getSuggestion(word);
-      if (word != _lastWord) return;
+      // The search bar can close while the answer is on the wire. The element
+      // is gone by then and every write below would throw — including the one
+      // in the catch, whose error escapes this future uncaught.
+      if (!ref.mounted || word != _lastWord) return;
 
       // Scoped like the timeline: a tag blocked on one server is still a
       // usable tag on the others, and the cached state saves a box read per
@@ -111,7 +114,7 @@ class SuggestionState extends _$SuggestionState {
 
       state = FetchResult.data(result);
     } catch (err, stack) {
-      if (word != _lastWord) {
+      if (!ref.mounted || word != _lastWord) {
         return;
       }
       state = FetchResult.error(state.data, error: err, stackTrace: stack);
