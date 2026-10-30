@@ -20,6 +20,7 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:flutter/foundation.dart';
@@ -352,21 +353,12 @@ class HomeContent extends HookConsumerWidget {
                     // The count comes from the batch, not from the request:
                     // a URL that answered with something other than media was
                     // dropped, and the message reports what reached the disk.
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          context.t.batch.downloadedFiles(n: result.savedCount),
-                        ),
-                        duration: DesignTokens.durationSnackbar,
-                      ),
+                    showToast(
+                      context,
+                      context.t.batch.downloadedFiles(n: result.savedCount),
                     );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(context.t.batch.failed),
-                        duration: DesignTokens.durationSnackbar,
-                      ),
-                    );
+                    showToast(context, context.t.batch.failed);
                   }
                 }
               },
@@ -386,25 +378,24 @@ class HomeContent extends HookConsumerWidget {
                   await ref.read(favoritePostStateProvider.notifier).save(post);
                 }
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(context.t.batch.favorited(n: added.length)),
-                      // An undo stays until it is used; the timer only applies
-                      // to the message when there is nothing to undo.
-                      duration: DesignTokens.durationSnackbar,
-                      action: added.isEmpty
-                          ? null
-                          : SnackBarAction(
-                              label: context.t.undo,
-                              onPressed: () {
-                                for (final post in added) {
-                                  ref
-                                      .read(favoritePostStateProvider.notifier)
-                                      .remove(post);
-                                }
-                              },
-                            ),
-                    ),
+                  showToast(
+                    context,
+                    context.t.batch.favorited(n: added.length),
+                    // An undo stays until it is used; the timer only applies
+                    // to the message when there is nothing to undo.
+                    duration: added.isEmpty
+                        ? DesignTokens.durationSnackbar
+                        : const Duration(days: 1),
+                    actionLabel: added.isEmpty ? null : context.t.undo,
+                    onAction: added.isEmpty
+                        ? null
+                        : () {
+                            for (final post in added) {
+                              ref
+                                  .read(favoritePostStateProvider.notifier)
+                                  .remove(post);
+                            }
+                          },
                   );
                 }
                 ref.read(postSelectionProvider.notifier).clear();

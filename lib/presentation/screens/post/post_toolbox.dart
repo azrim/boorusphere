@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/utils/extensions/number.dart';
 import 'package:boorusphere/utils/url_validator.dart';
@@ -285,12 +286,7 @@ class PostDownloadButton extends HookConsumerWidget {
                       post,
                     );
                     if (started == false && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(context.t.downloads.failedToStart),
-                          duration: DesignTokens.durationSnackbar,
-                        ),
-                      );
+                      showToast(context, context.t.downloads.failedToStart);
                     }
                   } finally {
                     pending.value = false;

@@ -16,6 +16,7 @@ import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/images.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/sheet_row.dart';
 import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
@@ -476,12 +477,7 @@ int _linkCount(Post post) {
 
 void _copy(BuildContext context, String text) {
   Clipboard.setData(ClipboardData(text: text));
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(context.t.copySuccess),
-      duration: DesignTokens.durationSnackbar,
-    ),
-  );
+  showToast(context, context.t.copySuccess);
 }
 
 void _open(String url) {
@@ -774,12 +770,7 @@ class _TagActionBar extends ConsumerWidget {
     ref
         .read(tagsBlockerStateProvider.notifier)
         .pushAll(tags: selectedTags.toList());
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.t.actionTag.blocked),
-        duration: DesignTokens.durationSnackbar,
-      ),
-    );
+    showToast(context, context.t.actionTag.blocked);
     onClearSelection();
   }
 

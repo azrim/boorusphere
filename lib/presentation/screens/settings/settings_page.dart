@@ -12,9 +12,9 @@ import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/theme/color_palettes.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:flutter/material.dart';
@@ -442,24 +442,14 @@ class _ClearCache extends ConsumerWidget {
       title: Text(context.t.settings.clearCache.title),
       subtitle: RowSubtitle(Text(context.t.settings.clearCache.desc)),
       onTap: () async {
-        context.scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(context.t.clearing),
-            duration: DesignTokens.durationSnackbar,
-          ),
-        );
+        showToast(context, context.t.clearing);
 
         await DefaultCacheManager().emptyCache();
         PaintingBinding.instance.imageCache.clear();
         PaintingBinding.instance.imageCache.clearLiveImages();
 
         if (context.mounted) {
-          context.scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(context.t.settings.clearCache.done),
-              duration: DesignTokens.durationSnackbar,
-            ),
-          );
+          showToast(context, context.t.settings.clearCache.done);
         }
       },
     );

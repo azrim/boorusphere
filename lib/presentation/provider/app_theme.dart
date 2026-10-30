@@ -187,16 +187,25 @@ ThemeData _createThemeData(
     drawerTheme: origin.drawerTheme.copyWith(
       backgroundColor: colorScheme.surface,
     ),
+    // A toast is a card floating over the page, not a strip docked to the
+    // bottom edge: it takes the raised block tone and a hairline, and only the
+    // action keeps the scheme's accent.
     snackBarTheme: origin.snackBarTheme.copyWith(
+      behavior: SnackBarBehavior.floating,
       elevation: DesignTokens.elevationFloating,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(DesignTokens.radiusLg),
-          topRight: Radius.circular(DesignTokens.radiusLg),
-        ),
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      contentTextStyle: TextStyle(color: colorScheme.onSurface),
+      actionTextColor: colorScheme.primary,
+      insetPadding: const EdgeInsets.fromLTRB(
+        DesignTokens.spacingMd,
+        0,
+        DesignTokens.spacingMd,
+        DesignTokens.spacingMd,
       ),
-      backgroundColor: colorScheme.primaryContainer,
-      contentTextStyle: TextStyle(color: colorScheme.onPrimaryContainer),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
     ),
     // One type scale for every row: a 16 sp title over a 12 sp muted
     // description, so settings, server lists and drawers read the same.
@@ -247,6 +256,10 @@ ThemeData _createThemeDataMidnight(
       color: Colors.black,
       elevation: 0,
       shadowColor: shadowColor,
+    ),
+    snackBarTheme: origin.snackBarTheme.copyWith(
+      backgroundColor: Colors.black,
+      elevation: 0,
     ),
     // The midnight rule is pure black with no tinting, so the app bar must not
     // pick up the surface tint when content scrolls under it.

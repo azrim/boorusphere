@@ -6,6 +6,7 @@ import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
@@ -102,13 +103,9 @@ class _Content extends ConsumerWidget {
                             break;
                           case 'remove':
                             if (servers.length == 1) {
-                              context.scaffoldMessenger.showSnackBar(
-                                SnackBar(
-                                  duration: DesignTokens.durationSnackbar,
-                                  content: Text(
-                                    context.t.servers.removeLastError,
-                                  ),
-                                ),
+                              showToast(
+                                context,
+                                context.t.servers.removeLastError,
                               );
                               break;
                             }

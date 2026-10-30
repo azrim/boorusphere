@@ -14,6 +14,7 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
@@ -288,24 +289,15 @@ class ServerAddPage extends HookConsumerWidget {
           await serverPod.add(server.value);
         } on ServerAlreadyExistsException {
           if (!context.mounted) return;
-          context.scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                context.t.servers.alreadyExists(name: server.value.name),
-              ),
-              duration: DesignTokens.durationSnackbar,
-            ),
+          showToast(
+            context,
+            context.t.servers.alreadyExists(name: server.value.name),
           );
           return;
         } catch (e, stack) {
           mainLog.e('Servers: failed to save ${server.value.key}', e, stack);
           if (!context.mounted) return;
-          context.scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(context.t.error.unknown),
-              duration: DesignTokens.durationSnackbar,
-            ),
-          );
+          showToast(context, context.t.error.unknown);
           return;
         }
 

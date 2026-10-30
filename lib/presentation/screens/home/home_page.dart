@@ -14,6 +14,7 @@ import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/home/whats_new_bottom_sheet.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:flutter/material.dart';
@@ -80,7 +81,14 @@ class HomePage extends HookConsumerWidget {
           ),
         ),
       ],
-      child: const _Home(),
+      // Toasts are laid over the page, so they need the measured bar height to
+      // sit above it rather than over the query field.
+      child: ValueListenableBuilder<double>(
+        valueListenable: HomeSearchBar.height,
+        builder: (context, bottom, child) =>
+            ToastInset(bottom: bottom, child: child!),
+        child: const _Home(),
+      ),
     );
   }
 }
@@ -131,11 +139,10 @@ class _Home extends HookConsumerWidget {
 
             if (!allowPop.value && !context.router.canPop()) {
               allowPop.value = true;
-              context.scaffoldMessenger.showSnackBar(
-                SnackBar(
-                  content: Text(context.t.retryPopBack),
-                  duration: maybePopTimeout,
-                ),
+              showToast(
+                context,
+                context.t.retryPopBack,
+                duration: maybePopTimeout,
               );
               maybePopTimer.cancel();
               maybePopTimer.reset();

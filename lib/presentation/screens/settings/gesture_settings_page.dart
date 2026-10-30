@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/screens/settings/widgets/settings_secti
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:flutter/material.dart';
@@ -121,12 +122,7 @@ class GestureSettingsPage extends ConsumerWidget {
                     leading: const Icon(Icons.restore),
                     onTap: () {
                       gestureNotifier.reset();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(context.t.settingsPage.resetSuccess),
-                          duration: DesignTokens.durationSnackbar,
-                        ),
-                      );
+                      showToast(context, context.t.settingsPage.resetSuccess);
                     },
                   ),
                 ],

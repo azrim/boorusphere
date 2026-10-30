@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/settings/periodic_backup_state
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
@@ -110,19 +111,9 @@ class _Content extends HookConsumerWidget {
             );
           });
         case ExportedBackupResult(:final path):
-          context.scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(context.t.dataBackup.backup.success(dest: path)),
-              duration: DesignTokens.durationSnackbar,
-            ),
-          );
+          showToast(context, context.t.dataBackup.backup.success(dest: path));
         case ErrorBackupResult():
-          context.scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(context.t.dataBackup.restore.invalid),
-              duration: DesignTokens.durationSnackbar,
-            ),
-          );
+          showToast(context, context.t.dataBackup.restore.invalid);
         default:
       }
     });
@@ -896,12 +887,7 @@ class _TestConnectionTile extends HookConsumerWidget {
                 _ => context.t.periodicBackup.telegram.unknownError,
               };
 
-              context.scaffoldMessenger.showSnackBar(
-                SnackBar(
-                  content: Text(message),
-                  duration: DesignTokens.durationSnackbar,
-                ),
-              );
+              showToast(context, message);
             },
     );
   }
@@ -944,13 +930,9 @@ class _BackupNowTile extends HookConsumerWidget {
 
                 if (backupFile == null) {
                   if (context.mounted) {
-                    context.scaffoldMessenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          context.t.periodicBackup.telegram.backupFailed,
-                        ),
-                        duration: DesignTokens.durationSnackbar,
-                      ),
+                    showToast(
+                      context,
+                      context.t.periodicBackup.telegram.backupFailed,
                     );
                   }
                   return;
@@ -972,12 +954,7 @@ class _BackupNowTile extends HookConsumerWidget {
                     ? context.t.periodicBackup.telegram.backupSent
                     : context.t.periodicBackup.telegram.backupFailed;
 
-                context.scaffoldMessenger.showSnackBar(
-                  SnackBar(
-                    content: Text(message),
-                    duration: DesignTokens.durationSnackbar,
-                  ),
-                );
+                showToast(context, message);
               } finally {
                 // The spinner is the only feedback while this runs, so it has
                 // to clear even when the backup throws.

@@ -9,6 +9,7 @@ import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
@@ -100,12 +101,7 @@ Future<void> _removeServer(
     await ref.read(serverStateProvider.notifier).remove(server);
   } on Exception {
     if (!context.mounted) return;
-    context.scaffoldMessenger.showSnackBar(
-      SnackBar(
-        content: Text(context.t.servers.removeLastError),
-        duration: DesignTokens.durationSnackbar,
-      ),
-    );
+    showToast(context, context.t.servers.removeLastError);
   }
 }
 

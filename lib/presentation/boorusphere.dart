@@ -19,6 +19,7 @@ import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_route_observer.dart';
 import 'package:boorusphere/presentation/routes/app_router.dart';
 import 'package:boorusphere/presentation/widgets/app_theme_builder.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/utils/http/overrides.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter/material.dart';
@@ -79,30 +80,22 @@ class Boorusphere extends HookConsumerWidget {
     final messengerState = messenger.currentState;
     if (messengerState == null) return;
 
-    messengerState
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(t.error.unknown),
-          action: SnackBarAction(
-            label: t.retry,
-            onPressed: () {
-              ref.read(serverStateProvider.notifier).populate().catchError((
-                Object error,
-                StackTrace stack,
-              ) {
-                mainLog.e(
-                  'Boot: retrying the server list failed',
-                  error,
-                  stack,
-                );
-                if (!context.mounted) return;
-                _reportBootFailure(context, ref, messenger);
-              });
-            },
-          ),
-        ),
-      );
+    messengerState.hideCurrentSnackBar();
+    showToastOn(
+      messengerState,
+      t.error.unknown,
+      actionLabel: t.retry,
+      onAction: () {
+        ref.read(serverStateProvider.notifier).populate().catchError((
+          Object error,
+          StackTrace stack,
+        ) {
+          mainLog.e('Boot: retrying the server list failed', error, stack);
+          if (!context.mounted) return;
+          _reportBootFailure(context, ref, messenger);
+        });
+      },
+    );
   }
 
   @override

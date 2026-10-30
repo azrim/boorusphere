@@ -16,6 +16,7 @@ import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/booru_rating.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
 import 'package:boorusphere/presentation/widgets/timeline/post_context_menu.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
@@ -543,12 +544,7 @@ class _ThumbnailCard extends HookConsumerWidget {
         // A dismissed picker reports null: nothing was asked for, so nothing
         // failed.
         if (started == false && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.t.downloads.failedToStart),
-              duration: DesignTokens.durationSnackbar,
-            ),
-          );
+          showToast(context, context.t.downloads.failedToStart);
         }
       case PostContextMenuAction.share:
         unawaited(StorageUtil().shareText(shareLink, null));
