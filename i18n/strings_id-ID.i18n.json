@@ -73,7 +73,16 @@
       "other": "Tidak ada lagi hasil untuk ${query}"
     },
     "blocked": "'${query}' diblokir oleh Tags Blocker",
-    "unparsable": "Tidak bisa membaca respons dari ${server_name}"
+    "unparsable": "Tidak bisa membaca respons dari ${server_name}",
+    "cloudflare_challenge": "${server_name} meminta pemeriksaan browser yang tidak bisa dijalankan aplikasi ini. Verifikasi sekali di browser bawaan.",
+    "verify": "Verifikasi"
+  },
+  "web_challenge": {
+    "title": "Pemeriksaan browser",
+    "hint": "Selesaikan pemeriksaan di halaman ini. Hasilnya disimpan dan halaman ini menutup sendiri.",
+    "done": "Selesai",
+    "saved": "Sesi disimpan untuk ${server_name}",
+    "nothing_saved": "Belum ada sesi yang bisa disimpan"
   },
   "suggestion": {
     "not_supported": "${server_name} tidak mendukung saran pencarian",

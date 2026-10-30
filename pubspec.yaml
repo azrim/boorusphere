@@ -83,6 +83,8 @@ dependencies:
   wakelock_plus: ^1.8.2
   cached_network_image: ^4.0.5
   pointycastle: ^4.0.0
+  webview_flutter: ^4.14.1
+  webview_flutter_android: ^4.14.1
 
 dev_dependencies:
   flutter_test:

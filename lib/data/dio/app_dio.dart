@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/dio/headers_interceptor.dart';
+import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
@@ -13,7 +14,11 @@ import 'package:dio_smart_retry/dio_smart_retry.dart';
 /// implemented by the concrete class, and a bare mixin answers it with
 /// `UnimplementedError` — which is what the batch download hit.
 class AppDio extends DioForNative {
-  AppDio({required CookieJar cookieJar, required EnvRepo envRepo}) {
+  AppDio({
+    required CookieJar cookieJar,
+    required EnvRepo envRepo,
+    required WebClearanceRepo clearance,
+  }) {
     options = BaseOptions(
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
@@ -32,7 +37,7 @@ class AppDio extends DioForNative {
 
     interceptors
       ..add(CookieManager(cookieJar))
-      ..add(HeadersInterceptor(envRepo))
+      ..add(HeadersInterceptor(envRepo, clearance))
       ..add(
         RetryInterceptor(
           dio: this,

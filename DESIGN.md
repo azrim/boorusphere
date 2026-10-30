@@ -82,7 +82,7 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 - **Night Surface** (#1C1B1F): Dark mode background, tinted via `shade(30)`.
 - **Midnight Surface** (#000000): True AMOLED black. Pure black for OLED power savings.
 - **Outline Variant** (45% opacity): the hairline for generated schemes.
-- **Primary Container** (#F0DBFF light / #4A0080 dark): Snackbar backgrounds, chip fills, badges.
+- **Primary Container** (#F0DBFF light / #4A0080 dark): Chip fills and badges.
 
 ### Named Rules
 
@@ -143,7 +143,7 @@ Depth is a ladder with four rungs, not a mood. Every surface picks one of them, 
 | --- | --- | --- | --- |
 | Page | — | 0 | The field behind everything: `surface` |
 | Raised | `elevationRaised` | 1 | A block that groups rows: `SectionSurface`, cards, the app bar once content scrolls under it |
-| Floating | `elevationFloating` | 3 | Chrome that floats over the content: the pagination pill, back to top, the selection bar, snackbars, the favorites tab strip |
+| Floating | `elevationFloating` | 3 | Chrome that floats over the content: the pagination pill, back to top, the selection bar, toasts, the favorites tab strip |
 | Overlay | `elevationOverlay` | 6 | Something that owns the screen until it is dismissed: menus, dropdowns, every bottom sheet |
 | Modal | `elevationModal` | 12 | A dialog that stops the screen |
 
@@ -156,7 +156,7 @@ A step up the ladder does two things at once, never one of them:
 - **Section blocks**: `surfaceContainerHigh`, hairline `outlineVariant`, no shadow. A block groups rows; it does not float. In Midnight the block stays on the page tone and only the hairline separates it.
 - **Empty and error notices**: the same block vocabulary — container tone (the page tone in midnight), a hairline, no shadow; the icon stays muted.
 - **Buttons**: flat. The fill carries the affordance, never a shadow. One primary variant — the filled primary button — carries the action a page or sheet is asking for; `OutlinedButton` and `TextButton` are the ways out beside it, and a destructive confirm is a text button in the error colour.
-- **Snackbars**: top-rounded (12px radius), `primaryContainer` fill, floating elevation.
+- **Toasts**: a card floating over the page, inset from the edges, 16 px radius on every corner, `surfaceContainerHigh` fill with a hairline `outlineVariant` edge, floating elevation.
 - **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell) — `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
 - **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
 - **Dialogs**: `surfaceContainer`, 16px radius, modal elevation. A confirm that destroys something takes the error colour as a text button, never a filled primary one: the destructive verb is not the most attractive control in the dialog, and every screen asks with the same dialog so the answer reads the same from the drawer, a page, or a sheet.
@@ -182,9 +182,17 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 ### Empty States
 - **Shape**: the [Section Block](#section-block) vocabulary — `surfaceContainerHigh` (the page tone in midnight), a hairline, no shadow, and a muted icon. A notice is a block, not a floating card
 - **Type**: the title is the only primary line (`rowTitle`), the body explains the state in `rowSupporting`, and there is never a third line
-- **Action**: a state that has a way forward offers it as one filled button under the body. A state that only says no is a dead end, and the reader has to guess which screen would fix it
+- **Action**: a state that has a way forward offers it as one filled button under the body. A state that only says no is a dead end, and the reader has to guess which screen would fix it. A server behind a browser check replaces the retry with *Verify*, which opens the [browser check](#browser-check) — retrying would hit the same wall
 - **Layout**: centred, one block wide, and scrollable, so a large font scale or a short window never cuts the action off
 - **Where**: timeline errors and empty results, Favorites, Downloads, the changelog, licenses, and the first run
+
+### Browser Check
+The screen a challenged server sends the reader to. Opened from the timeline's error card, never from the drawer.
+
+- **Shape**: a plain `Scaffold` — app bar with the check's title and one text action (*Done*), then the hint strip and the server's own page in a WebView
+- **Hint strip**: `surfaceContainerHighest` with a shield icon and one `rowSupporting` line. The strip explains why the app cannot answer the check itself; it never repeats the page
+- **Behaviour**: the page closes on its own once the clearance cookie appears, saving the cookie **and** the User-Agent that earned it, per host, so the API and the image CDN present the same pair. *Done* is the manual way out for a server that lets the browser through without a challenge
+- **Why**: a challenge is answered by running JavaScript, which this app cannot do — a retry can only fail the same way. One browser pass replaces a dead end
 
 ### First Run
 - **The page is the list**: a new install opens on the server presets, built from the same block, rows and plus the drawer uses with one server in it. The first decision is a pick, not a page explaining what a server is
@@ -275,10 +283,12 @@ One container for every bottom sheet in the app — post details, settings picke
 - **Shape**: Rounded (12px or full depending on variant)
 - **Position**: Bottom-right, above the system inset
 
-### Snackbars
-- **Shape**: Top-rounded (12px), primaryContainer background
-- **Position**: Docked to the bottom, clearing the system inset
-- **Duration**: Short (2s) for info, indefinite for actions
+### Toasts
+- **Shape**: A floating card inset `spacingMd` from the sides and bottom, 16px on every corner, `surfaceContainerHigh` fill with an `outlineVariant` hairline and floating elevation. Midnight keeps it black with the hairline and no shadow
+- **Position**: Above the bottom search bar — the bar's measured height is the clearance — and above the system inset on every other screen
+- **Action**: Inside the card as a text button in the primary colour with its own 48 dp target; running it also dismisses the toast
+- **Dismiss**: Swipe down
+- **Duration**: Short (2s) for info; an undo stays until it is used or dismissed
 
 ### Bottom Bar (Search)
 

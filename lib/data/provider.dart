@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:boorusphere/data/dio/app_dio.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
+import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
@@ -45,7 +46,18 @@ Future<Map<String, Server>> provideDefaultServers() async {
 Dio dio(Ref ref) {
   final cookieJar = ref.watch(cookieJarProvider);
   final envRepo = ref.watch(envRepoProvider);
-  final client = AppDio(cookieJar: cookieJar, envRepo: envRepo);
+  final clearance = ref.watch(webClearanceRepoProvider);
+  final client = AppDio(
+    cookieJar: cookieJar,
+    envRepo: envRepo,
+    clearance: clearance,
+  );
   ref.onDispose(() => client.close(force: true));
   return client;
+}
+
+/// The clearances solved in the in-app browser, read on every request.
+@Riverpod(keepAlive: true)
+WebClearanceRepo webClearanceRepo(Ref ref) {
+  return WebClearanceRepo.open();
 }

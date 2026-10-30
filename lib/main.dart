@@ -18,6 +18,7 @@ import 'package:boorusphere/data/repository/server/user_server_repo.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/entity/booru_tag.dart';
+import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/presentation/boorusphere.dart';
@@ -116,6 +117,9 @@ void main() async {
       fallback: _openDownloadFallbacks,
     ),
     _prepare('app state', CurrentAppStateRepo.prepare),
+    // Only holds sessions the in-app browser solved; a missing box loses the
+    // clearance, not the app, so the repository falls back to this run.
+    _prepare('web clearance', WebClearanceRepo.prepare),
   ]);
 
   LocaleHelper.setupPluralResolver();

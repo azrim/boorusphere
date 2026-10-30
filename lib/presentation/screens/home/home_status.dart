@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -9,6 +10,7 @@ import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -16,6 +18,7 @@ import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
+import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -45,7 +48,12 @@ class _ErrorStatus extends ConsumerWidget {
 
   Object? buildError(BuildContext context, Server server) {
     final e = error;
-    if (e is DioException && e.response?.statusCode != null) {
+    if (isCloudflareChallenge(e)) {
+      // Not a rejection of the query: the server never read it. The status
+      // code would read as the server's answer, so the line says what the
+      // check is and the card offers the browser that can answer it.
+      return context.t.pageStatus.cloudflareChallenge(serverName: server.name);
+    } else if (e is DioException && e.response?.statusCode != null) {
       return context.t.pageStatus
           .httpError(serverName: server.name)
           .withDioExceptionCode(e);
@@ -66,7 +74,9 @@ class _ErrorStatus extends ConsumerWidget {
   }
 
   Icon _getIconForError(Object? error) {
-    if (error is DioException) {
+    if (isCloudflareChallenge(error)) {
+      return const Icon(Icons.shield_outlined);
+    } else if (error is DioException) {
       return const Icon(Icons.wifi_off);
     } else if (error == BooruError.empty) {
       return const Icon(Icons.explore_off);
@@ -78,10 +88,26 @@ class _ErrorStatus extends ConsumerWidget {
     return const Icon(Icons.error_outline);
   }
 
+  /// Opens the built-in browser for [server] and retries once it hands back a
+  /// session.
+  Future<void> _verify(
+    BuildContext context,
+    WidgetRef ref,
+    Server server,
+  ) async {
+    final cleared = await context.router.push<bool>(
+      WebChallengeRoute(serverId: server.id),
+    );
+    if (cleared != true || !context.mounted) return;
+    unawaited(ref.read(pageStateProvider.notifier).load());
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final server = ref.watch(serverStateProvider).getById(session.serverId);
+    final safeRating = data.option.searchRating == BooruRating.safe;
+    final challenged = isCloudflareChallenge(error);
 
     return Center(
       child: NoticeCard(
@@ -111,7 +137,7 @@ class _ErrorStatus extends ConsumerWidget {
                 // One filled action: the fix the page is asking for. Every
                 // other way out is a text button, so the notice never shows
                 // two controls of the same weight.
-                if (data.option.searchRating == BooruRating.safe)
+                if (safeRating)
                   FilledButton(
                     onPressed: () async {
                       await ref
@@ -123,15 +149,25 @@ class _ErrorStatus extends ConsumerWidget {
                     },
                     child: Text(context.t.rating.disableRatingSafe),
                   )
+                else if (challenged)
+                  FilledButton(
+                    onPressed: () => _verify(context, ref, server),
+                    child: Text(context.t.pageStatus.verify),
+                  )
                 else
                   FilledButton(
                     onPressed: ref.read(pageStateProvider.notifier).load,
                     child: Text(context.t.retry),
                   ),
-                if (data.option.searchRating == BooruRating.safe)
+                if (safeRating)
                   TextButton(
                     onPressed: ref.read(pageStateProvider.notifier).load,
                     child: Text(context.t.retry),
+                  ),
+                if (safeRating && challenged)
+                  TextButton(
+                    onPressed: () => _verify(context, ref, server),
+                    child: Text(context.t.pageStatus.verify),
                   ),
                 TextButton(
                   onPressed: () => Scaffold.of(context).openDrawer(),

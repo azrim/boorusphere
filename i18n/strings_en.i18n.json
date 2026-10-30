@@ -110,7 +110,16 @@
     },
     "blocked": "'${query}' is blocked by Tags Blocker",
     "unparsable": "Cannot read the response from ${server_name}",
-    "change_server": "Change server"
+    "change_server": "Change server",
+    "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+    "verify": "Verify"
+  },
+  "web_challenge": {
+    "title": "Browser check",
+    "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+    "done": "Done",
+    "saved": "Session saved for ${server_name}",
+    "nothing_saved": "No session to save yet"
   },
   "suggestion": {
     "not_supported": "${server_name} did not support search suggestion",

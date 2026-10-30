@@ -51,5 +51,9 @@ class AppRouter extends RootStackRouter {
     CustomRoute(page: ChangelogRoute.page, customRouteBuilder: _routeBuilder),
     CustomRoute(page: LicensesRoute.page, customRouteBuilder: _routeBuilder),
     CustomRoute(page: FavoritesRoute.page, customRouteBuilder: _routeBuilder),
+    CustomRoute(
+      page: WebChallengeRoute.page,
+      customRouteBuilder: _routeBuilder,
+    ),
   ];
 }

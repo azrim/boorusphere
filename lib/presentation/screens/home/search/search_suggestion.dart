@@ -17,6 +17,7 @@ import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:boorusphere/utils/number_format.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -506,6 +507,10 @@ class _ErrorSuggestion extends StatelessWidget {
 
     if (err == BooruError.empty) {
       msg = context.t.suggestion.empty(query: query);
+    } else if (isCloudflareChallenge(err)) {
+      // The same check that stops the timeline shows up here, and a status
+      // code would read like the server refused the tag.
+      msg = context.t.pageStatus.cloudflareChallenge(serverName: serverName);
     } else if (err is DioException && err.response?.statusCode != null) {
       msg = context.t.suggestion
           .httpError(query: query, serverName: serverName)
