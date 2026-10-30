@@ -101,8 +101,6 @@ class PageState extends _$PageState {
     return false;
   }
 
-  Iterable<String> get blockedTags => _blockedTagsFor(_server);
-
   /// The blockers that apply to [server]: a tag blocked on one booru is still
   /// a usable tag on the others.
   Iterable<String> _blockedTagsFor(Server server) {
