@@ -350,6 +350,40 @@ void main() {
     expect(container.read(pageStateProvider).data.pageIndex, 1);
   });
 
+  test(
+    'a rating picked during a fetch reaches the feed once it settles',
+    () async {
+      // The chip writes the setting and then asks for a reload. That reload
+      // lands while the page request is still on the wire, so the request that
+      // finishes carries the rating read before the pick.
+      final repo = _FakeRepo({
+        for (var i = 0; i < 4; i++)
+          i: ParsedPage(posts: [_post(i)], rawCount: 1),
+      });
+      final window = _Window();
+      final container = _container(repo, window: window);
+      addTearDown(container.dispose);
+      final notifier = container.read(pageStateProvider.notifier);
+      await notifier.load();
+
+      repo.gate = Completer<void>();
+      final nav = notifier.nextPage();
+      await container
+          .read(serverSettingStateProvider.notifier)
+          .setRating(BooruRating.explicit);
+      await notifier.load();
+      repo.gate!.complete();
+      repo.gate = null;
+      await nav;
+      await pumpEventQueue();
+
+      final data = container.read(pageStateProvider).data;
+      expect(data.option.searchRating, BooruRating.explicit);
+      expect(data.pageIndex, 1);
+      expect(data.hasPrev, isFalse);
+    },
+  );
+
   test('a deep page that came back empty asks the first page first', () async {
     final repo = _FakeRepo({
       for (var i = 0; i < 3; i++) i: ParsedPage(posts: [_post(i)], rawCount: 1),

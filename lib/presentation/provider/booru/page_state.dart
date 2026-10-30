@@ -48,6 +48,11 @@ class PageState extends _$PageState {
   /// fetch settles instead of being dropped.
   PageOption? _pendingOption;
 
+  /// A reload asked for while a fetch was in flight. Unlike [_pendingOption]
+  /// it carries no option of its own: it only has to run so the settings read
+  /// after the current request landed are applied to the feed.
+  bool _reloadPending = false;
+
   /// Navigation target whose fetch failed, so the next [load] (the retry
   /// button, a pull-to-refresh) resumes the page the user asked for instead of
   /// reloading the one still on screen.
@@ -58,6 +63,7 @@ class PageState extends _$PageState {
     _page = 0;
     _fetching = false;
     _pendingOption = null;
+    _reloadPending = false;
     _retryTarget = null;
     return const FetchResult.idle(PageData());
   }
@@ -139,7 +145,13 @@ class PageState extends _$PageState {
     // runs (a rating picked while the timeline closes).
     if (!ref.mounted) return;
     if (!_hasServer()) return;
-    if (_fetching) return;
+    if (_fetching) {
+      // The request on the wire was built from the settings read when it
+      // started, so its answer would leave the feed on that window. Run the
+      // reload once the fetch settles.
+      _reloadPending = true;
+      return;
+    }
 
     final retry = _retryTarget;
     if (retry != null) {
@@ -214,6 +226,7 @@ class PageState extends _$PageState {
     } finally {
       _fetching = false;
       _drainPending();
+      _drainReload();
     }
   }
 
@@ -321,6 +334,7 @@ class PageState extends _$PageState {
     } finally {
       _fetching = false;
       _drainPending();
+      _drainReload();
     }
   }
 
@@ -335,6 +349,18 @@ class PageState extends _$PageState {
     _retryTarget = null;
     if (!ref.mounted) return;
     state = state.copyWith(data: state.data.copyWith(option: pending));
+    unawaited(load());
+  }
+
+  /// Runs the reload a caller asked for while a fetch was in flight, once that
+  /// fetch settled.
+  void _drainReload() {
+    if (!_reloadPending) return;
+    _reloadPending = false;
+    if (!ref.mounted) return;
+    // A queued option reloads with the settings current at that point, which
+    // is the state this reload would read.
+    if (_fetching) return;
     unawaited(load());
   }
 
