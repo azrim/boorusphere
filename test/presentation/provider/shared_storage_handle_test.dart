@@ -43,6 +43,34 @@ void main() {
     });
   });
 
+  group('SharedStorageHandle.fileSize', () {
+    test('reports the number of bytes written', () {
+      writeFile('photo.jpg', const [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]);
+
+      expect(storage.fileSize('photo.jpg'), 6);
+    });
+
+    test('resolves a file inside a subfolder', () {
+      final dir = storage.createSubDir('Server');
+      File(
+        p.join(dir.path, 'photo.jpg'),
+      ).writeAsBytesSync(const [0xFF, 0xD8, 0xFF]);
+
+      expect(storage.fileSize('Server/photo.jpg'), 3);
+    });
+
+    test('reports null for a missing file', () {
+      expect(storage.fileSize('missing.jpg'), isNull);
+    });
+
+    test('accepts an absolute path outside the download folder', () {
+      final file = File(p.join(tempDir.path, 'temp.m4v'))
+        ..writeAsBytesSync(const [0, 1, 2, 3, 4]);
+
+      expect(storage.fileSize(file.path), 5);
+    });
+  });
+
   group('SharedStorageHandle.isValidMedia', () {
     test('rejects an empty file', () {
       writeFile('empty.jpg', const []);

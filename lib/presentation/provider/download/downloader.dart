@@ -417,6 +417,53 @@ class Downloader {
     await _reenqueue(entry);
   }
 
+  /// Length the server reports for the file behind [id], or null when it
+  /// cannot be read.
+  ///
+  /// The native worker treats the end of the response stream as a finished
+  /// transfer, so a connection the server drops mid-body still arrives as
+  /// COMPLETE with a short file. Only the length from the server separates
+  /// that from a whole download; a host that rejects the request or sends no
+  /// length yields null, leaving the caller with the header check alone.
+  Future<int?> expectedSizeOf(String id) async {
+    if (!_hasNativeTask(id)) return null;
+    final task = await _taskById(id);
+    if (task == null || task.url.isEmpty) return null;
+    final uri = Uri.tryParse(task.url);
+    if (uri == null) return null;
+
+    final entry = ref.read(downloadEntryStateProvider).getById(id);
+    final pageUrl = entry.post.postUrl.isEmpty ? task.url : entry.post.postUrl;
+    final headers = HeadersFactory.builder()
+        .setUserAgent(ref.read(versionRepoProvider).current)
+        .setReferer(createReferer(pageUrl))
+        .build();
+
+    final client = HttpClient()
+      ..autoUncompress = false
+      ..connectionTimeout = _sizeProbeTimeout;
+    try {
+      final request = await client.headUrl(uri);
+      request.followRedirects = true;
+      // The worker fetches media anonymously; the probe keeps the same request
+      // and only adds the headers hotlink protection checks.
+      headers.forEach((name, value) => request.headers.set(name, value));
+      request.headers.set(HttpHeaders.acceptEncodingHeader, 'identity');
+
+      final response = await request.close().timeout(_sizeProbeTimeout);
+      if (response.statusCode != HttpStatus.ok) return null;
+      final length = response.contentLength;
+      return length > 0 ? length : null;
+    } catch (e) {
+      mainLog.w('Downloader: no length for ${task.url}', e);
+      return null;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  static const _sizeProbeTimeout = Duration(seconds: 5);
+
   /// Retries every failed entry that is not a reserved updater task.
   ///
   /// One at a time: a burst of retries would open as many requests at once
@@ -687,7 +734,6 @@ class Downloader {
         // turns into a thumbnail that cannot be opened: scanning the removed
         // path is what drops it.
         await sharedStorageHandle.rescanFile(dest);
-        ref.read(downloadFileRevisionProvider.notifier).bump();
       } catch (e) {
         mainLog.e('Downloader: failed to delete $dest', e);
       }
@@ -695,6 +741,11 @@ class Downloader {
 
     // The metadata now describes a file that is no longer there.
     await deleteDownloadSidecar(root: sharedStorageHandle.path, dest: dest);
+
+    // The plugin deletes the file itself while it still tracks the task, so
+    // the branch above never sees it. Bumping here keeps the row from showing
+    // a file that is already gone.
+    ref.read(downloadFileRevisionProvider.notifier).bump();
   }
 
   void openFile({required String id}) {

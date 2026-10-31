@@ -195,7 +195,7 @@
     "pause": "Pause",
     "resume": "Resume",
     "retry_all_failed": "Retry all failed",
-    "retrying": "Retrying ${count} downloads",
+    "retrying": "Retrying failed downloads (${count})",
     "delete_file": "Delete file",
     "delete_file_warning": "The file will be removed from storage. You can download it again later.",
     "detail": "Show detail",
@@ -218,7 +218,7 @@
     "filter_by_status": "Filter by status",
     "no_filter": "No filter",
     "clear_all": "Clear all",
-    "clear_all_warning": "Are you sure you want to clear all the download record ?"
+    "clear_all_warning": "Are you sure you want to clear all download records?"
   },
   "favorites": {
     "title": "Favorites",

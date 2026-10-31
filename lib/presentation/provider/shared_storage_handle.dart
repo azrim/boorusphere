@@ -88,6 +88,22 @@ class SharedStorageHandle {
     }
   }
 
+  /// Length in bytes of the file at [dest], or null when it cannot be read.
+  ///
+  /// [dest] is resolved like [isValidMedia] resolves it. The size is what a
+  /// length reported by the server is compared against, so a file that is
+  /// about to be read has to exist: a missing one is reported as unknown
+  /// instead of zero.
+  int? fileSize(String dest) {
+    try {
+      final file = _resolveFile(dest);
+      return file.existsSync() ? file.lengthSync() : null;
+    } catch (e) {
+      mainLog.e('SharedStorageHandle: Failed to read the size of $dest', e);
+      return null;
+    }
+  }
+
   /// Whether [dest] points at a non-empty file whose head matches a media
   /// container this app writes.
   ///

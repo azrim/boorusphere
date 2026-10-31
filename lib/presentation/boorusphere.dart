@@ -13,6 +13,7 @@ import 'package:boorusphere/presentation/provider/app_boot_state.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/data_backup/periodic_backup_runner.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
+import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/download/flutter_downloader_handle.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
@@ -194,11 +195,8 @@ class Boorusphere extends HookConsumerWidget {
         // there would fail every update right after it arrived.
         if (!entry.post.isReserved) {
           final storage = ref.read(sharedStorageHandleProvider);
-          if (!storage.isValidMedia(entry.dest)) {
-            mainLog.w(
-              'Boorusphere: ${entry.dest} is not media, '
-              'marking the download as failed',
-            );
+
+          Future<void> markFailed() async {
             await progressState.update(
               DownloadProgress(
                 id: progress.id,
@@ -207,6 +205,35 @@ class Boorusphere extends HookConsumerWidget {
                 timestamp: progress.timestamp,
               ),
             );
+          }
+
+          if (!storage.isValidMedia(entry.dest)) {
+            mainLog.w(
+              'Boorusphere: ${entry.dest} is not media, '
+              'marking the download as failed',
+            );
+            await markFailed();
+            return;
+          }
+
+          // A body that ends before its last byte still looks complete to the
+          // worker, so a truncated transfer only shows up when its size is
+          // compared with the length the server reports. A host that reports
+          // none yields no expectation and keeps the check above as its only
+          // guard.
+          final expectedSize = await ref
+              .read(downloaderProvider)
+              .expectedSizeOf(progress.id);
+          final actualSize = storage.fileSize(entry.dest);
+          if (expectedSize != null &&
+              actualSize != null &&
+              actualSize != expectedSize) {
+            mainLog.w(
+              'Boorusphere: ${entry.dest} has $actualSize bytes, '
+              'the server reports $expectedSize, marking the download as '
+              'failed',
+            );
+            await markFailed();
             return;
           }
 

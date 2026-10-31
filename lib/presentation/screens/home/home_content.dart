@@ -139,10 +139,13 @@ class HomeContent extends HookConsumerWidget {
       lastQuery[0] = query;
       if (!indexChanged && !queryChanged) return null;
 
+      // Effects run while the tree is still building, so both the scroll jump
+      // and the selection reset have to wait for the frame to finish.
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
         if (scrollController.hasClients) scrollController.jumpTo(0);
+        ref.read(postSelectionProvider.notifier).clear();
       });
-      ref.read(postSelectionProvider.notifier).clear();
       return null;
     }, [pageIndex, query, scrollController]);
 
