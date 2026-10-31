@@ -14,6 +14,10 @@ import 'package:yaml/yaml.dart';
 /// `--split-per-abi` produces `app-<abi>-release.apk` for each ABI; a plain
 /// `flutter build apk` produces a single `app-release.apk` containing every
 /// ABI (the "universal" build).
+///
+/// Flutter offsets the versionCode of split APKs by ABI (+1000 armeabi-v7a,
+/// +2000 arm64-v8a, +4000 x86_64); the universal APK keeps the bare build
+/// number, so it can only be installed where no split build is present.
 const Map<String, String> _variantSources = {
   'arm64-v8a': 'app-arm64-v8a-release.apk',
   'armeabi-v7a': 'app-armeabi-v7a-release.apk',

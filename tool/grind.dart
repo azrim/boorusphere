@@ -72,6 +72,22 @@ Future<void> apkrelease() async {
   await me.pun('boorusphere', bin: 'renameapks');
 }
 
+@Task('Build an arm64 split release APK')
+Future<void> apkarm64() async {
+  // The split is the artifact the in-app updater installs, so only it can
+  // replace an install that came through the updater: a plain
+  // --target-platform build keeps the bare build number as its versionCode,
+  // which reads as a downgrade next to the split's offset code.
+  await me.fun([
+    'build',
+    'apk',
+    '--split-per-abi',
+    '--target-platform',
+    'android-arm64',
+  ]);
+  await me.pun('boorusphere', bin: 'renameapks');
+}
+
 @Task('Check all things')
 @Depends(chkfmt, analyze, test)
 void chkall() {}
