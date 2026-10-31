@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/provider.dart';
@@ -211,6 +212,15 @@ class Boorusphere extends HookConsumerWidget {
 
           await storage.rescanFile(entry.dest);
         }
+
+        // The finished file now has a record that survives the entry list:
+        // deleting the record does not delete the file, so the metadata is
+        // what still ties a file on disk to the post it came from. App-owned
+        // rows are skipped inside the helper.
+        await writeDownloadSidecar(
+          root: ref.read(sharedStorageHandleProvider).path,
+          entry: entry,
+        );
 
         await progressState.update(progress);
       });

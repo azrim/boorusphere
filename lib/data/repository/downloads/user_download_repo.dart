@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/download_status_mapper.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
@@ -290,6 +291,10 @@ Future<bool> _isCompletedFileUsable(
   } catch (e) {
     mainLog.e('Downloads: failed to scan ${entry.dest}', e);
   }
+
+  // A task that completed while the process was dead never reached the live
+  // listener, so this is the only point that can write its metadata.
+  await writeDownloadSidecar(root: downloadDir, entry: entry);
   return true;
 }
 

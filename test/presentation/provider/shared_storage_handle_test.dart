@@ -24,6 +24,25 @@ void main() {
     return file;
   }
 
+  group('SharedStorageHandle subfolders', () {
+    test('createSubDir makes nested folders', () {
+      final dir = storage.createSubDir('Server/Nested');
+
+      expect(dir.existsSync(), isTrue);
+      expect(p.isWithin(storage.path, dir.path), isTrue);
+    });
+
+    test('a file inside a subfolder is found and validated by its path', () {
+      final dir = storage.createSubDir('Server');
+      File(
+        p.join(dir.path, 'photo.jpg'),
+      ).writeAsBytesSync(const [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]);
+
+      expect(storage.fileExists('Server/photo.jpg'), isTrue);
+      expect(storage.isValidMedia('Server/photo.jpg'), isTrue);
+    });
+  });
+
   group('SharedStorageHandle.isValidMedia', () {
     test('rejects an empty file', () {
       writeFile('empty.jpg', const []);

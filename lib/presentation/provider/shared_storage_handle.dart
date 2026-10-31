@@ -69,7 +69,9 @@ class SharedStorageHandle {
   Directory createSubDir(String directory) {
     final dir = Directory(p.join(path, directory));
     try {
-      dir.createSync();
+      // Recursive so a folder can be nested under the shared one and so a
+      // concurrent caller that created it first is not an error.
+      dir.createSync(recursive: true);
     } catch (e) {
       mainLog.e('SharedStorageHandle: Failed to create subdir $directory', e);
     }

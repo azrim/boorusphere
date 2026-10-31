@@ -3,20 +3,26 @@ import 'dart:io';
 import 'package:boorusphere/data/dio/headers_factory.dart';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/downloads/download_folder.dart';
+import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
+import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/version_repo.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
+import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/concurrency.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:dio/dio.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 /// How far a running batch has got: [done] files settled out of [total], and
 /// [fraction] of the whole batch that has arrived. A settled file counts as
@@ -83,10 +89,13 @@ class BatchDownloadProvider {
     final versionRepo = ref?.read(versionRepoProvider);
     final entryState = ref?.read(downloadEntryStateProvider.notifier);
     final progressState = ref?.read(downloadProgressStateProvider.notifier);
-    // The batch shares the single-download path's names, so a file queued
-    // here cannot land on the path of one started from the post viewer (the
-    // native worker appends to an existing file instead of replacing it).
+    // The batch shares the single-download path's names and folders, so a file
+    // queued here cannot land on the path of one started from the post viewer
+    // (the native worker appends to an existing file instead of replacing it).
     final downloader = ref?.read(downloaderProvider);
+    final servers = ref?.read(serverStateProvider) ?? const <Server>[];
+    final groupByServer =
+        ref?.read(downloadSettingStateProvider).groupByServer ?? false;
 
     try {
       await storage.init();
@@ -130,21 +139,33 @@ class BatchDownloadProvider {
         urls,
         limit: _maxConcurrentDownloads,
         action: (imageUrl, index) async {
+          final post = _findPost(imageUrl, posts);
+          final folder = post == null
+              ? ''
+              : downloadFolderOf(
+                  post,
+                  servers: servers,
+                  groupByServer: groupByServer,
+                );
+          final destDir = folder.isEmpty
+              ? downloadsDir
+              : storage.createSubDir(folder);
           // Claimed as close to the transfer as possible and through the
           // downloader when one is reachable: the same registry the single
           // downloads use, so both never resolve to the same file. Without a
           // [ref] only this batch can collide, and its own set covers that.
           final fileName =
-              downloader?.claimFileName(imageUrl) ??
-              _uniqueFileName(imageUrl, downloadsDir, usedNames);
+              downloader?.claimFileName(imageUrl, folder: folder) ??
+              _uniqueFileName(imageUrl, destDir, usedNames);
+          final dest = p.join(folder, fileName);
           try {
             return await _downloadOne(
               client: client,
               url: imageUrl,
-              fileName: fileName,
-              destPath: '${downloadsDir.path}/$fileName',
+              dest: dest,
+              destPath: p.join(destDir.path, fileName),
               storage: storage,
-              post: _findPost(imageUrl, posts),
+              post: post,
               versionRepo: versionRepo,
               entryState: entryState,
               progressState: progressState,
@@ -193,7 +214,7 @@ class BatchDownloadProvider {
   static Future<String?> _downloadOne({
     required Dio client,
     required String url,
-    required String fileName,
+    required String dest,
     required String destPath,
     required SharedStorageHandle storage,
     required Post? post,
@@ -226,14 +247,17 @@ class BatchDownloadProvider {
     }
 
     if (post != null && entryState != null && progressState != null) {
-      await _registerEntry(
+      final entry = await _registerEntry(
         entryState: entryState,
         progressState: progressState,
         post: post,
-        dest: fileName,
+        dest: dest,
       );
+      if (entry != null) {
+        await writeDownloadSidecar(root: storage.path, entry: entry);
+      }
     }
-    return fileName;
+    return dest;
   }
 
   /// Request headers the single-download path sends: a booru behind hotlink
@@ -253,14 +277,15 @@ class BatchDownloadProvider {
     return builder.build();
   }
 
-  /// Adds the written file to the Downloads page as a finished entry.
+  /// Adds the written file to the Downloads page as a finished entry, or
+  /// reports null when the entry could not be stored.
   ///
   /// The id is local to the app: nothing is enqueued through the platform
   /// downloader, so it only has to stay unique among entries. Each store is
   /// written on its own, so one record that fails to persist cannot stop the
   /// rest of the batch from being listed, nor turn a file already on disk into
   /// a failed download.
-  static Future<void> _registerEntry({
+  static Future<DownloadEntry?> _registerEntry({
     required DownloadEntryState entryState,
     required DownloadProgressState progressState,
     required Post post,
@@ -268,11 +293,12 @@ class BatchDownloadProvider {
   }) async {
     final id =
         'batch_${DateTime.now().microsecondsSinceEpoch}_${dest.hashCode}';
+    final entry = DownloadEntry(id: id, post: post, dest: dest);
     try {
-      await entryState.add(DownloadEntry(id: id, post: post, dest: dest));
+      await entryState.add(entry);
     } catch (e) {
       mainLog.e('BatchDownloadProvider: failed to record entry $id', e);
-      return;
+      return null;
     }
     try {
       await progressState.update(
@@ -286,6 +312,7 @@ class BatchDownloadProvider {
     } catch (e) {
       mainLog.e('BatchDownloadProvider: failed to record progress $id', e);
     }
+    return entry;
   }
 
   /// Post whose file is [url], so the request can carry its Referer and the

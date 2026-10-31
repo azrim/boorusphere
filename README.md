@@ -52,12 +52,13 @@
 - Image cache shared between timeline thumbnails, post viewer, and downloader — open-then-download reuses the bytes you already loaded instead of re-fetching.
 
 ### Downloads
-- One-tap download of images and videos to the device's `Downloads/Boorusphere/` folder (per-server subfolder configurable).
+- One-tap download of images and videos to the device's `Downloads/Boorusphere/` folder. With **group by server** enabled, new files land in a per-server subfolder; files already on disk stay where they are.
+- Every finished file gets a small metadata file under `.metadata/` (the post it came from, when it was saved), so the record survives clearing the Downloads list.
 - Re-uses the in-memory cache when available — instant downloads if you've already viewed the post.
 - Downloads tab in the drawer with redownload + open-in-system-viewer actions.
 
 ### Backup & restore
-- Export everything (settings, search history, server list, blocked tags, favorites, downloads metadata) to a single backup file.
+- Export everything (settings, search history, server list, blocked tags, favorites) to a single backup file.
 - **Telegram backup integration** — schedule automatic backups (daily / weekly / monthly) to a Telegram chat via your own bot, with a "Backup now" button for manual snapshots. Includes a "Test connection" button to verify your bot token / chat ID before scheduling.
 
 ### UI

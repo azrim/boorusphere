@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:boorusphere/data/dio/headers_factory.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/downloads/download_folder.dart';
+import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/download_status_mapper.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
@@ -10,6 +12,8 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
+import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
@@ -109,11 +113,13 @@ class Downloader {
     Post post,
     String fileName,
     String url,
+    String folder,
   ) async {
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
     if (!await sharedStorageHandle.init()) return null;
 
-    final destPath = p.join(sharedStorageHandle.path, fileName);
+    if (folder.isNotEmpty) sharedStorageHandle.createSubDir(folder);
+    final destPath = p.join(sharedStorageHandle.path, folder, fileName);
 
     try {
       // Copy the cached file to downloads
@@ -147,7 +153,11 @@ class Downloader {
       final taskId =
           '$_cacheTaskPrefix${DateTime.now().millisecondsSinceEpoch}';
 
-      final entry = DownloadEntry(id: taskId, post: post, dest: fileName);
+      final entry = DownloadEntry(
+        id: taskId,
+        post: post,
+        dest: p.join(folder, fileName),
+      );
       await ref.read(downloadEntryStateProvider.notifier).add(entry);
 
       // Mark as completed immediately
@@ -161,6 +171,10 @@ class Downloader {
               timestamp: DateTime.now().millisecondsSinceEpoch,
             ),
           );
+
+      // The cached path already holds the finished bytes, so its metadata is
+      // written here instead of waiting for a plugin event that never comes.
+      await writeDownloadSidecar(root: sharedStorageHandle.path, entry: entry);
 
       return taskId;
     } catch (e) {
@@ -200,7 +214,8 @@ class Downloader {
     try {
       // Resolved once so the cache copy and the queued task write the same
       // path, and so the entry reports the name the file actually got.
-      fileName = claimFileName(fileUrl);
+      final folder = _folderFor(post);
+      fileName = claimFileName(fileUrl, folder: folder);
 
       // Try to use cached file first if enabled
       if (preferCache) {
@@ -211,6 +226,7 @@ class Downloader {
             post,
             fileName,
             fileUrl,
+            folder,
           );
           if (taskId != null) {
             return taskId;
@@ -219,7 +235,7 @@ class Downloader {
       }
 
       // Fall back to network download
-      return await _downloadFromNetwork(post, fileUrl, fileName, dest);
+      return await _downloadFromNetwork(post, fileUrl, fileName, folder, dest);
     } catch (e, stack) {
       // The caller drives the UI from the result: an exception here would
       // escape its pending flag and leave the control disabled for good.
@@ -233,7 +249,7 @@ class Downloader {
   }
 
   /// File name for [fileUrl] that neither a queued entry, a download started
-  /// moments ago nor an existing file in the download folder already claims.
+  /// moments ago nor an existing file in [folder] already claims.
   ///
   /// The native worker opens the target path in append mode, so a second
   /// download resolving to a name already on disk would resume the first one's
@@ -241,10 +257,15 @@ class Downloader {
   /// leading dot is stripped as well: a name like '.nomedia' would hide the
   /// whole folder from the gallery.
   ///
+  /// Entries keep names unique across folders: two servers can hold a file
+  /// with the same name, but a row that only shows the base name would make
+  /// the pair indistinguishable. Only the disk check looks inside [folder],
+  /// since the same name in another folder is not in the way.
+  ///
   /// The name is claimed here and stays claimed until [releaseName]: the batch
   /// path names its files through this as well, so two downloads started from
   /// different screens cannot settle on the same path.
-  String claimFileName(String fileUrl) {
+  String claimFileName(String fileUrl, {String folder = ''}) {
     final decoded = decodeComponentSafely(fileUrl.fileName);
     final sanitized = decoded
         .replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_\-]+)'), '_')
@@ -264,7 +285,7 @@ class Downloader {
     var suffix = 1;
     while (taken.contains(candidate) ||
         _reservedNames.contains(candidate) ||
-        sharedStorageHandle.fileExists(candidate)) {
+        sharedStorageHandle.fileExists(p.join(folder, candidate))) {
       candidate = '${base}_${suffix++}$ext';
     }
     _reservedNames.add(candidate);
@@ -277,10 +298,23 @@ class Downloader {
     _reservedNames.remove(fileName);
   }
 
+  /// Folder a new file of [post] is written into.
+  ///
+  /// Resolved once per download: the setting may change while a transfer runs,
+  /// and a queued task keeps writing to the folder it was enqueued into.
+  String _folderFor(Post post) {
+    return downloadFolderOf(
+      post,
+      servers: ref.read(serverStateProvider),
+      groupByServer: ref.read(downloadSettingStateProvider).groupByServer,
+    );
+  }
+
   Future<String?> _downloadFromNetwork(
     Post post,
     String fileUrl,
     String fileName,
+    String folder,
     String Function(String fileName)? dest,
   ) async {
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
@@ -290,6 +324,9 @@ class Downloader {
       mainLog.e('Downloader: download folder is not writable');
       return null;
     }
+    final savedDir = folder.isEmpty
+        ? sharedStorageHandle.path
+        : sharedStorageHandle.createSubDir(folder).path;
 
     final versionRepo = ref.read(versionRepoProvider);
     // Use post URL for referer (like image viewer does), not file URL
@@ -302,7 +339,7 @@ class Downloader {
     final taskId = await FlutterDownloader.enqueue(
       url: fileUrl,
       fileName: fileName,
-      savedDir: sharedStorageHandle.path,
+      savedDir: savedDir,
       showNotification: true,
       openFileFromNotification: true,
       headers: HeadersFactory.builder()
@@ -315,7 +352,7 @@ class Downloader {
       final entry = DownloadEntry(
         id: taskId,
         post: post,
-        dest: dest?.call(fileName) ?? fileName,
+        dest: dest?.call(fileName) ?? p.join(folder, fileName),
       );
       await ref.read(downloadEntryStateProvider.notifier).add(entry);
       // The plugin's ENQUEUED event has no Dart handler, so without this row
@@ -640,19 +677,24 @@ class Downloader {
     if (dest.isEmpty) return;
 
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
-    if (!sharedStorageHandle.fileExists(dest)) return;
-
-    try {
-      final file = File(p.join(sharedStorageHandle.path, Uri.decodeFull(dest)));
-      await file.delete();
-      // The bytes are gone but the gallery keeps its row for the path, which
-      // turns into a thumbnail that cannot be opened: scanning the removed
-      // path is what drops it.
-      await sharedStorageHandle.rescanFile(dest);
-      ref.read(downloadFileRevisionProvider.notifier).bump();
-    } catch (e) {
-      mainLog.e('Downloader: failed to delete $dest', e);
+    if (sharedStorageHandle.fileExists(dest)) {
+      try {
+        final file = File(
+          p.join(sharedStorageHandle.path, Uri.decodeFull(dest)),
+        );
+        await file.delete();
+        // The bytes are gone but the gallery keeps its row for the path, which
+        // turns into a thumbnail that cannot be opened: scanning the removed
+        // path is what drops it.
+        await sharedStorageHandle.rescanFile(dest);
+        ref.read(downloadFileRevisionProvider.notifier).bump();
+      } catch (e) {
+        mainLog.e('Downloader: failed to delete $dest', e);
+      }
     }
+
+    // The metadata now describes a file that is no longer there.
+    await deleteDownloadSidecar(root: sharedStorageHandle.path, dest: dest);
   }
 
   void openFile({required String id}) {
