@@ -171,9 +171,9 @@
   },
   "tags_blocker": {
     "title": "Pemblokir Tag",
-    "desc": "Kamu dapat memblokir beberapa tag sekaligus dengan cara memisahkannya dengan spasi",
+    "desc": "Setiap entri adalah satu ekspresi. Spasi berarti DAN, ~ berarti ATAU, dan - mengecualikan tag. Contoh: foo bar menyembunyikan post yang punya keduanya; ~foo ~bar menyembunyikan salah satunya; -foo menyembunyikan post tanpa foo.",
     "empty": "Belum ada tag yang diblokir",
-    "hint": "Contoh: red_shirt blue_shoes"
+    "hint": "Contoh: foo bar, ~foo ~bar, -foo"
   },
   "servers": {
     "title": "Server",

@@ -28,7 +28,7 @@ const _server = Server(
   searchUrl: 'x?tags={tags}&pid={page-id}&limit={post-limit}',
 );
 
-Post _post(int id, {String tag = 'ok'}) {
+Post _post(int id, {String tag = 'ok', List<String> moreTags = const []}) {
   return Post(
     id: id,
     originalFile: 'https://s.test/$id.jpg',
@@ -36,7 +36,7 @@ Post _post(int id, {String tag = 'ok'}) {
     width: 10,
     height: 10,
     serverId: 'S',
-    tags: [tag],
+    tags: [tag, ...moreTags],
   );
 }
 
@@ -59,8 +59,11 @@ class _FakeRepo implements ImageboardRepo {
   @override
   Server get server => _server;
 
+  /// Suggestions the fake server answers for any word.
+  Iterable<Suggestion> suggestions = const [];
+
   @override
-  Future<Iterable<Suggestion>> getSuggestion(String query) async => [];
+  Future<Iterable<Suggestion>> getSuggestion(String query) async => suggestions;
 
   @override
   Future<ParsedPage> getPage(PageOption option, int index) async {
@@ -187,6 +190,9 @@ ProviderContainer _container(
       pageStateProvider.overrideWith(
         () => PageState(session: const SearchSession(serverId: 'S')),
       ),
+      suggestionStateProvider.overrideWith(
+        () => SuggestionState(session: const SearchSession(serverId: 'S')),
+      ),
       imageboardRepoProvider(_server).overrideWithValue(repo),
     ],
   );
@@ -251,6 +257,108 @@ void main() {
     final requestedBefore = repo.requested.length;
     await notifier.prevPage();
     expect(repo.requested.length, requestedBefore);
+  });
+
+  test('an AND blocker hides only posts that carry every tag', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(
+        posts: [
+          _post(1, tag: 'foo'),
+          _post(2, tag: 'foo', moreTags: ['bar']),
+          _post(3, tag: 'bar'),
+        ],
+        rawCount: 3,
+      ),
+    });
+    final container = _container(repo, blocked: ['foo bar']);
+    addTearDown(container.dispose);
+
+    await container.read(pageStateProvider.notifier).load();
+
+    expect(container.read(pageStateProvider).data.posts.map((it) => it.id), [
+      1,
+      3,
+    ]);
+  });
+
+  test('an OR blocker hides posts with either tag', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(
+        posts: [
+          _post(1, tag: 'foo'),
+          _post(2, tag: 'bar'),
+          _post(3, tag: 'baz'),
+        ],
+        rawCount: 3,
+      ),
+    });
+    final container = _container(repo, blocked: ['~foo ~bar']);
+    addTearDown(container.dispose);
+
+    await container.read(pageStateProvider.notifier).load();
+
+    expect(container.read(pageStateProvider).data.posts.map((it) => it.id), [
+      3,
+    ]);
+  });
+
+  test('a negated blocker hides posts without the tag', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(
+        posts: [
+          _post(1, tag: 'foo'),
+          _post(2, tag: 'ok'),
+        ],
+        rawCount: 2,
+      ),
+    });
+    final container = _container(repo, blocked: ['-foo']);
+    addTearDown(container.dispose);
+
+    await container.read(pageStateProvider.notifier).load();
+
+    expect(container.read(pageStateProvider).data.posts.map((it) => it.id), [
+      1,
+    ]);
+  });
+
+  test('an OR tag does not refuse a query that carries it', () async {
+    // `~ok` does not always hide `ok`, so the guard must not reject the query
+    // before asking the server the way a plain blocked tag would.
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1, tag: 'ok')], rawCount: 1),
+    });
+    final container = _container(repo, blocked: ['~ok']);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.update((option) => option.copyWith(query: 'ok'));
+
+    expect(repo.requested, isNotEmpty);
+    final result = container.read(pageStateProvider);
+    expect(switch (result) {
+      ErrorFetchResult(:final error) => error,
+      _ => null,
+    }, isNot(BooruError.tagsBlocked));
+  });
+
+  test('suggestions hide tags blocked by a single positive entry', () async {
+    final repo = _FakeRepo({})
+      ..suggestions = const [Suggestion('foobar', 10), Suggestion('fooqux', 5)];
+    // `foo bar` decides over a combination, so it cannot hide one suggestion;
+    // `~foobar` names a tag on its own and must hide it.
+    final container = _container(repo, blocked: ['foo bar', '~foobar']);
+    addTearDown(container.dispose);
+    final notifier = container.read(suggestionStateProvider.notifier);
+
+    await notifier.get('foo');
+
+    final result = container.read(suggestionStateProvider);
+    final names = switch (result) {
+      DataFetchResult(:final data) => data.map((it) => it.name).toList(),
+      _ => <String>[],
+    };
+    expect(names, ['fooqux']);
   });
 
   test('pagination refuses a query blocked after it loaded', () async {

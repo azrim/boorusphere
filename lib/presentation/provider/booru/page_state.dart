@@ -4,6 +4,7 @@ import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
+import 'package:boorusphere/data/repository/tags_blocker/tag_expression.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/page_data.dart';
@@ -103,13 +104,14 @@ class PageState extends _$PageState {
 
   /// The blockers that apply to [server]: a tag blocked on one booru is still
   /// a usable tag on the others.
-  Iterable<String> _blockedTagsFor(Server server) {
-    return ref
-        .read(tagsBlockerStateProvider)
-        .values
-        .where((it) => it.serverId.isEmpty || it.serverId == server.id)
-        .map((it) => it.name)
-        .toSet(); // Convert to Set for O(1) lookup performance
+  List<BlockedTagExpression> _blockedExpressionsFor(Server server) {
+    return parseBlockedTagExpressions(
+      ref
+          .read(tagsBlockerStateProvider)
+          .values
+          .where((it) => it.serverId.isEmpty || it.serverId == server.id)
+          .map((it) => it.name),
+    );
   }
 
   /// Whether the result window moved between [shown] (the option the displayed
@@ -138,8 +140,20 @@ class PageState extends _$PageState {
   /// The query can be blocked after it was loaded, so every way into a fetch
   /// runs this check: a page of a blocked query is still a page of that query.
   bool _refuseBlockedQuery(Server server) {
+    // Only a plain single-tag entry always hides the tag: an AND/OR/negated
+    // entry can still let posts with that tag through, and refusing the query
+    // for it would reject a search that has visible results.
+    final blocked = <String>{};
+    for (final expression in _blockedExpressionsFor(server)) {
+      final tag = expression.singlePlainTag;
+      if (tag != null) blocked.add(tag);
+    }
+    if (blocked.isEmpty) return false;
+
     final query = state.data.option.query;
-    if (!query.toWordList().any(_blockedTagsFor(server).contains)) return false;
+    if (!query.toWordList().any((it) => blocked.contains(it.toLowerCase()))) {
+      return false;
+    }
     state = FetchResult.error(state.data, error: BooruError.tagsBlocked);
     return true;
   }
@@ -410,7 +424,7 @@ class PageState extends _$PageState {
     // One server, one request, one blocker set: both are resolved before the
     // first await, so a session that loses its server mid-loop cannot answer
     // with posts the blockers of the server that was actually asked exclude.
-    final blocked = _blockedTagsFor(server);
+    final blocked = _blockedExpressionsFor(server);
     var index = startIndex;
     var skips = 0;
 
@@ -420,7 +434,7 @@ class PageState extends _$PageState {
       if (res.rawCount == 0) return null;
 
       final posts = res
-          .where((it) => !it.allTags.any(blocked.contains))
+          .where((it) => !matchesBlockedTagExpressions(blocked, it.allTags))
           .toList();
       if (posts.isNotEmpty) {
         return (index: index, posts: posts, rawCount: res.rawCount);

@@ -226,9 +226,9 @@
   },
   "tags_blocker": {
     "title": "Tags Blocker",
-    "desc": "You can block multiple tags by separating it with space",
+    "desc": "Each entry is one expression. Space means AND, ~ means OR, and - excludes a tag. Example: foo bar hides posts with both; ~foo ~bar hides posts with either; -foo hides posts without foo.",
     "empty": "No blocked tags yet",
-    "hint": "Example: red_shirt blue_shoes"
+    "hint": "e.g. foo bar, ~foo ~bar, -foo"
   },
   "servers": {
     "title": "Server",

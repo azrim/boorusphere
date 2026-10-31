@@ -1,5 +1,6 @@
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
+import 'package:boorusphere/data/repository/tags_blocker/tag_expression.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
@@ -90,18 +91,20 @@ class SuggestionState extends _$SuggestionState {
 
       // Scoped like the timeline: a tag blocked on one server is still a
       // usable tag on the others, and the cached state saves a box read per
-      // keystroke.
-      final blockedNames = ref
-          .read(tagsBlockerStateProvider)
-          .values
-          .where((it) => it.serverId.isEmpty || it.serverId == server.id)
-          .map((it) => it.name)
-          .toSet();
+      // keystroke. Only a single positive term names a tag that can be judged
+      // on its own; a combination (`foo bar`, `-foo`) says nothing about one
+      // suggestion.
+      final blockedNames = <String>{};
+      for (final it in ref.read(tagsBlockerStateProvider).values) {
+        if (it.serverId.isNotEmpty && it.serverId != server.id) continue;
+        final tag = BlockedTagExpression.parse(it.name).singlePositiveTag;
+        if (tag != null) blockedNames.add(tag);
+      }
 
       final seen = <String>{};
       final result =
           res
-              .where((it) => !blockedNames.contains(it.name))
+              .where((it) => !blockedNames.contains(it.name.toLowerCase()))
               .where((it) => seen.add(it.name))
               .where((it) => matchRank(it.name, word) < kNoMatch)
               .toList()

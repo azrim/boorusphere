@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:boorusphere/data/repository/setting/entity/setting.dart';
+import 'package:boorusphere/data/repository/tags_blocker/tag_expression.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/batch_download_provider.dart';
@@ -45,14 +46,17 @@ class HomeContent extends HookConsumerWidget {
     final session = ref.watch(searchSessionProvider);
     final servers = ref.watch(serverStateProvider);
 
-    // The blocked set is derived, not selected: a fresh Set per read never
+    // The blocked set is derived, not selected: a fresh list per read never
     // compares equal, so select would rebuild on every blocker emission.
     final blockers = ref.watch(tagsBlockerStateProvider);
-    final blockedTagsSet = useMemoized(
-      () => blockers.values
-          .where((it) => it.serverId.isEmpty || it.serverId == session.serverId)
-          .map((it) => it.name)
-          .toSet(),
+    final blockedExpressions = useMemoized(
+      () => parseBlockedTagExpressions(
+        blockers.values
+            .where(
+              (it) => it.serverId.isEmpty || it.serverId == session.serverId,
+            )
+            .map((it) => it.name),
+      ),
       [blockers, session.serverId],
     );
 
@@ -60,9 +64,12 @@ class HomeContent extends HookConsumerWidget {
     // the posts or the blocked set change.
     final filteredPosts = useMemoized(
       () => data.posts
-          .where((it) => !it.allTags.any(blockedTagsSet.contains))
+          .where(
+            (it) =>
+                !matchesBlockedTagExpressions(blockedExpressions, it.allTags),
+          )
           .toList(),
-      [data.posts, blockedTagsSet],
+      [data.posts, blockedExpressions],
     );
 
     useEffect(() {

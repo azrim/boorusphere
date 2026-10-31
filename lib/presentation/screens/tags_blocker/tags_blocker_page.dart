@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/data/repository/tags_blocker/tag_expression.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
@@ -8,7 +9,6 @@ import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
-import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -37,9 +37,15 @@ class _TagsBlockerContent extends HookConsumerWidget {
     );
 
     void submit(String value) {
-      final values = value.toWordList();
-      if (values.isEmpty) return;
-      ref.read(tagsBlockerStateProvider.notifier).pushAll(tags: values);
+      // The whole line is one entry: spaces are the AND operator inside an
+      // expression, not a separator between entries. Submit again for another
+      // entry.
+      final expression = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+      if (expression.isEmpty) return;
+      if (parseBlockedTagExpressions([expression]).isEmpty) return;
+      ref
+          .read(tagsBlockerStateProvider.notifier)
+          .push(tag: expression.toLowerCase());
       controller.clear();
     }
 
