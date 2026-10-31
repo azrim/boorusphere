@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/app_versions/app_versions_state.dart';
 import 'package:boorusphere/presentation/provider/changelog_state.dart';
+import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/about/changelog_page.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
@@ -250,29 +251,33 @@ class _Downloader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final updateId = ref.watch(appUpdaterProvider);
     final progress = ref.watch(appUpdateProgressProvider);
-    final hasUpdateApk = progress.status.isDownloaded;
-
-    final showDownloadButton =
-        progress.status.isCanceled ||
-        progress.status.isFailed ||
-        progress.status.isEmpty;
+    final entry = ref.watch(
+      downloadEntryStateProvider.select((it) => it.getById(updateId)),
+    );
+    // The stored task may belong to an older release: only the APK this page
+    // offers can be installed from here, anything else is downloaded again.
+    final hasUpdateApk =
+        progress.status.isDownloaded &&
+        entry.dest == updateApkFileName(version);
+    final inFlight = progress.status.isDownloading || progress.status.isPending;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (!hasUpdateApk && showDownloadButton)
+        if (!hasUpdateApk && !inFlight)
           FilledButton(
             onPressed: () {
               checkNotificationPermission(context).then((hasPerm) {
                 if (hasPerm) {
-                  ref.read(appUpdaterProvider).start(version);
+                  ref.read(appUpdaterProvider.notifier).start(version);
                 }
               });
             },
             child: Text(context.t.updater.download(version: version)),
           ),
-        if (progress.status.isDownloading) ...[
+        if (inFlight) ...[
           const SizedBox(width: DesignTokens.spacingMd),
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -288,7 +293,9 @@ class _Downloader extends ConsumerWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
               child: LinearProgressIndicator(
-                value: progress.progress.ratio,
+                value: progress.status.isPending
+                    ? null
+                    : progress.progress.ratio,
                 minHeight: 16,
               ),
             ),
@@ -296,7 +303,7 @@ class _Downloader extends ConsumerWidget {
           IconButton(
             tooltip: context.t.cancel,
             onPressed: () {
-              ref.read(appUpdaterProvider).clear();
+              ref.read(appUpdaterProvider.notifier).clear();
             },
             icon: const Icon(Icons.close),
           ),
@@ -305,7 +312,7 @@ class _Downloader extends ConsumerWidget {
         if (hasUpdateApk)
           FilledButton(
             onPressed: () {
-              ref.read(appUpdaterProvider).install(version);
+              ref.read(appUpdaterProvider.notifier).install(version);
             },
             child: Text(context.t.updater.install),
           ),

@@ -5,6 +5,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/app_versions/app_versions_state.dart';
+import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -23,7 +24,11 @@ class DrawerFooter extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
     final appVersions = ref.watch(appVersionsStateProvider);
+    final updateId = ref.watch(appUpdaterProvider);
     final updateProgress = ref.watch(appUpdateProgressProvider);
+    final updateEntry = ref.watch(
+      downloadEntryStateProvider.select((it) => it.getById(updateId)),
+    );
     // The installed version is local. Reading it from the updater check would
     // leave the readout blank until that request answers.
     final version = ref.watch(envRepoProvider).appVersion;
@@ -31,7 +36,10 @@ class DrawerFooter extends ConsumerWidget {
     final updateTile = appVersions.maybeWhen(
       data: (data) {
         if (!data.latest.isNewerThan(data.current)) return null;
-        if (updateProgress.status.isDownloading) {
+        final inFlight =
+            updateProgress.status.isDownloading ||
+            updateProgress.status.isPending;
+        if (inFlight) {
           return DrawerTile(
             leading: const SizedBox(
               width: DesignTokens.iconChipSize,
@@ -48,10 +56,14 @@ class DrawerFooter extends ConsumerWidget {
             onTap: () => context.router.push(const AboutRoute()),
           );
         }
+        // A task restored from an older release cannot install this one.
+        final hasUpdateApk =
+            updateProgress.status.isDownloaded &&
+            updateEntry.dest == updateApkFileName(data.latest);
         return DrawerTile(
           icon: Icons.info_outline,
           label: context.t.updater.available(version: '${data.latest}'),
-          subtitle: updateProgress.status.isDownloaded
+          subtitle: hasUpdateApk
               ? context.t.updater.install
               : context.t.changelog.view,
           onTap: () => context.router.push(const AboutRoute()),

@@ -59,11 +59,16 @@ class Boorusphere extends HookConsumerWidget {
     try {
       final envRepo = ref.read(envRepoProvider);
       final appStateRepo = ref.read(appStateRepoProvider);
+      final updater = ref.read(appUpdaterProvider.notifier);
       if (envRepo.appVersion.isNewerThan(appStateRepo.version)) {
-        await ref.read(appUpdaterProvider).clear();
+        await updater.clear();
       }
+      // The plugin keeps its task across a restart. Reattaching to it is what
+      // keeps Install on offer instead of deleting a finished APK on the next
+      // tap of Download.
+      await updater.restore();
     } catch (e, stack) {
-      mainLog.e('Boot: failed to clear the update state', e, stack);
+      mainLog.e('Boot: failed to restore the update state', e, stack);
     }
 
     onCompleted(failure);
@@ -183,24 +188,30 @@ class Boorusphere extends HookConsumerWidget {
         // running: a row for it would be one the Downloads list can never show.
         if (entry.id.isEmpty) return;
 
-        final storage = ref.read(sharedStorageHandleProvider);
-        if (!storage.isValidMedia(entry.dest)) {
-          mainLog.w(
-            'Boorusphere: ${entry.dest} is not media, '
-            'marking the download as failed',
-          );
-          await progressState.update(
-            DownloadProgress(
-              id: progress.id,
-              status: DownloadStatus.failed,
-              progress: progress.progress,
-              timestamp: progress.timestamp,
-            ),
-          );
-          return;
+        // The update APK is written to the cache folder, not to the shared
+        // one, and its entry resolves against the shared folder. Validating it
+        // there would fail every update right after it arrived.
+        if (!entry.post.isReserved) {
+          final storage = ref.read(sharedStorageHandleProvider);
+          if (!storage.isValidMedia(entry.dest)) {
+            mainLog.w(
+              'Boorusphere: ${entry.dest} is not media, '
+              'marking the download as failed',
+            );
+            await progressState.update(
+              DownloadProgress(
+                id: progress.id,
+                status: DownloadStatus.failed,
+                progress: progress.progress,
+                timestamp: progress.timestamp,
+              ),
+            );
+            return;
+          }
+
+          await storage.rescanFile(entry.dest);
         }
 
-        await storage.rescanFile(entry.dest);
         await progressState.update(progress);
       });
       return null;
