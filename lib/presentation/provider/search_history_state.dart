@@ -14,6 +14,11 @@ part 'search_history_state.g.dart';
 /// later word, substring) instead of by recency alone. Typing `anime` used to
 /// leave `anime_screenshot` below older multi-tag searches that merely
 /// contained the word; recency now only breaks a tie.
+///
+/// A query with one tag also outranks a longer query at the same match
+/// position: `animated` and `anime_screenshot` answer the typed word on their
+/// own, while `anime_screenshot chiyu_mahou` only starts with it and would
+/// otherwise win on recency alone.
 @riverpod
 Map<int, SearchHistory> filterHistory(Ref ref, String query) {
   final history = ref.watch(searchHistoryStateProvider);
@@ -37,6 +42,10 @@ Map<int, SearchHistory> filterHistory(Ref ref, String query) {
       word,
     ).compareTo(matchRank(b.value.query, word));
     if (byRank != 0) return byRank;
+    final byTags = a.value.query.toWordList().length.compareTo(
+      b.value.query.toWordList().length,
+    );
+    if (byTags != 0) return byTags;
     return b.key.compareTo(a.key);
   });
 

@@ -61,6 +61,23 @@ void main() async {
       expect(filtered.length, 3);
     });
 
+    test('filter puts a single tag above a newer multi-tag search', () async {
+      await notifier().clear();
+      await notifier().save('animated', servers.first);
+      await notifier().save('anime_screenshot', servers.first);
+      // The newest entry, but it only starts with the typed word. A query
+      // narrowed to the tag itself is the better completion.
+      await notifier().save('anime_screenshot chiyu_mahou', servers.first);
+
+      final filtered = ref.read(filterHistoryProvider('an')).values.toList();
+
+      expect(filtered.map((it) => it.query), [
+        'anime_screenshot',
+        'animated',
+        'anime_screenshot chiyu_mahou',
+      ]);
+    });
+
     test('cleanup', () async {
       await notifier().clear();
       expect(state().length, 0);
