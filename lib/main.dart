@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
 import 'package:boorusphere/data/repository/app_state/current_app_state_repo.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
@@ -15,11 +16,13 @@ import 'package:boorusphere/data/repository/search_history/entity/search_history
 import 'package:boorusphere/data/repository/search_history/user_search_history.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
+import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/domain/repository/app_lock_repo.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/presentation/boorusphere.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
@@ -29,6 +32,7 @@ import 'package:boorusphere/presentation/provider/settings/entity/download_quali
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/utils/device_workarounds.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:boorusphere/utils/secure_screen.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -145,7 +149,18 @@ void main() async {
       provideEnvRepo,
       () async => const FallbackEnvRepo(),
     ),
+    _bootstrap(
+      'the app lock',
+      provideAppLockRepo,
+      () async => const DisabledAppLockRepo(),
+    ),
   ]);
+
+  // Applied before the first frame: the recents preview is captured from the
+  // window, so the flag has to be in place before the content is drawn.
+  final flagSecure =
+      UserSettingsRepo.openBox()?.get(Setting.flagSecure.name) as bool? ?? true;
+  await SecureScreen.setFlagSecure(flagSecure);
 
   runApp(
     ProviderScope(
@@ -158,6 +173,7 @@ void main() async {
           results[2] as Map<String, Server>,
         ),
         envRepoProvider.overrideWithValue(results[3] as EnvRepo),
+        appLockRepoProvider.overrideWithValue(results[4] as AppLockRepo),
       ],
       child: TranslationProvider(child: const Boorusphere()),
     ),

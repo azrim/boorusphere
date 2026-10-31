@@ -46,16 +46,19 @@ class SheetShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = context.theme.textTheme;
+    final media = MediaQuery.of(context);
+    final keyboard = media.viewInsets.bottom;
+    // The cap has to be measured against the space the keyboard leaves
+    // behind. Capping against the full screen would leave a sheet with a text
+    // field only a sliver of body once the keyboard opens, since its header
+    // and footer are still drawn at full size.
+    final available = media.size.height - keyboard;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * maxHeightFactor,
-      ),
-      child: Padding(
-        // A text field inside the sheet has to clear the keyboard.
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
+    return Padding(
+      // A text field inside the sheet has to clear the keyboard.
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: available * maxHeightFactor),
         child: SafeArea(
           top: false,
           child: Column(

@@ -21,6 +21,10 @@ enum Setting {
   videoPlayerMuted,
   imeIncognito,
   searchRating,
+  // Hides the app in the recent-apps preview and blocks screenshots. Stored
+  // with the other non-secret preferences; the lock itself lives in secure
+  // storage so an archive can never enable a lock without its PIN.
+  flagSecure,
   // Periodic backup settings
   periodicBackupEnabled,
   periodicBackupFrequency,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
@@ -10,6 +11,7 @@ import 'package:boorusphere/domain/repository/settings_repo.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_boot_state.dart';
+import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/app_updater.dart';
 import 'package:boorusphere/presentation/provider/data_backup/periodic_backup_runner.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
@@ -20,10 +22,12 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_route_observer.dart';
 import 'package:boorusphere/presentation/routes/app_router.dart';
+import 'package:boorusphere/presentation/screens/app_lock/app_lock_screen.dart';
 import 'package:boorusphere/presentation/widgets/app_theme_builder.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/utils/http/overrides.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:boorusphere/utils/secure_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -114,6 +118,13 @@ class Boorusphere extends HookConsumerWidget {
     final isMidnight = ref.watch(
       uiSettingStateProvider.select((ui) => ui.midnightMode),
     );
+    final flagSecure = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.flagSecure),
+    );
+    final appLock = ref.watch(appLockProvider);
+    final backDispatcher = _LockAwareBackButtonDispatcher(
+      isLocked: () => ref.read(appLockProvider).isLocked,
+    );
     final envRepo = ref.watch(envRepoProvider);
     final cookieJar = ref.watch(cookieJarProvider);
     final router = useMemoized(AppRouter.new);
@@ -148,11 +159,16 @@ class Boorusphere extends HookConsumerWidget {
     }, const []);
 
     // Nothing runs while the app is in the background, so every return to the
-    // foreground is a chance for a backup that came due to catch up.
+    // foreground is a chance for a backup that came due to catch up. The same
+    // transitions are what arm and fire the app lock.
     useEffect(() {
+      final lock = ref.read(appLockProvider.notifier);
       final listener = AppLifecycleListener(
-        onResume: () =>
-            unawaited(ref.read(periodicBackupRunnerProvider).maybeRun()),
+        onPause: lock.onAppPaused,
+        onResume: () {
+          lock.onAppResumed();
+          unawaited(ref.read(periodicBackupRunnerProvider).maybeRun());
+        },
       );
       return listener.dispose;
     }, const []);
@@ -168,6 +184,11 @@ class Boorusphere extends HookConsumerWidget {
       LocaleHelper.update(locale);
       return null;
     }, [locale]);
+
+    useEffect(() {
+      unawaited(SecureScreen.setFlagSecure(flagSecure));
+      return null;
+    }, [flagSecure]);
 
     useEffect(() {
       // `FlutterDownloaderHandle.listen` returns void and the underlying
@@ -269,17 +290,41 @@ class Boorusphere extends HookConsumerWidget {
         theme: appTheme.day,
         darkTheme: isMidnight ? appTheme.midnight : appTheme.night,
         themeMode: theme,
-        routerConfig: router.config(
-          navigatorObservers: () => [AppRouteObserver(ref)],
+        routerConfig: RouterConfig<UrlState>(
+          routeInformationProvider: router.routeInfoProvider(),
+          routeInformationParser: router.defaultRouteParser(),
+          routerDelegate: router.delegate(
+            navigatorObservers: () => [AppRouteObserver(ref)],
+          ),
+          // Back must not reach the navigator under the lock cover: it would
+          // pop pages the user cannot see, or close the app. The builder sits
+          // above the Router, so a BackButtonListener cannot be used here.
+          backButtonDispatcher: backDispatcher,
         ),
         locale: TranslationProvider.of(context).locale.digestedFlutterLocale,
         supportedLocales: AppLocaleUtils.supportedLocales,
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         // The boot gate lives inside the app, so the frame that waits for
         // the servers carries the theme instead of a blank window.
-        builder: (context, child) => initialized.value
-            ? (child ?? const SizedBox.shrink())
-            : const _BootScreen(),
+        builder: (context, child) {
+          final content = initialized.value
+              ? (child ?? const SizedBox.shrink())
+              : const _BootScreen();
+          if (!appLock.isLocked) return content;
+
+          // The navigator stays mounted under the cover, so unlocking returns
+          // to the page and scroll position the user left. The cover paints
+          // over every pixel; the tree beneath it is neither reachable by
+          // touch nor read by a screen reader while it is up.
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: ExcludeSemantics(child: IgnorePointer(child: content)),
+              ),
+              const Positioned.fill(child: AppLockScreen()),
+            ],
+          );
+        },
       ),
     );
   }
@@ -301,6 +346,24 @@ class _BootScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Swallows the back gesture while the lock cover is up.
+///
+/// The root dispatcher is the only place Android back can be intercepted from:
+/// the app builder sits above the Router, so a [BackButtonListener] there has
+/// no [Router] to register with. Reading the state when the press arrives, not
+/// when the dispatcher is built, keeps a stale closure from answering.
+class _LockAwareBackButtonDispatcher extends RootBackButtonDispatcher {
+  _LockAwareBackButtonDispatcher({required this.isLocked});
+
+  final bool Function() isLocked;
+
+  @override
+  Future<bool> didPopRoute() async {
+    if (isLocked()) return true;
+    return super.didPopRoute();
   }
 }
 

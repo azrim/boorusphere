@@ -25,6 +25,7 @@ class UiSettingState extends _$UiSettingState {
       colorPalette: ColorPalette.fromName(
         repo.get(Setting.uiColorPalette, or: ColorPalette.system.name),
       ),
+      flagSecure: repo.get(Setting.flagSecure, or: true),
     );
   }
 
@@ -120,5 +121,12 @@ class UiSettingState extends _$UiSettingState {
     state = state.copyWith(colorPalette: palette);
     await repo.put(Setting.uiColorPalette, palette.name);
     return state.colorPalette;
+  }
+
+  Future<bool> setFlagSecure(bool value) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(flagSecure: value);
+    await repo.put(Setting.flagSecure, value);
+    return state.flagSecure;
   }
 }

@@ -42,5 +42,9 @@ abstract class UiSetting with _$UiSetting {
     @Default(false) bool midnightMode,
     @Default(false) bool imeIncognito,
     @Default(ColorPalette.system) ColorPalette colorPalette,
+    // On by default: this is an image board client, and the preview in the
+    // recents switcher is the easiest place for its content to be seen by
+    // someone else.
+    @Default(true) bool flagSecure,
   }) = _UiSetting;
 }

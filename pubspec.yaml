@@ -85,6 +85,8 @@ dependencies:
   pointycastle: ^4.0.0
   webview_flutter: ^4.14.1
   webview_flutter_android: ^4.14.1
+  local_auth: ^3.0.2
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   flutter_test:

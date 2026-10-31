@@ -47,6 +47,7 @@ class AppRouter extends RootStackRouter {
       customRouteBuilder: _routeBuilder,
     ),
     CustomRoute(page: DataBackupRoute.page, customRouteBuilder: _routeBuilder),
+    CustomRoute(page: AppLockRoute.page, customRouteBuilder: _routeBuilder),
     CustomRoute(page: AboutRoute.page, customRouteBuilder: _routeBuilder),
     CustomRoute(page: ChangelogRoute.page, customRouteBuilder: _routeBuilder),
     CustomRoute(page: LicensesRoute.page, customRouteBuilder: _routeBuilder),

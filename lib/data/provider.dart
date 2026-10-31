@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:boorusphere/data/dio/app_dio.dart';
+import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/domain/repository/app_lock_repo.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
@@ -60,4 +62,17 @@ Dio dio(Ref ref) {
 @Riverpod(keepAlive: true)
 WebClearanceRepo webClearanceRepo(Ref ref) {
   return WebClearanceRepo.open();
+}
+
+/// The PIN verifier and lock preferences, read from secure storage at boot.
+///
+/// Kept alive so every screen sees the same in-memory copy after a write, and
+/// overridden in [main] with the instance boot already had to read.
+@Riverpod(keepAlive: true)
+AppLockRepo appLockRepo(Ref ref) {
+  throw UnimplementedError('must be initialized manually');
+}
+
+Future<AppLockRepo> provideAppLockRepo() {
+  return SecureAppLockRepo.open();
 }

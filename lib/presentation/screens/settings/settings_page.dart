@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/download_quality.dart';
@@ -56,6 +57,10 @@ class SettingsPage extends StatelessWidget {
                 _BlurTimelineOnly(),
                 _ImeIncognito(),
               ],
+            ),
+            SettingsSection(
+              title: context.t.settings.privacy,
+              children: const [_Privacy()],
             ),
             SettingsSection(
               title: context.t.servers.title,
@@ -277,6 +282,30 @@ class _BlurTimelineOnly extends ConsumerWidget {
       subtitle: RowSubtitle(Text(context.t.settings.blurTimelineOnly.desc)),
       value: contentSettings.blurTimelineOnly,
       onChanged: contentSettings.blurExplicit ? setBlurTimelineOnly : null,
+    );
+  }
+}
+
+class _Privacy extends ConsumerWidget {
+  const _Privacy();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lock = ref.watch(appLockProvider);
+
+    return ListTile(
+      title: Text(context.t.appLock.title),
+      subtitle: RowSubtitle(
+        Text(
+          lock.isActive
+              ? context.t.appLock.summaryOn
+              : context.t.appLock.summaryOff,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () {
+        context.router.push(const AppLockRoute());
+      },
     );
   }
 }
