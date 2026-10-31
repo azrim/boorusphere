@@ -83,107 +83,120 @@ class AppLockScreen extends HookConsumerWidget {
     final scheme = context.colorScheme;
     final textTheme = context.theme.textTheme;
 
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: DesignTokens.spacingLg,
-                vertical: DesignTokens.spacingMd,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight - DesignTokens.spacingMd * 2,
+    // A bare surface, not a Scaffold: this cover sits above the navigator, so
+    // a Scaffold here would register with the app's messenger as a second root
+    // and have nothing to host (no app bar, no snackbar, no FAB). The keyboard
+    // inset is added by hand because there is no Scaffold to apply it.
+    return Material(
+      color: context.theme.scaffoldBackgroundColor,
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingLg,
+                  vertical: DesignTokens.spacingMd,
                 ),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 360),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: scheme.primaryContainer,
-                              shape: BoxShape.circle,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight:
+                        constraints.maxHeight - DesignTokens.spacingMd * 2,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: scheme.primaryContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.lock_outline_rounded,
+                                size: 28,
+                                color: scheme.onPrimaryContainer,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.lock_outline_rounded,
-                              size: 28,
-                              color: scheme.onPrimaryContainer,
-                            ),
                           ),
-                        ),
-                        const SizedBox(height: DesignTokens.spacingLg),
-                        Text(
-                          t.appLock.lockedTitle,
-                          textAlign: TextAlign.center,
-                          style: textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: DesignTokens.spacingSm),
-                        Text(
-                          t.appLock.lockedDesc,
-                          textAlign: TextAlign.center,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: DesignTokens.spacingXl),
-                        PinField(
-                          controller: controller,
-                          label: t.appLock.pin,
-                          autofocus: true,
-                          enabled: !busy.value && !throttled,
-                          onSubmitted: (_) => submit(),
-                        ),
-                        if (throttled && retryAt != null) ...[
-                          pinMessageGap,
-                          PinRetryCountdown(
-                            retryAt: retryAt,
-                            secondsLabel: (seconds) =>
-                                t.appLock.retryIn(seconds: seconds),
-                          ),
-                        ] else if (error.value case final message?) ...[
-                          pinMessageGap,
+                          const SizedBox(height: DesignTokens.spacingLg),
                           Text(
-                            message,
+                            t.appLock.lockedTitle,
                             textAlign: TextAlign.center,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: scheme.error,
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
-                        const SizedBox(height: DesignTokens.spacingLg),
-                        FilledButton(
-                          onPressed: busy.value || throttled ? null : submit,
-                          child: Text(
-                            busy.value ? t.appLock.unlocking : t.appLock.unlock,
-                          ),
-                        ),
-                        if (lock.biometricsAvailable) ...[
                           const SizedBox(height: DesignTokens.spacingSm),
-                          TextButton.icon(
-                            onPressed: busy.value ? null : useBiometrics,
-                            icon: const Icon(
-                              Icons.fingerprint_rounded,
-                              size: DesignTokens.iconAction,
+                          Text(
+                            t.appLock.lockedDesc,
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
                             ),
-                            label: Text(t.appLock.biometric),
                           ),
+                          const SizedBox(height: DesignTokens.spacingXl),
+                          PinField(
+                            controller: controller,
+                            label: t.appLock.pin,
+                            autofocus: true,
+                            enabled: !busy.value && !throttled,
+                            onSubmitted: (_) => submit(),
+                          ),
+                          if (throttled && retryAt != null) ...[
+                            pinMessageGap,
+                            PinRetryCountdown(
+                              retryAt: retryAt,
+                              secondsLabel: (seconds) =>
+                                  t.appLock.retryIn(seconds: seconds),
+                            ),
+                          ] else if (error.value case final message?) ...[
+                            pinMessageGap,
+                            Text(
+                              message,
+                              textAlign: TextAlign.center,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: scheme.error,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: DesignTokens.spacingLg),
+                          FilledButton(
+                            onPressed: busy.value || throttled ? null : submit,
+                            child: Text(
+                              busy.value
+                                  ? t.appLock.unlocking
+                                  : t.appLock.unlock,
+                            ),
+                          ),
+                          if (lock.biometricsAvailable) ...[
+                            const SizedBox(height: DesignTokens.spacingSm),
+                            TextButton.icon(
+                              onPressed: busy.value ? null : useBiometrics,
+                              icon: const Icon(
+                                Icons.fingerprint_rounded,
+                                size: DesignTokens.iconAction,
+                              ),
+                              label: Text(t.appLock.biometric),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

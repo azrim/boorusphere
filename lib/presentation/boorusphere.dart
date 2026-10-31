@@ -310,18 +310,29 @@ class Boorusphere extends HookConsumerWidget {
           final content = initialized.value
               ? (child ?? const SizedBox.shrink())
               : const _BootScreen();
-          if (!appLock.isLocked) return content;
 
-          // The navigator stays mounted under the cover, so unlocking returns
-          // to the page and scroll position the user left. The cover paints
-          // over every pixel; the tree beneath it is neither reachable by
-          // touch nor read by a screen reader while it is up.
+          // The content keeps the same slot in the tree whether the cover is
+          // up or not: only the properties around it change. Wrapping it in a
+          // Stack on lock and unwrapping it on unlock would tear the navigator
+          // down on every unlock, losing the page the user left and leaving a
+          // Scaffold from the discarded subtree registered with the messenger,
+          // which then throws on the next snackbar.
+          //
+          // The cover paints over every pixel; the tree beneath it is neither
+          // reachable by touch nor read by a screen reader while it is up.
           return Stack(
             children: [
               Positioned.fill(
-                child: ExcludeSemantics(child: IgnorePointer(child: content)),
+                child: ExcludeSemantics(
+                  excluding: appLock.isLocked,
+                  child: IgnorePointer(
+                    ignoring: appLock.isLocked,
+                    child: content,
+                  ),
+                ),
               ),
-              const Positioned.fill(child: AppLockScreen()),
+              if (appLock.isLocked)
+                const Positioned.fill(child: AppLockScreen()),
             ],
           );
         },
