@@ -57,8 +57,4 @@ extension PostExt on Post {
   String get viewId {
     return '$id-$serverId';
   }
-
-  bool get isReserved {
-    return id < 0;
-  }
 }

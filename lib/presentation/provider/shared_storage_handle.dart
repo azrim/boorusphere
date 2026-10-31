@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:boorusphere/utils/media_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -21,31 +22,6 @@ Future<SharedStorageHandle> provideSharedStorageHandle() async {
 
 class SharedStorageHandle {
   SharedStorageHandle({required this.downloadPath});
-
-  /// Bytes read from the head of a file to identify its container: enough for
-  /// the JPEG/PNG/GIF signatures, the `RIFF....WEBP` header and the
-  /// `....ftyp` box of an ISO base media file.
-  static const _headLength = 12;
-
-  static const _jpegSignature = <int>[0xFF, 0xD8, 0xFF];
-  static const _pngSignature = <int>[0x89, 0x50, 0x4E, 0x47];
-  static const _gifSignature = <int>[0x47, 0x49, 0x46];
-  static const _riffSignature = <int>[0x52, 0x49, 0x46, 0x46];
-  static const _webpSignature = <int>[0x57, 0x45, 0x42, 0x50];
-  static const _mp4Signature = <int>[0x66, 0x74, 0x79, 0x70];
-
-  /// Extensions this app hands out; a file carrying one of them is expected to
-  /// start with a matching signature.
-  static const _mediaExtensions = {
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.gif',
-    '.webp',
-    '.mp4',
-    '.m4v',
-    '.mov',
-  };
 
   final String downloadPath;
 
@@ -122,25 +98,7 @@ class SharedStorageHandle {
   /// of the image.
   bool isValidMedia(String dest) {
     try {
-      final file = _resolveFile(dest);
-      if (!file.existsSync() || file.lengthSync() == 0) return false;
-
-      final head = _readHead(file);
-      if (head.isEmpty) return false;
-
-      if (_hasSignature(head, _jpegSignature) ||
-          _hasSignature(head, _pngSignature) ||
-          _hasSignature(head, _gifSignature) ||
-          (_hasSignature(head, _riffSignature) &&
-              _hasSignature(head, _webpSignature, offset: 8)) ||
-          _hasSignature(head, _mp4Signature, offset: 4)) {
-        return true;
-      }
-
-      if (_mediaExtensions.contains(p.extension(dest).toLowerCase())) {
-        return false;
-      }
-      return !_looksLikeMarkup(head);
+      return isMediaFile(_resolveFile(dest));
     } catch (e) {
       mainLog.e('SharedStorageHandle: Failed to validate $dest', e);
       return false;
@@ -190,34 +148,5 @@ class SharedStorageHandle {
   File _resolveFile(String dest) {
     if (p.isAbsolute(dest)) return File(dest);
     return File(p.join(path, decodeComponentSafely(dest)));
-  }
-
-  List<int> _readHead(File file) {
-    final handle = file.openSync();
-    try {
-      return handle.readSync(_headLength);
-    } finally {
-      handle.closeSync();
-    }
-  }
-
-  bool _hasSignature(List<int> head, List<int> signature, {int offset = 0}) {
-    if (head.length < offset + signature.length) return false;
-    for (var i = 0; i < signature.length; i++) {
-      if (head[offset + i] != signature[i]) return false;
-    }
-    return true;
-  }
-
-  bool _looksLikeMarkup(List<int> head) {
-    for (final byte in head) {
-      final isWhitespace =
-          byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0D;
-      if (isWhitespace) continue;
-      // `<`, `{` and `[` open the HTML or JSON payloads a server returns
-      // instead of the media it was asked for.
-      return byte == 0x3C || byte == 0x7B || byte == 0x5B;
-    }
-    return true;
   }
 }

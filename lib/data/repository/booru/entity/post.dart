@@ -33,6 +33,14 @@ abstract class Post with _$Post {
 
   factory Post.fromJson(Map<String, dynamic> json) => _$PostFromJson(json);
 
+  const Post._();
+
   static const empty = Post();
   static const appReserved = Post(id: -100);
+
+  /// Whether the record belongs to the app itself instead of a booru post,
+  /// such as the update APK's download entry.
+  bool get isReserved {
+    return id < 0;
+  }
 }

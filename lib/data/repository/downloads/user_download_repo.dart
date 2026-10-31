@@ -1,9 +1,14 @@
+import 'dart:io';
+
+import 'package:boorusphere/data/repository/downloads/download_status_mapper.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/repository/downloads_repo.dart';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
+import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:boorusphere/utils/media_file.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:path/path.dart' as path;
@@ -172,10 +177,12 @@ Future<void> _syncProgresses(
   final byId = {for (final task in tasks) task.taskId: task};
   final updates = <String, DownloadProgress>{};
   final orphans = <String>[];
+  final downloadDir = await _downloadDirOrNull();
 
   for (final progress in progressBox.values) {
     final task = byId.remove(progress.id);
-    final hasEntry = entryBox.containsKey(progress.id);
+    final entry = entryBox.get(progress.id);
+    final hasEntry = entry != null;
 
     if (task == null) {
       // Terminal statuses are the app's own last word on the row, and without
@@ -205,7 +212,7 @@ Future<void> _syncProgresses(
       continue;
     }
 
-    if (!hasEntry && _isInFlight(task.status)) {
+    if (!hasEntry && isInFlightTask(task.status)) {
       // A task that outlived the process which enqueued it, with its entry
       // never written: the file is still on its way to disk, so the row stays
       // instead of being dropped as an orphan.
@@ -214,7 +221,39 @@ Future<void> _syncProgresses(
       );
     }
 
-    final status = _statusOf(task.status);
+    final status = downloadStatusOf(task.status);
+
+    // A completed task is the one status the app did not witness: the worker
+    // can finish while the process is dead, and the plugin reports COMPLETE
+    // for any 200 body. The file is checked here the way the live completion
+    // listener checks it, so a hotlink page cannot come back as a download.
+    // Rows already claiming a download are left alone: re-reading every file
+    // of the library on each boot would turn an unreachable folder into a
+    // failed row for the whole list.
+    if (status.isDownloaded &&
+        !progress.status.isDownloaded &&
+        entry != null &&
+        !entry.post.isReserved &&
+        !await _isCompletedFileUsable(downloadDir, entry)) {
+      mainLog.w(
+        'Downloads: ${entry.dest} is not media, marking the download as failed',
+      );
+      updates[progress.id] = progress.copyWith(
+        status: DownloadStatus.failed,
+        progress: task.progress,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
+      continue;
+    }
+
+    // The user's cancel is the app's last word on the row. The plugin can
+    // still carry the task as ENQUEUED when the work was cancelled before a
+    // Worker existed to report it, and reading that back as PENDING would undo
+    // the cancel and take the retry action away.
+    if (progress.status.isCanceled && !status.isDownloaded) {
+      continue;
+    }
+
     if (status != progress.status || task.progress != progress.progress) {
       updates[progress.id] = progress.copyWith(
         status: status,
@@ -228,24 +267,39 @@ Future<void> _syncProgresses(
   if (orphans.isNotEmpty) await progressBox.deleteAll(orphans);
 }
 
-/// Whether the native worker still holds the task, so its file can still land
-/// on disk without the app being alive to record it.
-bool _isInFlight(DownloadTaskStatus status) {
-  return status == DownloadTaskStatus.enqueued ||
-      status == DownloadTaskStatus.running ||
-      status == DownloadTaskStatus.paused;
+/// Whether the file a completed task wrote is one the app can show, indexing
+/// it when it is.
+///
+/// The file was written while the process was dead, so it is on disk but not
+/// in the platform media database: without the scan the gallery would not see
+/// it until something else scanned the folder.
+///
+/// A path the platform cannot resolve says nothing about the file, so the row
+/// keeps the plugin's answer instead of being failed for it.
+Future<bool> _isCompletedFileUsable(
+  String? downloadDir,
+  DownloadEntry entry,
+) async {
+  if (downloadDir == null) return true;
+
+  final file = File(path.join(downloadDir, decodeComponentSafely(entry.dest)));
+  if (!isMediaFile(file)) return false;
+
+  try {
+    await StorageUtil().scanMedia(file.path);
+  } catch (e) {
+    mainLog.e('Downloads: failed to scan ${entry.dest}', e);
+  }
+  return true;
 }
 
-DownloadStatus _statusOf(DownloadTaskStatus status) {
-  return switch (status) {
-    DownloadTaskStatus.undefined => DownloadStatus.empty,
-    DownloadTaskStatus.enqueued => DownloadStatus.pending,
-    DownloadTaskStatus.running => DownloadStatus.downloading,
-    DownloadTaskStatus.complete => DownloadStatus.downloaded,
-    DownloadTaskStatus.failed => DownloadStatus.failed,
-    DownloadTaskStatus.canceled => DownloadStatus.canceled,
-    DownloadTaskStatus.paused => DownloadStatus.paused,
-  };
+Future<String?> _downloadDirOrNull() async {
+  try {
+    return await _downloadDir();
+  } catch (e, stack) {
+    mainLog.e('Downloads: failed to resolve the download folder', e, stack);
+    return null;
+  }
 }
 
 Future<void> _migrateProgresses(Box<DownloadProgress> box) async {
