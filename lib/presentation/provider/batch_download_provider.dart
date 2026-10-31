@@ -10,6 +10,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/version_repo.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
+import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
@@ -76,6 +77,10 @@ class BatchDownloadProvider {
     final versionRepo = ref?.read(versionRepoProvider);
     final entryState = ref?.read(downloadEntryStateProvider.notifier);
     final progressState = ref?.read(downloadProgressStateProvider.notifier);
+    // The batch shares the single-download path's names, so a file queued
+    // here cannot land on the path of one started from the post viewer (the
+    // native worker appends to an existing file instead of replacing it).
+    final downloader = ref?.read(downloaderProvider);
 
     try {
       await storage.init();
@@ -119,7 +124,13 @@ class BatchDownloadProvider {
       for (var i = 0; i < urls.length; i++) {
         final index = i;
         final imageUrl = urls[i];
-        final fileName = _uniqueFileName(imageUrl, downloadsDir, usedNames);
+        // Claimed through the downloader when one is reachable: the same
+        // registry the single downloads use, so both never resolve to the
+        // same file. Without a [ref] only this batch can collide, and its own
+        // set covers that.
+        final fileName =
+            downloader?.claimFileName(imageUrl) ??
+            _uniqueFileName(imageUrl, downloadsDir, usedNames);
         downloads.add(
           _downloadOne(
             client: client,
@@ -137,6 +148,7 @@ class BatchDownloadProvider {
               report();
             },
           ).whenComplete(() {
+            downloader?.releaseName(fileName);
             settled++;
             fractions[index] = 1;
             report();

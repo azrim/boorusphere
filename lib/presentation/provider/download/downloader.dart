@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:boorusphere/data/dio/headers_factory.dart';
-import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
@@ -96,6 +95,7 @@ class Downloader {
     File cachedFile,
     Post post,
     String fileName,
+    String url,
   ) async {
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
     if (!await sharedStorageHandle.init()) return null;
@@ -109,6 +109,18 @@ class Downloader {
       // Verify the file was copied
       final destFile = File(destPath);
       if (!destFile.existsSync()) {
+        return null;
+      }
+
+      // The disk cache keeps the body even when it cannot be decoded as an
+      // image (the provider only evicts its memory entry), so the bytes are
+      // checked before the row may claim success. The bad copy and its cache
+      // entry are dropped so the network below is tried instead of copying
+      // the same page again.
+      if (!sharedStorageHandle.isValidMedia(destPath)) {
+        mainLog.w('Downloader: cached file for $url is not media');
+        await _deleteFile(destFile);
+        await _evictCache(url);
         return null;
       }
 
@@ -144,6 +156,22 @@ class Downloader {
     }
   }
 
+  Future<void> _deleteFile(File file) async {
+    try {
+      if (file.existsSync()) await file.delete();
+    } catch (e) {
+      mainLog.e('Downloader: failed to delete ${file.path}', e);
+    }
+  }
+
+  Future<void> _evictCache(String url) async {
+    try {
+      await DefaultCacheManager().removeFile(url);
+    } catch (e) {
+      mainLog.e('Downloader: failed to evict the cached $url', e);
+    }
+  }
+
   Future<String?> download(
     Post post, {
     String? url,
@@ -159,13 +187,18 @@ class Downloader {
     try {
       // Resolved once so the cache copy and the queued task write the same
       // path, and so the entry reports the name the file actually got.
-      fileName = await _uniqueFileName(fileUrl);
+      fileName = claimFileName(fileUrl);
 
       // Try to use cached file first if enabled
       if (preferCache) {
         final cachedFile = await _getCachedFile(fileUrl);
         if (cachedFile != null) {
-          final taskId = await _copyFromCache(cachedFile, post, fileName);
+          final taskId = await _copyFromCache(
+            cachedFile,
+            post,
+            fileName,
+            fileUrl,
+          );
           if (taskId != null) {
             return taskId;
           }
@@ -182,7 +215,7 @@ class Downloader {
     } finally {
       // The claim covers only the gap before the entry is published, and the
       // entry list is what keeps the name taken from then on.
-      if (fileName != null) _reservedNames.remove(fileName);
+      if (fileName != null) releaseName(fileName);
     }
   }
 
@@ -194,7 +227,11 @@ class Downloader {
   /// bytes and both would end up reporting a corrupt file as complete. A
   /// leading dot is stripped as well: a name like '.nomedia' would hide the
   /// whole folder from the gallery.
-  Future<String> _uniqueFileName(String fileUrl) async {
+  ///
+  /// The name is claimed here and stays claimed until [releaseName]: the batch
+  /// path names its files through this as well, so two downloads started from
+  /// different screens cannot settle on the same path.
+  String claimFileName(String fileUrl) {
     final decoded = decodeComponentSafely(fileUrl.fileName);
     final sanitized = decoded
         .replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_\-]+)'), '_')
@@ -221,6 +258,12 @@ class Downloader {
     return candidate;
   }
 
+  /// Gives a name claimed by [claimFileName] back once its entry exists or the
+  /// download never started.
+  void releaseName(String fileName) {
+    _reservedNames.remove(fileName);
+  }
+
   Future<String?> _downloadFromNetwork(
     Post post,
     String fileUrl,
@@ -238,11 +281,11 @@ class Downloader {
     final versionRepo = ref.read(versionRepoProvider);
     // Use post URL for referer (like image viewer does), not file URL
     final refererUrl = post.postUrl.isEmpty ? fileUrl : post.postUrl;
-    // The native worker re-sends these headers on every redirect hop
-    // (DownloadWorker.kt), so only the cookies of the file's own host apply.
-    final cookies = await ref
-        .read(cookieJarProvider)
-        .loadForRequest(fileUrl.toUri());
+    // No Cookie header: the native worker re-sends every header it is given on
+    // each redirect hop (DownloadWorker.kt), so a session cookie for the booru
+    // would follow the request to whatever CDN it redirects to. Media is
+    // fetched anonymously; the Referer and User-Agent are what hotlink
+    // protection checks.
     final taskId = await FlutterDownloader.enqueue(
       url: fileUrl,
       fileName: fileName,
@@ -252,7 +295,6 @@ class Downloader {
       headers: HeadersFactory.builder()
           .setUserAgent(versionRepo.current)
           .setReferer(createReferer(refererUrl))
-          .setCookies(cookies)
           .build(),
     );
 
@@ -285,26 +327,89 @@ class Downloader {
   }
 
   Future<void> retry({required String id}) async {
-    final newId = await FlutterDownloader.retry(taskId: id);
-    if (newId == null) {
-      // The plugin only retries a row it still has, so a task cleared from its
-      // database leaves the row here stuck in its last status.
-      mainLog.w('Downloader: the platform refused to retry $id');
-      return;
-    }
-
     final entry = ref.read(downloadEntryStateProvider).getById(id);
     if (entry.id.isEmpty) return;
 
-    // The retried task carries a new id from here on, so nothing would ever
-    // write the row of the old one again. The record moves to the new id
-    // first: a death before the old rows are dropped leaves a duplicate the
-    // boot reconciliation settles, while dropping them first would leave the
-    // running task with nothing pointing at it.
-    await ref
-        .read(downloadEntryStateProvider.notifier)
-        .update(id, entry.copyWith(id: newId));
-    await ref.read(downloadProgressStateProvider.notifier).remove(id);
+    final newId = await FlutterDownloader.retry(taskId: id);
+    if (newId != null) {
+      // The retried task carries a new id from here on, so nothing would ever
+      // write the row of the old one again. The record moves to the new id
+      // first: a death before the old rows are dropped leaves a duplicate the
+      // boot reconciliation settles, while dropping them first would leave the
+      // running task with nothing pointing at it.
+      await ref
+          .read(downloadEntryStateProvider.notifier)
+          .update(id, entry.copyWith(id: newId));
+      await ref.read(downloadProgressStateProvider.notifier).remove(id);
+
+      // The plugin reports ENQUEUED to nobody, so the moved record would keep
+      // its failed or canceled status until the worker happens to run.
+      final current = ref.read(downloadProgressStateProvider).getById(newId);
+      if (current.status.isEmpty) {
+        await ref
+            .read(downloadProgressStateProvider.notifier)
+            .update(
+              DownloadProgress(
+                id: newId,
+                status: DownloadStatus.pending,
+                progress: 0,
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
+      }
+      return;
+    }
+
+    // The plugin only retries a FAILED or CANCELED row. A download cancelled
+    // before its worker started keeps an ENQUEUED row that no Worker will ever
+    // report, so the platform refuses it and the row here can never recover on
+    // its own. The task is started again from the URL recorded with it.
+    await _reenqueue(entry);
+  }
+
+  /// Starts the download behind [entry] again from scratch.
+  ///
+  /// The URL only survives in the native task row, so that row is read before
+  /// it is dropped; the refused row would otherwise be read back as live by
+  /// the boot reconciliation.
+  Future<void> _reenqueue(DownloadEntry entry) async {
+    if (entry.post.isReserved) return;
+
+    final task = await _taskById(entry.id);
+    if (task == null || task.url.isEmpty) {
+      mainLog.w('Downloader: no URL left to restart ${entry.id}');
+      return;
+    }
+
+    await FlutterDownloader.remove(
+      taskId: entry.id,
+      shouldDeleteContent: false,
+    );
+    // Whatever the failed attempt left is either partial or not media at all.
+    await _deleteLocalContent(entry.dest);
+
+    final newId = await download(entry.post, url: task.url, preferCache: false);
+    if (newId == null) {
+      mainLog.w('Downloader: failed to restart ${entry.id}');
+      return;
+    }
+
+    // The replacement record is in place; the old one goes last so a failed
+    // start above left the user something to retry from.
+    await ref.read(downloadEntryStateProvider.notifier).remove(entry.id);
+  }
+
+  Future<DownloadTask?> _taskById(String id) async {
+    try {
+      final tasks = await FlutterDownloader.loadTasks();
+      if (tasks == null) return null;
+      for (final task in tasks) {
+        if (task.taskId == id) return task;
+      }
+    } catch (e, stack) {
+      mainLog.e('Downloader: failed to read the task $id', e, stack);
+    }
+    return null;
   }
 
   Future<void> cancel({required String id}) async {
