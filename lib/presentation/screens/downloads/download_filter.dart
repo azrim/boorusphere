@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 enum DownloadFilter {
   none,
   downloading,
+  paused,
   failed,
   downloaded;
 
@@ -14,6 +15,8 @@ enum DownloadFilter {
         return DownloadStatus.failed;
       case downloading:
         return DownloadStatus.downloading;
+      case paused:
+        return DownloadStatus.paused;
       case downloaded:
         return DownloadStatus.downloaded;
       default:
@@ -27,6 +30,8 @@ enum DownloadFilter {
         return context.t.downloads.status.failed;
       case downloading:
         return context.t.downloads.status.downloading;
+      case paused:
+        return context.t.downloads.status.paused;
       case downloaded:
         return context.t.downloads.status.downloaded;
       default:

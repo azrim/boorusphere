@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:boorusphere/data/dio/headers_factory.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/downloads/download_status_mapper.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
@@ -39,9 +40,21 @@ class Downloader {
   /// task id has to be skipped for them.
   static const _cacheTaskPrefix = 'cache_';
 
+  /// Prefix of the task ids minted by the batch path, which writes its files
+  /// itself and never enqueues anything the plugin could pause or resume.
+  static const _batchTaskPrefix = 'batch_';
+
+  /// Whether [id] belongs to a task the download plugin knows about.
+  static bool _hasNativeTask(String id) =>
+      !id.startsWith(_cacheTaskPrefix) && !id.startsWith(_batchTaskPrefix);
+
   /// Names a download has claimed but not published as an entry yet, so two
   /// downloads started in the same frame cannot settle on one name.
   final _reservedNames = <String>{};
+
+  /// Ids whose resume call is still in the channel, so a second tap cannot
+  /// start a second native task for the same paused download.
+  final _resuming = <String>{};
 
   static final _notifications = FlutterLocalNotificationsPlugin();
   static bool _notificationsInitialized = false;
@@ -365,6 +378,149 @@ class Downloader {
     // report, so the platform refuses it and the row here can never recover on
     // its own. The task is started again from the URL recorded with it.
     await _reenqueue(entry);
+  }
+
+  /// Retries every failed entry that is not a reserved updater task.
+  ///
+  /// One at a time: a burst of retries would open as many requests at once
+  /// and let several name claims race for the same path. A row that cannot be
+  /// retried is skipped without stopping the rest, and the count returned is
+  /// the number of entries this call asked the platform to retry.
+  Future<int> retryAllFailed() async {
+    final entries = ref
+        .read(downloadEntryStateProvider)
+        .whereNotReserved()
+        .where(
+          (it) => ref
+              .read(downloadProgressStateProvider)
+              .getById(it.id)
+              .status
+              .isFailed,
+        )
+        .toList();
+
+    var retried = 0;
+    for (final entry in entries) {
+      try {
+        await retry(id: entry.id);
+        retried++;
+      } catch (e, stack) {
+        mainLog.e('Downloader: failed to retry ${entry.id}', e, stack);
+      }
+    }
+    return retried;
+  }
+
+  /// Pauses the native task behind [id], keeping its partial file.
+  ///
+  /// Cache and batch rows have no native task. The pause call reports nothing,
+  /// so the task is read back afterwards: a worker that finished or failed in
+  /// the meantime reports that state instead of being relabelled paused.
+  Future<void> pause({required String id}) async {
+    if (!_hasNativeTask(id)) return;
+
+    final progress = ref.read(downloadProgressStateProvider).getById(id);
+    // Only a running download can be paused; a finished row would only be
+    // downgraded, and an enqueued task that no worker has picked up cannot
+    // report the paused state the row would need to offer a resume.
+    if (!progress.status.isDownloading) return;
+
+    try {
+      await FlutterDownloader.pause(taskId: id);
+    } catch (e, stack) {
+      mainLog.e('Downloader: failed to pause $id', e, stack);
+    }
+
+    final latest = ref.read(downloadProgressStateProvider).getById(id);
+    if (latest.status.isDownloaded) return;
+
+    final task = await _taskById(id);
+    if (task != null && task.status != DownloadTaskStatus.undefined) {
+      await ref
+          .read(downloadProgressStateProvider.notifier)
+          .update(
+            DownloadProgress(
+              id: id,
+              status: downloadStatusOf(task.status),
+              progress: task.progress.clamp(0, 100).toInt(),
+              timestamp: DateTime.now().millisecondsSinceEpoch,
+            ),
+          );
+      return;
+    }
+
+    // The row is gone from the queue but the download did not report a
+    // terminal state: keep the last progress and let the boot reconciliation
+    // settle a task that really disappeared.
+    await ref
+        .read(downloadProgressStateProvider.notifier)
+        .update(
+          DownloadProgress(
+            id: id,
+            status: DownloadStatus.paused,
+            progress: latest.progress,
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+  }
+
+  /// Resumes the native task behind [id].
+  ///
+  /// The plugin restarts a paused task under a new id, so the entry and its
+  /// progress move to that id exactly like [retry]: the replacement record is
+  /// written before the old one goes, and a death in between leaves a
+  /// duplicate the boot reconciliation settles.
+  Future<void> resume({required String id}) async {
+    if (!_hasNativeTask(id)) return;
+    if (!_resuming.add(id)) return;
+
+    try {
+      final progress = ref.read(downloadProgressStateProvider).getById(id);
+      if (!progress.status.isPaused) return;
+
+      final entry = ref.read(downloadEntryStateProvider).getById(id);
+      if (entry.id.isEmpty) return;
+
+      String? newId;
+      try {
+        newId = await FlutterDownloader.resume(taskId: id);
+      } catch (e, stack) {
+        mainLog.e('Downloader: failed to resume $id', e, stack);
+      }
+
+      if (newId == null) {
+        // The plugin only resumes a row it still tracks as paused. A row the
+        // platform no longer knows about has to start from its recorded URL,
+        // the same fallback retry uses for a stale enqueued task.
+        await _reenqueue(entry);
+        return;
+      }
+
+      if (newId != id) {
+        await ref
+            .read(downloadEntryStateProvider.notifier)
+            .update(id, entry.copyWith(id: newId));
+        await ref.read(downloadProgressStateProvider.notifier).remove(id);
+      }
+
+      // The plugin reports ENQUEUED to nobody, so the moved record would keep
+      // the paused status of the old task until the worker happens to run.
+      final current = ref.read(downloadProgressStateProvider).getById(newId);
+      if (current.status.isEmpty) {
+        await ref
+            .read(downloadProgressStateProvider.notifier)
+            .update(
+              DownloadProgress(
+                id: newId,
+                status: DownloadStatus.pending,
+                progress: progress.progress,
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
+      }
+    } finally {
+      _resuming.remove(id);
+    }
   }
 
   /// Starts the download behind [entry] again from scratch.

@@ -45,6 +45,8 @@ class DownloadEntryView extends HookConsumerWidget {
       case DownloadStatus.canceled:
       case DownloadStatus.failed:
         return Icons.cancel_rounded;
+      case DownloadStatus.paused:
+        return Icons.pause_circle_outline_rounded;
       default:
         return Icons.file_open;
     }
@@ -61,6 +63,8 @@ class DownloadEntryView extends HookConsumerWidget {
       case DownloadStatus.canceled:
       case DownloadStatus.failed:
         return scheme.error;
+      case DownloadStatus.paused:
+        return scheme.tertiary;
       default:
         return scheme.onSurface;
     }
@@ -158,7 +162,9 @@ class DownloadEntryView extends HookConsumerWidget {
             ),
             // A download is a length, not a turn: the bar fills the row under
             // the status line and the percentage reads beside it.
-            if (progress.status.isDownloading || progress.status.isPending) ...[
+            if (progress.status.isDownloading ||
+                progress.status.isPending ||
+                progress.status.isPaused) ...[
               const SizedBox(height: DesignTokens.spacingXs),
               Row(
                 children: [
@@ -271,6 +277,12 @@ class _EntryPopupMenu extends ConsumerWidget {
           case 'retry':
             await downloader.retry(id: entry.id);
             break;
+          case 'pause':
+            await downloader.pause(id: entry.id);
+            break;
+          case 'resume':
+            await downloader.resume(id: entry.id);
+            break;
           case 'cancel':
             await downloader.cancel(id: entry.id);
             break;
@@ -301,6 +313,16 @@ class _EntryPopupMenu extends ConsumerWidget {
           if (progress.status.isCanceled || progress.status.isFailed)
             PopupMenuItem(value: 'retry', child: Text(context.t.retry)),
           if (progress.status.isDownloading)
+            PopupMenuItem(
+              value: 'pause',
+              child: Text(context.t.downloads.pause),
+            ),
+          if (progress.status.isPaused)
+            PopupMenuItem(
+              value: 'resume',
+              child: Text(context.t.downloads.resume),
+            ),
+          if (progress.status.isDownloading || progress.status.isPaused)
             PopupMenuItem(value: 'cancel', child: Text(context.t.cancel)),
           if (isFileExists)
             PopupMenuItem(

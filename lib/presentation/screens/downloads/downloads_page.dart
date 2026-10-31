@@ -3,6 +3,7 @@ import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
+import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
@@ -11,6 +12,7 @@ import 'package:boorusphere/presentation/screens/downloads/download_filter.dart'
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/empty_state.dart';
 import 'package:boorusphere/presentation/widgets/expandable_group_list_view.dart';
@@ -66,6 +68,9 @@ class DownloadsPage extends HookConsumerWidget {
           )
           .toList();
     }
+    final failedEntries = downloadEntries
+        .where((it) => downloadProgressState.getById(it.id).status.isFailed)
+        .toList();
 
     return ProviderScope(
       overrides: [searchSessionProvider.overrideWith((ref) => session)],
@@ -76,24 +81,39 @@ class DownloadsPage extends HookConsumerWidget {
             if (downloadEntries.isNotEmpty)
               PopupMenuButton(
                 tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-                onSelected: (value) {
+                onSelected: (value) async {
                   switch (value) {
                     case 'filter':
-                      showFilterDialog(context, filter.value).then((value) {
-                        if (value != null) {
-                          filter.value = value;
-                        }
-                      });
+                      final picked = await showFilterDialog(
+                        context,
+                        filter.value,
+                      );
+                      if (picked != null) {
+                        filter.value = picked;
+                      }
+                      break;
+                    case 'retry-all-failed':
+                      final retried = await ref
+                          .read(downloaderProvider)
+                          .retryAllFailed();
+                      if (!context.mounted) return;
+                      if (retried > 0) {
+                        showToast(
+                          context,
+                          context.t.downloads.retrying(count: retried),
+                        );
+                      }
                       break;
                     case 'clear-all':
-                      showClearDialog(context).then((value) {
-                        if (value) {
-                          ref.read(downloadEntryStateProvider.notifier).clear();
-                        }
-                      });
+                      final confirmed = await showClearDialog(context);
+                      if (confirmed) {
+                        await ref
+                            .read(downloadEntryStateProvider.notifier)
+                            .clear();
+                      }
                       break;
                     case 'group-by-server':
-                      ref
+                      await ref
                           .read(downloadSettingStateProvider.notifier)
                           .setGroupByServer(!groupByServer);
                       break;
@@ -107,6 +127,11 @@ class DownloadsPage extends HookConsumerWidget {
                       value: 'filter',
                       child: Text(context.t.downloads.filterByStatus),
                     ),
+                    if (failedEntries.isNotEmpty)
+                      PopupMenuItem(
+                        value: 'retry-all-failed',
+                        child: Text(context.t.downloads.retryAllFailed),
+                      ),
                     PopupMenuItem(
                       value: 'group-by-server',
                       child: Text(
