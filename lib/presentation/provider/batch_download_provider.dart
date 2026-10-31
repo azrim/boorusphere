@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dar
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
+import 'package:boorusphere/utils/concurrency.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:dio/dio.dart';
@@ -41,6 +42,11 @@ class BatchDownloadResult {
 }
 
 class BatchDownloadProvider {
+  /// Files a batch keeps in flight at once. The batch path talks to the booru
+  /// directly, so an unbounded fan-out would hit it with one request per
+  /// selected image and hold every response in memory together.
+  static const _maxConcurrentDownloads = 4;
+
   /// Downloads [imageUrls] into the shared download folder, one file per URL.
   ///
   /// [posts] lets a request carry the Referer of the post it came from and, on
@@ -91,10 +97,9 @@ class BatchDownloadProvider {
 
       final urls = imageUrls.where((it) => it.isNotEmpty).toList();
       final usedNames = <String>{};
-      final downloads = <Future<String?>>[];
 
-      // One fraction per queued file: the batch runs them side by side, so a
-      // single "current file" would jump around as they settle.
+      // One fraction per queued file: several run at a time, so a single
+      // "current file" would jump around as they settle.
       final fractions = List<double>.filled(urls.length, 0);
       var settled = 0;
       var lastFraction = -1.0;
@@ -121,46 +126,50 @@ class BatchDownloadProvider {
 
       report();
 
-      for (var i = 0; i < urls.length; i++) {
-        final index = i;
-        final imageUrl = urls[i];
-        // Claimed through the downloader when one is reachable: the same
-        // registry the single downloads use, so both never resolve to the
-        // same file. Without a [ref] only this batch can collide, and its own
-        // set covers that.
-        final fileName =
-            downloader?.claimFileName(imageUrl) ??
-            _uniqueFileName(imageUrl, downloadsDir, usedNames);
-        downloads.add(
-          _downloadOne(
-            client: client,
-            url: imageUrl,
-            fileName: fileName,
-            destPath: '${downloadsDir.path}/$fileName',
-            storage: storage,
-            post: _findPost(imageUrl, posts),
-            versionRepo: versionRepo,
-            entryState: entryState,
-            progressState: progressState,
-            onReceiveProgress: (received, total) {
-              if (total <= 0) return;
-              fractions[index] = (received / total).clamp(0.0, 1.0);
-              report();
-            },
-          ).whenComplete(() {
+      final results = await mapConcurrent(
+        urls,
+        limit: _maxConcurrentDownloads,
+        action: (imageUrl, index) async {
+          // Claimed as close to the transfer as possible and through the
+          // downloader when one is reachable: the same registry the single
+          // downloads use, so both never resolve to the same file. Without a
+          // [ref] only this batch can collide, and its own set covers that.
+          final fileName =
+              downloader?.claimFileName(imageUrl) ??
+              _uniqueFileName(imageUrl, downloadsDir, usedNames);
+          try {
+            return await _downloadOne(
+              client: client,
+              url: imageUrl,
+              fileName: fileName,
+              destPath: '${downloadsDir.path}/$fileName',
+              storage: storage,
+              post: _findPost(imageUrl, posts),
+              versionRepo: versionRepo,
+              entryState: entryState,
+              progressState: progressState,
+              onReceiveProgress: (received, total) {
+                if (total <= 0) return;
+                fractions[index] = (received / total).clamp(0.0, 1.0);
+                report();
+              },
+            );
+          } finally {
             downloader?.releaseName(fileName);
             settled++;
             fractions[index] = 1;
             report();
-          }),
-        );
-      }
-
-      final results = await Future.wait(downloads);
+          }
+        },
+      );
       final saved = results.whereType<String>().toList();
       final failedCount = results.length - saved.length;
 
-      await Future.wait(saved.map(storage.rescanFile));
+      await mapConcurrent(
+        saved,
+        limit: _maxConcurrentDownloads,
+        action: (path, _) async => storage.rescanFile(path),
+      );
       if (saved.isEmpty) {
         return BatchDownloadResult(
           success: false,
