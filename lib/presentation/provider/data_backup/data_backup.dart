@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
+import 'package:boorusphere/data/repository/downloads/user_download_repo.dart';
 import 'package:boorusphere/data/repository/favorite_post/user_favorite_post_repo.dart';
 import 'package:boorusphere/data/repository/search_history/user_search_history.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
@@ -13,6 +14,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/data_backup/backup_cipher.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_option.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_result.dart';
+import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
@@ -105,6 +107,11 @@ class DataBackupState extends _$DataBackupState {
     ref.invalidate(serverSettingStateProvider);
     ref.invalidate(gestureSettingStateProvider);
     ref.invalidate(periodicBackupSettingStateProvider);
+    ref.invalidate(downloadEntryStateProvider);
+    ref.invalidate(downloadProgressStateProvider);
+    // The restored rows point at paths whose files were just checked, so the
+    // memoized answer of every existing row has to be read again.
+    ref.read(downloadFileRevisionProvider.notifier).bump();
     await ref.read(serverStateProvider.notifier).populate();
   }
 
@@ -258,6 +265,10 @@ class DataBackupState extends _$DataBackupState {
             await ref.read(searchHistoryRepoProvider).import(content);
             applied++;
             break;
+          case UserDownloadsRepo.entryKey:
+            await ref.read(downloadsRepoProvider).import(content);
+            applied++;
+            break;
           default:
             break;
         }
@@ -354,6 +365,10 @@ class DataBackupState extends _$DataBackupState {
         if (option.favoritePost) favoritePost,
         if (option.setting) setting,
         if (option.searchHistory) searchHistory,
+        // The archive carries the records, never the media: a library of a
+        // few gigabytes would neither fit the maximum size nor survive an
+        // upload. A restored record whose file is missing offers a redownload.
+        if (option.downloadRecords) ref.read(downloadsRepoProvider).export(),
       ];
 
       await Future.wait(

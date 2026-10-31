@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
+import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
+import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/data/repository/favorite_post/entity/favorite_post.dart';
 import 'package:boorusphere/data/repository/search_history/entity/search_history.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
@@ -24,6 +26,8 @@ class HiveTestContainer {
       ..registerAdapter(SearchHistoryAdapter())
       ..registerAdapter(PostAdapter())
       ..registerAdapter(DownloadEntryAdapter())
+      ..registerAdapter(DownloadProgressAdapter())
+      ..registerAdapter(DownloadStatusAdapter())
       ..registerAdapter(FavoritePostAdapter())
       ..registerAdapter(BooruRatingAdapter())
       ..registerAdapter(DownloadQualityAdapter());

@@ -348,6 +348,8 @@
       "warningFile": "Restore \"${file}\"?\nThis overwrites any existing data.\nAre you sure you want to continue?",
       "loading": "Restoring data..."
     },
+    "downloadRecords": "Download records",
+    "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
     "encrypt": "Encrypt with passphrase",
     "encryptDesc": "Protect the backup with a passphrase only you know",
     "passphrase": "Passphrase",

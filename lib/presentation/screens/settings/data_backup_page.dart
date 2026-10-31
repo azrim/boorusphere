@@ -340,10 +340,12 @@ class _BackupOptionSheet extends HookConsumerWidget {
     Widget contentRow(
       String title,
       bool value,
-      BackupOption Function(bool) apply,
-    ) {
+      BackupOption Function(bool) apply, {
+      String? detail,
+    }) {
       return SheetRow(
         title: title,
+        detail: detail,
         selected: value,
         trailing: Checkbox(
           value: value,
@@ -391,6 +393,12 @@ class _BackupOptionSheet extends HookConsumerWidget {
               context.t.settings.title,
               option.value.setting,
               (v) => option.value.copyWith(setting: v),
+            ),
+            contentRow(
+              context.t.dataBackup.downloadRecords,
+              option.value.downloadRecords,
+              (v) => option.value.copyWith(downloadRecords: v),
+              detail: context.t.dataBackup.downloadRecordsDesc,
             ),
             // Encryption is not part of what gets packed, so it closes the
             // list instead of sitting among the content choices.

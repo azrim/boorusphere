@@ -380,7 +380,15 @@ class Downloader {
     final entry = ref.read(downloadEntryStateProvider).getById(id);
     if (entry.id.isEmpty) return;
 
-    final newId = await FlutterDownloader.retry(taskId: id);
+    final task = _hasNativeTask(id) ? await _taskById(id) : null;
+    String? newId;
+    if (task != null) {
+      try {
+        newId = await FlutterDownloader.retry(taskId: id);
+      } catch (e, stack) {
+        mainLog.w('Downloader: the platform cannot retry $id', e, stack);
+      }
+    }
     if (newId != null) {
       // The retried task carries a new id from here on, so nothing would ever
       // write the row of the old one again. The record moves to the new id
@@ -413,8 +421,9 @@ class Downloader {
     // The plugin only retries a FAILED or CANCELED row. A download cancelled
     // before its worker started keeps an ENQUEUED row that no Worker will ever
     // report, so the platform refuses it and the row here can never recover on
-    // its own. The task is started again from the URL recorded with it.
-    await _reenqueue(entry);
+    // its own. The task is started again from the URL recorded with it, or from
+    // the post when no native row survives.
+    await _reenqueue(entry, task: task);
   }
 
   /// Length the server reports for the file behind [id], or null when it
@@ -609,26 +618,32 @@ class Downloader {
 
   /// Starts the download behind [entry] again from scratch.
   ///
-  /// The URL only survives in the native task row, so that row is read before
-  /// it is dropped; the refused row would otherwise be read back as live by
-  /// the boot reconciliation.
-  Future<void> _reenqueue(DownloadEntry entry) async {
+  /// The URL it was asked for is read from the native task row before that row
+  /// is dropped; the refused row would otherwise be read back as live by the
+  /// boot reconciliation. A record without such a row, such as one restored
+  /// from a backup, falls back to the URLs kept with its post.
+  Future<void> _reenqueue(DownloadEntry entry, {DownloadTask? task}) async {
     if (entry.post.isReserved) return;
 
-    final task = await _taskById(entry.id);
-    if (task == null || task.url.isEmpty) {
+    task ??= await _taskById(entry.id);
+    final url = task != null && task.url.isNotEmpty
+        ? task.url
+        : _postFileUrl(entry.post);
+    if (url.isEmpty) {
       mainLog.w('Downloader: no URL left to restart ${entry.id}');
       return;
     }
 
-    await FlutterDownloader.remove(
-      taskId: entry.id,
-      shouldDeleteContent: false,
-    );
+    if (task != null) {
+      await FlutterDownloader.remove(
+        taskId: entry.id,
+        shouldDeleteContent: false,
+      );
+    }
     // Whatever the failed attempt left is either partial or not media at all.
     await _deleteLocalContent(entry.dest);
 
-    final newId = await download(entry.post, url: task.url, preferCache: false);
+    final newId = await download(entry.post, url: url, preferCache: false);
     if (newId == null) {
       mainLog.w('Downloader: failed to restart ${entry.id}');
       return;
@@ -637,6 +652,16 @@ class Downloader {
     // The replacement record is in place; the old one goes last so a failed
     // start above left the user something to retry from.
     await ref.read(downloadEntryStateProvider.notifier).remove(entry.id);
+  }
+
+  /// Best URL a record still carries for itself.
+  ///
+  /// The original is what a download normally asks for; the smaller variants
+  /// only cover a post whose original URL is empty.
+  String _postFileUrl(Post post) {
+    if (post.originalFile.isNotEmpty) return post.originalFile;
+    if (post.sampleFile.isNotEmpty) return post.sampleFile;
+    return post.previewFile;
   }
 
   Future<DownloadTask?> _taskById(String id) async {

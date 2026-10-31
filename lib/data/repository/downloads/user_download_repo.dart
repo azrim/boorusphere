@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/download_status_mapper.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
@@ -7,6 +9,7 @@ import 'package:boorusphere/data/repository/downloads/entity/download_progress.d
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/repository/downloads_repo.dart';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
+import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:boorusphere/utils/media_file.dart';
@@ -16,10 +19,24 @@ import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart' as sqflite;
 
 class UserDownloadsRepo implements DownloadsRepo {
-  UserDownloadsRepo({required this.entryBox, required this.progressBox});
+  UserDownloadsRepo({
+    required this.entryBox,
+    required this.progressBox,
+    Future<String?> Function()? downloadDir,
+    Future<Set<String>> Function()? nativeTaskIds,
+  }) : _downloadDir = downloadDir ?? _downloadDirOrNull,
+       _nativeTaskIds = nativeTaskIds ?? _loadNativeTaskIds;
 
   final Box<DownloadEntry> entryBox;
   final Box<DownloadProgress> progressBox;
+
+  /// Where the media files live, resolved for an import. Injected so a test
+  /// can point at a temporary folder instead of the platform storage.
+  final Future<String?> Function() _downloadDir;
+
+  /// Ids of the native tasks this install still tracks. A restored record
+  /// must not replace one of them: the running task owns its row.
+  final Future<Set<String>> Function() _nativeTaskIds;
 
   @override
   Iterable<DownloadEntry> getEntries() => entryBox.values;
@@ -97,6 +114,144 @@ class UserDownloadsRepo implements DownloadsRepo {
   Future<void> clearProgresses() async {
     await progressBox.deleteAll(progressBox.keys);
   }
+
+  @override
+  Future<BackupItem> export() async {
+    final entries = <Map<String, Object?>>[];
+    final exportedIds = <String>{};
+    for (final entry in entryBox.values) {
+      // The updater APK is app bookkeeping, not a download the user made, and
+      // its task belongs to the updater on this device.
+      if (entry.id.isEmpty || entry.post.isReserved) continue;
+      exportedIds.add(entry.id);
+      entries.add({
+        'id': entry.id,
+        'post': entry.post.toJson(),
+        'dest': entry.dest,
+      });
+    }
+
+    final progresses = [
+      for (final progress in progressBox.values)
+        if (exportedIds.contains(progress.id))
+          {
+            'id': progress.id,
+            'status': progress.status.name,
+            'progress': progress.progress,
+            'timestamp': progress.timestamp,
+          },
+    ];
+
+    return BackupItem(entryKey, {
+      'schema': backupSchema,
+      'entries': entries,
+      'progresses': progresses,
+    });
+  }
+
+  @override
+  Future<void> import(String src) async {
+    final data = jsonDecode(src);
+    if (data is! Map || data['schema'] != backupSchema) return;
+
+    final rawEntries = data['entries'];
+    if (rawEntries is! List || rawEntries.isEmpty) return;
+
+    // Every record is decoded before a box is touched, so one malformed entry
+    // leaves the current download list as it is.
+    final restored = <String, DownloadEntry>{};
+    for (final raw in rawEntries) {
+      if (raw is! Map) continue;
+      final id = raw['id'];
+      final dest = raw['dest'];
+      final post = raw['post'];
+      if (id is! String || id.isEmpty || dest is! String || post is! Map) {
+        continue;
+      }
+
+      final normalizedDest = _restoreDest(dest);
+      if (normalizedDest == null) continue;
+
+      final Post decoded;
+      try {
+        decoded = Post.fromJson(Map<String, dynamic>.from(post));
+      } catch (_) {
+        continue;
+      }
+      if (decoded.isReserved) continue;
+
+      restored[id] = DownloadEntry(id: id, post: decoded, dest: normalizedDest);
+    }
+    if (restored.isEmpty) return;
+
+    // A native task that is still around keeps its own record: writing the
+    // archived one over it would leave the running task pointing at a row the
+    // plugin never wrote.
+    final busy = await _nativeTaskIds();
+    restored.removeWhere((id, _) => busy.contains(id));
+    if (restored.isEmpty) return;
+
+    final progressById = <String, Map>{};
+    if (data['progresses'] case final List rawProgresses) {
+      for (final raw in rawProgresses) {
+        if (raw is! Map) continue;
+        final id = raw['id'];
+        if (id is String) progressById[id] = raw;
+      }
+    }
+
+    final downloadDir = await _downloadDir();
+    final entries = <String, DownloadEntry>{};
+    final progresses = <String, DownloadProgress>{};
+    for (final entry in restored.values) {
+      final archived = progressById[entry.id];
+      final timestamp = _restoredTimestamp(archived?['timestamp']);
+
+      final root = downloadDir;
+      final file = root == null
+          ? null
+          : File(path.join(root, decodeComponentSafely(entry.dest)));
+      final present = file?.existsSync() ?? false;
+      final usable = present && isMediaFile(file!);
+      if (usable) {
+        // The file is already on this device, so the record is the same one
+        // the live completion listener would have written.
+        entries[entry.id] = entry;
+        progresses[entry.id] = DownloadProgress(
+          id: entry.id,
+          status: DownloadStatus.downloaded,
+          progress: 100,
+          timestamp: timestamp,
+        );
+        await writeDownloadSidecar(root: root!, entry: entry);
+        continue;
+      }
+
+      // A file that is there but cannot be opened must not stay downloaded: the
+      // row would offer to open bytes that no viewer can read. A missing file
+      // keeps the archived answer, which is what turns a downloaded record
+      // into the "No file" row that offers a redownload.
+      final status = present
+          ? DownloadStatus.failed
+          : _restoredStatus(archived?['status']);
+      entries[entry.id] = entry;
+      progresses[entry.id] = DownloadProgress(
+        id: entry.id,
+        status: status,
+        progress: _restoredProgress(archived?['progress'], status),
+        timestamp: timestamp,
+      );
+    }
+
+    await entryBox.putAll(entries);
+    await progressBox.putAll(progresses);
+  }
+
+  /// Schema of the download payload inside a backup.
+  ///
+  /// A restore may be read by a build that predates the current shape, so the
+  /// number is checked before any record is trusted.
+  static const int backupSchema = 1;
 
   static const String entryKey = 'downloads';
   static const String progressKey = 'download_progresses';
@@ -305,6 +460,61 @@ Future<String?> _downloadDirOrNull() async {
     mainLog.e('Downloads: failed to resolve the download folder', e, stack);
     return null;
   }
+}
+
+Future<Set<String>> _loadNativeTaskIds() async {
+  try {
+    final tasks = await FlutterDownloader.loadTasks();
+    return tasks?.map((it) => it.taskId).toSet() ?? const {};
+  } catch (e, stack) {
+    mainLog.e('Downloads: failed to read the native tasks', e, stack);
+    return const {};
+  }
+}
+
+/// Normalizes a path read from a backup and refuses one that could leave the
+/// download folder.
+///
+/// Only paths relative to that folder are ever written by this app, so an
+/// absolute path or a parent hop belongs to a file the archive does not own.
+/// A dot segment is refused as well: the metadata folder and the gallery
+/// marker are not media the download list can point at.
+String? _restoreDest(String dest) {
+  if (dest.isEmpty || dest.contains('\x00')) return null;
+
+  // Archives are written on Android, while a test or a desktop build may use
+  // another separator. Reading the path as a portable one keeps both equal.
+  final normalized = path.posix.normalize(dest.replaceAll('\\', '/'));
+  if (path.posix.isAbsolute(normalized)) return null;
+
+  final segments = normalized.split('/');
+  if (segments.any((it) => it.isEmpty || it.startsWith('.'))) return null;
+  return normalized;
+}
+
+/// Status a restored record may keep.
+///
+/// Only the terminal statuses survive: a pending, running, or paused record
+/// would describe a native task this device does not have, and every action
+/// for it would fail. Such a record becomes failed, which leaves the entry
+/// retryable instead of dropping it.
+DownloadStatus _restoredStatus(Object? raw) {
+  return switch (raw) {
+    'downloaded' => DownloadStatus.downloaded,
+    'canceled' => DownloadStatus.canceled,
+    _ => DownloadStatus.failed,
+  };
+}
+
+int _restoredProgress(Object? raw, DownloadStatus status) {
+  if (status.isDownloaded) return 100;
+  if (raw is int) return raw.clamp(0, 100).toInt();
+  return 0;
+}
+
+int _restoredTimestamp(Object? raw) {
+  if (raw is int && raw > 0) return raw;
+  return DateTime.now().millisecondsSinceEpoch;
 }
 
 Future<void> _migrateProgresses(Box<DownloadProgress> box) async {

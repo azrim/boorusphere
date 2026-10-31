@@ -268,7 +268,9 @@
       "invalid": "File cadangan tidak valid",
       "warningFile": "${file}\n\nPerhatian! tindakan ini akan menimpa data yang ada.\nApakah kamu yakin ingin melanjutkan?",
       "loading": "Memulihkan data..."
-    }
+    },
+    "downloadRecords": "Riwayat unduhan",
+    "downloadRecordsDesc": "Simpan daftar unduhan beserta statusnya; file media tidak ikut disalin"
   },
   "favorites_hint": "Tekan lama konten di timeline, lalu pilih Favorit dari menu untuk menyimpannya.",
   "browse_feed": "Jelajahi feed"

@@ -2,6 +2,7 @@ import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/downloads_repo.dart';
+import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -67,6 +68,12 @@ class _FakeDownloadsRepo implements DownloadsRepo {
 
   @override
   Iterable<DownloadProgress> getProgresses() => _progresses.values;
+
+  @override
+  Future<BackupItem> export() => throw UnimplementedError();
+
+  @override
+  Future<void> import(String src) => throw UnimplementedError();
 
   bool hasEntry(String id) => _entries.containsKey(id);
 }

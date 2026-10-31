@@ -59,6 +59,7 @@
 
 ### Backup & restore
 - Export everything (settings, search history, server list, blocked tags, favorites) to a single backup file.
+- Download records can be included as an opt-in catalog: the list and its statuses are restored, but the media files are not. A restored record whose file is absent shows **No file** and can be downloaded again.
 - **Telegram backup integration** — schedule automatic backups (daily / weekly / monthly) to a Telegram chat via your own bot, with a "Backup now" button for manual snapshots. Includes a "Test connection" button to verify your bot token / chat ID before scheduling.
 
 ### UI

@@ -10,11 +10,19 @@ abstract class BackupOption with _$BackupOption {
     @Default(true) bool blockedTags,
     @Default(true) bool favoritePost,
     @Default(true) bool setting,
+    // Off by default: the records describe what someone downloaded, which is
+    // more sensitive than the settings an automatic backup already carries.
+    @Default(false) bool downloadRecords,
     @Default(false) bool encrypt,
   }) = _BackupOption;
 }
 
 extension BackupOptionX on BackupOption {
   bool isValid() =>
-      (searchHistory || server || blockedTags || favoritePost || setting);
+      searchHistory ||
+      server ||
+      blockedTags ||
+      favoritePost ||
+      setting ||
+      downloadRecords;
 }
