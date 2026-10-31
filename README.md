@@ -87,6 +87,8 @@ The simplest path is to grab the latest **GitHub Release** APK from the badge ab
 | `x86_64` | Android emulators / Chromebooks running x86_64 Android. |
 | `universal` | Bigger file, runs on all of the above. Use only if unsure. |
 
+The in-app updater downloads the **split** APK for your device ABI, and a manually downloaded APK can only replace it when it is the same variant (or has a higher version code). The `universal` APK is for a first install only — its version code is lower than a split install's, so Android rejects it as a downgrade.
+
 The app is **not** on Google Play. F-Droid via IzzyOnDroid is currently disabled but the link remains in the source for when it's re-enabled.
 
 # Building from Source
@@ -118,6 +120,7 @@ The repo also ships [grinder](https://pub.dev/packages/grinder) tasks under `too
 grind chkfmt          # dart format --set-exit-if-changed (CI runs this)
 grind test            # flutter test --coverage
 grind apkrelease      # build split-per-abi release APKs (used by CI)
+grind apkarm64        # arm64 split release APK (the variant the updater installs)
 grind pigeons         # regenerate pigeon platform-channel bindings
 ```
 
