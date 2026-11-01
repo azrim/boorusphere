@@ -42,6 +42,14 @@ class AppLock extends _$AppLock {
   /// When the app went to the background, while a timed lock is armed.
   DateTime? _pausedAt;
 
+  /// Set while the app itself has a system surface open, such as the file
+  /// picker or the share sheet. The app pauses for it, but the user has not
+  /// left, so an immediate lock waits for the round-trip to finish.
+  DateTime? _externalFlowStartedAt;
+
+  /// Whether the pause being handled belongs to [_externalFlowStartedAt].
+  bool _pausedDuringExternalFlow = false;
+
   Timer? _retryTimer;
 
   @override
@@ -163,10 +171,35 @@ class AppLock extends _$AppLock {
     }
   }
 
+  /// Marks the start of a system surface the app opened itself, such as the
+  /// file picker.
+  ///
+  /// Call it right before awaiting the platform call and release it with
+  /// [endExternalFlow] when the call returns. The app pauses for that surface
+  /// like for any other activity, but the user has not left; an immediate
+  /// lock waits for the round-trip instead of covering the screen on return.
+  void beginExternalFlow() {
+    _externalFlowStartedAt = _now();
+  }
+
+  void endExternalFlow() {
+    _externalFlowStartedAt = null;
+  }
+
   void onAppPaused() {
     if (!state.isActive || state.locked) return;
     // The biometric sheet is part of the app, not a departure from it.
     if (_authenticating) return;
+
+    // The pause belongs to a surface the app opened itself. Remember the
+    // moment so a round-trip that runs past [externalFlowCeiling] still locks
+    // on resume.
+    if (_externalFlowStartedAt != null) {
+      _pausedDuringExternalFlow = true;
+      _pausedAt = _now();
+      return;
+    }
+    _pausedDuringExternalFlow = false;
 
     switch (state.timeout) {
       case LockTimeout.immediate:
@@ -182,14 +215,25 @@ class AppLock extends _$AppLock {
 
   void onAppResumed() {
     final pausedAt = _pausedAt;
+    final pausedDuringExternalFlow = _pausedDuringExternalFlow;
     _pausedAt = null;
+    _pausedDuringExternalFlow = false;
     unawaited(refreshBiometrics());
 
     if (pausedAt == null || !state.isActive || state.locked) return;
-    final grace = state.timeout.duration;
-    if (grace == null) return;
 
     final away = _now().difference(pausedAt);
+    // A quick trip through a picker is still the session the user started,
+    // even under the immediate policy. A long one means they left it there.
+    if (pausedDuringExternalFlow &&
+        state.timeout == LockTimeout.immediate &&
+        !away.isNegative &&
+        away <= externalFlowCeiling) {
+      return;
+    }
+
+    final grace = state.timeout.duration;
+    if (grace == null) return;
     if (!away.isNegative && away >= grace) _lock();
   }
 
@@ -215,6 +259,7 @@ class AppLock extends _$AppLock {
 
     _clearFailures();
     _pausedAt = null;
+    _pausedDuringExternalFlow = false;
     state = state.copyWith(enabled: false, hasPin: false, locked: false);
   }
 

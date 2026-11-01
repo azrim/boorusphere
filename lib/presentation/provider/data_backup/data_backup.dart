@@ -11,6 +11,7 @@ import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/data_backup/backup_cipher.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_option.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_result.dart';
@@ -148,7 +149,19 @@ class DataBackupState extends _$DataBackupState {
     // types on Android, and an .enc archive has none, which leaves it
     // greyed out and unselectable. What the file is gets decided below, from
     // its header rather than its name.
-    final picked = await FilePicker.pickFile(type: FileType.any);
+    //
+    // The picker covers the app with a system activity, which the lifecycle
+    // reports as a pause. Tell the lock this trip is still part of the session
+    // so an immediate timeout does not greet the user with the lock screen on
+    // the way back.
+    final lock = ref.read(appLockProvider.notifier);
+    lock.beginExternalFlow();
+    final PlatformFile? picked;
+    try {
+      picked = await FilePicker.pickFile(type: FileType.any);
+    } finally {
+      lock.endExternalFlow();
+    }
 
     final pickedPath = picked?.path;
     if (pickedPath == null) {

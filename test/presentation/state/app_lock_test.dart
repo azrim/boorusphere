@@ -284,6 +284,77 @@ void main() {
       expect(await pending, UnlockResult.success);
       expect(data().isLocked, isFalse);
     });
+
+    test(
+      'a picker round-trip does not lock under the immediate timeout',
+      () async {
+        await create();
+        await notifier().unlockWithPin('1234');
+
+        notifier().beginExternalFlow();
+        notifier().onAppPaused();
+        clock.advance(const Duration(seconds: 8));
+        notifier().endExternalFlow();
+        notifier().onAppResumed();
+
+        expect(data().isLocked, isFalse);
+      },
+    );
+
+    test(
+      'the picker result arriving after the resume keeps the session',
+      () async {
+        await create();
+        await notifier().unlockWithPin('1234');
+
+        // The platform result and the lifecycle resume arrive in an order the
+        // app does not control; either way the trip belongs to the session.
+        notifier().beginExternalFlow();
+        notifier().onAppPaused();
+        clock.advance(const Duration(seconds: 5));
+        notifier().onAppResumed();
+        notifier().endExternalFlow();
+
+        expect(data().isLocked, isFalse);
+      },
+    );
+
+    test('a picker left open past the ceiling locks on return', () async {
+      await create();
+      await notifier().unlockWithPin('1234');
+
+      notifier().beginExternalFlow();
+      notifier().onAppPaused();
+      clock.advance(externalFlowCeiling + const Duration(seconds: 1));
+      notifier().endExternalFlow();
+      notifier().onAppResumed();
+
+      expect(data().isLocked, isTrue);
+    });
+
+    test('a pause after the flow ended still locks immediately', () async {
+      await create();
+      await notifier().unlockWithPin('1234');
+
+      notifier().beginExternalFlow();
+      notifier().endExternalFlow();
+
+      notifier().onAppPaused();
+      expect(data().isLocked, isTrue);
+    });
+
+    test('a timed policy keeps its own grace during a picker trip', () async {
+      await create(timeout: LockTimeout.seconds30);
+      await notifier().unlockWithPin('1234');
+
+      notifier().beginExternalFlow();
+      notifier().onAppPaused();
+      clock.advance(const Duration(seconds: 31));
+      notifier().endExternalFlow();
+      notifier().onAppResumed();
+
+      expect(data().isLocked, isTrue);
+    });
   });
 
   group('biometrics', () {
