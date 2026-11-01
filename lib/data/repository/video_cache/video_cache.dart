@@ -21,16 +21,25 @@ class VideoCache {
     required Dio client,
     required Future<Directory> Function() directory,
     DateTime Function()? now,
-    this.maxBytes = defaultMaxBytes,
+    int maxBytes = defaultMaxBytes,
     this.maxConcurrentDownloads = 2,
   }) : _client = client, // ignore: prefer_initializing_formals
        _directory = directory, // ignore: prefer_initializing_formals
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now,
+       // A private field cannot be a named initializing formal, and the
+       // constructor exposes the budget under its public name.
+       _maxBytes = maxBytes; // ignore: prefer_initializing_formals
 
   /// Three hundred megabytes: a few short clips and the last long one, with
   /// enough headroom that the next watch still hits. Kept below the usual
   /// half-gigabyte phone cache budget so the system does not clear it first.
   static const defaultMaxBytes = 300 * 1024 * 1024;
+
+  /// Bounds for a budget chosen in the settings. A cache constructed directly
+  /// (tests, tools) may use any budget; the stored setting is the one that has
+  /// to stay within a range a phone can actually hold.
+  static const minBudgetBytes = 100 * 1024 * 1024;
+  static const maxBudgetBytes = 1024 * 1024 * 1024;
 
   static const _indexName = 'index.json';
   static const _indexVersion = 1;
@@ -43,7 +52,7 @@ class VideoCache {
   final Future<Directory> Function() _directory;
   final DateTime Function() _now;
 
-  final int maxBytes;
+  int _maxBytes;
   final _entries = <String, _CacheEntry>{};
   final _inflight = <String, Future<File?>>{};
 
@@ -53,6 +62,21 @@ class VideoCache {
   /// Serializes index reads and writes: two evictions or a touch and a store
   /// landing at once would otherwise write a stale entry map back.
   Future<void> _serial = Future.value();
+
+  /// Bytes the cache may hold before the least recently watched entry is
+  /// dropped.
+  int get maxBytes => _maxBytes;
+
+  /// Applies a new budget and drops the oldest videos right away, so lowering
+  /// the limit does not leave the cache over it until the next download.
+  Future<void> applyMaxBytes(int bytes) {
+    return _exclusive(() async {
+      _maxBytes = bytes;
+      await _ensureLoaded();
+      await _evictToFit();
+      await _writeIndex();
+    });
+  }
 
   /// Key of [url] as it appears on disk. Two independent 64-bit FNV-1a passes
   /// make a collision a practical impossibility without pulling in a hashing
@@ -150,8 +174,11 @@ class VideoCache {
     });
   }
 
-  /// Bytes currently held by the cache.
-  Future<int> sizeBytes() {
+  /// What the cache currently holds.
+  ///
+  /// Entries whose file is gone or shortened are dropped first, so the answer
+  /// only counts videos that can actually be replayed.
+  Future<VideoCacheStats> stats() {
     return _exclusive(() async {
       await _ensureLoaded();
       final dir = await _ensureDir();
@@ -163,7 +190,10 @@ class VideoCache {
         return !intact;
       });
       if (changed) await _writeIndex();
-      return _entries.values.fold<int>(0, (sum, entry) => sum + entry.size);
+      return VideoCacheStats(
+        bytes: _entries.values.fold<int>(0, (sum, entry) => sum + entry.size),
+        count: _entries.length,
+      );
     });
   }
 
@@ -404,6 +434,16 @@ class VideoCache {
       _ => '.bin',
     };
   }
+}
+
+/// One reading of the cache: [bytes] on disk across [count] videos.
+class VideoCacheStats {
+  const VideoCacheStats({required this.bytes, required this.count});
+
+  static const empty = VideoCacheStats(bytes: 0, count: 0);
+
+  final int bytes;
+  final int count;
 }
 
 class _CacheEntry {

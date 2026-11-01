@@ -1,3 +1,4 @@
+import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'content_setting.freezed.dart';
@@ -18,5 +19,6 @@ abstract class ContentSetting with _$ContentSetting {
     @Default(true) bool volumeKeyNavigation,
     @Default(false) bool hideFavorited,
     @Default(false) bool hideDownloaded,
+    @Default(VideoCache.defaultMaxBytes) int videoCacheMaxBytes,
   }) = _ContentSetting;
 }

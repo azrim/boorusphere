@@ -24,6 +24,9 @@ enum Setting {
   uiFeedMode,
   uiLanguage,
   videoPlayerMuted,
+  // Bytes the viewer's replay cache may hold before the least recently watched
+  // video is dropped.
+  videoCacheMaxBytes,
   // Viewer behaviour that is not about what is shown, but how it is stepped
   // through. Names are stored so a reordered enum keeps its meaning.
   viewerSlideshowDirection,

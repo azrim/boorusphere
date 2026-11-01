@@ -1,3 +1,7 @@
+## 3.1.1
+
+* **Cache**: Settings now shows one Cache section instead of separate video-cache and clear-cache rows — the stored video count and size, a size cap of 100 MB, 300 MB, 500 MB or 1 GB that drops the least recently watched videos as soon as it is lowered, and a single confirmed Clear cache action for images and videos
+
 ## 3.1.0
 
 Version 3.1 finishes the roadmap after 3.0.0: the download pipeline and the app lock, then the P2/P3 work on the viewer, search, network, feed and tags.

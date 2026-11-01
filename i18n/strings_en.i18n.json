@@ -380,17 +380,19 @@
       "title": "Hide downloaded posts",
       "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
     },
-    "clear_cache": {
-      "title": "Clear cache",
-      "desc": "Clear loaded content from cache",
+    "cache": {
+      "title": "Cache",
+      "stored": "Stored video cache",
+      "stored_count": "Watched videos kept: ${count}",
+      "empty": "No videos cached yet",
+      "limit": "Cache size limit",
+      "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+      "limit_done": "Cache limit set to ${size}",
+      "clear": "Clear cache",
+      "clear_desc": "Remove cached images and videos from this device",
+      "clear_title": "Clear cache?",
+      "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
       "done": "Cache cleared"
-    },
-    "video_cache": {
-      "title": "Video cache",
-      "desc": "Watched videos are kept on this device for instant replay",
-      "clear_title": "Clear video cache?",
-      "clear_message": "Every cached video is removed from this device. They will stream from the server again the next time one is opened.",
-      "done": "Video cache cleared"
     }
   },
   "data_backup": {

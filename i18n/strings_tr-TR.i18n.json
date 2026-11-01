@@ -207,11 +207,6 @@
     "post_limit": {
       "title": "Maks içerik yüklemesi",
       "desc": "Sonuç beklenenden daha az olabilir (engellenen etiketlerden veya geçersiz veriden dolayı kaynaklanabilir)"
-    },
-    "clear_cache": {
-      "title": "Önbelleği temizle",
-      "desc": "Önbellekten yüklenen içeriği temizle",
-      "done": "Önbellek temizlendi"
     }
   },
   "data_backup": {

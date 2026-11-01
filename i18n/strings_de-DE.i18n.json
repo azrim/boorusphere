@@ -217,11 +217,6 @@
     "post_limit": {
       "title": "Maximaler Inhalt pro Ladevorgang",
       "desc": "Das Ergebnis könnte geringer als erwartet ausfallen (verursacht durch blockierte Tags oder ungültige Daten)"
-    },
-    "clear_cache": {
-      "title": "Cache löschen",
-      "desc": "Geladenen Inhalt aus dem Cache löschen",
-      "done": "Cache gelöscht"
     }
   },
   "data_backup": {

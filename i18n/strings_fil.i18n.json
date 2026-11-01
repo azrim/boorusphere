@@ -173,11 +173,6 @@
     "post_limit": {
       "title": "Max na content kada-load",
       "desc": "Maaaring mas kaunti pa ang maload (dulot ng blocked tags o invalid na mga data)"
-    },
-    "clear_cache": {
-      "title": "Burahin ang laman ng cache",
-      "desc": "Burahin ang mga loaded content galing sa cache",
-      "done": "Naclear ang cache"
     }
   }
 }

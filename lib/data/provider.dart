@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:boorusphere/data/dio/app_dio.dart';
 import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
+import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
@@ -74,12 +75,17 @@ WebClearanceRepo webClearanceRepo(Ref ref) {
 @Riverpod(keepAlive: true)
 VideoCache videoCache(Ref ref) {
   final client = ref.watch(dioProvider);
+  final settings = ref.watch(settingsRepoProvider);
   return VideoCache(
     client: client,
     directory: () async {
       final root = await getApplicationCacheDirectory();
       return Directory(path.join(root.path, 'videos'));
     },
+    maxBytes: settings
+        .get(Setting.videoCacheMaxBytes, or: VideoCache.defaultMaxBytes)
+        .clamp(VideoCache.minBudgetBytes, VideoCache.maxBudgetBytes)
+        .toInt(),
   );
 }
 

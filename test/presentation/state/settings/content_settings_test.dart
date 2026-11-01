@@ -94,5 +94,22 @@ void main() async {
       await notifier().setHideDownloaded(true);
       expect(state().hideDownloaded, true);
     });
+
+    test('video cache limit is clamped to the offered range', () async {
+      await notifier().setVideoCacheMaxBytes(1);
+      expect(
+        state().videoCacheMaxBytes,
+        ContentSettingState.minVideoCacheMaxBytes,
+      );
+
+      await notifier().setVideoCacheMaxBytes(9 * 1024 * 1024 * 1024);
+      expect(
+        state().videoCacheMaxBytes,
+        ContentSettingState.maxVideoCacheMaxBytes,
+      );
+
+      await notifier().setVideoCacheMaxBytes(500 * 1024 * 1024);
+      expect(state().videoCacheMaxBytes, 500 * 1024 * 1024);
+    });
   });
 }

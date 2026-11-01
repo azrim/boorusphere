@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/repository/setting/entity/setting.dart';
+import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,6 +15,13 @@ class ContentSettingState extends _$ContentSettingState {
   static const maxSlideshowInterval = 15;
   static const minVideoSeekSeconds = 2;
   static const maxVideoSeekSeconds = 15;
+
+  /// Video cache budgets the settings offer, in megabytes. A stored value is
+  /// clamped to the same range, so an imported archive cannot leave the cache
+  /// with no room or let it grow past a gigabyte.
+  static const videoCacheLimitMegabytes = [100, 300, 500, 1024];
+  static const minVideoCacheMaxBytes = VideoCache.minBudgetBytes;
+  static const maxVideoCacheMaxBytes = VideoCache.maxBudgetBytes;
 
   @override
   ContentSetting build() {
@@ -43,6 +51,10 @@ class ContentSettingState extends _$ContentSettingState {
       ),
       hideFavorited: repo.get(Setting.timelineHideFavorited, or: false),
       hideDownloaded: repo.get(Setting.timelineHideDownloaded, or: false),
+      videoCacheMaxBytes: repo
+          .get(Setting.videoCacheMaxBytes, or: VideoCache.defaultMaxBytes)
+          .clamp(minVideoCacheMaxBytes, maxVideoCacheMaxBytes)
+          .toInt(),
     );
   }
 
@@ -120,5 +132,15 @@ class ContentSettingState extends _$ContentSettingState {
     final repo = ref.read(settingsRepoProvider);
     state = state.copyWith(hideDownloaded: value);
     await repo.put(Setting.timelineHideDownloaded, value);
+  }
+
+  Future<void> setVideoCacheMaxBytes(int bytes) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(
+      videoCacheMaxBytes: bytes
+          .clamp(minVideoCacheMaxBytes, maxVideoCacheMaxBytes)
+          .toInt(),
+    );
+    await repo.put(Setting.videoCacheMaxBytes, state.videoCacheMaxBytes);
   }
 }

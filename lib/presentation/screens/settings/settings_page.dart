@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
@@ -83,9 +84,10 @@ class SettingsPage extends StatelessWidget {
               title: context.t.servers.title,
               children: const [_LoadOriginal(), _PostLimit()],
             ),
+            const _CacheSection(),
             SettingsSection(
               title: context.t.settings.misc,
-              children: const [_BackupRestore(), _ClearCache(), _VideoCache()],
+              children: const [_BackupRestore()],
             ),
           ],
         ),
@@ -690,84 +692,140 @@ class _BackupRestore extends StatelessWidget {
   }
 }
 
-class _ClearCache extends ConsumerWidget {
-  const _ClearCache();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ListTile(
-      title: Text(context.t.settings.clearCache.title),
-      subtitle: RowSubtitle(Text(context.t.settings.clearCache.desc)),
-      onTap: () async {
-        showToast(context, context.t.clearing);
-
-        await DefaultCacheManager().emptyCache();
-        PaintingBinding.instance.imageCache.clear();
-        PaintingBinding.instance.imageCache.clearLiveImages();
-
-        if (context.mounted) {
-          showToast(context, context.t.settings.clearCache.done);
-        }
-      },
-    );
-  }
-}
-
-/// Shows how much the viewer's videos take up and empties it on request.
+/// Storage management for the viewer cache in one place: what is stored, how
+/// large it may grow, and the single action that empties it.
 ///
-/// The size is read when the page opens: it is a directory walk, not something
-/// to run on every rebuild.
-class _VideoCache extends ConsumerStatefulWidget {
-  const _VideoCache();
+/// The stored size is a directory walk, so it is read when the page opens and
+/// after a change rather than on every rebuild.
+class _CacheSection extends ConsumerStatefulWidget {
+  const _CacheSection();
 
   @override
-  ConsumerState<_VideoCache> createState() => _VideoCacheState();
+  ConsumerState<_CacheSection> createState() => _CacheSectionState();
 }
 
-class _VideoCacheState extends ConsumerState<_VideoCache> {
-  int? _bytes;
+class _CacheSectionState extends ConsumerState<_CacheSection> {
+  VideoCacheStats? _stats;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_refreshSize());
+    unawaited(_refresh());
   }
 
-  Future<void> _refreshSize() async {
-    final bytes = await ref.read(videoCacheProvider).sizeBytes();
+  Future<void> _refresh() async {
+    final stats = await ref.read(videoCacheProvider).stats();
     if (!mounted) return;
-    setState(() => _bytes = bytes);
+    setState(() => _stats = stats);
   }
 
   Future<void> _clear() async {
     final confirmed = await confirmDestructive(
       context,
-      title: context.t.settings.videoCache.clearTitle,
-      message: context.t.settings.videoCache.clearMessage,
+      title: context.t.settings.cache.clearTitle,
+      message: context.t.settings.cache.clearMessage,
       confirmLabel: context.t.clear,
     );
     if (!confirmed || !mounted) return;
 
     showToast(context, context.t.clearing);
+    await DefaultCacheManager().emptyCache();
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
     await ref.read(videoCacheProvider).clear();
-    await _refreshSize();
-    if (mounted) showToast(context, context.t.settings.videoCache.done);
+    await _refresh();
+    if (mounted) showToast(context, context.t.settings.cache.done);
+  }
+
+  Future<void> _pickLimit() async {
+    final bytes = ref.read(contentSettingStateProvider).videoCacheMaxBytes;
+    final megabytes = bytes ~/ (1024 * 1024);
+    final picked = await showChoiceSheet<int>(
+      context: context,
+      title: context.t.settings.cache.limit,
+      selected: ContentSettingState.videoCacheLimitMegabytes.contains(megabytes)
+          ? megabytes
+          : null,
+      choices: [
+        for (final value in ContentSettingState.videoCacheLimitMegabytes)
+          Choice(value: value, label: _formatMegabytes(value)),
+      ],
+    );
+    if (picked == null || !mounted) return;
+
+    final limit = picked.value * 1024 * 1024;
+    await ref
+        .read(contentSettingStateProvider.notifier)
+        .setVideoCacheMaxBytes(limit);
+    await ref.read(videoCacheProvider).applyMaxBytes(limit);
+    await _refresh();
+    if (mounted) {
+      showToast(
+        context,
+        context.t.settings.cache.limitDone(
+          size: _formatMegabytes(picked.value),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bytes = _bytes ?? 0;
-    return ListTile(
-      title: Text(context.t.settings.videoCache.title),
-      subtitle: RowSubtitle(Text(context.t.settings.videoCache.desc)),
-      trailing: bytes <= 0 ? null : Text(_formatBytes(bytes)),
-      onTap: _clear,
+    final stats = _stats ?? VideoCacheStats.empty;
+    final limit = ref.watch(
+      contentSettingStateProvider.select((it) => it.videoCacheMaxBytes),
+    );
+    final error = Theme.of(context).colorScheme.error;
+
+    return SettingsSection(
+      title: context.t.settings.cache.title,
+      children: [
+        ListTile(
+          title: Text(context.t.settings.cache.stored),
+          subtitle: RowSubtitle(
+            Text(
+              stats.count == 0
+                  ? context.t.settings.cache.empty
+                  : context.t.settings.cache.storedCount(count: stats.count),
+            ),
+          ),
+          trailing: stats.bytes <= 0 ? null : Text(_formatBytes(stats.bytes)),
+        ),
+        ListTile(
+          title: Text(context.t.settings.cache.limit),
+          subtitle: RowSubtitle(
+            Text(
+              context.t.settings.cache.limitDesc(
+                size: _formatMegabytes(limit ~/ (1024 * 1024)),
+              ),
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _pickLimit,
+        ),
+        ListTile(
+          title: Text(context.t.settings.cache.clear),
+          subtitle: RowSubtitle(Text(context.t.settings.cache.clearDesc)),
+          trailing: Icon(Icons.delete_outline, color: error),
+          onTap: _clear,
+        ),
+      ],
     );
   }
 }
 
 String _formatBytes(int bytes) {
-  const mb = 1024 * 1024;
-  if (bytes < mb) return '${(bytes / 1024).ceil()} KB';
-  return '${(bytes / mb).toStringAsFixed(1)} MB';
+  const kb = 1024;
+  const mb = kb * 1024;
+  const gb = mb * 1024;
+  if (bytes < mb) return '${(bytes / kb).ceil()} KB';
+  if (bytes < gb) return '${(bytes / mb).toStringAsFixed(1)} MB';
+  return '${(bytes / gb).toStringAsFixed(1)} GB';
+}
+
+String _formatMegabytes(int megabytes) {
+  if (megabytes >= 1024 && megabytes % 1024 == 0) {
+    return '${megabytes ~/ 1024} GB';
+  }
+  return '$megabytes MB';
 }

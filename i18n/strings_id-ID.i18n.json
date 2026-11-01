@@ -300,17 +300,19 @@
       "title": "Sembunyikan post yang diunduh",
       "desc": "Post dengan unduhan yang selesai tidak muncul di timeline; file tetap tersimpan di perangkat"
     },
-    "clear_cache": {
-      "title": "Hapus cache",
-      "desc": "Hapus konten yang tersimpan di cache",
+    "cache": {
+      "title": "Cache",
+      "stored": "Cache video tersimpan",
+      "stored_count": "Video yang disimpan: ${count}",
+      "empty": "Belum ada video yang di-cache",
+      "limit": "Batas ukuran cache",
+      "limit_desc": "Maksimal ${size}; video yang paling lama ditonton dihapus lebih dulu",
+      "limit_done": "Batas cache diatur ke ${size}",
+      "clear": "Hapus cache",
+      "clear_desc": "Hapus gambar dan video yang tersimpan di perangkat ini",
+      "clear_title": "Hapus cache?",
+      "clear_message": "Gambar dan video yang tersimpan di cache akan dihapus dari perangkat ini. Semuanya akan diunduh lagi saat dibutuhkan.",
       "done": "Cache dibersihkan"
-    },
-    "video_cache": {
-      "title": "Cache video",
-      "desc": "Video yang pernah ditonton disimpan di perangkat agar bisa diputar ulang seketika",
-      "clear_title": "Hapus cache video?",
-      "clear_message": "Semua video yang tersimpan di cache akan dihapus dari perangkat. Video akan dialirkan lagi dari server saat dibuka berikutnya.",
-      "done": "Cache video dibersihkan"
     }
   },
   "data_backup": {

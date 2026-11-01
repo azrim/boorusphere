@@ -121,7 +121,8 @@ void main() {
 
     expect(await cache.lookup(url), isNull);
     expect(file.existsSync(), isFalse);
-    expect(await cache.sizeBytes(), 0);
+    expect((await cache.stats()).bytes, 0);
+    expect((await cache.stats()).count, 0);
   });
 
   test('rejects the markup page a hotlink-protected server returns', () async {
@@ -146,7 +147,7 @@ void main() {
         .map((it) => p.basename(it.path))
         .toList();
     expect(names, ['index.json']);
-    expect(await cache.sizeBytes(), 0);
+    expect((await cache.stats()).bytes, 0);
   });
 
   test('does not keep a response larger than the whole cache', () async {
@@ -156,7 +157,7 @@ void main() {
     final file = await cache.cache('https://cdn.test/file/1.mp4', {});
 
     expect(file, isNull);
-    expect(await cache.sizeBytes(), 0);
+    expect((await cache.stats()).bytes, 0);
   });
 
   test(
@@ -186,6 +187,33 @@ void main() {
     },
   );
 
+  test(
+    'lowering the limit evicts the least recently used right away',
+    () async {
+      const a = 'https://cdn.test/file/a.mp4';
+      const b = 'https://cdn.test/file/b.mp4';
+      var clock = DateTime(2026);
+
+      final adapter = _FakeAdapter((options) => _video(_mp4()));
+      final cache = buildCache(_dio(adapter), maxBytes: 2500, now: () => clock);
+
+      await cache.cache(a, {});
+      clock = clock.add(const Duration(minutes: 1));
+      await cache.cache(b, {});
+      expect((await cache.stats()).count, 2);
+
+      await cache.applyMaxBytes(1024);
+
+      expect(cache.maxBytes, 1024);
+      final stats = await cache.stats();
+      expect(stats.bytes, 1024);
+      expect(stats.count, 1);
+      expect(await cache.lookup(a), isNull);
+      expect(await cache.lookup(b), isNotNull);
+      expect(cachedFile(a).existsSync(), isFalse);
+    },
+  );
+
   test('a second instance reads the index of the first', () async {
     const url = 'https://cdn.test/file/1.mp4';
     final first = buildCache(_dio(_FakeAdapter((_) => _video(_mp4()))));
@@ -212,11 +240,14 @@ void main() {
 
     await cache.cache(first, {});
     await cache.cache(second, {});
-    expect(await cache.sizeBytes(), 2048);
+    final stored = await cache.stats();
+    expect(stored.bytes, 2048);
+    expect(stored.count, 2);
 
     await cache.clear();
 
-    expect(await cache.sizeBytes(), 0);
+    expect((await cache.stats()).bytes, 0);
+    expect((await cache.stats()).count, 0);
     expect(cachedFile(first).existsSync(), isFalse);
     expect(cachedFile(second).existsSync(), isFalse);
   });
