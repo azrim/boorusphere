@@ -4,19 +4,23 @@ import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_info.dart';
 import 'package:boorusphere/data/repository/search_history/entity/search_history.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/imageboards_repo.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
+import 'package:boorusphere/presentation/provider/booru/feed_filter_state.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/server_setting.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,6 +68,9 @@ class _FakeRepo implements ImageboardRepo {
 
   @override
   Future<Iterable<Suggestion>> getSuggestion(String query) async => suggestions;
+
+  @override
+  Future<TagInfo> getTagInfo(String tag) async => TagInfo(name: tag);
 
   @override
   Future<ParsedPage> getPage(PageOption option, int index) async {
@@ -168,6 +175,15 @@ class _FakeSearchHistory extends SearchHistoryState {
   Future<void> save(String value, Server server) async {}
 }
 
+class _FakeUiSetting extends UiSettingState {
+  _FakeUiSetting(this.mode);
+
+  FeedMode mode;
+
+  @override
+  UiSetting build() => UiSetting(feedMode: mode);
+}
+
 ProviderContainer _container(
   ImageboardRepo repo, {
   _Window? window,
@@ -175,6 +191,8 @@ ProviderContainer _container(
   String blockerServerId = '',
   TagsBlockerState? blocker,
   ServerState? servers,
+  Set<FeedPostKey> hidden = const {},
+  FeedMode mode = FeedMode.paged,
 }) {
   final settings = window ?? _Window();
   final container = ProviderContainer(
@@ -187,6 +205,8 @@ ProviderContainer _container(
         () => blocker ?? _FakeTagsBlocker(blocked, serverId: blockerServerId),
       ),
       searchHistoryStateProvider.overrideWith(_FakeSearchHistory.new),
+      uiSettingStateProvider.overrideWith(() => _FakeUiSetting(mode)),
+      hiddenFeedPostKeysProvider.overrideWithValue(hidden),
       pageStateProvider.overrideWith(
         () => PageState(session: const SearchSession(serverId: 'S')),
       ),
@@ -340,6 +360,57 @@ void main() {
       ErrorFetchResult(:final error) => error,
       _ => null,
     }, isNot(BooruError.tagsBlocked));
+  });
+
+  test(
+    'a page emptied by a local filter is skipped like a blocked one',
+    () async {
+      // Favorited/downloaded filters work after the server answer. A whole page
+      // of filtered posts would otherwise leave an empty grid with `hasNext`
+      // still true.
+      final repo = _FakeRepo({
+        0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+        1: ParsedPage(posts: [_post(3)], rawCount: 1),
+      });
+      final container = _container(
+        repo,
+        window: _Window(limit: 2),
+        hidden: {(serverId: 'S', id: 1), (serverId: 'S', id: 2)},
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(pageStateProvider.notifier);
+
+      await notifier.load();
+
+      expect(repo.requested, [0, 1]);
+      final data = container.read(pageStateProvider).data;
+      expect(data.posts.map((it) => it.id), [3]);
+      expect(data.pageIndex, 2);
+      expect(data.hasPrev, isTrue);
+      expect(data.hasNext, isTrue);
+    },
+  );
+
+  test('a partly filtered page keeps its visible posts', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+    });
+    final container = _container(
+      repo,
+      window: _Window(limit: 2),
+      hidden: {(serverId: 'S', id: 1)},
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+
+    final data = container.read(pageStateProvider).data;
+    expect(data.posts.map((it) => it.id), [2]);
+    expect(data.pageIndex, 1);
+    // The server still returned a full page, so more results may follow even
+    // though only one post survived the filter.
+    expect(data.hasNext, isTrue);
   });
 
   test('suggestions hide tags blocked by a single positive entry', () async {
@@ -694,5 +765,197 @@ void main() {
 
     expect(container.read(pageStateProvider), isA<ErrorFetchResult>());
     expect(repo.requested, isEmpty);
+  });
+
+  test('infinite mode appends the next page instead of replacing it', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      1: ParsedPage(posts: [_post(2), _post(3)], rawCount: 2),
+    });
+    final container = _container(
+      repo,
+      window: _Window(limit: 2),
+      mode: FeedMode.infinite,
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    expect(container.read(pageStateProvider).data.posts.map((it) => it.id), [
+      1,
+      2,
+    ]);
+
+    await notifier.nextPage();
+
+    expect(repo.requested, [0, 1]);
+    final data = container.read(pageStateProvider).data;
+    // Post 2 arrived on both pages: an overlap is kept once.
+    expect(data.posts.map((it) => it.id), [1, 2, 3]);
+    expect(data.hasNext, isTrue);
+    expect(data.pageIndex, 2);
+  });
+
+  test(
+    'infinite mode stops at a literal empty page and keeps the list',
+    () async {
+      final repo = _FakeRepo({
+        0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      });
+      final container = _container(
+        repo,
+        window: _Window(limit: 2),
+        mode: FeedMode.infinite,
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(pageStateProvider.notifier);
+
+      await notifier.load();
+      await notifier.nextPage();
+
+      final data = container.read(pageStateProvider).data;
+      expect(data.posts.map((it) => it.id), [1, 2]);
+      expect(data.hasNext, isFalse);
+
+      // The end is final until a reload; the footer must not keep asking.
+      final requestedBefore = repo.requested.length;
+      await notifier.loadMore();
+      expect(repo.requested.length, requestedBefore);
+    },
+  );
+
+  test('infinite mode skips a page emptied by blocked tags', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      1: ParsedPage(posts: [_post(3, tag: 'blocked')], rawCount: 1),
+      2: ParsedPage(posts: [_post(4)], rawCount: 1),
+    });
+    final container = _container(
+      repo,
+      window: _Window(limit: 2),
+      blocked: ['blocked'],
+      mode: FeedMode.infinite,
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.nextPage();
+
+    expect(repo.requested, [0, 1, 2]);
+    final data = container.read(pageStateProvider).data;
+    expect(data.posts.map((it) => it.id), [1, 2, 4]);
+    expect(data.pageIndex, 3);
+  });
+
+  test(
+    'a window change restarts an infinite list instead of appending',
+    () async {
+      final repo = _FakeRepo({
+        for (var i = 0; i < 4; i++)
+          i: ParsedPage(posts: [_post(i)], rawCount: 1),
+      });
+      final window = _Window();
+      final container = _container(
+        repo,
+        window: window,
+        mode: FeedMode.infinite,
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(pageStateProvider.notifier);
+
+      await notifier.load();
+      await notifier.nextPage();
+      expect(container.read(pageStateProvider).data.posts, hasLength(2));
+
+      await container
+          .read(serverSettingStateProvider.notifier)
+          .setRating(BooruRating.explicit);
+      repo.requested.clear();
+      await notifier.nextPage();
+
+      // The old page index addresses different posts under the new window, so
+      // the list starts over from its first page rather than gluing the two.
+      expect(repo.requested, [0]);
+      final data = container.read(pageStateProvider).data;
+      expect(data.posts.map((it) => it.id), [0]);
+      expect(data.option.searchRating, BooruRating.explicit);
+    },
+  );
+
+  test('a failed append is retried as an append, keeping the list', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      1: ParsedPage(posts: [_post(3)], rawCount: 1),
+    });
+    final container = _container(
+      repo,
+      window: _Window(limit: 2),
+      mode: FeedMode.infinite,
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    repo.failing.add(1);
+    await notifier.nextPage();
+
+    final failed = container.read(pageStateProvider);
+    expect(failed, isA<ErrorFetchResult>());
+    expect(failed.data.posts.map((it) => it.id), [1, 2]);
+
+    repo.failing.clear();
+    await notifier.load();
+
+    expect(repo.requested, [0, 1, 1]);
+    final data = container.read(pageStateProvider).data;
+    expect(data.posts.map((it) => it.id), [1, 2, 3]);
+  });
+
+  test('infinite mode stops at the in-memory ceiling', () async {
+    final first = List.generate(
+      PageState.maxAccumulatedPosts - 50,
+      (i) => _post(i + 1),
+    );
+    final second = List.generate(100, (i) => _post(1000 + i));
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: first, rawCount: first.length),
+      1: ParsedPage(posts: second, rawCount: second.length),
+    });
+    final container = _container(repo, mode: FeedMode.infinite);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    expect(container.read(pageStateProvider).data.limitReached, isFalse);
+
+    await notifier.nextPage();
+
+    final data = container.read(pageStateProvider).data;
+    expect(data.posts, hasLength(PageState.maxAccumulatedPosts));
+    expect(data.limitReached, isTrue);
+
+    // The ceiling is a local limit, not the server's end: no further request.
+    await notifier.loadMore();
+    expect(repo.requested, [0, 1]);
+  });
+
+  test('loadMore leaves a paged feed alone', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      1: ParsedPage(posts: [_post(3)], rawCount: 1),
+    });
+    final container = _container(repo, window: _Window(limit: 2));
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.loadMore();
+
+    expect(repo.requested, [0]);
+    expect(container.read(pageStateProvider).data.posts.map((it) => it.id), [
+      1,
+      2,
+    ]);
   });
 }

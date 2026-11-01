@@ -8,6 +8,9 @@ enum Setting {
   postBlurExplicit,
   postBlurTimelineOnly,
   postLoadOriginal,
+  // Local feed filters applied after the server answer, like blocked tags.
+  timelineHideFavorited,
+  timelineHideDownloaded,
   serverLastActiveId,
   serverPostLimit,
   serverSafeMode,
@@ -17,8 +20,16 @@ enum Setting {
   uiColorPalette,
   uiTimelineGrid,
   uiLongPressHintSeen,
+  // Paged (default) or infinite: how the timeline walks through a result set.
+  uiFeedMode,
   uiLanguage,
   videoPlayerMuted,
+  // Viewer behaviour that is not about what is shown, but how it is stepped
+  // through. Names are stored so a reordered enum keeps its meaning.
+  viewerSlideshowDirection,
+  viewerSlideshowInterval,
+  viewerVideoSeekSeconds,
+  viewerVolumeKeyNavigation,
   imeIncognito,
   searchRating,
   // Hides the app in the recent-apps preview and blocks screenshots. Stored

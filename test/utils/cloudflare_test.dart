@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,20 @@ void main() {
         },
       );
       expect(isCloudflareChallenge(error), isTrue);
+    });
+
+    test('also recognises the challenge under a 503', () {
+      final error = _error(
+        status: 503,
+        headers: {
+          'cf-mitigated': ['challenge'],
+        },
+      );
+      expect(isCloudflareChallenge(error), isTrue);
+    });
+
+    test('recognises the mapped error the repository throws', () {
+      expect(isCloudflareChallenge(BooruError.cloudflareChallenge), isTrue);
     });
 
     test('reads the interstitial when a proxy strips the header', () {

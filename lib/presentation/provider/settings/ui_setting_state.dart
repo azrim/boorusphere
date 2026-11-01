@@ -25,6 +25,10 @@ class UiSettingState extends _$UiSettingState {
       colorPalette: ColorPalette.fromName(
         repo.get(Setting.uiColorPalette, or: ColorPalette.system.name),
       ),
+      feedMode: FeedMode.values.firstWhere(
+        (it) => it.name == repo.get(Setting.uiFeedMode, or: ''),
+        orElse: () => FeedMode.paged,
+      ),
       flagSecure: repo.get(Setting.flagSecure, or: true),
     );
   }
@@ -121,6 +125,13 @@ class UiSettingState extends _$UiSettingState {
     state = state.copyWith(colorPalette: palette);
     await repo.put(Setting.uiColorPalette, palette.name);
     return state.colorPalette;
+  }
+
+  Future<FeedMode> setFeedMode(FeedMode mode) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(feedMode: mode);
+    await repo.put(Setting.uiFeedMode, mode.name);
+    return state.feedMode;
   }
 
   Future<bool> setFlagSecure(bool value) async {

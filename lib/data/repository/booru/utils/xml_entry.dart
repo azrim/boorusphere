@@ -1,3 +1,4 @@
+import 'package:boorusphere/data/repository/booru/entity/tag_category.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:deep_pick/deep_pick.dart';
@@ -65,8 +66,11 @@ Set<Suggestion>? xmlSuggestions(Object? payload) {
   for (final entry in entries) {
     final tag = pick(entry, 'name').asStringOrNull() ?? '';
     final postCount = pick(entry, 'count').asIntOrNull() ?? 0;
+    // The Gelbooru-style tag API reports the category as `type`; a payload
+    // without it (Safebooru's autocomplete) simply leaves the category out.
+    final category = tagCategoryFromCode(pick(entry, 'type').asIntOrNull());
     if (postCount > 0 && tag.isNotEmpty) {
-      result.add(Suggestion(BooruUtil.decodeTag(tag), postCount));
+      result.add(Suggestion(BooruUtil.decodeTag(tag), postCount, category));
     }
   }
   return result;

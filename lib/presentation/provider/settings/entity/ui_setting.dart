@@ -32,6 +32,15 @@ enum ColorPalette {
   }
 }
 
+/// How the timeline walks through a result set.
+enum FeedMode {
+  /// Numbered pages swapped in place by the pagination control.
+  paged,
+
+  /// One growing list, extended by scrolling to the bottom.
+  infinite,
+}
+
 @freezed
 abstract class UiSetting with _$UiSetting {
   const factory UiSetting({
@@ -42,6 +51,9 @@ abstract class UiSetting with _$UiSetting {
     @Default(false) bool midnightMode,
     @Default(false) bool imeIncognito,
     @Default(ColorPalette.system) ColorPalette colorPalette,
+    // Paged keeps the reader oriented in a result set; infinite is for
+    // browsing. Stored by name so a reordered enum keeps its meaning.
+    @Default(FeedMode.paged) FeedMode feedMode,
     // On by default: this is an image board client, and the preview in the
     // recents switcher is the easiest place for its content to be seen by
     // someone else.

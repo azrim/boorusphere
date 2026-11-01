@@ -16,6 +16,10 @@
     "next": "Next page",
     "page": "Page ${page}"
   },
+  "feed": {
+    "end_of_results": "No more posts",
+    "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+  },
   "clearing": "Clearing...",
   "findRelated": "Find related",
   "details": "Details",
@@ -33,7 +37,7 @@
   "copyright": "Copyright",
   "general": "General",
   "oss_license": "Open source license",
-"project_section": "Project",
+  "project_section": "Project",
   "github": "GitHub",
   "open_settings": "Open Settings",
   "copy_success": "Copied to clipboard",
@@ -96,7 +100,19 @@
     "double_tap": "Double-tap to zoom",
     "swipe_up": "Swipe up for details",
     "swipe_down": "Swipe down to close the viewer",
+    "tag_info": "Long-press a tag for its details",
     "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+  },
+  "tag_info": {
+    "loading": "Loading tag info...",
+    "category": "Category",
+    "posts": "Posts",
+    "wiki": "Wiki",
+    "aliases": "Aliases",
+    "related": "Related tags",
+    "unsupported": "This server does not provide tag details.",
+    "unknown": "No details for this tag on ${server_name}.",
+    "unavailable": "Tag details could not be loaded from ${server_name}."
   },
   "page_status": {
     "http_error": "Cannot get result from ${server_name}",
@@ -110,6 +126,9 @@
     },
     "blocked": "'${query}' is blocked by Tags Blocker",
     "unparsable": "Cannot read the response from ${server_name}",
+    "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+    "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+    "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
     "change_server": "Change server",
     "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
     "verify": "Verify"
@@ -119,7 +138,8 @@
     "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
     "done": "Done",
     "saved": "Session saved for ${server_name}",
-    "nothing_saved": "No session to save yet"
+    "nothing_saved": "No session to save yet",
+    "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again."
   },
   "suggestion": {
     "not_supported": "${server_name} did not support search suggestion",
@@ -127,6 +147,10 @@
     "desc": "at ${server_name}",
     "empty": "No tags that matches '${query}'",
     "http_error": "Cannot get result for '${query}' on ${server_name}",
+    "selected": "${count} selected",
+    "add_selected": "Add selected",
+    "clear_selection": "Clear selection",
+    "usage_count": "searched ${count}×",
     "history_empty": "No search history yet",
     "history_no_match": "No matching history found",
     "history_hint": "Your recent searches will appear here",
@@ -158,7 +182,10 @@
     "exit_fullscreen": "Exit fullscreen",
     "play": "Play",
     "pause": "Pause",
-    "open_link": "Open link"
+    "open_link": "Open link",
+    "start_slideshow": "Start slideshow",
+    "stop_slideshow": "Stop slideshow",
+    "slideshow_progress": "Slideshow progress"
   },
   "updater": {
     "check": "Check for update",
@@ -285,6 +312,19 @@
   "settings": {
     "title": "Settings",
     "interface": "Interface",
+    "viewer": {
+      "title": "Viewer",
+      "slideshow_direction": "Slideshow direction",
+      "slideshow_forward": "Forward",
+      "slideshow_backward": "Backward",
+      "slideshow_random": "Random",
+      "slideshow_interval": "Slideshow interval",
+      "slideshow_interval_desc": "${seconds} seconds per post",
+      "double_tap_seek": "Double-tap seek",
+      "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+      "volume_keys": "Volume key navigation",
+      "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+    },
     "safe_mode": "Safe mode",
     "privacy": "Privacy",
     "misc": "Miscellaneous",
@@ -324,10 +364,33 @@
       "title": "Max content per-load",
       "desc": "Result might less than expected (caused by blocked tags or invalid data)"
     },
+    "feed_mode": {
+      "title": "Feed mode",
+      "desc": "How the timeline moves through the results",
+      "paged": "Paged",
+      "paged_desc": "Step through numbered pages with the arrows",
+      "infinite": "Infinite scroll",
+      "infinite_desc": "Keep scrolling and more posts load below"
+    },
+    "hide_favorited": {
+      "title": "Hide favorited posts",
+      "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+    },
+    "hide_downloaded": {
+      "title": "Hide downloaded posts",
+      "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+    },
     "clear_cache": {
       "title": "Clear cache",
       "desc": "Clear loaded content from cache",
       "done": "Cache cleared"
+    },
+    "video_cache": {
+      "title": "Video cache",
+      "desc": "Watched videos are kept on this device for instant replay",
+      "clear_title": "Clear video cache?",
+      "clear_message": "Every cached video is removed from this device. They will stream from the server again the next time one is opened.",
+      "done": "Video cache cleared"
     }
   },
   "data_backup": {

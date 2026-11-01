@@ -7,6 +7,14 @@ part 'content_setting_state.g.dart';
 
 @riverpod
 class ContentSettingState extends _$ContentSettingState {
+  /// Slideshow pace bounds. Stored values are clamped on read as well, so a
+  /// hand-edited or older archive cannot leave the timer at zero or at a
+  /// minutes-long interval.
+  static const minSlideshowInterval = 3;
+  static const maxSlideshowInterval = 15;
+  static const minVideoSeekSeconds = 2;
+  static const maxVideoSeekSeconds = 15;
+
   @override
   ContentSetting build() {
     final repo = ref.read(settingsRepoProvider);
@@ -15,6 +23,33 @@ class ContentSettingState extends _$ContentSettingState {
       blurTimelineOnly: repo.get(Setting.postBlurTimelineOnly, or: false),
       loadOriginal: repo.get(Setting.postLoadOriginal, or: false),
       videoMuted: repo.get(Setting.videoPlayerMuted, or: false),
+      slideshowDirection: _directionFrom(
+        repo.get(
+          Setting.viewerSlideshowDirection,
+          or: SlideshowDirection.forward.name,
+        ),
+      ),
+      slideshowInterval: repo
+          .get(Setting.viewerSlideshowInterval, or: 6)
+          .clamp(minSlideshowInterval, maxSlideshowInterval)
+          .toInt(),
+      videoSeekSeconds: repo
+          .get(Setting.viewerVideoSeekSeconds, or: 5)
+          .clamp(minVideoSeekSeconds, maxVideoSeekSeconds)
+          .toInt(),
+      volumeKeyNavigation: repo.get(
+        Setting.viewerVolumeKeyNavigation,
+        or: true,
+      ),
+      hideFavorited: repo.get(Setting.timelineHideFavorited, or: false),
+      hideDownloaded: repo.get(Setting.timelineHideDownloaded, or: false),
+    );
+  }
+
+  SlideshowDirection _directionFrom(String name) {
+    return SlideshowDirection.values.firstWhere(
+      (it) => it.name == name,
+      orElse: () => SlideshowDirection.forward,
     );
   }
 
@@ -41,5 +76,49 @@ class ContentSettingState extends _$ContentSettingState {
     state = state.copyWith(videoMuted: !state.videoMuted);
     await repo.put(Setting.videoPlayerMuted, state.videoMuted);
     return state.videoMuted;
+  }
+
+  Future<void> setSlideshowDirection(SlideshowDirection direction) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(slideshowDirection: direction);
+    await repo.put(Setting.viewerSlideshowDirection, direction.name);
+  }
+
+  Future<void> setSlideshowInterval(int seconds) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(
+      slideshowInterval: seconds
+          .clamp(minSlideshowInterval, maxSlideshowInterval)
+          .toInt(),
+    );
+    await repo.put(Setting.viewerSlideshowInterval, state.slideshowInterval);
+  }
+
+  Future<void> setVideoSeekSeconds(int seconds) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(
+      videoSeekSeconds: seconds
+          .clamp(minVideoSeekSeconds, maxVideoSeekSeconds)
+          .toInt(),
+    );
+    await repo.put(Setting.viewerVideoSeekSeconds, state.videoSeekSeconds);
+  }
+
+  Future<void> setVolumeKeyNavigation(bool value) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(volumeKeyNavigation: value);
+    await repo.put(Setting.viewerVolumeKeyNavigation, value);
+  }
+
+  Future<void> setHideFavorited(bool value) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(hideFavorited: value);
+    await repo.put(Setting.timelineHideFavorited, value);
+  }
+
+  Future<void> setHideDownloaded(bool value) async {
+    final repo = ref.read(settingsRepoProvider);
+    state = state.copyWith(hideDownloaded: value);
+    await repo.put(Setting.timelineHideDownloaded, value);
   }
 }

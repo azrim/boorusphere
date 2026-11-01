@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/download_quality.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
@@ -16,6 +20,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
+import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +49,7 @@ class SettingsPage extends StatelessWidget {
               title: context.t.settings.interface,
               children: const [
                 _Language(),
+                _FeedMode(),
                 _GestureSettings(),
                 _MidnightMode(),
                 _ColorPalette(),
@@ -51,10 +57,21 @@ class SettingsPage extends StatelessWidget {
               ],
             ),
             SettingsSection(
+              title: context.t.settings.viewer.title,
+              children: const [
+                _SlideshowDirection(),
+                _SlideshowInterval(),
+                _VideoSeekStep(),
+                _VolumeKeyNavigation(),
+              ],
+            ),
+            SettingsSection(
               title: context.t.settings.safeMode,
               children: const [
                 _BlurContent(),
                 _BlurTimelineOnly(),
+                _HideFavorited(),
+                _HideDownloaded(),
                 _ImeIncognito(),
               ],
             ),
@@ -68,7 +85,7 @@ class SettingsPage extends StatelessWidget {
             ),
             SettingsSection(
               title: context.t.settings.misc,
-              children: const [_BackupRestore(), _ClearCache()],
+              children: const [_BackupRestore(), _ClearCache(), _VideoCache()],
             ),
           ],
         ),
@@ -246,6 +263,135 @@ class _UiBlur extends ConsumerWidget {
   }
 }
 
+String _slideshowDirectionLabel(
+  BuildContext context,
+  SlideshowDirection direction,
+) {
+  return switch (direction) {
+    SlideshowDirection.forward => context.t.settings.viewer.slideshowForward,
+    SlideshowDirection.backward => context.t.settings.viewer.slideshowBackward,
+    SlideshowDirection.random => context.t.settings.viewer.slideshowRandom,
+  };
+}
+
+class _SlideshowDirection extends ConsumerWidget {
+  const _SlideshowDirection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final direction = ref.watch(
+      contentSettingStateProvider.select((it) => it.slideshowDirection),
+    );
+
+    return ListTile(
+      title: Text(context.t.settings.viewer.slideshowDirection),
+      subtitle: RowSubtitle(Text(_slideshowDirectionLabel(context, direction))),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () async {
+        final picked = await showChoiceSheet<SlideshowDirection>(
+          context: context,
+          title: context.t.settings.viewer.slideshowDirection,
+          selected: direction,
+          choices: [
+            for (final value in SlideshowDirection.values)
+              Choice(
+                value: value,
+                label: _slideshowDirectionLabel(context, value),
+                leading: Icon(switch (value) {
+                  SlideshowDirection.forward => Icons.arrow_forward,
+                  SlideshowDirection.backward => Icons.arrow_back,
+                  SlideshowDirection.random => Icons.shuffle,
+                }),
+              ),
+          ],
+        );
+        if (picked == null) return;
+        await ref
+            .read(contentSettingStateProvider.notifier)
+            .setSlideshowDirection(picked.value);
+      },
+    );
+  }
+}
+
+class _SlideshowInterval extends ConsumerWidget {
+  const _SlideshowInterval();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final interval = ref.watch(
+      contentSettingStateProvider.select((it) => it.slideshowInterval),
+    );
+
+    return SettingsSliderTile(
+      title: context.t.settings.viewer.slideshowInterval,
+      value: interval.toDouble(),
+      min: ContentSettingState.minSlideshowInterval.toDouble(),
+      max: ContentSettingState.maxSlideshowInterval.toDouble(),
+      divisions:
+          ContentSettingState.maxSlideshowInterval -
+          ContentSettingState.minSlideshowInterval,
+      valueLabel: '$interval',
+      helper: context.t.settings.viewer.slideshowIntervalDesc(
+        seconds: interval,
+      ),
+      onChanged: (value) {
+        ref
+            .read(contentSettingStateProvider.notifier)
+            .setSlideshowInterval(value.round());
+      },
+    );
+  }
+}
+
+class _VideoSeekStep extends ConsumerWidget {
+  const _VideoSeekStep();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final seconds = ref.watch(
+      contentSettingStateProvider.select((it) => it.videoSeekSeconds),
+    );
+
+    return SettingsSliderTile(
+      title: context.t.settings.viewer.doubleTapSeek,
+      value: seconds.toDouble(),
+      min: ContentSettingState.minVideoSeekSeconds.toDouble(),
+      max: ContentSettingState.maxVideoSeekSeconds.toDouble(),
+      divisions:
+          ContentSettingState.maxVideoSeekSeconds -
+          ContentSettingState.minVideoSeekSeconds,
+      valueLabel: '$seconds',
+      helper: context.t.settings.viewer.doubleTapSeekDesc(seconds: seconds),
+      onChanged: (value) {
+        ref
+            .read(contentSettingStateProvider.notifier)
+            .setVideoSeekSeconds(value.round());
+      },
+    );
+  }
+}
+
+class _VolumeKeyNavigation extends ConsumerWidget {
+  const _VolumeKeyNavigation();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SwitchListTile(
+      title: Text(context.t.settings.viewer.volumeKeys),
+      subtitle: RowSubtitle(Text(context.t.settings.viewer.volumeKeysDesc)),
+      value: ref.watch(
+        contentSettingStateProvider.select((it) => it.volumeKeyNavigation),
+      ),
+      onChanged: (value) {
+        ref
+            .read(contentSettingStateProvider.notifier)
+            .setVolumeKeyNavigation(value);
+      },
+    );
+  }
+}
+
 class _BlurContent extends ConsumerWidget {
   const _BlurContent();
 
@@ -282,6 +428,42 @@ class _BlurTimelineOnly extends ConsumerWidget {
       subtitle: RowSubtitle(Text(context.t.settings.blurTimelineOnly.desc)),
       value: contentSettings.blurTimelineOnly,
       onChanged: contentSettings.blurExplicit ? setBlurTimelineOnly : null,
+    );
+  }
+}
+
+class _HideFavorited extends ConsumerWidget {
+  const _HideFavorited();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SwitchListTile(
+      title: Text(context.t.settings.hideFavorited.title),
+      subtitle: RowSubtitle(Text(context.t.settings.hideFavorited.desc)),
+      value: ref.watch(
+        contentSettingStateProvider.select((it) => it.hideFavorited),
+      ),
+      onChanged: (value) {
+        ref.read(contentSettingStateProvider.notifier).setHideFavorited(value);
+      },
+    );
+  }
+}
+
+class _HideDownloaded extends ConsumerWidget {
+  const _HideDownloaded();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SwitchListTile(
+      title: Text(context.t.settings.hideDownloaded.title),
+      subtitle: RowSubtitle(Text(context.t.settings.hideDownloaded.desc)),
+      value: ref.watch(
+        contentSettingStateProvider.select((it) => it.hideDownloaded),
+      ),
+      onChanged: (value) {
+        ref.read(contentSettingStateProvider.notifier).setHideDownloaded(value);
+      },
     );
   }
 }
@@ -363,6 +545,52 @@ class _Language extends ConsumerWidget {
         );
         if (picked == null) return;
         await ref.read(uiSettingStateProvider.notifier).setLocale(picked.value);
+      },
+    );
+  }
+}
+
+class _FeedMode extends ConsumerWidget {
+  const _FeedMode();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(uiSettingStateProvider.select((it) => it.feedMode));
+
+    return ListTile(
+      title: Text(context.t.settings.feedMode.title),
+      subtitle: RowSubtitle(
+        Text(
+          mode == FeedMode.infinite
+              ? context.t.settings.feedMode.infinite
+              : context.t.settings.feedMode.paged,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () async {
+        final picked = await showChoiceSheet<FeedMode>(
+          context: context,
+          title: context.t.settings.feedMode.title,
+          selected: mode,
+          choices: [
+            Choice(
+              value: FeedMode.paged,
+              label: context.t.settings.feedMode.paged,
+              detail: context.t.settings.feedMode.pagedDesc,
+              leading: const Icon(Icons.swap_horiz_rounded),
+            ),
+            Choice(
+              value: FeedMode.infinite,
+              label: context.t.settings.feedMode.infinite,
+              detail: context.t.settings.feedMode.infiniteDesc,
+              leading: const Icon(Icons.expand_more_rounded),
+            ),
+          ],
+        );
+        if (picked == null) return;
+        await ref
+            .read(uiSettingStateProvider.notifier)
+            .setFeedMode(picked.value);
       },
     );
   }
@@ -483,4 +711,63 @@ class _ClearCache extends ConsumerWidget {
       },
     );
   }
+}
+
+/// Shows how much the viewer's videos take up and empties it on request.
+///
+/// The size is read when the page opens: it is a directory walk, not something
+/// to run on every rebuild.
+class _VideoCache extends ConsumerStatefulWidget {
+  const _VideoCache();
+
+  @override
+  ConsumerState<_VideoCache> createState() => _VideoCacheState();
+}
+
+class _VideoCacheState extends ConsumerState<_VideoCache> {
+  int? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_refreshSize());
+  }
+
+  Future<void> _refreshSize() async {
+    final bytes = await ref.read(videoCacheProvider).sizeBytes();
+    if (!mounted) return;
+    setState(() => _bytes = bytes);
+  }
+
+  Future<void> _clear() async {
+    final confirmed = await confirmDestructive(
+      context,
+      title: context.t.settings.videoCache.clearTitle,
+      message: context.t.settings.videoCache.clearMessage,
+      confirmLabel: context.t.clear,
+    );
+    if (!confirmed || !mounted) return;
+
+    showToast(context, context.t.clearing);
+    await ref.read(videoCacheProvider).clear();
+    await _refreshSize();
+    if (mounted) showToast(context, context.t.settings.videoCache.done);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes ?? 0;
+    return ListTile(
+      title: Text(context.t.settings.videoCache.title),
+      subtitle: RowSubtitle(Text(context.t.settings.videoCache.desc)),
+      trailing: bytes <= 0 ? null : Text(_formatBytes(bytes)),
+      onTap: _clear,
+    );
+  }
+}
+
+String _formatBytes(int bytes) {
+  const mb = 1024 * 1024;
+  if (bytes < mb) return '${(bytes / 1024).ceil()} KB';
+  return '${(bytes / mb).toStringAsFixed(1)} MB';
 }

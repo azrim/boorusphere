@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/provider/settings/gesture_setting_state
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/theme/tag_category_accents.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/booru_rating.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -43,14 +44,10 @@ const Color _kScrimMid = Color(0x2E000000);
 const Color _kScrimClear = Color(0x00000000);
 const Color _kLabelBackground = Color(0xB3000000); // ~70% black
 
-/// Tag category accents for the on-image chip, following the booru convention
+/// Tag category accents for the on-image chip follow the booru convention
 /// (artist orange, copyright purple, character green, general blue). The chip
-/// is drawn straight on an arbitrary image, so these are fixed hues rather than
-/// scheme tokens — the other documented exception to the adaptive-palette rule.
-const Color _kTagArtist = Color(0xFFFFB74D);
-const Color _kTagCopyright = Color(0xFFBA68C8);
-const Color _kTagCharacter = Color(0xFF81C784);
-const Color _kTagGeneral = Color(0xFF64B5F6);
+/// is drawn straight on an arbitrary image, so those fixed hues live in
+/// tag_category_accents.dart instead of the scheme.
 
 /// Opacity of the tag pill's category tint and its matching hairline border,
 /// so the pill reads as a soft capsule without hiding the image behind it.
@@ -126,16 +123,16 @@ String? _sourceLinkOf(Post post) {
 /// with the category accent that tints it.
 ({String label, Color color})? _topTagOf(Post post) {
   if (post.tagsArtist.isNotEmpty) {
-    return (label: post.tagsArtist.first, color: _kTagArtist);
+    return (label: post.tagsArtist.first, color: kTagArtistAccent);
   }
   if (post.tagsCopyright.isNotEmpty) {
-    return (label: post.tagsCopyright.first, color: _kTagCopyright);
+    return (label: post.tagsCopyright.first, color: kTagCopyrightAccent);
   }
   if (post.tagsCharacter.isNotEmpty) {
-    return (label: post.tagsCharacter.first, color: _kTagCharacter);
+    return (label: post.tagsCharacter.first, color: kTagCharacterAccent);
   }
   if (post.tagsGeneral.isNotEmpty) {
-    return (label: post.tagsGeneral.first, color: _kTagGeneral);
+    return (label: post.tagsGeneral.first, color: kTagGeneralAccent);
   }
   return null;
 }

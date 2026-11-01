@@ -78,6 +78,26 @@ class SearchBarController extends ChangeNotifier {
     _value = '${result.join(' ')} ';
   }
 
+  /// Appends several tags in one step, keeping the order they were selected in.
+  ///
+  /// The query is treated as a word list, so a tag already present is not added
+  /// twice — the search engines repeat a tag rather than narrow anything. The
+  /// trailing space lets the reader start the next tag without adding it to the
+  /// last one.
+  void appendTags(Iterable<String> tags) {
+    final result = <String>[];
+    final seen = <String>{};
+    for (final word in [
+      ...value.toWordList(),
+      ...tags.map((it) => it.trim()),
+    ]) {
+      if (word.isEmpty) continue;
+      if (seen.add(word.toLowerCase())) result.add(word);
+    }
+    if (result.isEmpty) return;
+    _value = '${result.join(' ')} ';
+  }
+
   void replaceLast(String newValue) {
     final current = value.toWordList();
     final result = {

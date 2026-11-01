@@ -1,18 +1,24 @@
 import 'dart:convert';
 
+import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:dio/dio.dart';
 
 /// Whether [error] is Cloudflare's "Just a moment…" check rather than a plain
 /// rejection.
 ///
-/// The check is answered with a 403 to every client that cannot run its
+/// The check is answered with a 403 or 503 to every client that cannot run its
 /// JavaScript, which on this platform is the API client itself. Reporting it as
 /// a bare status code reads like the server rejected the query, so the screen
 /// can tell the two apart and offer the browser that can answer it.
 bool isCloudflareChallenge(Object? error) {
+  if (error == BooruError.cloudflareChallenge) return true;
   if (error is! DioException) return false;
   final response = error.response;
-  if (response == null || response.statusCode != 403) return false;
+  if (response == null) return false;
+  final status = response.statusCode;
+  // Cloudflare serves the interstitial under either code depending on whether
+  // the edge could answer at all.
+  if (status != 403 && status != 503) return false;
 
   final mitigated = response.headers.value('cf-mitigated');
   if (mitigated != null && mitigated.toLowerCase() == 'challenge') return true;

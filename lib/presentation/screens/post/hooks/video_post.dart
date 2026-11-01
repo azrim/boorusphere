@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -82,36 +84,70 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   }
 
   /// Streams the media straight from the server so playback can start before
-  /// the whole file arrives. Servers that hotlink-protect their CDN (Gelbooru
-  /// among them) only accept the request with the same Referer/User-Agent
-  /// headers the image requests already use.
+  /// the whole file arrives — unless the video was watched before, in which
+  /// case it replays from the disk cache without a request.
+  ///
+  /// Servers that hotlink-protect their CDN (Gelbooru among them) only accept
+  /// the request with the same Referer/User-Agent headers the image requests
+  /// already use. The background cache download sends the same ones, so the
+  /// stored file is the response playback would have received.
   Future<void> createController() async {
     if (!hook.active) return;
 
+    final mediaUrl = hook.post.content.url;
+    final cache = hook.ref.read(videoCacheProvider);
+
+    File? cached;
+    try {
+      // A cache lookup is a small index read, but playback must not wait on
+      // storage or a platform channel that never answers: after this the
+      // network path is taken and the video still plays.
+      cached = await cache.lookup(mediaUrl).timeout(const Duration(seconds: 2));
+    } catch (e, stack) {
+      mainLog.w('VideoPost: failed to read the cache for $mediaUrl', e, stack);
+    }
+    if (!_stillCurrent(mediaUrl)) return;
+
+    if (cached != null) {
+      final controller = VideoPlayerController.file(
+        cached,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      );
+      unawaited(controller.setLooping(true));
+      setState(() {
+        source = source.copyWith(controller: controller);
+      });
+      return;
+    }
+
     final cookieJar = hook.ref.read(cookieJarProvider);
-    final cookies = await cookieJar.loadForRequest(
-      hook.post.content.url.toUri(),
-    );
+    final cookies = await cookieJar.loadForRequest(mediaUrl.toUri());
     final headers = hook.ref.read(
       postHeadersFactoryProvider(hook.post, cookies: cookies),
     );
+    if (!_stillCurrent(mediaUrl)) return;
 
     final controller = VideoPlayerController.networkUrl(
-      hook.post.content.url.toUri(),
+      mediaUrl.toUri(),
       videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
       httpHeaders: headers,
     );
     unawaited(controller.setLooping(true));
 
-    if (!context.mounted) {
-      unawaited(controller.dispose());
-      return;
-    }
-
     setState(() {
       source = source.copyWith(controller: controller);
     });
+
+    // Cache the same bytes while they stream, so the next visit can start
+    // instantly. This never blocks playback; a failure only leaves this visit
+    // streaming from the server.
+    unawaited(cache.cache(mediaUrl, headers));
   }
+
+  /// Whether [mediaUrl] still belongs to the post this hook shows and the
+  /// widget is still able to take a controller.
+  bool _stillCurrent(String mediaUrl) =>
+      hook.active && hook.post.content.url == mediaUrl && context.mounted;
 
   /// Manual retry: drop the failed controller and request the media again. The
   /// fresh controller instance re-triggers the viewer's

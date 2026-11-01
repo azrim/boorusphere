@@ -30,7 +30,11 @@ abstract class Server with _$Server {
 
   bool get canSuggestTags => tagSuggestionUrl.contains('{tag-part}');
 
-  String searchUrlOf(PageOption option, {required int page}) {
+  String searchUrlOf(
+    PageOption option, {
+    required int page,
+    bool includeCredentials = true,
+  }) {
     final query = option.query.trim();
     // An empty query means "no tag filter". Sending a wildcard instead makes
     // some engines (Gelbooru) scan the whole tag table before answering.
@@ -57,7 +61,7 @@ abstract class Server with _$Server {
         .replaceAll('{post-offset}', (page * option.limit).toString())
         .replaceAll('{post-limit}', '${option.limit}');
 
-    return appendCredentials(url);
+    return includeCredentials ? appendCredentials(url) : url;
   }
 
   /// Appends the configured credentials to [url].
@@ -84,7 +88,7 @@ abstract class Server with _$Server {
     return buffer.toString();
   }
 
-  String suggestionUrlsOf(String query) {
+  String suggestionUrlsOf(String query, {bool includeCredentials = true}) {
     var url = '$apiAddress/$tagSuggestionUrl'
         .replaceAll('{post-limit}', '$tagSuggestionLimit')
         .replaceAll('{tag-limit}', '$tagSuggestionLimit');
@@ -104,7 +108,7 @@ abstract class Server with _$Server {
       url = url.replaceAll('{tag-part}', encq);
     }
 
-    return appendCredentials(url);
+    return includeCredentials ? appendCredentials(url) : url;
   }
 
   String postUrlOf(int id) {

@@ -3,12 +3,15 @@ import 'dart:convert';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
+import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/empty_state.dart';
+import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -124,15 +127,46 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
     }
 
     if (!mounted) return;
-    _capturing = false;
     if (saved == 0) {
+      _capturing = false;
       if (manual) showToast(context, t.webChallenge.nothingSaved);
       return;
     }
 
     _poll?.cancel();
+    // Saving the cookie only proves the browser holds it. Prove the API client
+    // gets past the check too before closing this page: the agent and cookies
+    // have to travel together, and a session that only works inside the
+    // WebView would send the reader straight back to this card.
+    final cleared = await _clearanceWorks();
+    if (!mounted) return;
+    _capturing = false;
+    if (!cleared) {
+      showToast(context, t.webChallenge.verifyFailed);
+      // The browser may earn a fresh clearance on the next pass, so keep
+      // watching instead of leaving the page waiting for a manual tap.
+      _poll = Timer.periodic(const Duration(seconds: 2), (_) => _check());
+      return;
+    }
+
     showToast(context, t.webChallenge.saved(serverName: server.name));
     context.router.pop(true);
+  }
+
+  /// Sends one real API request through the stored clearance.
+  ///
+  /// Any answer that is not another challenge means Cloudflare let the client
+  /// through; whether the query itself succeeded is the timeline's business.
+  Future<bool> _clearanceWorks() async {
+    final server = ref.read(serverStateProvider).getById(widget.serverId);
+    try {
+      await ref
+          .read(imageboardRepoProvider(server))
+          .getPage(const PageOption(limit: 1), 0);
+      return true;
+    } catch (err) {
+      return !isCloudflareChallenge(err);
+    }
   }
 
   /// Every origin the page pulled a file from, so the image CDN of the same

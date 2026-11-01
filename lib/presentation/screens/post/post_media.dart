@@ -765,6 +765,16 @@ class _PostVideoContent extends HookConsumerWidget {
     final video = useVideoPostSource(ref, post: post, active: isActive);
     final source = video.source;
     final controller = isBlur.value ? null : source.controller;
+    final seekSeconds = contentSettings.videoSeekSeconds.clamp(2, 15).toInt();
+    final feedback = useState<_VideoGestureHint?>(null);
+    final feedbackTimer = useRef<Timer?>(null);
+    final doubleTapPosition = useRef(Offset.zero);
+
+    useEffect(
+      () =>
+          () => feedbackTimer.value?.cancel(),
+      [],
+    );
 
     onVisibilityChange(bool value) {
       showOverlay.value = value;
@@ -789,6 +799,69 @@ class _PostVideoContent extends HookConsumerWidget {
       });
     }
 
+    void showFeedback(_VideoGestureHint hint) {
+      feedback.value = hint;
+      feedbackTimer.value?.cancel();
+      feedbackTimer.value = Timer(const Duration(milliseconds: 650), () {
+        if (context.mounted) feedback.value = null;
+      });
+    }
+
+    void togglePlayback() {
+      final player = controller;
+      if (player == null) {
+        isPlaying.value = !isPlaying.value;
+        return;
+      }
+      isPlaying.value = !player.value.isPlaying;
+      player.value.isPlaying ? player.pause() : player.play();
+      scheduleHide();
+    }
+
+    void seekRelative(Duration delta) {
+      final player = controller;
+      if (player == null || !player.value.isInitialized) return;
+
+      final duration = player.value.duration;
+      final target = player.value.position + delta;
+      final clamped = target < Duration.zero
+          ? Duration.zero
+          : (target > duration ? duration : target);
+      player.seekTo(clamped);
+      scheduleHide();
+    }
+
+    void handleDoubleTap() {
+      if (isBlur.value) return;
+
+      final player = controller;
+      if (player == null) return;
+
+      // The seek zones are the familiar left / centre / right thirds. A
+      // double-tap on an image still belongs to the zoom gesture there; this
+      // surface only ever owns video posts.
+      final width = context.size?.width ?? MediaQuery.sizeOf(context).width;
+      final dx = doubleTapPosition.value.dx;
+      final step = Duration(seconds: seekSeconds);
+
+      if (dx < width / 3) {
+        seekRelative(-step);
+        showFeedback(
+          _VideoGestureHint(Icons.fast_rewind, '-${step.inSeconds}s'),
+        );
+      } else if (dx > width * 2 / 3) {
+        seekRelative(step);
+        showFeedback(
+          _VideoGestureHint(Icons.fast_forward, '+${step.inSeconds}s'),
+        );
+      } else {
+        togglePlayback();
+        showFeedback(
+          _VideoGestureHint(isPlaying.value ? Icons.play_arrow : Icons.pause),
+        );
+      }
+    }
+
     useEffect(() {
       Future(() {
         if (context.mounted && shouldBlur) {
@@ -800,7 +873,11 @@ class _PostVideoContent extends HookConsumerWidget {
     useEffect(() {
       Future<void> initialize() async {
         final player = controller;
-        if (player == null) return;
+        if (player == null || !context.mounted) return;
+
+        // The controller is recreated only when this post becomes active
+        // again, so a new visit autoplays even if the previous one was paused.
+        isPlaying.value = true;
 
         try {
           await player.initialize();
@@ -857,6 +934,10 @@ class _PostVideoContent extends HookConsumerWidget {
             onTap: () {
               onVisibilityChange.call(!showOverlay.value);
             },
+            onDoubleTapDown: (details) {
+              doubleTapPosition.value = details.localPosition;
+            },
+            onDoubleTap: handleDoubleTap,
             child: Container(
               color: showPauseOverlay.value
                   ? Colors.black38
@@ -872,17 +953,7 @@ class _PostVideoContent extends HookConsumerWidget {
                         visible: showPauseOverlay.value,
                         child: _PlayPauseOverlay(
                           isPlaying: isPlaying.value,
-                          onPressed: () {
-                            if (controller != null) {
-                              isPlaying.value = !controller.value.isPlaying;
-                              controller.value.isPlaying
-                                  ? controller.pause()
-                                  : controller.play();
-                              scheduleHide();
-                            } else {
-                              isPlaying.value = !isPlaying.value;
-                            }
-                          },
+                          onPressed: togglePlayback,
                         ),
                       ),
                       _ToolboxOverlay(
@@ -918,6 +989,28 @@ class _PostVideoContent extends HookConsumerWidget {
                 onSwipeDown: onSwipeDown,
               ),
             ),
+          // Double-tap feedback: a brief, non-interactive echo of the action
+          // so a seek is visible even when the toolbox is hidden.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: AnimatedSwitcher(
+                  duration: context.motionDuration(DesignTokens.durationFast),
+                  child: feedback.value == null
+                      ? const SizedBox.shrink(
+                          key: ValueKey('video_feedback_hidden'),
+                        )
+                      : _VideoGestureFeedback(
+                          key: ValueKey(
+                            'video_feedback_${feedback.value!.icon.codePoint}'
+                            '_${feedback.value!.label}',
+                          ),
+                          hint: feedback.value!,
+                        ),
+                ),
+              ),
+            ),
+          ),
           if (isBlur.value)
             Positioned(
               bottom: QuickBar.preferredBottomPosition(context) + 24,
@@ -1078,6 +1171,55 @@ class _PostVideoSwipeOverlay extends StatelessWidget {
               };
             }),
       },
+    );
+  }
+}
+
+@immutable
+class _VideoGestureHint {
+  const _VideoGestureHint(this.icon, [this.label]);
+
+  final IconData icon;
+
+  /// Null for the play/pause echo, which reads better as an icon alone.
+  final String? label;
+}
+
+class _VideoGestureFeedback extends StatelessWidget {
+  const _VideoGestureFeedback({super.key, required this.hint});
+
+  final _VideoGestureHint hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = hint.label;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacingLg,
+          vertical: DesignTokens.spacingSm,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(hint.icon, color: Colors.white, size: DesignTokens.iconAction),
+            if (label != null) ...[
+              const SizedBox(width: DesignTokens.spacingSm),
+              Text(
+                label,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.white),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

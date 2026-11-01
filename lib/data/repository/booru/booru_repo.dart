@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_info.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/imageboards_repo.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
@@ -29,13 +31,41 @@ class BooruRepo implements ImageboardRepo {
   @override
   final Server server;
 
+  /// Whether the credentials have to travel in the URL for [parser].
+  ///
+  /// Basic is only used when the parser documents it *and* the pair it needs
+  /// is configured; a lone API key is not a Basic login, so the query form
+  /// stays the fallback.
+  bool _credentialsInQuery(BooruParser parser) {
+    if (parser.authStyle != BooruAuthStyle.basic) return true;
+    return server.login.isEmpty || server.apiKey.isEmpty;
+  }
+
+  /// The parser's own headers plus the account credentials it accepts as a
+  /// header.
+  ///
+  /// Never logged: a credential in a log line outlives the session it was
+  /// meant for.
+  Map<String, String> _headersFor(BooruParser parser) {
+    final headers = {...parser.headers};
+    if (parser.authStyle == BooruAuthStyle.basic &&
+        server.login.isNotEmpty &&
+        server.apiKey.isNotEmpty) {
+      final pair = base64Encode(
+        utf8.encode('${server.login}:${server.apiKey}'),
+      );
+      headers['Authorization'] = 'Basic $pair';
+    }
+    return headers;
+  }
+
   Future<Response> _request(String url, BooruParser parser) async {
     final res = await client.get<List<int>>(
       url,
       options: Options(
         validateStatus: (it) => it == 200,
         responseType: ResponseType.bytes,
-        headers: parser.headers,
+        headers: _headersFor(parser),
       ),
     );
 
@@ -74,7 +104,10 @@ class BooruRepo implements ImageboardRepo {
         orElse: NoParser.new,
       );
 
-      final suggestionUrl = server.suggestionUrlsOf(word);
+      final suggestionUrl = server.suggestionUrlsOf(
+        word,
+        includeCredentials: _credentialsInQuery(parser),
+      );
       _log.v(
         'getSuggestion(${server.name}): URL = ${suggestionUrl.split('?').first}',
       );
@@ -122,6 +155,7 @@ class BooruRepo implements ImageboardRepo {
         );
         return {};
       }
+      if (isCloudflareChallenge(e)) throw BooruError.cloudflareChallenge;
       rethrow;
     }
   }
@@ -134,7 +168,11 @@ class BooruRepo implements ImageboardRepo {
         orElse: NoParser.new,
       );
 
-      final searchUrl = server.searchUrlOf(option, page: index);
+      final searchUrl = server.searchUrlOf(
+        option,
+        page: index,
+        includeCredentials: _credentialsInQuery(parser),
+      );
       final res = await _request(searchUrl, parser);
 
       if (parser.canParsePage(res)) {
@@ -172,6 +210,7 @@ class BooruRepo implements ImageboardRepo {
         );
         return const ParsedPage.empty();
       }
+      if (isCloudflareChallenge(e)) throw BooruError.cloudflareChallenge;
       rethrow;
     }
   }
@@ -186,5 +225,110 @@ class BooruRepo implements ImageboardRepo {
     if (data is String && data.trim().isEmpty) return true;
     if (data is List) return data.isEmpty;
     return parsers.any((it) => it.isEmptyPayload(res));
+  }
+
+  /// The parser that answers tag descriptions for this server.
+  ///
+  /// A configured search parser decides when it carries the capability. The
+  /// built-in presets carry no parser id, so their post endpoint is matched
+  /// against the dialect each capable parser recognises.
+  BooruParser? _tagInfoParser() {
+    final configured = parsers.firstWhere(
+      (it) => it.id == server.searchParserId,
+      orElse: NoParser.new,
+    );
+    if (configured.canServeTagInfo) return configured;
+
+    for (final parser in parsers) {
+      if (parser.canServeTagInfo && parser.matchesSearchUrl(server.searchUrl)) {
+        return parser;
+      }
+    }
+    return null;
+  }
+
+  String _withCredentials(BooruParser parser, String url) =>
+      _credentialsInQuery(parser) ? server.appendCredentials(url) : url;
+
+  /// Reads one optional part of a tag description.
+  ///
+  /// A wiki the engine hides from anonymous clients, or a related-tag endpoint
+  /// that times out, must not take the metadata that did arrive with it.
+  Future<T> _readOptional<T>(
+    BooruParser parser,
+    String url,
+    T Function(Response) read,
+    T fallback,
+  ) async {
+    try {
+      final res = await _request(_withCredentials(parser, url), parser);
+      return read(res);
+    } catch (e) {
+      _log.d('getTagInfo(${server.name}): optional part unavailable: $e');
+      return fallback;
+    }
+  }
+
+  @override
+  Future<TagInfo> getTagInfo(String tag) async {
+    final query = tag.trim();
+    if (query.isEmpty) return const TagInfo(name: '');
+
+    final parser = _tagInfoParser();
+    final request = parser?.tagInfoRequest(server, query);
+    if (parser == null || request == null) {
+      throw BooruError.tagInfoUnsupported;
+    }
+
+    try {
+      final res = await _request(
+        _withCredentials(parser, request.infoUrl),
+        parser,
+      );
+      final info = parser.parseTagInfo(query, res);
+      if (info == null) throw BooruError.unparsable;
+
+      // The parts are independent, so they are asked for together: a reader
+      // waiting for a sheet should wait one round trip, not four.
+      final wikiUrl = request.wikiUrl;
+      final aliasUrl = request.aliasUrl;
+      final relatedUrl = request.relatedUrl;
+      final parts = await Future.wait<Object>([
+        if (wikiUrl != null && info.wiki.isEmpty)
+          _readOptional(parser, wikiUrl, parser.parseTagWiki, '')
+        else
+          Future.value(info.wiki),
+        if (aliasUrl != null && info.aliases.isEmpty)
+          _readOptional(
+            parser,
+            aliasUrl,
+            parser.parseTagAliases,
+            const <String>[],
+          )
+        else
+          Future.value(info.aliases),
+        if (relatedUrl != null && info.related.isEmpty)
+          _readOptional(
+            parser,
+            relatedUrl,
+            parser.parseRelatedTags,
+            const <TagInfoRelated>[],
+          )
+        else
+          Future.value(info.related),
+      ]);
+
+      return TagInfo(
+        name: info.name,
+        category: info.category,
+        postCount: info.postCount,
+        wiki: parts[0] as String,
+        aliases: parts[1] as List<String>,
+        related: parts[2] as List<TagInfoRelated>,
+      );
+    } on DioException catch (e) {
+      if (isCloudflareChallenge(e)) throw BooruError.cloudflareChallenge;
+      rethrow;
+    }
   }
 }

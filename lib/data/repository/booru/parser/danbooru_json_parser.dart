@@ -1,8 +1,12 @@
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_category.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_info.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
+import 'package:boorusphere/data/repository/booru/utils/dtext_summary.dart';
 import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
+import 'package:boorusphere/data/repository/booru/utils/tag_alias_payload.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
@@ -29,6 +33,11 @@ class DanbooruJsonParser extends BooruParser {
     BooruParserType.search,
     BooruParserType.suggestion,
   ];
+
+  /// Danbooru documents HTTP Basic for accounts, which keeps the API key out
+  /// of every URL in the logs and the history.
+  @override
+  BooruAuthStyle get authStyle => BooruAuthStyle.basic;
 
   @override
   bool canParsePage(Response res) {
@@ -96,12 +105,85 @@ class DanbooruJsonParser extends BooruParser {
     for (final entry in entries.whereType<Map<String, dynamic>>()) {
       final tag = pick(entry, 'name').asStringOrNull() ?? '';
       final postCount = pick(entry, 'post_count').asIntOrNull() ?? 0;
+      final category = tagCategoryFromCode(
+        pick(entry, 'category').asIntOrNull(),
+      );
       if (postCount > 0 && tag.isNotEmpty) {
-        result.add(Suggestion(BooruUtil.decodeTag(tag), postCount));
+        result.add(Suggestion(BooruUtil.decodeTag(tag), postCount, category));
       }
     }
 
     return result;
+  }
+
+  @override
+  bool get canServeTagInfo => true;
+
+  @override
+  bool matchesSearchUrl(String searchUrl) => searchUrl.contains('posts.json');
+
+  @override
+  TagInfoRequest? tagInfoRequest(Server server, String tag) {
+    final base = server.apiAddress.replaceFirst(RegExp(r'/+$'), '');
+    final query = Uri.encodeComponent(tag);
+    return TagInfoRequest(
+      infoUrl: '$base/tags.json?search[name]=$query&limit=1',
+      wikiUrl: '$base/wiki_pages/$query.json',
+      relatedUrl: '$base/related_tag.json?query=$query',
+      aliasUrl:
+          '$base/tag_aliases.json?search[antecedent_name]=$query&limit=20',
+    );
+  }
+
+  @override
+  TagInfo? parseTagInfo(String tag, Response res) {
+    final data = res.data;
+    if (data is! List) return null;
+
+    final entry = _firstEntry(data);
+    if (entry == null) return TagInfo(name: tag);
+
+    final name = BooruUtil.decodeTag(
+      pick(entry, 'name').asStringOrNull() ?? '',
+    );
+    return TagInfo(
+      name: name.isEmpty ? tag : name,
+      category: tagCategoryFromCode(pick(entry, 'category').asIntOrNull()),
+      postCount: pick(entry, 'post_count').asIntOrNull(),
+    );
+  }
+
+  @override
+  String parseTagWiki(Response res) {
+    final data = res.data;
+    if (data is! Map) return '';
+    return dtextSummary(pick(data, 'body').asStringOrNull() ?? '');
+  }
+
+  @override
+  List<String> parseTagAliases(Response res) => tagAliasNamesFrom(res.data);
+
+  @override
+  List<TagInfoRelated> parseRelatedTags(Response res) {
+    final data = res.data;
+    if (data is! Map) return const [];
+    final entries = data['related_tags'];
+    if (entries is! List) return const [];
+
+    final related = <TagInfoRelated>[];
+    for (final entry in entries.whereType<Map>()) {
+      final name = BooruUtil.decodeTag(
+        pick(entry, 'tag', 'name').asStringOrNull() ?? '',
+      );
+      if (name.isEmpty) continue;
+      related.add(
+        TagInfoRelated(
+          name,
+          pick(entry, 'tag', 'post_count').asIntOrNull() ?? 0,
+        ),
+      );
+    }
+    return related.take(20).toList();
   }
 
   /// The first entry of a JSON array payload, or null when the payload is not

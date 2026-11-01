@@ -21,17 +21,22 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
     // history (regardless of server), delete the prior occurrence(s)
     // first so the new entry rises to the top when the UI iterates
     // newest-first. Hive auto-incrementing keys guarantee the most
-    // recently `add()`-ed entry has the highest key.
+    // recently `add()`-ed entry has the highest key. The previous count is
+    // carried over and bumped, so the row keeps how often the query was used.
     final existingKeys = <int>[];
+    var count = 0;
     for (final entry in box.toMap().entries) {
       if (entry.value.query == query && entry.key is int) {
         existingKeys.add(entry.key as int);
+        if (entry.value.count > count) count = entry.value.count;
       }
     }
     if (existingKeys.isNotEmpty) {
       await box.deleteAll(existingKeys);
     }
-    await box.add(SearchHistory(query: query, server: serverId));
+    await box.add(
+      SearchHistory(query: query, server: serverId, count: count + 1),
+    );
   }
 
   @override

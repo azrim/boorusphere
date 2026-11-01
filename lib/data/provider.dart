@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:boorusphere/data/dio/app_dio.dart';
 import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
+import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/app_lock_repo.dart';
@@ -62,6 +64,23 @@ Dio dio(Ref ref) {
 @Riverpod(keepAlive: true)
 WebClearanceRepo webClearanceRepo(Ref ref) {
   return WebClearanceRepo.open();
+}
+
+/// The disk cache videos are replayed from.
+///
+/// Kept alive so the index and the background downloads survive a page change,
+/// and so clearing it from the settings empties the same instance the player
+/// reads from.
+@Riverpod(keepAlive: true)
+VideoCache videoCache(Ref ref) {
+  final client = ref.watch(dioProvider);
+  return VideoCache(
+    client: client,
+    directory: () async {
+      final root = await getApplicationCacheDirectory();
+      return Directory(path.join(root.path, 'videos'));
+    },
+  );
 }
 
 /// The PIN verifier and lock preferences, read from secure storage at boot.

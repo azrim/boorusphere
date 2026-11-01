@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/dio/headers_interceptor.dart';
+import 'package:boorusphere/data/dio/host_rate_limiter.dart';
 import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:cookie_jar/cookie_jar.dart';
@@ -39,14 +40,20 @@ class AppDio extends DioForNative {
       ..add(CookieManager(cookieJar))
       ..add(HeadersInterceptor(envRepo, clearance))
       ..add(
+        // A burst of pages and suggestions is what gets an IP blocked. The
+        // limiter queues the requests per host and also carries the cooldown a
+        // 429 asked for into the one retry.
+        HttpEtiquetteInterceptor(dio: this, limiter: HostRateLimiter()),
+      )
+      ..add(
         RetryInterceptor(
           dio: this,
           retries: retryDelays.length,
           retryDelays: retryDelays,
           // A 429 is the server asking us to back off, not a transient
-          // failure: retrying it multiplies the pressure it just complained
-          // about. It reaches the caller immediately, which is also what
-          // honoring Retry-After means when no retry is attempted.
+          // failure. HttpEtiquetteInterceptor already spent the one retry a
+          // stated Retry-After allows; a second one here would multiply the
+          // pressure the server complained about.
           retryEvaluator: (error, attempt) {
             if (error.response?.statusCode == 429) return false;
             return RetryInterceptor.defaultRetryEvaluator(error, attempt);

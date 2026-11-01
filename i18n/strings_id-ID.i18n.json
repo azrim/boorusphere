@@ -16,6 +16,10 @@
     "next": "Halaman berikutnya",
     "page": "Halaman ${page}"
   },
+  "feed": {
+    "end_of_results": "Tidak ada post lagi",
+    "limit_reached": "Batas satu sesi tercapai. Tarik ke bawah untuk mulai lagi."
+  },
   "clearing": "Membersihkan...",
   "details": "Rincian",
   "location": "Lokasi",
@@ -29,7 +33,7 @@
   "copyright": "Hak Cipta",
   "general": "General",
   "oss_license": "Lisensi sumber terbuka",
-"project_section": "Proyek",
+  "project_section": "Proyek",
   "github": "GitHub",
   "open_settings": "Buka Pengaturan",
   "copy_success": "Disalin ke clipboard",
@@ -62,6 +66,17 @@
     "all": "Semua",
     "disable_rating_safe": "Matikan penilaian aman"
   },
+  "tag_info": {
+    "loading": "Memuat info tag...",
+    "category": "Kategori",
+    "posts": "Post",
+    "wiki": "Wiki",
+    "aliases": "Alias",
+    "related": "Tag terkait",
+    "unsupported": "Server ini belum menyediakan info tag.",
+    "unknown": "Tidak ada rincian untuk tag ini di ${server_name}.",
+    "unavailable": "Info tag tidak bisa dimuat dari ${server_name}."
+  },
   "page_status": {
     "http_error": "Tidak bisa mendapatkan hasil dari ${server_name}",
     "no_result": {
@@ -74,6 +89,9 @@
     },
     "blocked": "'${query}' diblokir oleh Tags Blocker",
     "unparsable": "Tidak bisa membaca respons dari ${server_name}",
+    "unauthorized": "${server_name} memerlukan masuk. Tambahkan akun atau API key di pengaturan server.",
+    "forbidden": "${server_name} menolak permintaan ini. Periksa izin akun atau tag pencarian.",
+    "rate_limited": "${server_name} membatasi permintaan. Tunggu sebentar lalu coba lagi.",
     "cloudflare_challenge": "${server_name} meminta pemeriksaan browser yang tidak bisa dijalankan aplikasi ini. Verifikasi sekali di browser bawaan.",
     "verify": "Verifikasi"
   },
@@ -82,14 +100,19 @@
     "hint": "Selesaikan pemeriksaan di halaman ini. Hasilnya disimpan dan halaman ini menutup sendiri.",
     "done": "Selesai",
     "saved": "Sesi disimpan untuk ${server_name}",
-    "nothing_saved": "Belum ada sesi yang bisa disimpan"
+    "nothing_saved": "Belum ada sesi yang bisa disimpan",
+    "verify_failed": "Pemeriksaan belum lolos. Selesaikan di halaman, lalu tekan Selesai lagi."
   },
   "suggestion": {
     "not_supported": "${server_name} tidak mendukung saran pencarian",
     "suggested": "Disarankan di ${server_name}",
     "desc": "di ${server_name}",
     "empty": "Tidak ada tag yang cocok dengan '${query}'",
-    "http_error": "Tidak bisa mendapatkan hasil untuk '${query}' di ${server_name}"
+    "http_error": "Tidak bisa mendapatkan hasil untuk '${query}' di ${server_name}",
+    "selected": "${count} dipilih",
+    "add_selected": "Tambahkan",
+    "clear_selection": "Bersihkan pilihan",
+    "usage_count": "dicari ${count}×"
   },
   "action_tag": {
     "copy": "Salin tag",
@@ -209,6 +232,19 @@
   "settings": {
     "title": "Pengaturan",
     "interface": "Antarmuka",
+    "viewer": {
+      "title": "Penampil",
+      "slideshow_direction": "Arah slideshow",
+      "slideshow_forward": "Maju",
+      "slideshow_backward": "Mundur",
+      "slideshow_random": "Acak",
+      "slideshow_interval": "Interval slideshow",
+      "slideshow_interval_desc": "${seconds} detik per postingan",
+      "double_tap_seek": "Lompat lewat ketuk dua kali",
+      "double_tap_seek_desc": "Lompat ${seconds} detik per ketuk dua kali pada video",
+      "volume_keys": "Navigasi tombol volume",
+      "volume_keys_desc": "Volume naik membuka postingan berikutnya, volume turun sebelumnya"
+    },
     "safe_mode": "Mode aman",
     "privacy": "Privasi",
     "misc": "Lain-lain",
@@ -248,10 +284,33 @@
       "title": "Maksimum konten setiap muatan",
       "desc": "Hasil mungkin kurang dari yang diharapkan (disebabkan oleh tag yang diblokir atau data yang tidak valid)"
     },
+    "feed_mode": {
+      "title": "Mode feed",
+      "desc": "Cara timeline berpindah antar hasil",
+      "paged": "Halaman bernomor",
+      "paged_desc": "Pindah halaman dengan tombol panah",
+      "infinite": "Gulir tanpa batas",
+      "infinite_desc": "Terus menggulir; post berikutnya dimuat di bawah"
+    },
+    "hide_favorited": {
+      "title": "Sembunyikan post favorit",
+      "desc": "Post yang difavoritkan tidak muncul di timeline; tetap tersimpan di Favorit"
+    },
+    "hide_downloaded": {
+      "title": "Sembunyikan post yang diunduh",
+      "desc": "Post dengan unduhan yang selesai tidak muncul di timeline; file tetap tersimpan di perangkat"
+    },
     "clear_cache": {
       "title": "Hapus cache",
       "desc": "Hapus konten yang tersimpan di cache",
       "done": "Cache dibersihkan"
+    },
+    "video_cache": {
+      "title": "Cache video",
+      "desc": "Video yang pernah ditonton disimpan di perangkat agar bisa diputar ulang seketika",
+      "clear_title": "Hapus cache video?",
+      "clear_message": "Semua video yang tersimpan di cache akan dihapus dari perangkat. Video akan dialirkan lagi dari server saat dibuka berikutnya.",
+      "done": "Cache video dibersihkan"
     }
   },
   "data_backup": {
@@ -319,5 +378,10 @@
     "forgot_desc": "Menghapus data aplikasi atau memasang ulang akan menghapus kunci beserta data yang tersimpan."
   },
   "favorites_hint": "Tekan lama konten di timeline, lalu pilih Favorit dari menu untuk menyimpannya.",
-  "browse_feed": "Jelajahi feed"
+  "browse_feed": "Jelajahi feed",
+  "viewer": {
+    "start_slideshow": "Mulai slideshow",
+    "stop_slideshow": "Hentikan slideshow",
+    "slideshow_progress": "Progres slideshow"
+  }
 }

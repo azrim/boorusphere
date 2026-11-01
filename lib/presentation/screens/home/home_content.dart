@@ -6,10 +6,14 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/batch_download_provider.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
+import 'package:boorusphere/presentation/provider/booru/feed_filter_state.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/screens/home/first_run_view.dart';
@@ -45,6 +49,9 @@ class HomeContent extends HookConsumerWidget {
     );
     final session = ref.watch(searchSessionProvider);
     final servers = ref.watch(serverStateProvider);
+    final feedMode = ref.watch(
+      uiSettingStateProvider.select((it) => it.feedMode),
+    );
 
     // The blocked set is derived, not selected: a fresh list per read never
     // compares equal, so select would rebuild on every blocker emission.
@@ -61,16 +68,48 @@ class HomeContent extends HookConsumerWidget {
     );
 
     // Filtering walks every post and allocates a list, so it runs only when
-    // the posts or the blocked set change.
+    // the posts or the blocked set change. The local filters are derived as one
+    // set for the same reason: a favorite added from the grid hides its post
+    // without a refetch.
+    final hidden = ref.watch(hiddenFeedPostKeysProvider);
     final filteredPosts = useMemoized(
       () => data.posts
           .where(
             (it) =>
-                !matchesBlockedTagExpressions(blockedExpressions, it.allTags),
+                !matchesBlockedTagExpressions(blockedExpressions, it.allTags) &&
+                !hidden.contains(feedPostKeyOf(it)),
           )
           .toList(),
-      [data.posts, blockedExpressions],
+      [data.posts, blockedExpressions, hidden],
     );
+
+    // The fetched page already had the filters applied, so turning one off
+    // cannot bring those posts back from the loaded data alone. Reload when the
+    // pair changes; the page-state guards fold this into an in-flight fetch.
+    ref.listen(
+      contentSettingStateProvider.select(
+        (it) => (it.hideFavorited, it.hideDownloaded),
+      ),
+      (previous, next) {
+        if (previous == next) return;
+        unawaited(ref.read(pageStateProvider.notifier).load());
+      },
+    );
+
+    // A mode change re-indexes what is on screen: paged lands on the last page
+    // the reader left, infinite holds a list that has no page. Restart the
+    // result set so neither mode inherits the other's cursor.
+    ref.listen(uiSettingStateProvider.select((it) => it.feedMode), (
+      previous,
+      next,
+    ) {
+      if (previous == next) return;
+      unawaited(
+        ref
+            .read(pageStateProvider.notifier)
+            .update((option) => option.copyWith(clear: true)),
+      );
+    });
 
     useEffect(() {
       if (servers.isNotEmpty) {
@@ -110,6 +149,21 @@ class HomeContent extends HookConsumerWidget {
         final canBack = (position?.pixels ?? 0) > 600;
         if (canBack != canBackToTop.value) canBackToTop.value = canBack;
 
+        // Infinite mode grows the list as the end comes into view. The guards
+        // live in PageState; reading the freshest state here keeps a tick from
+        // asking for a page already on the wire or past the end.
+        if (feedMode == FeedMode.infinite &&
+            position != null &&
+            position.extentAfter < 600) {
+          final result = ref.read(pageStateProvider);
+          if (result is DataFetchResult) {
+            final data = result.data;
+            if (data.hasNext && data.posts.isNotEmpty && !data.limitReached) {
+              unawaited(ref.read(pageStateProvider.notifier).loadMore());
+            }
+          }
+        }
+
         if (!isScrolling.value) isScrolling.value = true;
         settle?.cancel();
         settle = Timer(const Duration(milliseconds: 700), () {
@@ -122,7 +176,7 @@ class HomeContent extends HookConsumerWidget {
         scrollController.removeListener(onScroll);
         settle?.cancel();
       };
-    }, [scrollController]);
+    }, [scrollController, feedMode]);
 
     // React to a page change or a new query: scroll back to the top and drop
     // any selection that belonged to the previous results.
@@ -130,6 +184,7 @@ class HomeContent extends HookConsumerWidget {
     final query = data.option.query;
     final lastPageIndex = useMemoized(() => <int>[pageIndex]);
     final lastQuery = useMemoized(() => <String>[query]);
+    final lastFeedMode = useMemoized(() => <FeedMode>[feedMode]);
     useEffect(() {
       final indexChanged = lastPageIndex[0] != pageIndex;
       lastPageIndex[0] = pageIndex;
@@ -137,7 +192,16 @@ class HomeContent extends HookConsumerWidget {
       // change and the new results would open at the old offset.
       final queryChanged = lastQuery[0] != query;
       lastQuery[0] = query;
-      if (!indexChanged && !queryChanged) return null;
+      final modeChanged = lastFeedMode[0] != feedMode;
+      lastFeedMode[0] = feedMode;
+      // Appending in infinite mode also moves the page index, but it must not
+      // yank the reader back to the top; only a paged step, a new query or a
+      // mode switch opens at the first result.
+      final restart =
+          queryChanged ||
+          modeChanged ||
+          (indexChanged && feedMode == FeedMode.paged);
+      if (!restart) return null;
 
       // Effects run while the tree is still building, so both the scroll jump
       // and the selection reset have to wait for the frame to finish.
@@ -147,7 +211,7 @@ class HomeContent extends HookConsumerWidget {
         ref.read(postSelectionProvider.notifier).clear();
       });
       return null;
-    }, [pageIndex, query, scrollController]);
+    }, [pageIndex, query, feedMode, scrollController]);
 
     final isNewSearch = !isData && data.option.clear;
 
@@ -193,6 +257,7 @@ class HomeContent extends HookConsumerWidget {
     // The hint owns the band above the bar until it is dismissed, so the pill
     // does not compete with it on the first run.
     final showPagination =
+        feedMode == FeedMode.paged &&
         !isNewSearch &&
         data.posts.isNotEmpty &&
         !hasSelection &&
@@ -217,12 +282,29 @@ class HomeContent extends HookConsumerWidget {
                     sliver: Timeline(posts: filteredPosts),
                   ),
                 ),
+              if (!isNewSearch && feedMode == FeedMode.infinite)
+                SliverToBoxAdapter(
+                  child: _InfiniteFooter(
+                    loading: isLoading,
+                    hasPosts: data.posts.isNotEmpty,
+                    hasNext: data.hasNext,
+                    limitReached: data.limitReached,
+                  ),
+                ),
               if (!isNewSearch)
                 SliverPadding(
                   padding: EdgeInsets.only(
                     bottom: barHeight + DesignTokens.spacingLg,
                   ),
-                  sliver: const SliverToBoxAdapter(child: HomeStatus()),
+                  // The footer already carries the inline spinner; a full page
+                  // of shimmer tiles would double it on every append.
+                  sliver: SliverToBoxAdapter(
+                    child: HomeStatus(
+                      skeletonWhenLoading:
+                          !(feedMode == FeedMode.infinite &&
+                              data.posts.isNotEmpty),
+                    ),
+                  ),
                 )
               else
                 const SliverFillRemaining(child: HomeStatus()),
@@ -470,6 +552,62 @@ class _LongPressHint extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Inline status at the end of an infinite feed: the append spinner, the end
+/// of the results, or the in-memory ceiling that asks for a restart.
+class _InfiniteFooter extends StatelessWidget {
+  const _InfiniteFooter({
+    required this.loading,
+    required this.hasPosts,
+    required this.hasNext,
+    required this.limitReached,
+  });
+
+  final bool loading;
+  final bool hasPosts;
+  final bool hasNext;
+  final bool limitReached;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!hasPosts) return const SizedBox.shrink();
+
+    final Widget? child;
+    if (limitReached) {
+      child = Text(
+        context.t.feed.limitReached,
+        textAlign: TextAlign.center,
+        style: context.theme.textTheme.labelMedium?.copyWith(
+          color: context.colorScheme.onSurfaceVariant,
+        ),
+      );
+    } else if (loading) {
+      child = const SizedBox.square(
+        dimension: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    } else if (!hasNext) {
+      child = Text(
+        context.t.feed.endOfResults,
+        textAlign: TextAlign.center,
+        style: context.theme.textTheme.labelMedium?.copyWith(
+          color: context.colorScheme.onSurfaceVariant,
+        ),
+      );
+    } else {
+      child = null;
+    }
+    if (child == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingMd,
+        vertical: DesignTokens.spacingMd,
+      ),
+      child: Center(child: child),
     );
   }
 }

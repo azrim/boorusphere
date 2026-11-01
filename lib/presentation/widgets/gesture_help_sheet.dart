@@ -26,6 +26,7 @@ class _GestureHelpSheet extends StatelessWidget {
       (Icons.zoom_in, context.t.help.doubleTap),
       (Icons.keyboard_arrow_up_rounded, context.t.help.swipeUp),
       (Icons.keyboard_arrow_down_rounded, context.t.help.swipeDown),
+      (Icons.info_outline, context.t.help.tagInfo),
       (Icons.star_outline_rounded, context.t.help.rating),
     ];
 

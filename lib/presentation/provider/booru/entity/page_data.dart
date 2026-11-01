@@ -17,6 +17,9 @@ abstract class PageData with _$PageData {
     // [pageIndex]: a backward fetch comes back empty when every earlier page
     // was skipped, and the index alone would keep offering a dead control.
     @Default(false) bool hasPrev,
+    // Infinite mode stopped accumulating posts at its in-memory cap. The feed
+    // still has results, but the session must be restarted to see them.
+    @Default(false) bool limitReached,
   }) = _PageData;
 
   const PageData._();

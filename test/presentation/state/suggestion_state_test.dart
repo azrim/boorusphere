@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_info.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorusphere/domain/provider.dart';
@@ -23,6 +24,10 @@ class _FakeRepo implements ImageboardRepo {
   final Map<String, List<Suggestion>> answers;
   final gate = Completer<void>();
 
+  /// How many times the fake went to the wire; the cache is proven by this
+  /// staying flat on a repeated word.
+  int calls = 0;
+
   /// When set, the awaited answer fails instead, which exercises the catch.
   bool fail = false;
 
@@ -34,7 +39,11 @@ class _FakeRepo implements ImageboardRepo {
       const ParsedPage.empty();
 
   @override
+  Future<TagInfo> getTagInfo(String tag) async => TagInfo(name: tag);
+
+  @override
   Future<Iterable<Suggestion>> getSuggestion(String query) async {
+    calls++;
     await gate.future;
     if (fail) throw Exception('suggestions unavailable');
     return answers[query] ?? const [];
@@ -111,6 +120,29 @@ void main() {
 
     expect(container.read(suggestionStateProvider).data.map((it) => it.name), [
       'cat',
+      'cat_ear',
+    ]);
+  });
+
+  test('a word seen before is served from the cache', () async {
+    final repo = _FakeRepo(const {
+      'cat': [Suggestion('cat_ear', 3)],
+      'catt': [Suggestion('catt', 1)],
+    });
+    final container = _container(repo);
+    addTearDown(container.dispose);
+    final notifier = container.read(suggestionStateProvider.notifier);
+
+    final first = notifier.get('cat');
+    repo.gate.complete();
+    await first;
+    await notifier.get('catt');
+    expect(repo.calls, 2);
+
+    await notifier.get('cat');
+
+    expect(repo.calls, 2);
+    expect(container.read(suggestionStateProvider).data.map((it) => it.name), [
       'cat_ear',
     ]);
   });

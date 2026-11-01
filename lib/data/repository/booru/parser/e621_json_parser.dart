@@ -1,8 +1,12 @@
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/raw_post.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_category.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_info.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
+import 'package:boorusphere/data/repository/booru/utils/dtext_summary.dart';
 import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
+import 'package:boorusphere/data/repository/booru/utils/tag_alias_payload.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
 import 'package:deep_pick/deep_pick.dart';
@@ -97,5 +101,87 @@ class E621JsonParser extends BooruParser {
       tagsGeneral: tagsGeneral.map(BooruUtil.decodeTag).toList(),
       tagsMeta: tagsMeta.map(BooruUtil.decodeTag).toList(),
     );
+  }
+
+  @override
+  bool get canServeTagInfo => true;
+
+  @override
+  bool matchesSearchUrl(String searchUrl) => searchUrl.contains('posts.json');
+
+  @override
+  TagInfoRequest? tagInfoRequest(Server server, String tag) {
+    final base = server.apiAddress.replaceFirst(RegExp(r'/+$'), '');
+    final query = Uri.encodeComponent(tag);
+    return TagInfoRequest(
+      infoUrl: '$base/tags/$query.json',
+      wikiUrl: '$base/wiki_pages/$query.json',
+      aliasUrl:
+          '$base/tag_aliases.json?search[antecedent_name]=$query&limit=20',
+    );
+  }
+
+  @override
+  TagInfo? parseTagInfo(String tag, Response res) {
+    final data = res.data;
+    if (data is! Map) return null;
+
+    final entry = data['tag'] is Map ? data['tag'] as Map : data;
+    final name = pick(entry, 'name').asStringOrNull();
+    if (name == null) return null;
+
+    final related = _relatedFromString(
+      pick(entry, 'related_tags').asStringOrNull() ?? '',
+    );
+    return TagInfo(
+      name: name.isEmpty ? tag : BooruUtil.decodeTag(name),
+      category: _categoryFromCode(pick(entry, 'category').asIntOrNull()),
+      // The v2 endpoint renamed `count` to `post_count`; both are read so an
+      // older instance still answers with its count.
+      postCount:
+          pick(entry, 'post_count').asIntOrNull() ??
+          pick(entry, 'count').asIntOrNull(),
+      related: related,
+    );
+  }
+
+  @override
+  String parseTagWiki(Response res) {
+    final data = res.data;
+    if (data is! Map) return '';
+    return dtextSummary(pick(data, 'body').asStringOrNull() ?? '');
+  }
+
+  @override
+  List<String> parseTagAliases(Response res) => tagAliasNamesFrom(res.data);
+
+  /// E621 grades a tag with its own category set: it adds species and lore,
+  /// and code 7 is this engine's meta. Species and lore describe the artwork
+  /// itself, so they are folded into general rather than mislabelled as meta.
+  TagCategory? _categoryFromCode(int? code) {
+    return switch (code) {
+      0 || 5 || 8 => TagCategory.general,
+      1 => TagCategory.artist,
+      3 => TagCategory.copyright,
+      4 => TagCategory.character,
+      7 => TagCategory.meta,
+      _ => null,
+    };
+  }
+
+  /// Reads the `name count name count …` string the tag endpoint reports as
+  /// `related_tags`.
+  List<TagInfoRelated> _relatedFromString(String raw) {
+    final tokens = raw
+        .split(RegExp(r'\s+'))
+        .where((it) => it.isNotEmpty)
+        .toList();
+    final related = <TagInfoRelated>[];
+    for (var i = 0; i + 1 < tokens.length; i += 2) {
+      final name = BooruUtil.decodeTag(tokens[i]);
+      final count = int.tryParse(tokens[i + 1]) ?? 0;
+      if (name.isNotEmpty) related.add(TagInfoRelated(name, count));
+    }
+    return related.take(20).toList();
   }
 }

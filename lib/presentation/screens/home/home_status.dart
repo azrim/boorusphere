@@ -24,7 +24,11 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class HomeStatus extends HookConsumerWidget {
-  const HomeStatus({super.key});
+  const HomeStatus({super.key, this.skeletonWhenLoading = true});
+
+  /// Whether a fetch in flight should show the placeholder grid. Infinite mode
+  /// keeps the loaded posts on screen and reports the append inline instead.
+  final bool skeletonWhenLoading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +36,10 @@ class HomeStatus extends HookConsumerWidget {
 
     return switch (pageState) {
       IdleFetchResult() || DataFetchResult() => const SizedBox.shrink(),
-      LoadingFetchResult() => const TimelineSkeleton(),
+      LoadingFetchResult() =>
+        skeletonWhenLoading
+            ? const TimelineSkeleton()
+            : const SizedBox.shrink(),
       ErrorFetchResult(:final data, :final error, :final stackTrace) =>
         _ErrorStatus(data: data, error: error, stackTrace: stackTrace),
     };
@@ -54,9 +61,17 @@ class _ErrorStatus extends ConsumerWidget {
       // check is and the card offers the browser that can answer it.
       return context.t.pageStatus.cloudflareChallenge(serverName: server.name);
     } else if (e is DioException && e.response?.statusCode != null) {
-      return context.t.pageStatus
-          .httpError(serverName: server.name)
-          .withDioExceptionCode(e);
+      // A bare status code leaves the reader guessing whether the account, the
+      // query or the rate limit is at fault; each of these names the fix.
+      return switch (e.response!.statusCode) {
+        401 => context.t.pageStatus.unauthorized(serverName: server.name),
+        403 => context.t.pageStatus.forbidden(serverName: server.name),
+        429 => context.t.pageStatus.rateLimited(serverName: server.name),
+        _ =>
+          context.t.pageStatus
+              .httpError(serverName: server.name)
+              .withDioExceptionCode(e),
+      };
     } else if (e == BooruError.empty) {
       return data.option.query.isEmpty
           ? context.t.pageStatus.noResult(n: data.posts.length)

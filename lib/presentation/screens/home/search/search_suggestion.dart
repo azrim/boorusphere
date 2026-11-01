@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
+import 'package:boorusphere/data/repository/booru/entity/tag_category.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
@@ -10,6 +11,7 @@ import 'package:boorusphere/presentation/screens/home/search/search_bar_controll
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/theme/tag_category_accents.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
@@ -17,6 +19,7 @@ import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
+import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:boorusphere/utils/number_format.dart';
 import 'package:dio/dio.dart';
@@ -321,6 +324,7 @@ class _SearchHistory extends HookConsumerWidget {
                 isHistory: true,
                 text: entry.value.query,
                 server: entry.value.server,
+                usageCount: entry.value.count,
               ),
               onTap: (str) {
                 searchBar.submit(context, str);
@@ -402,13 +406,37 @@ class _Suggestion extends HookConsumerWidget {
       searchBar.textEditingController,
       () => searchBar.textEditingController.text,
     );
+    final words = query.toWordList();
+    final lastWord = query.endsWith(' ') || words.isEmpty ? '' : words.last;
+    final selected = useState(<String>{});
+
+    // A new word is a new shortlist. Keeping a tag selected from the previous
+    // one would append something the reader can no longer see.
+    useEffect(() {
+      if (selected.value.isNotEmpty) selected.value = <String>{};
+      return null;
+    }, [lastWord]);
+
+    void toggleSelected(String name) {
+      final next = {...selected.value};
+      if (!next.remove(name)) next.add(name);
+      selected.value = next;
+    }
+
+    void clearSelected() => selected.value = <String>{};
+
+    void addSelected() {
+      searchBar.appendTags(selected.value);
+      clearSelected();
+    }
 
     if (!server.canSuggestTags) {
       return const SliverToBoxAdapter();
     }
 
-    // Show suggestions when user has typed at least 2 characters
-    if (query.trim().length < 2) {
+    // Show suggestions when user has typed at least 2 characters. A trailing
+    // space starts the next tag, so the previous word's list no longer applies.
+    if (query.trim().length < 2 || query.endsWith(' ')) {
       return const SliverToBoxAdapter();
     }
 
@@ -421,13 +449,21 @@ class _Suggestion extends HookConsumerWidget {
       // flash.
       LoadingFetchResult(:final data) when data.isNotEmpty => _SuggestionList(
         data: data,
+        selected: selected.value,
         onTap: (str) => searchBar.submit(context, str),
         onAdded: searchBar.appendTyped,
+        onToggleSelected: toggleSelected,
+        onAddSelected: addSelected,
+        onClearSelected: clearSelected,
       ),
       DataFetchResult(:final data) => _SuggestionList(
         data: data,
+        selected: selected.value,
         onTap: (str) => searchBar.submit(context, str),
         onAdded: searchBar.appendTyped,
+        onToggleSelected: toggleSelected,
+        onAddSelected: addSelected,
+        onClearSelected: clearSelected,
       ),
       LoadingFetchResult() => const SliverToBoxAdapter(
         child: SizedBox(
@@ -455,36 +491,110 @@ class _Suggestion extends HookConsumerWidget {
 class _SuggestionList extends StatelessWidget {
   const _SuggestionList({
     required this.data,
+    required this.selected,
     required this.onTap,
     required this.onAdded,
+    required this.onToggleSelected,
+    required this.onAddSelected,
+    required this.onClearSelected,
   });
 
   static const _maxSuggestions = 10;
 
   final Iterable<Suggestion> data;
+  final Set<String> selected;
   final void Function(String entry) onTap;
   final void Function(String entry) onAdded;
+  final void Function(String entry) onToggleSelected;
+  final VoidCallback onAddSelected;
+  final VoidCallback onClearSelected;
 
   @override
   Widget build(BuildContext context) {
     final items = data.take(_maxSuggestions).toList();
+    final selecting = selected.isNotEmpty;
 
-    return SliverList.builder(
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final suggestion = items[index];
-        return RepaintBoundary(
-          child: _SuggestionEntryTile(
-            data: _SuggestionEntry(
-              isHistory: false,
-              text: suggestion.name,
-              postCount: suggestion.count,
+    return SliverMainAxisGroup(
+      slivers: [
+        if (selecting)
+          SliverToBoxAdapter(
+            child: _SelectionBar(
+              count: selected.length,
+              onAdd: onAddSelected,
+              onClear: onClearSelected,
             ),
-            onTap: onTap,
-            onAdded: onAdded,
           ),
-        );
-      },
+        SliverList.builder(
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final suggestion = items[index];
+            return RepaintBoundary(
+              child: _SuggestionEntryTile(
+                data: _SuggestionEntry(
+                  isHistory: false,
+                  text: suggestion.name,
+                  postCount: suggestion.count,
+                  category: suggestion.category,
+                ),
+                selecting: selecting,
+                selected: selected.contains(suggestion.name),
+                onTap: onTap,
+                onAdded: onAdded,
+                onLongPress: () => onToggleSelected(suggestion.name),
+                onSelectedChanged: (_) => onToggleSelected(suggestion.name),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Header for a multi-select: says how many are picked and offers the two ways
+/// out — append all of them, or drop the selection without touching the query.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.count,
+    required this.onAdd,
+    required this.onClear,
+  });
+
+  final int count;
+  final VoidCallback onAdd;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        DesignTokens.spacingMd,
+        DesignTokens.spacingXs,
+        DesignTokens.spacingSm,
+        0,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              context.t.suggestion.selected(count: count),
+              style: AppTextRoles.of(context).rowSupporting.copyWith(
+                color: context.colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onClear,
+            child: Text(context.t.suggestion.clearSelection),
+          ),
+          const SizedBox(width: DesignTokens.spacingXs),
+          FilledButton(
+            onPressed: onAdd,
+            child: Text(context.t.suggestion.addSelected),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -512,9 +622,17 @@ class _ErrorSuggestion extends StatelessWidget {
       // code would read like the server refused the tag.
       msg = context.t.pageStatus.cloudflareChallenge(serverName: serverName);
     } else if (err is DioException && err.response?.statusCode != null) {
-      msg = context.t.suggestion
-          .httpError(query: query, serverName: serverName)
-          .withDioExceptionCode(err);
+      // The three statuses that ask for a different action than "try again"
+      // get their own wording; the rest keep the query and the code.
+      msg = switch (err.response!.statusCode) {
+        401 => context.t.pageStatus.unauthorized(serverName: serverName),
+        403 => context.t.pageStatus.forbidden(serverName: serverName),
+        429 => context.t.pageStatus.rateLimited(serverName: serverName),
+        _ =>
+          context.t.suggestion
+              .httpError(query: query, serverName: serverName)
+              .withDioExceptionCode(err),
+      };
     } else {
       msg = err;
     }
@@ -531,12 +649,16 @@ class _SuggestionEntry {
     this.text = '',
     this.postCount = 0,
     this.server = '',
+    this.category,
+    this.usageCount = 0,
     required this.isHistory,
   });
 
   final String text;
   final int postCount;
   final String server;
+  final TagCategory? category;
+  final int usageCount;
   final bool isHistory;
 }
 
@@ -545,74 +667,113 @@ class _SuggestionEntryTile extends StatelessWidget {
     required this.data,
     required this.onTap,
     required this.onAdded,
+    this.selecting = false,
+    this.selected = false,
+    this.onLongPress,
+    this.onSelectedChanged,
   });
 
   final _SuggestionEntry data;
   final Function(String entry) onTap;
   final Function(String entry) onAdded;
+  final bool selecting;
+  final bool selected;
+  final VoidCallback? onLongPress;
+  final ValueChanged<bool>? onSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
-    // Much lighter implementation - no ListTile overhead
-    return InkWell(
-      onTap: () => onTap.call(data.text),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DesignTokens.spacingMd,
-          vertical: DesignTokens.spacingSm,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              data.isHistory ? Icons.history : Icons.tag,
-              size: DesignTokens.iconAction,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+    final scheme = Theme.of(context).colorScheme;
+    final category = data.category;
+    final supporting = [
+      if (data.server.isNotEmpty)
+        context.t.suggestion.desc(serverName: data.server),
+      if (data.usageCount > 0)
+        context.t.suggestion.usageCount(count: data.usageCount),
+    ].join(' · ');
+
+    // Ink rather than a colored Container: the splash still paints above the
+    // selection tint instead of being hidden by it.
+    return Semantics(
+      selected: selecting ? selected : null,
+      child: Ink(
+        color: selected
+            ? scheme.primary.withValues(alpha: 0.08)
+            : Colors.transparent,
+        // Much lighter implementation - no ListTile overhead
+        child: InkWell(
+          onTap: selecting
+              ? () => onSelectedChanged?.call(!selected)
+              : () => onTap.call(data.text),
+          onLongPress: onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingMd,
+              vertical: DesignTokens.spacingSm,
             ),
-            const SizedBox(width: DesignTokens.spacingCardInset),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    data.text,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (data.server.isNotEmpty)
-                    Text(
-                      context.t.suggestion.desc(serverName: data.server),
-                      style: AppTextRoles.of(context).rowSupporting,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            if (data.postCount > 0) ...[
-              Text(
-                // A six-digit count pushes the tag it belongs to aside; the
-                // same compact form the timeline score uses keeps the row
-                // readable at a glance.
-                compactCount(data.postCount),
-                style: AppTextRoles.of(context).rowSupporting.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
+            child: Row(
+              children: [
+                Icon(
+                  data.isHistory ? Icons.history : category?.icon ?? Icons.tag,
+                  size: DesignTokens.iconAction,
+                  color: data.isHistory
+                      ? scheme.onSurfaceVariant
+                      : category?.accentOf(scheme) ?? scheme.onSurfaceVariant,
                 ),
-              ),
-              const SizedBox(width: DesignTokens.spacingSm),
-            ],
-            // An IconButton instead of a bare InkWell: the append action gets
-            // its 48 dp target and a spoken name without a hand-built
-            // semantics wrapper around the icon.
-            IconButton(
-              onPressed: () => onAdded.call(data.text),
-              tooltip: context.t.actionTag.append,
-              iconSize: DesignTokens.iconAction,
-              color: Theme.of(context).colorScheme.primary,
-              icon: const Icon(Icons.add),
+                const SizedBox(width: DesignTokens.spacingCardInset),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        data.text,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (supporting.isNotEmpty)
+                        Text(
+                          supporting,
+                          style: AppTextRoles.of(context).rowSupporting,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+                if (data.postCount > 0) ...[
+                  Text(
+                    // A six-digit count pushes the tag it belongs to aside; the
+                    // same compact form the timeline score uses keeps the row
+                    // readable at a glance.
+                    compactCount(data.postCount),
+                    style: AppTextRoles.of(context).rowSupporting.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(width: DesignTokens.spacingSm),
+                ],
+                if (selecting)
+                  Checkbox(
+                    value: selected,
+                    onChanged: (value) =>
+                        onSelectedChanged?.call(value ?? false),
+                  )
+                else
+                  // An IconButton instead of a bare InkWell: the append action
+                  // gets its 48 dp target and a spoken name without a
+                  // hand-built semantics wrapper around the icon.
+                  IconButton(
+                    onPressed: () => onAdded.call(data.text),
+                    tooltip: context.t.actionTag.append,
+                    iconSize: DesignTokens.iconAction,
+                    color: scheme.primary,
+                    icon: const Icon(Icons.add),
+                  ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

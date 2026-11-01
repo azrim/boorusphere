@@ -1,5 +1,6 @@
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -49,6 +50,49 @@ void main() async {
       await notifier().toggleVideoPlayerMute();
 
       expect(state().videoMuted, !initial);
+    });
+
+    test('slideshow direction survives a name round-trip', () async {
+      await notifier().setSlideshowDirection(SlideshowDirection.backward);
+      expect(state().slideshowDirection, SlideshowDirection.backward);
+    });
+
+    test('slideshow interval is clamped to 3..15', () async {
+      await notifier().setSlideshowInterval(1);
+      expect(state().slideshowInterval, 3);
+
+      await notifier().setSlideshowInterval(99);
+      expect(state().slideshowInterval, 15);
+
+      await notifier().setSlideshowInterval(8);
+      expect(state().slideshowInterval, 8);
+    });
+
+    test('video seek step is clamped to 2..15', () async {
+      await notifier().setVideoSeekSeconds(0);
+      expect(state().videoSeekSeconds, 2);
+
+      await notifier().setVideoSeekSeconds(20);
+      expect(state().videoSeekSeconds, 15);
+    });
+
+    test('volume key navigation can be turned off', () async {
+      await notifier().setVolumeKeyNavigation(false);
+      expect(state().volumeKeyNavigation, false);
+
+      await notifier().setVolumeKeyNavigation(true);
+      expect(state().volumeKeyNavigation, true);
+    });
+
+    test('local feed filters start off and can be turned on', () async {
+      expect(state().hideFavorited, false);
+      expect(state().hideDownloaded, false);
+
+      await notifier().setHideFavorited(true);
+      expect(state().hideFavorited, true);
+
+      await notifier().setHideDownloaded(true);
+      expect(state().hideDownloaded, true);
     });
   });
 }

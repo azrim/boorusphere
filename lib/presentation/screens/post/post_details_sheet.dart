@@ -2,12 +2,15 @@ import 'dart:ui';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
+import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
+import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/screens/post/tag_info_sheet.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -242,6 +245,22 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     });
   }
 
+  /// Opens the tag's description from the server that owns this post.
+  ///
+  /// A post from an older library entry may predate [Post.serverId]; the
+  /// session is the server the post is being viewed from, so it is the right
+  /// fallback rather than the first server in the list.
+  void _onTagLongPressed(String tag) {
+    final post = widget.postNotifier.value;
+    final serverId = post.serverId.isNotEmpty
+        ? post.serverId
+        : widget.session.serverId;
+    final server = ref.read(serverStateProvider).getById(serverId);
+    if (server == Server.empty) return;
+
+    showTagInfoSheet(context, server: server, tag: tag);
+  }
+
   void _clearSelection() {
     setState(_selectedTags.clear);
   }
@@ -304,6 +323,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
         post: post,
         selectedTags: _selectedTags,
         onTagPressed: _onTagPressed,
+        onTagLongPressed: _onTagLongPressed,
       ),
       _Panel.links => _LinksPanel(post: post, headers: headers),
     };
@@ -615,18 +635,21 @@ class _SampleLinkRowState extends State<_SampleLinkRow> {
   }
 }
 
-/// The tags, grouped by what they describe. A tap selects a tag; the action bar
-/// at the bottom of the sheet then says what can be done with the selection.
+/// The tags, grouped by what they describe. A tap selects a tag; a long press
+/// opens its description. The action bar at the bottom of the sheet then says
+/// what can be done with the selection.
 class _TagsPanel extends StatelessWidget {
   const _TagsPanel({
     required this.post,
     required this.selectedTags,
     required this.onTagPressed,
+    required this.onTagLongPressed,
   });
 
   final Post post;
   final Set<String> selectedTags;
   final void Function(String) onTagPressed;
+  final void Function(String) onTagLongPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -635,6 +658,7 @@ class _TagsPanel extends StatelessWidget {
         tags: post.tags,
         selectedTags: selectedTags,
         onTagPressed: onTagPressed,
+        onTagLongPressed: onTagLongPressed,
       );
     }
 
@@ -655,6 +679,7 @@ class _TagsPanel extends StatelessWidget {
             tags: tags,
             selectedTags: selectedTags,
             onTagPressed: onTagPressed,
+            onTagLongPressed: onTagLongPressed,
           ),
       ],
     );
@@ -666,12 +691,14 @@ class _Group extends StatelessWidget {
     required this.tags,
     required this.selectedTags,
     required this.onTagPressed,
+    required this.onTagLongPressed,
     this.label,
   });
 
   final List<String> tags;
   final Set<String> selectedTags;
   final void Function(String) onTagPressed;
+  final void Function(String) onTagLongPressed;
 
   /// The category this group describes; the uncategorised cloud has none.
   final String? label;
@@ -713,6 +740,7 @@ class _Group extends StatelessWidget {
                   tag: tag,
                   selected: selectedTags.contains(tag),
                   onTap: () => onTagPressed(tag),
+                  onLongPress: () => onTagLongPressed(tag),
                 ),
             ],
           ),
@@ -727,30 +755,37 @@ class _TagChip extends StatelessWidget {
     required this.tag,
     required this.selected,
     required this.onTap,
+    required this.onLongPress,
   });
 
   final String tag;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
 
-    return FilterChip(
-      label: Text(tag),
-      selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => onTap(),
-      backgroundColor: scheme.surfaceContainerHighest,
-      selectedColor: scheme.primaryContainer,
-      labelStyle: context.theme.textTheme.bodySmall?.copyWith(
-        color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
+    // The chip handles the tap; the long press stays on the recogniser above
+    // it, so selecting and describing a tag do not fight over the gesture.
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: FilterChip(
+        label: Text(tag),
+        selected: selected,
+        showCheckmark: false,
+        onSelected: (_) => onTap(),
+        backgroundColor: scheme.surfaceContainerHighest,
+        selectedColor: scheme.primaryContainer,
+        labelStyle: context.theme.textTheme.bodySmall?.copyWith(
+          color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
+        ),
+        shape: const StadiumBorder(),
+        side: selected
+            ? BorderSide.none
+            : BorderSide(color: scheme.outlineVariant),
       ),
-      shape: const StadiumBorder(),
-      side: selected
-          ? BorderSide.none
-          : BorderSide(color: scheme.outlineVariant),
     );
   }
 }

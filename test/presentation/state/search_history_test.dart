@@ -82,5 +82,18 @@ void main() async {
       await notifier().clear();
       expect(state().length, 0);
     });
+
+    test('saving a query again counts up instead of duplicating it', () async {
+      await notifier().clear();
+      await notifier().save('cat_ear', servers.first);
+      await notifier().save('cat_ear', servers.first);
+      await notifier().save('cat_ear', servers.first);
+
+      final entries = state().values
+          .where((it) => it.query == 'cat_ear')
+          .toList();
+      expect(entries, hasLength(1));
+      expect(entries.single.count, 3);
+    });
   });
 }

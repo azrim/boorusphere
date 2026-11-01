@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
@@ -13,9 +16,11 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
+import 'package:boorusphere/presentation/utils/slideshow.dart';
 import 'package:boorusphere/presentation/widgets/slidefade_visibility.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
+import 'package:boorusphere/utils/volume_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -76,7 +81,10 @@ class EnhancedPostViewer extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timelineController = ref.watch(timelineControllerProvider);
     final session = ref.watch(searchSessionProvider);
-    final postsList = posts.toList();
+    // Keep the list identity stable across rebuilds: the slideshow and the
+    // page listener compare posts by index, and re-copying the iterable on
+    // every provider tick would also re-register their status listeners.
+    final postsList = useMemoized(posts.toList, [posts]);
 
     final controller = useMemoized(
       () => PostViewerController(
@@ -89,6 +97,81 @@ class EnhancedPostViewer extends HookConsumerWidget {
       ),
       [initial, postsList.length, swipeMode],
     );
+
+    final slideshowInterval = ref.watch(
+      contentSettingStateProvider.select((it) => it.slideshowInterval),
+    );
+    final slideshowDirection = ref.watch(
+      contentSettingStateProvider.select((it) => it.slideshowDirection),
+    );
+    final volumeKeyNavigation = ref.watch(
+      contentSettingStateProvider.select((it) => it.volumeKeyNavigation),
+    );
+
+    final slideshowPlaying = useState(false);
+    final slideshowAdvanceInFlight = useRef(false);
+    final slideshowTarget = useRef<int?>(null);
+    final random = useMemoized(Random.new);
+    final slideshowAnimator = useAnimationController(
+      duration: Duration(seconds: slideshowInterval),
+    );
+
+    bool isVideoPage(int index) =>
+        index >= 0 &&
+        index < postsList.length &&
+        postsList[index].content.isVideo;
+
+    void stopSlideshow() {
+      slideshowTarget.value = null;
+      if (!slideshowPlaying.value) return;
+      slideshowAnimator.stop();
+      slideshowPlaying.value = false;
+    }
+
+    void startSlideshow() {
+      if (postsList.isEmpty || isVideoPage(controller.page)) return;
+      slideshowPlaying.value = true;
+      slideshowAnimator.forward(from: 0);
+    }
+
+    void toggleSlideshow() {
+      if (slideshowPlaying.value) {
+        stopSlideshow();
+      } else {
+        startSlideshow();
+      }
+    }
+
+    Future<void> advanceSlideshow() async {
+      if (!slideshowPlaying.value) return;
+
+      final next = nextSlideshowPage(
+        current: controller.page,
+        total: postsList.length,
+        direction: slideshowDirection,
+        random: random,
+      );
+      if (next == null) {
+        stopSlideshow();
+        return;
+      }
+
+      slideshowTarget.value = next;
+      slideshowAdvanceInFlight.value = true;
+      try {
+        await controller.animateToPage(next);
+      } finally {
+        slideshowAdvanceInFlight.value = false;
+      }
+
+      if (!slideshowPlaying.value) return;
+      if (isVideoPage(next)) {
+        slideshowTarget.value = null;
+        stopSlideshow();
+        return;
+      }
+      slideshowAnimator.forward(from: 0);
+    }
 
     // Sheet controller for details
     final sheetController = useMemoized(DraggableScrollableController.new);
@@ -117,6 +200,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
         // Hide overlay when sheet is expanded
         if (size > 0.1) {
           controller.forceHideUI();
+          // Reading the post details is a deliberate stop, not a pause the
+          // slideshow should resume from on its own once the sheet closes.
+          stopSlideshow();
         } else {
           controller.restoreUI();
         }
@@ -124,7 +210,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
       sheetController.addListener(listener);
       return () => sheetController.removeListener(listener);
-    }, [sheetController]);
+    }, [sheetController, slideshowAnimator]);
 
     final fullscreen = ref.watch(fullscreenStateProvider);
     final showAppbar = useState(true);
@@ -169,6 +255,55 @@ class EnhancedPostViewer extends HookConsumerWidget {
         controller.dispose();
         currentPostNotifier.dispose();
       };
+    }, []);
+
+    useEffect(() {
+      void onStatus(AnimationStatus status) {
+        if (status == AnimationStatus.completed) {
+          unawaited(advanceSlideshow());
+        }
+      }
+
+      slideshowAnimator.addStatusListener(onStatus);
+      return () => slideshowAnimator.removeStatusListener(onStatus);
+    }, [slideshowAnimator, postsList, slideshowDirection]);
+
+    // A new interval takes effect from the current post instead of waiting for
+    // the old, possibly minutes-long, cycle to finish.
+    useEffect(() {
+      slideshowAnimator.duration = Duration(seconds: slideshowInterval);
+      if (slideshowPlaying.value) {
+        slideshowAnimator.forward(from: 0);
+      }
+      return null;
+    }, [slideshowInterval]);
+
+    useEffect(() {
+      VolumeKeys.setHandler((direction) {
+        // A zoomed image owns the volume keys' neighbour gestures; stepping
+        // the page while the user is panning would lose their place.
+        if (sheetExpanded.value || zoomed.value) return;
+        if (direction == VolumeKeyDirection.up) {
+          unawaited(controller.nextPage());
+        } else {
+          unawaited(controller.previousPage());
+        }
+      });
+      return () => VolumeKeys.setHandler(null);
+    }, [controller]);
+
+    final volumeKeysActive = volumeKeyNavigation && !sheetExpanded.value;
+    // flutter_hooks recreates the hook state when the key changes and runs its
+    // disposer after the new effect, so a disposer that disables capture would
+    // silently undo the new value — the sheet would leave the volume keys dead
+    // for the rest of the session. Apply the newest value directly and only
+    // release capture when the viewer itself goes away.
+    useEffect(() {
+      unawaited(VolumeKeys.setEnabled(volumeKeysActive));
+      return null;
+    }, [volumeKeysActive]);
+    useEffect(() {
+      return () => unawaited(VolumeKeys.setEnabled(false));
     }, []);
 
     void expandSheet() {
@@ -274,6 +409,22 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             // and was unmounted before its
                             // gestureDetailsIsChanged could fire the reset.
                             controller.enableSwipe();
+
+                            // A page the slideshow did not ask for is a manual
+                            // step (swipe, volume key, nav button): the user
+                            // has taken over, so stop instead of fighting them.
+                            if (slideshowPlaying.value) {
+                              if (!slideshowAdvanceInFlight.value) {
+                                if (slideshowTarget.value == index) {
+                                  slideshowTarget.value = null;
+                                  if (isVideoPage(index)) stopSlideshow();
+                                } else {
+                                  slideshowTarget.value = null;
+                                  stopSlideshow();
+                                }
+                              }
+                            }
+
                             SchedulerBinding.instance.addPostFrameCallback((
                               timeStamp,
                             ) {
@@ -330,6 +481,28 @@ class EnhancedPostViewer extends HookConsumerWidget {
                         ),
                       ),
                     ),
+                    // Slideshow progress. Kept outside the overlay stack so
+                    // it stays visible while the chrome is hidden; the play
+                    // button in the app bar carries the accessible state.
+                    if (slideshowPlaying.value)
+                      Positioned(
+                        top: MediaQuery.paddingOf(context).top,
+                        left: 0,
+                        right: 0,
+                        child: IgnorePointer(
+                          child: ExcludeSemantics(
+                            child: AnimatedBuilder(
+                              animation: slideshowAnimator,
+                              builder: (context, _) => LinearProgressIndicator(
+                                value: slideshowAnimator.value,
+                                minHeight: 2,
+                                backgroundColor: Colors.white24,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     // Overlay UI
                     ValueListenableBuilder<int>(
                       valueListenable: controller.pageListenable,
@@ -362,6 +535,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                           total: postsList.length,
                                         ),
                                         swipeMode: swipeMode,
+                                        slideshowPlaying:
+                                            slideshowPlaying.value,
+                                        onToggleSlideshow: post.content.isVideo
+                                            ? null
+                                            : toggleSlideshow,
                                       ),
                                     ),
                               ),
@@ -480,11 +658,18 @@ class _PostAppBar extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.swipeMode,
+    required this.slideshowPlaying,
+    this.onToggleSlideshow,
   });
 
   final String title;
   final String subtitle;
   final SwipeMode swipeMode;
+  final bool slideshowPlaying;
+
+  /// Null on video posts: the slideshow pauses there rather than advancing
+  /// in the middle of playback.
+  final VoidCallback? onToggleSlideshow;
 
   @override
   Widget build(BuildContext context) {
@@ -502,6 +687,20 @@ class _PostAppBar extends StatelessWidget {
         // The title carries two lines, so the toolbar grows with the system
         // font scale instead of clipping them at the default height.
         toolbarHeight: MediaQuery.textScalerOf(context).scale(kToolbarHeight),
+        actions: [
+          if (onToggleSlideshow != null)
+            IconButton(
+              tooltip: slideshowPlaying
+                  ? context.t.viewer.stopSlideshow
+                  : context.t.viewer.startSlideshow,
+              onPressed: onToggleSlideshow,
+              icon: Icon(
+                slideshowPlaying
+                    ? Icons.pause_circle_outline
+                    : Icons.play_circle_outline,
+              ),
+            ),
+        ],
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

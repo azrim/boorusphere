@@ -171,6 +171,55 @@ class SheetFactRow extends StatelessWidget {
   }
 }
 
+/// A labelled block inside a sheet panel: a small-caps label over a paragraph,
+/// a list or any other content that is not one row's title and value.
+///
+/// It keeps the panel's 12 dp inset and the shared section label, so a block
+/// sits on the same grid as the fact rows around it.
+class SheetBlock extends StatelessWidget {
+  const SheetBlock({
+    super.key,
+    required this.label,
+    required this.child,
+    this.trailing,
+  });
+
+  final String label;
+  final Widget child;
+
+  /// A muted readout beside the label, such as how many entries follow.
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: _rowPadding,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label.toUpperLocale(context),
+                  style: sheetLabelStyle(context),
+                ),
+              ),
+              if (trailing case final trailing?) ...[
+                const SizedBox(width: DesignTokens.spacingSm),
+                trailing,
+              ],
+            ],
+          ),
+          const SizedBox(height: DesignTokens.spacingSm),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
 /// A row that points somewhere: the label, an optional readout, the address
 /// itself, and the control that copies it.
 class SheetLinkRow extends StatelessWidget {

@@ -8,9 +8,12 @@ import 'package:boorusphere/data/repository/tags_blocker/tag_expression.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/page_data.dart';
+import 'package:boorusphere/presentation/provider/booru/feed_filter_state.dart';
 import 'package:boorusphere/presentation/provider/search_history_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -36,6 +39,15 @@ class PageState extends _$PageState {
   /// by the content guard).
   static const _maxSkippedPages = 3;
 
+  /// Ceiling for the list infinite mode keeps in memory. Ten pages of sixty
+  /// posts, or more when the reader picked a smaller page: an exploration
+  /// session that runs for hours must not keep every post it ever saw alive.
+  ///
+  /// The oldest posts are not evicted from the top — dropping rows above the
+  /// reader would move the grid under their thumb — so the loader stops once
+  /// the ceiling is reached and the footer asks for a refresh to start over.
+  static const maxAccumulatedPosts = 600;
+
   /// Zero-based page index handed to `ImageboardRepo.getPage` (page `0` is the
   /// first page). [PageData.pageIndex] exposes the same position as a 1-based
   /// value for the UI.
@@ -59,6 +71,11 @@ class PageState extends _$PageState {
   /// reloading the one still on screen.
   int? _retryTarget;
 
+  /// A load-more failed in infinite mode. Unlike [_retryTarget] it has to
+  /// append the page after the last landed one rather than replace the list:
+  /// the posts already on screen are still the ones the reader was scrolling.
+  bool _retryAppend = false;
+
   @override
   FetchResult<PageData> build() {
     _page = 0;
@@ -66,8 +83,13 @@ class PageState extends _$PageState {
     _pendingOption = null;
     _reloadPending = false;
     _retryTarget = null;
+    _retryAppend = false;
     return const FetchResult.idle(PageData());
   }
+
+  /// How the timeline walks this result set, read per fetch so a mode switch
+  /// only needs the page to reload.
+  FeedMode get _feedMode => ref.read(uiSettingStateProvider).feedMode;
 
   Server get _server {
     // A session can outlive its server (the drawer removes one without
@@ -163,6 +185,7 @@ class PageState extends _$PageState {
     // next one from the committed option would silently drop it.
     final newOption = updater(_pendingOption ?? state.data.option);
     _retryTarget = null;
+    _retryAppend = false;
     if (_fetching) {
       _pendingOption = newOption;
       return;
@@ -197,6 +220,11 @@ class PageState extends _$PageState {
       await _navigateTo(retry);
       return;
     }
+    if (_retryAppend) {
+      _retryAppend = false;
+      await _appendNextPage();
+      return;
+    }
 
     final query = state.data.option.query;
     _fetching = true;
@@ -215,7 +243,12 @@ class PageState extends _$PageState {
       // A new query restarts the result set, and a window that moved under the
       // posts on screen re-indexes it: either way the landed page must go back
       // to the first one, or the reader is pointed at other posts.
-      if (option.clear || _windowChanged(option, shown)) {
+      //
+      // Infinite mode has no page to stay on: a reload (pull-to-refresh, a
+      // filter change) starts the accumulated list over from its first page.
+      if (option.clear ||
+          _windowChanged(option, shown) ||
+          _feedMode == FeedMode.infinite) {
         _page = 0;
       }
 
@@ -270,13 +303,33 @@ class PageState extends _$PageState {
     }
   }
 
-  /// Loads the next page, replacing the currently displayed posts.
+  /// Grows the list (infinite mode) or loads the next page, replacing the
+  /// currently displayed posts (paged mode).
   Future<void> nextPage() async {
     if (!ref.mounted) return;
     if (_fetching) return;
     if (!state.data.hasNext) return;
     if (state.data.posts.isEmpty) return;
+    if (state.data.limitReached) return;
+    if (_feedMode == FeedMode.infinite) {
+      await _appendNextPage();
+      return;
+    }
     await _navigateTo(_page + 1);
+  }
+
+  /// Loads the page after the last landed one and appends it to the list.
+  ///
+  /// Called by the scroll position as it approaches the end, and by the retry
+  /// path; it is a no-op outside infinite mode so a stray trigger cannot grow
+  /// a paged feed behind the pagination control.
+  Future<void> loadMore() async {
+    if (!ref.mounted) return;
+    if (_fetching) return;
+    if (_feedMode != FeedMode.infinite) return;
+    final data = state.data;
+    if (!data.hasNext || data.posts.isEmpty || data.limitReached) return;
+    await _appendNextPage();
   }
 
   /// Loads the previous page, replacing the currently displayed posts.
@@ -284,6 +337,7 @@ class PageState extends _$PageState {
     if (!ref.mounted) return;
     if (_fetching) return;
     if (!state.data.hasPrev) return;
+    if (_feedMode == FeedMode.infinite) return;
     if (_page <= 0) return;
     if (state.data.posts.isEmpty) return;
     await _navigateTo(_page - 1);
@@ -293,6 +347,7 @@ class PageState extends _$PageState {
   Future<void> goToPage(int page) async {
     if (!ref.mounted) return;
     if (_fetching) return;
+    if (_feedMode == FeedMode.infinite) return;
     if (state.data.posts.isEmpty) return;
     final target = page - 1;
     if (target < 0 || target == _page) return;
@@ -382,6 +437,89 @@ class PageState extends _$PageState {
     }
   }
 
+  /// Fetches the page after the last landed one and appends its displayable
+  /// posts, keeping the accumulated list intact.
+  ///
+  /// The append path only runs in infinite mode. Its failure is retried by
+  /// [load] through [_retryAppend], so the posts already on screen are not
+  /// replaced by the page that failed to arrive.
+  Future<void> _appendNextPage() async {
+    if (!_hasServer()) return;
+
+    final server = _server;
+    if (_refuseBlockedQuery(server)) return;
+
+    final current = state.data;
+    final settings = ref.read(serverSettingStateProvider);
+    final option = current.option.copyWith(
+      limit: settings.postLimit,
+      searchRating: settings.searchRating,
+    );
+    // The window moved under the loaded posts: their page indexes no longer
+    // address the same results, so the list has to restart rather than append
+    // a page from another window.
+    if (_windowChanged(option, current.option)) {
+      _page = 0;
+      await load();
+      return;
+    }
+
+    _fetching = true;
+    try {
+      state = FetchResult.loading(current.copyWith(option: option));
+
+      final result = await _fetchPage(option, server, _page + 1);
+      if (!ref.mounted) return;
+      if (result == null) {
+        // The next page had no entries: the server reached the end. Keep what
+        // is already displayed and stop offering more.
+        state = FetchResult.data(
+          current.copyWith(
+            option: option.copyWith(clear: false),
+            hasNext: false,
+          ),
+        );
+        return;
+      }
+
+      // Pages can overlap when new posts arrive at the top between requests,
+      // so a post is kept once per server-scoped id.
+      final seen = {for (final post in current.posts) feedPostKeyOf(post)};
+      final merged = [
+        ...current.posts,
+        ...result.posts.where((post) => seen.add(feedPostKeyOf(post))),
+      ];
+      final capped = merged.length > maxAccumulatedPosts;
+      final posts = capped ? merged.sublist(0, maxAccumulatedPosts) : merged;
+
+      _page = result.index;
+      state = FetchResult.data(
+        current.copyWith(
+          posts: List.unmodifiable(posts),
+          option: option.copyWith(clear: false),
+          pageIndex: result.index + 1,
+          // Only a literal empty page proves the end; the raw answer may carry
+          // entries the filters removed.
+          hasNext: result.rawCount > 0,
+          hasPrev: result.index > 0,
+          limitReached: capped,
+        ),
+      );
+    } catch (err, stack) {
+      if (!ref.mounted) return;
+      _retryAppend = true;
+      state = FetchResult.error(
+        current.copyWith(option: option),
+        error: err,
+        stackTrace: stack,
+      );
+    } finally {
+      _fetching = false;
+      _drainPending();
+      _drainReload();
+    }
+  }
+
   /// Applies an option that arrived while a fetch was in flight and reloads
   /// with it.
   void _drainPending() {
@@ -391,6 +529,7 @@ class PageState extends _$PageState {
     // The queued option is the last thing the reader asked for, so it always
     // supersedes a retry aimed at the page that request failed on.
     _retryTarget = null;
+    _retryAppend = false;
     if (!ref.mounted) return;
     state = state.copyWith(data: state.data.copyWith(option: pending));
     unawaited(load());
@@ -425,6 +564,10 @@ class PageState extends _$PageState {
     // first await, so a session that loses its server mid-loop cannot answer
     // with posts the blockers of the server that was actually asked exclude.
     final blocked = _blockedExpressionsFor(server);
+    // Local filters are treated like blocked tags: a page whose every entry is
+    // hidden is skipped, so turning the filter on cannot leave the reader on an
+    // empty grid while the server still has more results.
+    final hidden = ref.read(hiddenFeedPostKeysProvider);
     var index = startIndex;
     var skips = 0;
 
@@ -435,6 +578,7 @@ class PageState extends _$PageState {
 
       final posts = res
           .where((it) => !matchesBlockedTagExpressions(blocked, it.allTags))
+          .where((it) => hidden.isEmpty || !hidden.contains(feedPostKeyOf(it)))
           .toList();
       if (posts.isNotEmpty) {
         return (index: index, posts: posts, rawCount: res.rawCount);

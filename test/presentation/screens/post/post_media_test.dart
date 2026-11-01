@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
@@ -5,6 +8,7 @@ import 'package:boorusphere/data/repository/downloads/user_download_repo.dart';
 import 'package:boorusphere/data/repository/favorite_post/user_favorite_post_repo.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/version/entity/app_version.dart';
+import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/domain/repository/version_repo.dart';
@@ -15,6 +19,7 @@ import 'package:boorusphere/presentation/screens/post/post_media.dart';
 // downloads entity of the same name.
 import 'package:cached_network_image/cached_network_image.dart'
     hide DownloadProgress;
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
@@ -27,6 +32,23 @@ import '../../../utils/hive.dart';
 class MockEnvRepo extends Mock implements EnvRepo {}
 
 class MockVersionRepo extends Mock implements VersionRepo {}
+
+/// The viewer asks the disk cache before it builds a controller, and the path
+/// provider plugin has no answer in widget tests. This stub keeps the surface
+/// on the network path the retry banner covers.
+class _StubVideoCache extends VideoCache {
+  _StubVideoCache()
+    : super(
+        client: Dio(),
+        directory: () async => throw UnsupportedError('no directory'),
+      );
+
+  @override
+  Future<File?> lookup(String url) async => null;
+
+  @override
+  Future<File?> cache(String url, Map<String, String> headers) async => null;
+}
 
 /// The real [FullscreenState] reads `envRepoProvider` from its own dispose
 /// hook, which throws once the test's container is torn down. The video
@@ -122,6 +144,7 @@ void main() {
         envRepoProvider.overrideWithValue(envRepo),
         versionRepoProvider.overrideWithValue(versionRepo),
         fullscreenStateProvider.overrideWith(_FakeFullscreenState.new),
+        videoCacheProvider.overrideWithValue(_StubVideoCache()),
       ],
       child: TranslationProvider(
         child: MaterialApp(
