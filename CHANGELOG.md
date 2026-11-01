@@ -1,3 +1,20 @@
+## 3.1.0
+
+Version 3.1 finishes the roadmap after 3.0.0: the download pipeline and the app lock, then the P2/P3 work on the viewer, search, network, feed and tags.
+
+**Highlights since 3.0.0:**
+
+* **Downloads**: pause, resume, retry all failed and a paused filter; a batch keeps four files in flight; files land in per-server folders with sidecar metadata; a finished file is checked against its expected length; a cancel survives a restart; and a backup can carry the download records so Redownload fetches them later
+* **App lock**: a PIN or biometrics gate the app behind a recreated navigator, the session survives lock/unlock and a quick file picker, and FLAG_SECURE keeps the recents preview blank
+* **Blocks**: the tags blocker evaluates AND, OR and negation expressions in the feed, suggestions, queries and the syntax hint
+* **Viewer**: slideshow with play/pause, forward/backward/random and a 3–15 s interval; volume keys step between posts; a double-tap seeks 2–15 s; autoplay and mute follow the content setting and stop on a sheet or a new post
+* **Video cache**: watched videos stay on disk under a 300 MB LRU cap with two downloads in flight, replay from the local file with the request headers, reject failures or HTML, and clear from Settings behind a confirmation and a size readout
+* **Search**: suggestions cache per server and word, several tags can be picked before the list closes, tags carry their category's colour and icon, history shows its use count, and the feed can hide favourited or downloaded posts without upsetting paging
+* **Network**: requests queue per host, a 429 waits out Retry-After under a cap and retries once, a Cloudflare challenge opens a clearance web view, auth headers follow each engine's capability, and 401/403/429 read per engine
+* **Feed**: an optional infinite mode accumulates and dedupes pages with a loading footer, a memory cap and a back-to-top button; paged stays the default
+* **Tags**: a tag sheet from the viewer shows category, count, a short wiki, aliases and related tags per engine, with a TTL cache and a friendly message when an engine cannot answer
+* **Reliability**: the updater keeps its task across screens and restarts, a refused retry recovers, paging restarts when the result window moves, onboarding opens the preset's timeline, a missing server offers Change server, and a single-tag history entry outranks a multi-tag one
+
 ## 3.0.0
 
 Version 3 is the pass that gave the app one visual language, moved the home screen onto the drawer's own vocabulary, and made the caches that keep a booru usable either work or say why they cannot.
