@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui';
 
@@ -18,32 +19,59 @@ FlutterDownloaderHandle downloaderHandle(Ref ref) {
 @pragma('vm:entry-point')
 class FlutterDownloaderHandle {
   FlutterDownloaderHandle() {
-    dispose();
+    // A mapping left by an earlier handle would send the plugin callbacks to
+    // a port nothing listens to any more.
+    _removeNameMapping();
     IsolateNameServer.registerPortWithName(receiver.sendPort, _name);
     FlutterDownloader.registerCallback(_onProgressUpdated);
   }
 
   final receiver = ReceivePort();
+  StreamSubscription<dynamic>? _subscription;
 
+  /// Starts forwarding plugin callbacks to [onUpdate].
+  ///
+  /// A [ReceivePort] takes one listener for its whole life, so a second call
+  /// keeps the first listener instead of throwing.
   void listen(void Function(DownloadProgress progress) onUpdate) {
-    receiver.listen((data) {
-      final progress = DownloadProgress(
-        id: data[0],
-        status: DownloadStatus.values[data[1]],
-        progress: data[2],
-        timestamp: DateTime.now().millisecondsSinceEpoch,
+    if (_subscription != null) return;
+    _subscription = receiver.listen((data) {
+      if (data is! List || data.length < 3) return;
+      final id = data[0];
+      final status = data[1];
+      final progress = data[2];
+      if (id is! String ||
+          status is! int ||
+          status < 0 ||
+          status >= DownloadStatus.values.length ||
+          progress is! int) {
+        return;
+      }
+      onUpdate(
+        DownloadProgress(
+          id: id,
+          status: DownloadStatus.values[status],
+          progress: progress,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        ),
       );
-      onUpdate(progress);
     });
   }
 
   void dispose() {
+    _removeNameMapping();
+    _subscription?.cancel();
+    _subscription = null;
+    receiver.close();
+  }
+
+  static const _name = 'DownloaderHandle';
+
+  static void _removeNameMapping() {
     if (IsolateNameServer.lookupPortByName(_name) != null) {
       IsolateNameServer.removePortNameMapping(_name);
     }
   }
-
-  static const _name = 'DownloaderHandle';
 
   @pragma('vm:entry-point')
   static void _onProgressUpdated(String id, int status, int progress) {
