@@ -190,7 +190,7 @@ class _Updater extends StatelessWidget {
         // an unreleased version (e.g. when CI delivers an APK to
         // Telegram before the GitHub Release exists) are still
         // surfaced. Falls back to a silent no-op if the network fetch
-        // returns empty / errors — the user can still tap Download.
+        // returns empty / errors; the user can still tap Download.
         _InlineChangelog(version: data),
         _Downloader(data),
       ],

@@ -17,7 +17,7 @@ class VideoPostSource {
 
   final VideoPlayerController? controller;
 
-  /// True once playback setup has failed — either the player could not be
+  /// True once playback setup has failed: either the player could not be
   /// created or [VideoPlayerController.initialize] threw. The viewer surfaces
   /// a manual retry banner while set. Cleared when [destroyController]
   /// resets the source.
@@ -91,7 +91,7 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   }
 
   /// Streams the media straight from the server so playback can start before
-  /// the whole file arrives — unless the video was watched before, in which
+  /// the whole file arrives, unless the video was watched before, in which
   /// case it replays from the disk cache without a request.
   ///
   /// Servers that hotlink-protect their CDN (Gelbooru among them) only accept
@@ -137,7 +137,7 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
         postHeadersFactoryProvider(hook.post, cookies: cookies),
       );
     } catch (e, stack) {
-      // The request cannot be prepared even though the player is fine — an
+      // The request cannot be prepared even though the player is fine; an
       // unreadable cookie store, a header factory that throws. Fail the same
       // way as a broken player: an escaping error would leave the viewer on
       // a loader with no retry banner. A setup dropped while awaiting is not

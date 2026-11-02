@@ -19,8 +19,8 @@ class NoticeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     // A notice is a block, not a floating card: it takes the section block
-    // treatment — the container tone (the page tone in midnight), a hairline,
-    // no shadow — and its icon stays muted so the message leads.
+    // treatment: the container tone (the page tone in midnight), a hairline,
+    // no shadow, and its icon stays muted so the message leads.
     final flat = AppSurfacePolicy.of(context).flat;
 
     return Card(

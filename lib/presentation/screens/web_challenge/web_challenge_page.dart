@@ -39,7 +39,7 @@ class WebChallengePage extends ConsumerStatefulWidget {
 
 class _WebChallengePageState extends ConsumerState<WebChallengePage> {
   /// Reads the platform store rather than the page, so an HttpOnly clearance
-  /// cookie — the one that matters — is included.
+  /// cookie, the one that matters, is included.
   final _cookies = AndroidWebViewCookieManager(
     const PlatformWebViewCookieManagerCreationParams(),
   );

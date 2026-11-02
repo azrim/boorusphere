@@ -81,7 +81,7 @@ class SearchBarController extends ChangeNotifier {
   /// Appends several tags in one step, keeping the order they were selected in.
   ///
   /// The query is treated as a word list, so a tag already present is not added
-  /// twice — the search engines repeat a tag rather than narrow anything. The
+  /// twice; the search engines repeat a tag rather than narrow anything. The
   /// trailing space lets the reader start the next tag without adding it to the
   /// last one.
   void appendTags(Iterable<String> tags) {

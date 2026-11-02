@@ -11,7 +11,7 @@ class AppSurfacePolicy extends ThemeExtension<AppSurfacePolicy> {
   const AppSurfacePolicy({required this.flat});
 
   /// True when surfaces stay on the page tone and only hairlines separate
-  /// them — the Midnight rule.
+  /// them: the Midnight rule.
   final bool flat;
 
   static AppSurfacePolicy of(BuildContext context) {

@@ -352,8 +352,8 @@ class _SuggestionHeader extends HookConsumerWidget {
     );
 
     // Only show suggestion header when user starts typing. A query ending in
-    // a space has no word left to complete — it is what appending a tag
-    // leaves behind — so the header would sit over an empty list.
+    // a space has no word left to complete (it is what appending a tag
+    // leaves behind), so the header would sit over an empty list.
     if (!searchBar.isOpen || query.trim().length < 2 || query.endsWith(' ')) {
       return const SliverToBoxAdapter();
     }
@@ -552,7 +552,7 @@ class _SuggestionList extends StatelessWidget {
 }
 
 /// Header for a multi-select: says how many are picked and offers the two ways
-/// out — append all of them, or drop the selection without touching the query.
+/// out: append all of them, or drop the selection without touching the query.
 class _SelectionBar extends StatelessWidget {
   const _SelectionBar({
     required this.count,

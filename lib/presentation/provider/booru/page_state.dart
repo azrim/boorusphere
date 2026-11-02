@@ -44,8 +44,8 @@ class PageState extends _$PageState {
   /// posts, or more when the reader picked a smaller page: an exploration
   /// session that runs for hours must not keep every post it ever saw alive.
   ///
-  /// The oldest posts are not evicted from the top — dropping rows above the
-  /// reader would move the grid under their thumb — so the loader stops once
+  /// The oldest posts are not evicted from the top (dropping rows above the
+  /// reader would move the grid under their thumb), so the loader stops once
   /// the ceiling is reached and the footer asks for a refresh to start over.
   static const maxAccumulatedPosts = 600;
 
@@ -586,7 +586,7 @@ class PageState extends _$PageState {
   /// no displayable posts (up to [_maxSkippedPages]) in [direction].
   ///
   /// Returns `null` when the response is empty (a literal empty response is
-  /// terminal — it means the end of the results) or when every skipped page
+  /// terminal; it means the end of the results) or when every skipped page
   /// was fully blocked.
   Future<_PageFetch?> _fetchPage(
     PageOption option,

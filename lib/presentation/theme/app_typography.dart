@@ -136,7 +136,7 @@ class AppTextRoles extends ThemeExtension<AppTextRoles> {
 
   /// The roles of the active theme.
   ///
-  /// A theme without the extension — a test harness, a preview — gets the
+  /// A theme without the extension (a test harness, a preview) gets the
   /// roles derived from its own text theme instead of an assertion, so a
   /// widget built outside the app still reads the shared scale.
   static AppTextRoles of(BuildContext context) {

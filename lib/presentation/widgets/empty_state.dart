@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 /// so a large font scale or a short window never cuts its action off.
 ///
 /// The title is the only primary line, the body explains the state in the
-/// supporting role, and the action — when there is one — is the way out. An
+/// supporting role, and the action, when there is one, is the way out. An
 /// empty state without one is a page that only says no.
 class EmptyState extends StatelessWidget {
   const EmptyState({

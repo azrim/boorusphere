@@ -24,8 +24,8 @@ abstract class BooruParser {
   /// Whether [res] is a well-formed *empty* result for this engine, as opposed
   /// to a payload this parser cannot read.
   ///
-  /// Each engine knows how its own empty result is shaped — an envelope without
-  /// its entry list, a `<posts>` root without entry content — so the dispatcher
+  /// Each engine knows how its own empty result is shaped: an envelope without
+  /// its entry list, a `<posts>` root without entry content, so the dispatcher
   /// can answer "no results" instead of "unparsable".
   bool isEmptyPayload(Response res) => false;
 

@@ -14,7 +14,7 @@ final RouteObserver<Route<dynamic>> appRouteObserver =
 ///
 /// Flutter keeps a non-opaque route (the post viewer) running underneath an
 /// opaque one: the framework only mutes its tickers. That is enough for
-/// painting, but it leaves the covered page believing it is still on screen —
+/// painting, but it leaves the covered page believing it is still on screen:
 /// its videos keep playing and it keeps claiming process-wide resources. This
 /// mirrors the navigator's push/pop-next callbacks into a rebuild so the owner
 /// can release them.

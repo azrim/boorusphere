@@ -118,8 +118,8 @@ String? _sourceLinkOf(Post post) {
   return null;
 }
 
-/// The most identifying tag for the card chip — artist first, then the
-/// copyright (manga/anime/game), character and finally general tag — paired
+/// The most identifying tag for the card chip: artist first, then the
+/// copyright (manga/anime/game), character and finally general tag, paired
 /// with the category accent that tints it.
 ({String label, Color color})? _topTagOf(Post post) {
   if (post.tagsArtist.isNotEmpty) {
@@ -214,7 +214,7 @@ class Timeline extends ConsumerWidget {
         final overlayScale = _overlayScale(tileWidth);
 
         return SliverMasonryGrid(
-          // No `key: ObjectKey(flexibleGrid)` here — the previous incarnation
+          // No `key: ObjectKey(flexibleGrid)` here; the previous incarnation
           // disposed every thumbnail when the grid count changed (e.g. on
           // rotation), forcing a full re-decode of every visible image.
           gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
@@ -796,7 +796,7 @@ class _ThumbnailImage extends ConsumerWidget {
     final isLong = post.aspectRatio < 0.5;
     final cacheWidth = cacheBaseWidth;
     // Tall posts are drawn clamped to 0.5, so the decode follows the rendered
-    // box rather than the source ratio — otherwise a 1:10 strip decodes ten
+    // box rather than the source ratio; otherwise a 1:10 strip decodes ten
     // times the pixels it can show.
     final renderedRatio = isLong ? 0.5 : post.aspectRatio;
     final cacheHeight = (cacheWidth / renderedRatio).round();

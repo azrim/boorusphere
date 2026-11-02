@@ -57,7 +57,7 @@ class WebClearanceRepo {
   WebClearanceRepo(this.box);
 
   /// The open box, or null when boot could not open it. A missing box only
-  /// costs persistence — the clearance still works for this run.
+  /// costs persistence; the clearance still works for this run.
   final Box<String>? box;
 
   /// Values read from [box], parsed once. Hive keeps the entries in memory, so

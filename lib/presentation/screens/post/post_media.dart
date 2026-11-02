@@ -218,7 +218,7 @@ class _PostImage extends HookConsumerWidget {
       Future<void> resetZoom() async {
         final current = transformController.value.clone();
         if (current.getMaxScaleOnAxis() <= 1.01) {
-          // The viewer-side claim can outlive this page's transform — a page
+          // The viewer-side claim can outlive this page's transform: a page
           // change clears it while a listener reset is still pending. This
           // image is already at fit-to-screen, so no transform event is coming
           // to report that; say so here, or Back would stay consumed by a zoom
@@ -366,7 +366,7 @@ class _PostImage extends HookConsumerWidget {
                         const _PostImageLoadState.completed(),
                       );
                       // ponytail: cacheWidth/cacheHeight live on CachedNetworkImage's
-                      // memCacheWidth/memCacheHeight above — the generic Image()
+                      // memCacheWidth/memCacheHeight above; the generic Image()
                       // constructor doesn't expose them. The provider from
                       // imageBuilder is already sized by those params.
                       final image = Image(
@@ -415,7 +415,7 @@ class _PostImage extends HookConsumerWidget {
             // moment a second pointer arrives, the custom drag recognizer
             // resolves itself as rejected so [InteractiveViewer]'s
             // [ScaleGestureRecognizer] wins the gesture arena uncontested.
-            // This is what makes pinch-to-zoom actually work — the previous
+            // This is what makes pinch-to-zoom actually work; the previous
             // wrapping `GestureDetector` with standard `onVerticalDrag*`
             // consistently beat the scale recognizer to the arena.
             //
@@ -498,7 +498,7 @@ class _PostImageGestureOverlay extends StatelessWidget {
   });
 
   /// Release velocity (px/s) past which a vertical fling fires the
-  /// swipe-up / swipe-down callback. Lowered from 500 in 2.0.12 — the
+  /// swipe-up / swipe-down callback. Lowered from 500 in 2.0.12; the
   /// 500 px/s threshold required an aggressive whip to land; a moderate
   /// flick simply registered as nothing.
   static const double _swipeVelocity = 250;
@@ -575,7 +575,7 @@ class _PostImageLoading extends _PostImageLoadState {
   const _PostImageLoading(this.progress);
 
   /// Fraction of the download completed, or `null` while the response has no
-  /// known total size — an indeterminate load, not a stalled one.
+  /// known total size: an indeterminate load, not a stalled one.
   final double? progress;
 
   @override
@@ -631,7 +631,7 @@ class _PostMediaStatus extends StatelessWidget {
     // load-state TYPES (loading / completed / failed), NOT on every
     // percent tick. Previously the loading child carried a
     // ValueKey('loading-$loadPercent') which incremented per progress
-    // event — the switcher then ran a 200 ms cross-fade for every
+    // event; the switcher then ran a 200 ms cross-fade for every
     // single percent update, producing the visible blink while a post
     // image was downloading. The pill's percent text and progress
     // value are now updated in-place inside a stable widget instead.
@@ -1052,7 +1052,7 @@ class _PostVideoContent extends HookConsumerWidget {
           // also reach the [GestureDetector] above for tap toggling, and
           // tap vs. vertical-drag don't conflict in the gesture arena
           // (tap fires on quick release without movement; drag fires on
-          // sufficient vertical motion). Single-pointer-only — multi-
+          // sufficient vertical motion). Single-pointer-only, multi-
           // touch is rejected so future enhancements that add scale on
           // video are uncontested.
           if (onSwipeUp != null || onSwipeDown != null)
@@ -1218,7 +1218,7 @@ class _PostVideoSwipeOverlay extends StatelessWidget {
     required this.onSwipeDown,
   });
 
-  /// See note in [_PostImageGestureOverlay] — lowered from 500 in 2.0.12
+  /// See note in [_PostImageGestureOverlay], lowered from 500 in 2.0.12
   /// so a moderate flick lands the gesture.
   static const double _swipeVelocity = 250;
 

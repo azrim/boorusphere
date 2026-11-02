@@ -2,11 +2,11 @@ import 'package:flutter/gestures.dart';
 
 /// Vertical drag recognizer that rejects itself the moment a 2nd pointer
 /// arrives. This prevents pinch-to-zoom from racing with vertical drag
-/// recognition — [InteractiveViewer]'s [ScaleGestureRecognizer] wins
+/// recognition: [InteractiveViewer]'s [ScaleGestureRecognizer] wins
 /// uncontested when two fingers are down.
 ///
 /// The default [VerticalDragGestureRecognizer] tracks all incoming
-/// pointers and decides whether to claim based on dominant motion —
+/// pointers and decides whether to claim based on dominant motion,
 /// which can race with scale recognition during a pinch that includes
 /// any vertical component, leaving the user unable to zoom.
 class SinglePointerVerticalDragRecognizer
@@ -19,10 +19,10 @@ class SinglePointerVerticalDragRecognizer
   void addAllowedPointer(PointerDownEvent event) {
     _activePointers.add(event.pointer);
     if (_activePointers.length > 1) {
-      // Multi-touch — yield to [InteractiveViewer]'s scale recognizer.
+      // Multi-touch: yield to [InteractiveViewer]'s scale recognizer.
       //
       // We deliberately do NOT call `super.addAllowedPointer(event)`
-      // for this 2nd+ pointer — we don't want to track its drag. But
+      // for this 2nd+ pointer; we don't want to track its drag. But
       // because we never tracked it, Flutter never routes its
       // up/cancel events to us, and `rejectGesture(pointer)` /
       // `didStopTrackingLastPointer(pointer)` are NEVER fired for this

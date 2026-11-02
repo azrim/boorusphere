@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 
 /// The colours a preset palette owns, for one brightness.
 ///
-/// An editor theme ships a surface ramp of its own — a page, the panels that
-/// float on it, and the tone a selected row takes — so the ramp is stored as
+/// An editor theme ships a surface ramp of its own: a page, the panels that
+/// float on it, and the tone a selected row takes, so the ramp is stored as
 /// the theme designed it. [toScheme] maps those tones onto Material roles and
 /// never invents a surface by mixing two others.
 ///

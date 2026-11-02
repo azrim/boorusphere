@@ -214,8 +214,8 @@ class HomeContent extends HookConsumerWidget {
       lastQuery[0] = query;
       final modeChanged = lastFeedMode[0] != feedMode;
       lastFeedMode[0] = feedMode;
-      // A reload that starts the result set over — a rating or filter change,
-      // a refresh — also has to move the viewport back. Its page index is not
+      // A reload that starts the result set over (a rating or filter change,
+      // a refresh) also has to move the viewport back. Its page index is not
       // enough to tell it from an append, which must leave the reader where
       // they are, so the page state counts restarts separately.
       final resetChanged = lastRestartSerial[0] != restartSerial;

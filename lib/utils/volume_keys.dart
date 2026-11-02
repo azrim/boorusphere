@@ -7,7 +7,7 @@ enum VolumeKeyDirection { up, down }
 ///
 /// The platform side consumes the key only while at least one viewer holds a
 /// token, so everywhere else the buttons keep their normal volume behaviour.
-/// Viewers stack — a related post opens another timeline — and only the one
+/// Viewers stack (a related post opens another timeline), and only the one
 /// actually on screen may answer. [acquire] makes the newest token the
 /// dispatcher; [release] hands dispatch back to the viewer underneath, without
 /// waiting for the two to run in any particular order.

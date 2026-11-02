@@ -191,7 +191,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
     final zoomResetTick = useMemoized(() => ValueNotifier<int>(0));
 
     // Post notifier for details sheet. Empty deps because the notifier
-    // must survive parent rebuilds — `onPageChanged` updates its .value
+    // must survive parent rebuilds; `onPageChanged` updates its .value
     // directly. [postsList] was a wrong dep: posts.toList() creates a
     // new List each build, causing useMemoized to recreate the notifier
     // (resetting to the initial post) whenever a watched provider fires.
@@ -850,7 +850,7 @@ class _GentlePageScrollPhysics extends PageScrollPhysics {
       );
 
   /// Permissive tolerance so the spring simulation declares "done" once
-  /// it is within ~3 px / 5 px·s of the target — far sooner than the
+  /// it is within ~3 px / 5 px·s of the target, far sooner than the
   /// framework default (~0.4 px / ~20 px·s) which keeps the simulation
   /// alive past the point any human could perceive motion. Combined
   /// with [_snapSpring], the simulation effectively terminates within
@@ -874,7 +874,7 @@ class _GentlePageScrollPhysics extends PageScrollPhysics {
     double velocity,
   ) {
     // Defer to the parent at the scroll-extent edges (overscroll glow,
-    // bounce-back, etc.) — we only want to override the page-snap
+    // bounce-back, etc.), we only want to override the page-snap
     // decision in the middle of the scrollable.
     if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
         (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
@@ -894,10 +894,10 @@ class _GentlePageScrollPhysics extends PageScrollPhysics {
       // Deliberate fling backward.
       targetPage = currentFloor;
     } else if (fractionPastFloor >= _commitThreshold) {
-      // Slow drag past the commit threshold — commit forward.
+      // Slow drag past the commit threshold: commit forward.
       targetPage = currentFloor + 1;
     } else {
-      // Slow drag short of the commit threshold — snap back.
+      // Slow drag short of the commit threshold: snap back.
       targetPage = currentFloor;
     }
 

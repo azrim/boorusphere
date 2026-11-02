@@ -27,7 +27,7 @@ class Choice<T> {
 
 /// Asks for one value out of a short list.
 ///
-/// Returns the chosen [Choice] — not the bare value — so a choice whose value
+/// Returns the chosen [Choice], not the bare value, so a choice whose value
 /// is null stays distinguishable from a dismissed sheet.
 Future<Choice<T>?> showChoiceSheet<T>({
   required BuildContext context,

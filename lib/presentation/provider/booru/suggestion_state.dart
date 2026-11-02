@@ -105,7 +105,7 @@ class SuggestionState extends _$SuggestionState {
       // still the answer for this word, and the next revisit should not wait.
       cache.put(server.id, word, suggestions);
       // The search bar can close while the answer is on the wire. The element
-      // is gone by then and every write below would throw — including the one
+      // is gone by then and every write below would throw, including the one
       // in the catch, whose error escapes this future uncaught.
       if (!ref.mounted || word != _lastWord) return;
 

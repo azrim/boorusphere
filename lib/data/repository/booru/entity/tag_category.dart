@@ -8,7 +8,7 @@ enum TagCategory { general, artist, copyright, character, meta }
 /// Maps the numeric category code shared by Danbooru, Moebooru and Gelbooru.
 ///
 /// Code `2` is unused by those engines and code `6` marks a deprecated
-/// Gelbooru tag, so both answer null — as does an engine that omits the field.
+/// Gelbooru tag, so both answer null, and so does an engine that omits the field.
 TagCategory? tagCategoryFromCode(int? code) {
   return switch (code) {
     0 => TagCategory.general,

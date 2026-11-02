@@ -59,7 +59,7 @@ class PostDetailsSheet extends ConsumerStatefulWidget {
 
 class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     with SingleTickerProviderStateMixin {
-  /// Share of the sheet's width a drag covers before it commits — the same
+  /// Share of the sheet's width a drag covers before it commits; the same
   /// half-page rule the platform pagers use.
   static const double _commitFraction = 0.5;
 
@@ -378,8 +378,8 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                   ),
                 ),
                 child: Stack(
-                  // Expanded so the scroll view — and with it the swipe and the
-                  // drag-to-dismiss — covers the sheet's full height instead of
+                  // Expanded so the scroll view (and with it the swipe and the
+                  // drag-to-dismiss) covers the sheet's full height instead of
                   // stopping where the rows end.
                   fit: StackFit.expand,
                   children: [
@@ -396,7 +396,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
                         controller: scrollController,
                         // A short panel leaves the sheet with nothing to
                         // scroll, and a scroll view that cannot scroll cannot
-                        // be dragged either — which is how the sheet is
+                        // be dragged either, which is how the sheet is
                         // dismissed.
                         physics: const AlwaysScrollableScrollPhysics(),
                         child: Column(
@@ -618,7 +618,7 @@ class _SampleLinkRowState extends State<_SampleLinkRow> {
     return FutureBuilder<PixelSize>(
       future: _size,
       builder: (context, snapshot) {
-        // Until the size resolves the row says what it knows — the format —
+        // Until the size resolves the row says what it knows: the format,
         // instead of printing a placeholder where a measurement belongs.
         final size = snapshot.data ?? post.sampleSize;
         final detail = size.hasPixels ? '$size, $ext' : ext;

@@ -13,7 +13,7 @@ import 'package:dio_smart_retry/dio_smart_retry.dart';
 ///
 /// Extends [DioForNative] rather than `DioMixin` alone: [Dio.download] is
 /// implemented by the concrete class, and a bare mixin answers it with
-/// `UnimplementedError` — which is what the batch download hit.
+/// `UnimplementedError`, which is what the batch download hit.
 class AppDio extends DioForNative {
   AppDio({
     required CookieJar cookieJar,

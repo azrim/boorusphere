@@ -32,13 +32,13 @@ class AppVersionRepo implements VersionRepo {
   /// the very end of `Build APK`, so anything `releases/latest`
   /// returns is guaranteed to have a downloadable APK for some arch.
   /// We additionally verify the running architecture's APK is in the
-  /// release's asset list — defends against partial uploads (network
+  /// release's asset list; defends against partial uploads (network
   /// hiccup mid-upload, runner timeout, etc.).
   ///
   /// `pubspec.yaml` fallback only kicks in when the API call **errors**
   /// (network failure, DNS, rate limit). If the API responds but the
   /// response doesn't contain a usable release/asset, we return
-  /// [AppVersion.zero] rather than fall back to pubspec — falling back
+  /// [AppVersion.zero] rather than fall back to pubspec; falling back
   /// would re-introduce the original race we're trying to avoid.
   @override
   Future<AppVersion> fetch() async {

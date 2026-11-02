@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 /// copyright purple, character green, general blue).
 ///
 /// These are fixed hues rather than scheme tokens because the same accents are
-/// painted straight on arbitrary post images by the timeline chip — the one
+/// painted straight on arbitrary post images by the timeline chip; the one
 /// documented exception to the adaptive-palette rule. Kept here so the timeline
 /// and the suggestion list cannot drift apart.
 const Color kTagArtistAccent = Color(0xFFFFB74D);
