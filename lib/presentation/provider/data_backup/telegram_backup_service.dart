@@ -125,7 +125,7 @@ class TelegramBackupService extends _$TelegramBackupService {
         );
         request.fields['chat_id'] = chatId;
         request.fields['caption'] =
-            '📦 Boorusphere Backup\n📅 ${DateTime.now().toIso8601String()}';
+            'Boorusphere Backup\n${DateTime.now().toIso8601String()}';
         request.files.add(
           await http.MultipartFile.fromPath('document', file.path),
         );
