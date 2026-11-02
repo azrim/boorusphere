@@ -299,6 +299,13 @@ class Boorusphere extends HookConsumerWidget {
           await storage.rescanFile(entry.dest);
         }
 
+        // The row can be deleted, or the whole list cleared, while the size
+        // probe and the scan above are on the wire. Finishing then would write
+        // metadata for a file that is gone and a status no entry names, which
+        // the next start keeps as a terminal row.
+        final recorded = ref.read(downloadEntryStateProvider);
+        if (recorded.getById(progress.id).id.isEmpty) return;
+
         // The finished file now has a record that survives the entry list:
         // deleting the record does not delete the file, so the metadata is
         // what still ties a file on disk to the post it came from. App-owned
