@@ -14,11 +14,11 @@ A second audience is now served: newcomers who do not know booru APIs and rely o
 
 ## Product Purpose
 
-A native mobile booru client that makes discovering and collecting booru content a fluid, enjoyable experience. Success means the user never has to open a desktop browser for booru access — every core workflow (search, browse, view, save, download) works seamlessly on mobile.
+A native mobile booru client that makes discovering and collecting booru content a fluid, enjoyable experience. Success means the user never has to open a desktop browser for booru access: every core workflow (search, browse, view, save, download) works on mobile.
 
 ## Positioning
 
-Zero-configuration breadth: paste a bare host and the app detects which booru engine and parsers answer it (Scan mode), so a server is added without hand-writing API config — and the same app covers the widest set of engines in one place. Engine coverage and on-device self-sufficiency are supporting facts, not the headline claim.
+Zero-configuration breadth: paste a bare host and the app detects which booru engine and parsers answer it (Scan mode), so a server is added without hand-writing API config, and the same app covers the widest set of engines in one place. Engine coverage and on-device self-sufficiency are supporting facts, not the headline claim.
 
 ## Operating Context
 
@@ -40,9 +40,9 @@ Zero-configuration breadth: paste a bare host and the app detects which booru en
 
 ## Brand Commitments
 
-- Playful & expressive — the UI should feel alive and fun to use, not clinical. Personality through motion, color accents, and thoughtful micro-interactions. The chrome should delight without competing with the content (the images are always the star).
-- Anti-reference: generic Material defaults — stock M3 with no personality, looks like every other Flutter app. The UI must feel intentional and crafted, not default.
-- Anti-reference: desktop booru sites crammed onto mobile — dense, link-heavy layouts that ignore touch targets and mobile ergonomics.
+- Playful & expressive: the UI should feel alive and fun to use, not clinical. Personality through motion, color accents, and thoughtful micro-interactions. The chrome should delight without competing with the content (the images are always the star).
+- Anti-reference: generic Material defaults, the stock M3 look that appears in every other Flutter app. The UI must feel intentional and crafted, not default.
+- Anti-reference: desktop booru sites crammed onto mobile, with dense, link-heavy layouts that ignore touch targets and mobile ergonomics.
 - Name: Boorusphere. Existing app icon set in `assets/icons/exported/`.
 
 ## Evidence on Hand
@@ -55,11 +55,11 @@ Zero-configuration breadth: paste a bare host and the app detects which booru en
 
 ## Product Principles
 
-1. **Content is king** — the image grid and viewer are the product; chrome should be minimal and purposeful.
-2. **Delight in the details** — micro-interactions, smooth transitions, and thoughtful touches that reward attention.
-3. **Efficient power-user flows** — search, filter, and bulk actions should be fast and accessible, not buried.
-4. **Dark by default** — image browsing apps are best in dark mode; light mode is supported but dark is the hero.
-5. **Local and self-owned** — content, credentials, and backups stay on the user's device and the user's own services; no account layer, no server of ours.
+1. **Content is king**: the image grid and viewer are the product; chrome should be minimal and purposeful.
+2. **Delight in the details**: micro-interactions, smooth transitions, and thoughtful touches that reward attention.
+3. **Efficient power-user flows**: search, filter, and bulk actions should be fast and accessible, not buried.
+4. **Dark by default**: image browsing apps are best in dark mode; light mode is supported but dark is the hero.
+5. **Local and self-owned**: content, credentials, and backups stay on the user's device and the user's own services; no account layer, no server of ours.
 
 ## Accessibility & Inclusion
 

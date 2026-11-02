@@ -33,8 +33,8 @@
 # Features
 
 ### Browse & search
-- Multi-server support — Danbooru, Gelbooru, Moebooru, Konachan, Safebooru, Szurubooru, e621, Shimmie, Philomena, and more, all manageable from the in-app drawer.
-- Add new servers with a guided **engine selector** (no manual API parsing required) — pick the booru engine, paste the base URL, done.
+- Multi-server support: Danbooru, Gelbooru, Moebooru, Konachan, Safebooru, Szurubooru, e621, Shimmie, Philomena, and more, all manageable from the in-app drawer.
+- Add new servers with a guided **engine selector** (no manual API parsing required): pick the booru engine, paste the base URL, done.
 - Tag-suggestion search with rolling search history. Single-word matches are surfaced before multi-word matches so common tags like `hololive` come up before `hololive_girl_tall` when you type `h`.
 - Per-server rating filter (Safe / Questionable / Explicit) directly in the search bar.
 - Block tags from search results (server-scoped or global).
@@ -49,21 +49,21 @@
 ### Media
 - Plays videos and animated images (.gif, .webm, .mp4) inline.
 - Sends correct `Referer` / `User-Agent` headers on video requests so hotlink-protected booru CDNs (e.g. Gelbooru) work.
-- Image cache shared between timeline thumbnails, post viewer, and downloader — open-then-download reuses the bytes you already loaded instead of re-fetching.
+- Image cache shared between timeline thumbnails, post viewer, and downloader: open-then-download reuses the bytes you already loaded instead of re-fetching.
 
 ### Downloads
 - One-tap download of images and videos to the device's `Downloads/Boorusphere/` folder. With **group by server** enabled, new files land in a per-server subfolder; files already on disk stay where they are.
 - Every finished file gets a small metadata file under `.metadata/` (the post it came from, when it was saved), so the record survives clearing the Downloads list.
-- Re-uses the in-memory cache when available — instant downloads if you've already viewed the post.
+- Re-uses the in-memory cache when available, so a post you have already viewed downloads without a second fetch.
 - Downloads tab in the drawer with redownload + open-in-system-viewer actions.
 
 ### Backup & restore
 - Export everything (settings, search history, server list, blocked tags, favorites) to a single backup file.
 - Download records can be included as an opt-in catalog: the list and its statuses are restored, but the media files are not. A restored record whose file is absent shows **No file** and can be downloaded again.
-- **Telegram backup integration** — schedule automatic backups (daily / weekly / monthly) to a Telegram chat via your own bot, with a "Backup now" button for manual snapshots. Includes a "Test connection" button to verify your bot token / chat ID before scheduling.
+- **Telegram backup integration**: schedule automatic backups (daily / weekly / monthly) to a Telegram chat via your own bot, with a "Backup now" button for manual snapshots. Includes a "Test connection" button to verify your bot token / chat ID before scheduling.
 
 ### UI
-- Material 3 with dynamic color (Android 12+) — pulls from your wallpaper palette.
+- Material 3 with dynamic color (Android 12+), pulling from your wallpaper palette.
 - Light, dark, and AMOLED-friendly themes.
 - High refresh rate support (90 / 120 Hz) via `flutter_displaymode`.
 - Edge-to-edge layout with translucent system bars and optional backdrop blur on overlays.
@@ -89,7 +89,7 @@ The simplest path is to grab the latest **GitHub Release** APK from the badge ab
 | `x86_64` | Android emulators / Chromebooks running x86_64 Android. |
 | `universal` | Bigger file, runs on all of the above. Use only if unsure. |
 
-The in-app updater downloads the **split** APK for your device ABI, and a manually downloaded APK can only replace it when it is the same variant (or has a higher version code). The `universal` APK is for a first install only — its version code is lower than a split install's, so Android rejects it as a downgrade.
+The in-app updater downloads the **split** APK for your device ABI, and a manually downloaded APK can only replace it when it is the same variant (or has a higher version code). The `universal` APK is for a first install only; its version code is lower than a split install's, so Android rejects it as a downgrade.
 
 The app is **not** on Google Play. F-Droid via IzzyOnDroid is currently disabled but the link remains in the source for when it's re-enabled.
 
@@ -177,6 +177,6 @@ flutter run
 User-facing changes per release are tracked in [`CHANGELOG.md`](CHANGELOG.md). The recent modernization passes (Phase B–G in the v1.9.x line) reduced boilerplate, dropped the unmaintained `extended_image` dependency in favor of `cached_network_image` + `InteractiveViewer`, modernized the drawer to `Scaffold.drawer`, and trimmed a class of silent state-management bugs.
 
 If you're submitting a PR:
-- Run `grind chkfmt` and `grind test` locally — CI runs the same and rejects unformatted code.
+- Run `grind chkfmt` and `grind test` locally; CI runs the same and rejects unformatted code.
 - Bump `version:` in `pubspec.yaml` (`X.Y.Z+buildCode`) and add a `## X.Y.Z` entry at the top of `CHANGELOG.md`.
 - For new languages, follow the **Translation** section above.
