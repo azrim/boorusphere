@@ -489,6 +489,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                 'media_${post.id}_${post.serverId}',
                               ),
                               post: post,
+                              isRouteVisible: routeVisible,
                               zoomResetSignal: zoomResetTick,
                               onZoomChanged: (isZoomed) {
                                 zoomed.value = isZoomed;

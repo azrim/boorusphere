@@ -45,6 +45,7 @@ class PostMedia extends StatelessWidget {
     this.onSwipeUp,
     this.onSwipeDown,
     this.zoomResetSignal,
+    this.isRouteVisible = true,
   });
 
   final Post post;
@@ -77,6 +78,12 @@ class PostMedia extends StatelessWidget {
   /// Back is pressed while zoomed. Ignored by non-image kinds.
   final Listenable? zoomResetSignal;
 
+  /// Whether the route showing this media is the one on screen. A video runs
+  /// on a platform surface rather than a Flutter ticker, so covering the
+  /// route does not silence it on its own; the video renderer pauses when
+  /// this turns false. Ignored by non-video kinds.
+  final bool isRouteVisible;
+
   @override
   Widget build(BuildContext context) {
     return switch (post.content.type) {
@@ -93,6 +100,7 @@ class PostMedia extends StatelessWidget {
         onShowDetails: onShowDetails,
         onSwipeUp: onSwipeUp,
         onSwipeDown: onSwipeDown,
+        isRouteVisible: isRouteVisible,
       ),
       _ => _PostUnknown(post: post),
     };
@@ -683,9 +691,13 @@ class _PostVideo extends StatefulWidget {
     this.onShowDetails,
     this.onSwipeUp,
     this.onSwipeDown,
+    this.isRouteVisible = true,
   });
 
   final Post post;
+
+  /// Whether the viewer's route is the one on screen.
+  final bool isRouteVisible;
 
   /// Wired by the post viewer to expand the details sheet. Used by both
   /// the new details icon button in the video toolbox and the swipe-up
@@ -729,6 +741,7 @@ class _PostVideoState extends State<_PostVideo> {
         onSwipeUp: widget.onSwipeUp,
         onSwipeDown: widget.onSwipeDown,
         isVisible: _visible,
+        isRouteVisible: widget.isRouteVisible,
       ),
     );
   }
@@ -739,6 +752,7 @@ class _PostVideoContent extends HookConsumerWidget {
     super.key,
     required this.post,
     required this.isVisible,
+    this.isRouteVisible = true,
     this.onShowDetails,
     this.onSwipeUp,
     this.onSwipeDown,
@@ -746,6 +760,9 @@ class _PostVideoContent extends HookConsumerWidget {
 
   final Post post;
   final bool isVisible;
+
+  /// Whether the viewer's route is the one on screen.
+  final bool isRouteVisible;
   final VoidCallback? onShowDetails;
   final VoidCallback? onSwipeUp;
   final VoidCallback? onSwipeDown;
@@ -777,6 +794,10 @@ class _PostVideoContent extends HookConsumerWidget {
     final feedback = useState<_VideoGestureHint?>(null);
     final feedbackTimer = useRef<Timer?>(null);
     final doubleTapPosition = useRef(Offset.zero);
+    // Read by the initialize continuation, which must not start playback on a
+    // viewer that has since been covered.
+    final routeVisibleRef = useRef(isRouteVisible);
+    routeVisibleRef.value = isRouteVisible;
 
     useEffect(
       () =>
@@ -878,11 +899,38 @@ class _PostVideoContent extends HookConsumerWidget {
       });
     }, []);
 
+    // A platform video surface keeps playing on its own when the Flutter tree
+    // above it is covered, so a related timeline pushed over the viewer used
+    // to keep the old video talking underneath it. Pause while the viewer is
+    // not on screen, and resume only a playback the user was actually
+    // watching when it got covered.
+    final resumeOnShow = useRef(false);
     useEffect(() {
-      Future<void> initialize() async {
-        final player = controller;
-        if (player == null || !context.mounted) return;
+      final player = controller;
+      if (player == null) return null;
 
+      if (!isRouteVisible) {
+        resumeOnShow.value = isPlaying.value;
+        if (player.value.isPlaying) {
+          unawaited(player.pause());
+        }
+        return null;
+      }
+
+      if (resumeOnShow.value) {
+        resumeOnShow.value = false;
+        if (player.value.isInitialized) {
+          unawaited(player.play());
+        }
+      }
+      return null;
+    }, [isRouteVisible, controller]);
+
+    useEffect(() {
+      final player = controller;
+      if (player == null) return null;
+
+      Future<void> initialize() async {
         // The controller is recreated only when this post becomes active
         // again, so a new visit autoplays even if the previous one was paused.
         isPlaying.value = true;
@@ -903,13 +951,17 @@ class _PostVideoContent extends HookConsumerWidget {
 
         player.addListener(onFirstFrame);
         await player.setVolume(contentSettings.videoMuted ? 0 : 1);
-        if (isPlaying.value && context.mounted) {
+        // Starting here would put audio on another page if the viewer was
+        // covered while the player initialized; the visibility effect above
+        // resumes playback when the viewer comes back.
+        if (isPlaying.value && context.mounted && routeVisibleRef.value) {
           await player.play();
           scheduleHide();
         }
       }
 
-      initialize();
+      unawaited(initialize());
+      return null;
     }, [controller]);
 
     return RepaintBoundary(
