@@ -237,7 +237,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 - **Servers**: one compact row per server: favicon chip with a hairline border and the server name. The active server fills `secondaryContainer` with a `primary` hairline, and is exposed to TalkBack as `selected`. Removing a server asks for confirmation first; the add-server row closes the group with a `primary` plus
 - **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
 - **Preferences**: Settings, Gestures & tags (a reference sheet for the gestures and the rating letters), and Reset to default
-- **Footer**: Exit (tinted with the error color), the update status when a newer version exists (spinner while downloading), and a version readout preceded by a `primary` status dot that opens About
+- **Footer**: Exit (tinted with the error color), the update status when a newer version exists (spinner while downloading), and a version readout that opens About
 - **Colors**: section labels are muted uppercase `onSurfaceVariant`; row icons stay neutral `onSurfaceVariant`, and only the count badges, the active-server highlight, the add-server plus, and the footer status dot carry semantic scheme colors
 - **Type**: drawer rows run one step denser than content rows (a 14 sp `bodyMedium` label), so more destinations fit without touching the brand header, which keeps its `headlineSmall` wordmark
 

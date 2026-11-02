@@ -120,15 +120,6 @@ class DrawerFooter extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: DesignTokens.spacingSm),
                     Text(
                       'Boorusphere $version',
                       style: context.theme.textTheme.labelSmall?.copyWith(
