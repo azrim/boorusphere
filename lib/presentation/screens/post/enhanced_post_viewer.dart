@@ -410,6 +410,17 @@ class EnhancedPostViewer extends HookConsumerWidget {
                             // gestureDetailsIsChanged could fire the reset.
                             controller.enableSwipe();
 
+                            // The zoom belonged to the page the viewer just
+                            // left. Keeping the claim would make Back check a
+                            // scale that is no longer on screen, so a viewer
+                            // that was zoomed and then paged (nav buttons on a
+                            // large screen) could not be closed by Back at all.
+                            // The tick folds the old page back to fit as well,
+                            // so its retained transform cannot disagree with
+                            // the cleared claim when it is paged back into view.
+                            zoomed.value = false;
+                            zoomResetTick.value++;
+
                             // A page the slideshow did not ask for is a manual
                             // step (swipe, volume key, nav button): the user
                             // has taken over, so stop instead of fighting them.

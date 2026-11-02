@@ -209,7 +209,15 @@ class _PostImage extends HookConsumerWidget {
 
       Future<void> resetZoom() async {
         final current = transformController.value.clone();
-        if (current.getMaxScaleOnAxis() <= 1.01) return;
+        if (current.getMaxScaleOnAxis() <= 1.01) {
+          // The viewer-side claim can outlive this page's transform — a page
+          // change clears it while a listener reset is still pending. This
+          // image is already at fit-to-screen, so no transform event is coming
+          // to report that; say so here, or Back would stay consumed by a zoom
+          // that is not showing.
+          onZoomChanged?.call(false);
+          return;
+        }
 
         final animation = Matrix4Tween(
           begin: current,

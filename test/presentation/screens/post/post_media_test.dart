@@ -138,7 +138,11 @@ void main() {
     );
   });
 
-  Widget harness(Post post) {
+  Widget harness(
+    Post post, {
+    ValueChanged<bool>? onZoomChanged,
+    Listenable? zoomResetSignal,
+  }) {
     return ProviderScope(
       overrides: [
         envRepoProvider.overrideWithValue(envRepo),
@@ -152,7 +156,13 @@ void main() {
           // "active" and its download stream is never requested.
           home: HeroMode(
             enabled: true,
-            child: Scaffold(body: PostMedia(post: post)),
+            child: Scaffold(
+              body: PostMedia(
+                post: post,
+                onZoomChanged: onZoomChanged,
+                zoomResetSignal: zoomResetSignal,
+              ),
+            ),
           ),
         ),
       ),
@@ -177,6 +187,27 @@ void main() {
     expect(find.byType(InteractiveViewer), findsNothing);
     expect(find.text(t.unsupportedMedia(fileExt: 'zip')), findsOneWidget);
     expect(find.text(t.openExternally), findsOneWidget);
+  });
+
+  testWidgets('a zoom reset at rest releases the viewer claim', (tester) async {
+    final reset = ValueNotifier<int>(0);
+    final zoomChanges = <bool>[];
+    addTearDown(reset.dispose);
+
+    await tester.pumpWidget(
+      harness(
+        imagePost,
+        zoomResetSignal: reset,
+        onZoomChanged: zoomChanges.add,
+      ),
+    );
+
+    reset.value++;
+    await tester.pump();
+
+    // The image never left fit-to-screen, so nothing else reports it. Without
+    // this the viewer would believe it is still zoomed and swallow Back.
+    expect(zoomChanges, [false]);
   });
 
   testWidgets('surfaces the retry banner when playback cannot start', (
