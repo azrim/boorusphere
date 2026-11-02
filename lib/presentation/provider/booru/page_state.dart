@@ -287,6 +287,11 @@ class PageState extends _$PageState {
           // whenever the server clamps its page size.
           hasNext: result.rawCount > 0,
           hasPrev: result.index > 0,
+          // A reload starts the result set over, so an in-memory ceiling an
+          // earlier list hit says nothing about this one. Leaving the flag set
+          // is what used to keep the footer asking for a refresh while the
+          // refresh itself kept refusing to grow the list.
+          limitReached: false,
         ),
       );
     } catch (err, stack) {
@@ -310,8 +315,11 @@ class PageState extends _$PageState {
     if (_fetching) return;
     if (!state.data.hasNext) return;
     if (state.data.posts.isEmpty) return;
-    if (state.data.limitReached) return;
     if (_feedMode == FeedMode.infinite) {
+      // The ceiling caps the accumulated list; a paged step replaces the
+      // posts, so a flag left behind by an infinite session must not keep
+      // the pagination control dead.
+      if (state.data.limitReached) return;
       await _appendNextPage();
       return;
     }
@@ -420,6 +428,9 @@ class PageState extends _$PageState {
           pageIndex: result.index + 1,
           hasNext: result.rawCount > 0,
           hasPrev: result.index > 0,
+          // A step replaces the displayed posts instead of growing a list, so
+          // any ceiling an earlier infinite session hit does not apply here.
+          limitReached: false,
         ),
       );
     } catch (err, stack) {

@@ -182,6 +182,13 @@ class _FakeUiSetting extends UiSettingState {
 
   @override
   UiSetting build() => UiSetting(feedMode: mode);
+
+  @override
+  Future<FeedMode> setFeedMode(FeedMode value) async {
+    mode = value;
+    state = state.copyWith(feedMode: value);
+    return value;
+  }
 }
 
 ProviderContainer _container(
@@ -938,6 +945,82 @@ void main() {
     // The ceiling is a local limit, not the server's end: no further request.
     await notifier.loadMore();
     expect(repo.requested, [0, 1]);
+  });
+
+  test(
+    'a reload resets the infinite ceiling so the list can start over',
+    () async {
+      final first = List.generate(
+        PageState.maxAccumulatedPosts - 50,
+        (i) => _post(i + 1),
+      );
+      final second = List.generate(100, (i) => _post(1000 + i));
+      final repo = _FakeRepo({
+        0: ParsedPage(posts: first, rawCount: first.length),
+        1: ParsedPage(posts: second, rawCount: second.length),
+      });
+      final container = _container(repo, mode: FeedMode.infinite);
+      addTearDown(container.dispose);
+      final notifier = container.read(pageStateProvider.notifier);
+
+      await notifier.load();
+      await notifier.nextPage();
+      expect(container.read(pageStateProvider).data.limitReached, isTrue);
+
+      // Pull-to-refresh is what the footer asks for. It restarts the list,
+      // and the ceiling has to go with the list it was measured on.
+      await notifier.load();
+
+      final restarted = container.read(pageStateProvider).data;
+      expect(restarted.posts, hasLength(first.length));
+      expect(restarted.limitReached, isFalse);
+
+      // The restarted list can grow again, up to its own ceiling.
+      await notifier.loadMore();
+      expect(repo.requested, [0, 1, 0, 1]);
+      final grown = container.read(pageStateProvider).data;
+      expect(grown.posts, hasLength(PageState.maxAccumulatedPosts));
+      expect(grown.limitReached, isTrue);
+    },
+  );
+
+  test('a stale infinite ceiling does not block a paged step', () async {
+    // The ceiling is local to the accumulated list. A reader who switches to
+    // the paged feed while the mode-switch reload fails would otherwise keep
+    // the flag on the error data, and the pagination control stayed dead.
+    final first = List.generate(
+      PageState.maxAccumulatedPosts - 50,
+      (i) => _post(i + 1),
+    );
+    final second = List.generate(100, (i) => _post(1000 + i));
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: first, rawCount: first.length),
+      1: ParsedPage(posts: second, rawCount: second.length),
+    });
+    final container = _container(repo, mode: FeedMode.infinite);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider).data.limitReached, isTrue);
+
+    await container
+        .read(uiSettingStateProvider.notifier)
+        .setFeedMode(FeedMode.paged);
+    repo.failing.add(0);
+    await notifier.update((option) => option.copyWith(clear: true));
+    expect(container.read(pageStateProvider), isA<ErrorFetchResult>());
+    expect(container.read(pageStateProvider).data.limitReached, isTrue);
+
+    repo.failing.clear();
+    repo.requested.clear();
+    await notifier.nextPage();
+
+    expect(repo.requested, [1]);
+    final data = container.read(pageStateProvider).data;
+    expect(data.pageIndex, 2);
+    expect(data.limitReached, isFalse);
   });
 
   test('loadMore leaves a paged feed alone', () async {
