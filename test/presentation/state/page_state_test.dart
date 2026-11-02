@@ -1076,4 +1076,43 @@ void main() {
       2,
     ]);
   });
+
+  test('only a reload restarts the infinite feed, not an append', () async {
+    // The viewport follows this counter: an append must leave the reader where
+    // they are, while a reload that starts the list over — even when it lands
+    // on the same first page — has to move them back to the top.
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      1: ParsedPage(posts: [_post(3)], rawCount: 1),
+    });
+    final container = _container(
+      repo,
+      window: _Window(limit: 2),
+      mode: FeedMode.infinite,
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    final afterLoad = container.read(pageStateProvider).data.restartSerial;
+
+    await notifier.nextPage();
+    expect(
+      container.read(pageStateProvider).data.restartSerial,
+      afterLoad,
+      reason: 'appending a page must not reset the viewport',
+    );
+
+    await notifier.load();
+    final afterReload = container.read(pageStateProvider).data.restartSerial;
+    expect(afterReload, greaterThan(afterLoad));
+
+    // A reload while the list is already back on its first page still counts:
+    // the reader may have scrolled down that page.
+    await notifier.load();
+    expect(
+      container.read(pageStateProvider).data.restartSerial,
+      greaterThan(afterReload),
+    );
+  });
 }

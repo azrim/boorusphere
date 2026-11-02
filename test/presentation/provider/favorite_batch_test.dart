@@ -3,6 +3,7 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/favorite_post_repo.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
+import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -66,5 +67,60 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(repo.get().length, posts.length);
+  });
+
+  testWidgets('an undo captured in a page scope still works once it closes', (
+    tester,
+  ) async {
+    // The batch-favorite undo is shown by the root messenger, which outlives
+    // the Home page. The notifier read inside the page scope has to keep
+    // working after that scope is gone, or the undo silently does nothing.
+    final repo = _MemoryFavoriteRepo();
+    const post = Post(id: 1, serverId: 'srv');
+    final pageOpen = ValueNotifier(true);
+    FavoritePostState? captured;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [favoritePostRepoProvider.overrideWithValue(repo)],
+        child: MaterialApp(
+          home: ValueListenableBuilder<bool>(
+            valueListenable: pageOpen,
+            builder: (context, open, _) => open
+                ? ProviderScope(
+                    overrides: [
+                      searchSessionProvider.overrideWith(
+                        (ref) => const SearchSession(serverId: 'srv'),
+                      ),
+                    ],
+                    child: Consumer(
+                      builder: (context, ref, _) => ElevatedButton(
+                        onPressed: () {
+                          captured = ref.read(
+                            favoritePostStateProvider.notifier,
+                          );
+                        },
+                        child: const Text('favorite'),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('favorite'));
+    pageOpen.value = false;
+    await tester.pump();
+
+    final favorites = captured!;
+    await favorites.save(post);
+    expect(favorites.isFavorite(post), isTrue);
+
+    await favorites.remove(post);
+    expect(favorites.isFavorite(post), isFalse);
+    expect(repo.get(), isEmpty);
+    expect(tester.takeException(), isNull);
   });
 }

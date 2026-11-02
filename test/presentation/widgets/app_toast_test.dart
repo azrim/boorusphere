@@ -67,6 +67,52 @@ void main() {
       expect(find.text('Copied to clipboard'), findsNothing);
     });
 
+    testWidgets('a new message replaces the toast on screen', (tester) async {
+      // An undo that stays until it is used must not keep the messenger queue
+      // busy: the message that arrives later has to be visible right away.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () => showToast(
+                      context,
+                      'Saved 3 posts',
+                      actionLabel: 'Undo',
+                      onAction: () {},
+                      duration: const Duration(days: 1),
+                    ),
+                    child: const Text('first'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => showToast(context, 'Download finished'),
+                    child: const Text('second'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('first'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Saved 3 posts'), findsOneWidget);
+
+      await tester.tap(find.text('second'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('Download finished'), findsOneWidget);
+      expect(find.text('Saved 3 posts'), findsNothing);
+
+      await tester.pump(DesignTokens.durationSnackbar);
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('runs the action and closes the toast', (tester) async {
       var undone = false;
       await tester.pumpWidget(
