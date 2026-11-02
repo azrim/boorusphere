@@ -18,6 +18,7 @@ import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'page_state.g.dart';
@@ -227,12 +228,9 @@ class PageState extends _$PageState {
     }
 
     final query = state.data.option.query;
+    if (query.isNotEmpty) unawaited(_recordHistory(query, server));
     _fetching = true;
     try {
-      if (query.isNotEmpty) {
-        await ref.read(searchHistoryStateProvider.notifier).save(query, server);
-      }
-
       final settings = ref.read(serverSettingStateProvider);
       final shown = state.data.option;
       final option = shown.copyWith(
@@ -305,6 +303,21 @@ class PageState extends _$PageState {
       _fetching = false;
       _drainPending();
       _drainReload();
+    }
+  }
+
+  /// Records the search in the history without letting the write decide the
+  /// fate of the page.
+  ///
+  /// The save used to be awaited inside the fetch's `try`, so a storage
+  /// failure turned a perfectly good page request into an error and the page
+  /// was never asked for. The record is a convenience: a miss is logged and
+  /// dropped, and the page loads either way.
+  Future<void> _recordHistory(String query, Server server) async {
+    try {
+      await ref.read(searchHistoryStateProvider.notifier).save(query, server);
+    } catch (err, stack) {
+      mainLog.w('PageState: failed to record the search history', err, stack);
     }
   }
 

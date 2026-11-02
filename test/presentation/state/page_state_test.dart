@@ -175,6 +175,19 @@ class _FakeSearchHistory extends SearchHistoryState {
   Future<void> save(String value, Server server) async {}
 }
 
+/// A history box the app cannot write, the way a closed or corrupt box
+/// behaves. Writing the history is a convenience, never a reason to fail the
+/// page.
+class _ThrowingSearchHistory extends SearchHistoryState {
+  @override
+  Map<int, SearchHistory> build() => {};
+
+  @override
+  Future<void> save(String value, Server server) async {
+    throw Exception('history box unwritable');
+  }
+}
+
 class _FakeUiSetting extends UiSettingState {
   _FakeUiSetting(this.mode);
 
@@ -200,6 +213,7 @@ ProviderContainer _container(
   ServerState? servers,
   Set<FeedPostKey> hidden = const {},
   FeedMode mode = FeedMode.paged,
+  SearchHistoryState? history,
 }) {
   final settings = window ?? _Window();
   final container = ProviderContainer(
@@ -211,7 +225,9 @@ ProviderContainer _container(
       tagsBlockerStateProvider.overrideWith(
         () => blocker ?? _FakeTagsBlocker(blocked, serverId: blockerServerId),
       ),
-      searchHistoryStateProvider.overrideWith(_FakeSearchHistory.new),
+      searchHistoryStateProvider.overrideWith(
+        () => history ?? _FakeSearchHistory(),
+      ),
       uiSettingStateProvider.overrideWith(() => _FakeUiSetting(mode)),
       hiddenFeedPostKeysProvider.overrideWithValue(hidden),
       pageStateProvider.overrideWith(
@@ -1021,6 +1037,25 @@ void main() {
     final data = container.read(pageStateProvider).data;
     expect(data.pageIndex, 2);
     expect(data.limitReached, isFalse);
+  });
+
+  test('a failing history write does not fail the page', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+    });
+    final container = _container(repo, history: _ThrowingSearchHistory());
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.update((option) => option.copyWith(query: 'cat'));
+    // The write fails on its own microtask; it must neither hold the page
+    // back nor turn into a feed error.
+    await pumpEventQueue();
+
+    expect(repo.requested, [0]);
+    final result = container.read(pageStateProvider);
+    expect(result, isA<DataFetchResult>());
+    expect(result.data.posts.map((it) => it.id), [1]);
   });
 
   test('loadMore leaves a paged feed alone', () async {
