@@ -120,13 +120,14 @@ class Downloader {
 
     if (folder.isNotEmpty) sharedStorageHandle.createSubDir(folder);
     final destPath = p.join(sharedStorageHandle.path, folder, fileName);
+    final destFile = File(destPath);
+    DownloadEntry? entry;
 
     try {
       // Copy the cached file to downloads
       await cachedFile.copy(destPath);
 
       // Verify the file was copied
-      final destFile = File(destPath);
       if (!destFile.existsSync()) {
         return null;
       }
@@ -143,17 +144,28 @@ class Downloader {
         return null;
       }
 
-      // Trigger media scan so it appears in gallery
-      await StorageUtil().scanMedia(destPath);
+      // Trigger media scan so it appears in gallery. A scan that fails says
+      // nothing about the bytes, so the record is still written: the next boot
+      // scans the finished file again.
+      try {
+        await StorageUtil().scanMedia(destPath);
+      } catch (e) {
+        mainLog.e('Downloader: failed to scan $destPath', e);
+      }
 
-      // Show notification for cached download
-      await _showDownloadCompleteNotification(fileName);
+      // Show notification for cached download. The notification reports a
+      // finished record, it is not a condition for having one.
+      try {
+        await _showDownloadCompleteNotification(fileName);
+      } catch (e) {
+        mainLog.e('Downloader: failed to notify $fileName', e);
+      }
 
       // Create a fake task ID for tracking
       final taskId =
           '$_cacheTaskPrefix${DateTime.now().millisecondsSinceEpoch}';
 
-      final entry = DownloadEntry(
+      entry = DownloadEntry(
         id: taskId,
         post: post,
         dest: p.join(folder, fileName),
@@ -177,8 +189,27 @@ class Downloader {
       await writeDownloadSidecar(root: sharedStorageHandle.path, entry: entry);
 
       return taskId;
-    } catch (e) {
-      // If copy fails, fall back to network download
+    } catch (e, stack) {
+      // A copy or a record write can fail halfway. The file and any record
+      // already published are dropped before the network path runs: keeping
+      // either would leave a row whose file is unreadable, while a failed copy
+      // would be resumed by a later attempt on the same name.
+      mainLog.e('Downloader: failed to copy $url from the cache', e, stack);
+      await _deleteFile(destFile);
+      final failedEntry = entry;
+      if (failedEntry != null) {
+        await deleteDownloadSidecar(
+          root: sharedStorageHandle.path,
+          dest: failedEntry.dest,
+        );
+        try {
+          await ref
+              .read(downloadEntryStateProvider.notifier)
+              .remove(failedEntry.id);
+        } catch (e, stack) {
+          mainLog.e('Downloader: failed to drop ${failedEntry.id}', e, stack);
+        }
+      }
       return null;
     }
   }
