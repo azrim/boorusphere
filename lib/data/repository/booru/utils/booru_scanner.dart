@@ -225,9 +225,9 @@ class BooruScanner {
     );
 
     if (firstFound.parserId.isEmpty) {
-      _uilog('❌ no ${type.name}Query matched');
+      _uilog('no ${type.name}Query matched');
     } else {
-      _uilog('✔️ ${type.name}Query matched: ${firstFound.parserId}');
+      _uilog('${type.name}Query matched: ${firstFound.parserId}');
     }
 
     _uilog();
@@ -243,7 +243,7 @@ class BooruScanner {
     _clearUiLog();
 
     try {
-      _uilog('🧐 Scanning search query...');
+      _uilog('Scanning search query...');
       _cancelToken = CancelToken();
       final search = _performScans(api, server: data, type: _ScanType.search);
       await for (var ev in search) {
@@ -258,7 +258,7 @@ class BooruScanner {
         );
       }
 
-      _uilog('🧐 Scanning suggestion query...');
+      _uilog('Scanning suggestion query...');
       final suggestion = _performScans(
         api,
         server: data,
@@ -276,7 +276,7 @@ class BooruScanner {
         );
       }
 
-      _uilog('🧐 Scanning web post query...');
+      _uilog('Scanning web post query...');
       final post = _performScans(home, server: data, type: _ScanType.post);
       await for (var ev in post) {
         if (ev == _ScanResult.empty && isScanning.value) {
