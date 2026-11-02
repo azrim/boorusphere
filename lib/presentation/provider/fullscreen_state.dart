@@ -53,6 +53,11 @@ class FullscreenState extends _$FullscreenState {
   }
 
   void reset() {
+    // Restoring the platform state is not enough: this provider can outlive
+    // the page that asked for fullscreen — the viewer is non-opaque and stays
+    // mounted under a pushed route — and a stacked viewer reads the same flag.
+    // Dropping it here keeps the toggle honest with the system bars.
+    state = false;
     _reset(ref.read(envRepoProvider).sdkVersion);
   }
 

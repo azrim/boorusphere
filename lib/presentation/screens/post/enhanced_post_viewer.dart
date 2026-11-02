@@ -334,6 +334,18 @@ class EnhancedPostViewer extends HookConsumerWidget {
       return () => wakelockManager.release(controller);
     }, [controller]);
 
+    // Immersive mode belongs to the screen this viewer owns. Covering it with
+    // a related timeline used to keep the system bars hidden on that page, and
+    // a viewer pushed from it opened already fullscreen because the flag
+    // outlives the viewer that set it. Let go as soon as this route is no
+    // longer on top; entering fullscreen again is a deliberate action.
+    useEffect(() {
+      if (!routeVisible) {
+        ref.read(fullscreenStateProvider.notifier).reset();
+      }
+      return null;
+    }, [routeVisible]);
+
     void expandSheet() {
       if (sheetController.isAttached) {
         sheetController.animateTo(
