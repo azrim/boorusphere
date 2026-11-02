@@ -284,7 +284,7 @@
     "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
     "scanning": "Scanning...",
     "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-    "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+    "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
     "profile_name": "Profile name",
     "profile_name_hint": "e.g. Safebooru",
     "name_error": "Please enter a name",
@@ -407,7 +407,7 @@
     "restore": {
       "title": "Restore data",
       "desc": "Restore app data from backup file",
-      "completed": "Restore complete — ${file}",
+      "completed": "Restore complete: ${file}",
       "completedDesc": "Restart the app so the restored data is loaded.",
       "restartNow": "Restart now",
       "invalid": "Invalid backup file",
