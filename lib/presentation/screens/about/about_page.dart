@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/constant/app.dart';
 import 'package:boorusphere/data/repository/changelog/entity/changelog_data.dart';
@@ -249,6 +251,16 @@ class _Downloader extends ConsumerWidget {
 
   final AppVersion version;
 
+  /// Starts the update download.
+  ///
+  /// The notification permission only gates the notice a finished task shows,
+  /// so a denial must not keep the download from starting.
+  Future<void> _startUpdate(BuildContext context, WidgetRef ref) async {
+    await checkNotificationPermission(context);
+    if (!context.mounted) return;
+    await ref.read(appUpdaterProvider.notifier).start(version);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final updateId = ref.watch(appUpdaterProvider);
@@ -268,13 +280,7 @@ class _Downloader extends ConsumerWidget {
       children: [
         if (!hasUpdateApk && !inFlight)
           FilledButton(
-            onPressed: () {
-              checkNotificationPermission(context).then((hasPerm) {
-                if (hasPerm) {
-                  ref.read(appUpdaterProvider.notifier).start(version);
-                }
-              });
-            },
+            onPressed: () => unawaited(_startUpdate(context, ref)),
             child: Text(context.t.updater.download(version: version)),
           ),
         if (inFlight) ...[
