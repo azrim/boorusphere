@@ -17,6 +17,29 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
+/// One server's favorites, as one tab of the page.
+typedef FavoriteTab = ({Server server, List<Post> posts});
+
+/// Groups [posts] into one tab per server, dropping the ones whose server is
+/// gone: a post id only means something with the booru that assigned it.
+///
+/// The page decides its empty state from the result, not from the record
+/// count: favorites left behind by a deleted server cannot be shown, opened or
+/// removed, so a list made only of them has nothing to page through.
+@visibleForTesting
+List<FavoriteTab> favoriteTabsOf(
+  Iterable<Post> posts,
+  Iterable<Server> servers,
+) {
+  return posts
+      .groupListsBy((e) => servers.getById(e.serverId, or: Server.empty))
+      .entries
+      .where((it) => it.key != Server.empty)
+      .sortedBy((it) => it.key.id)
+      .map((it) => (server: it.key, posts: it.value))
+      .toList();
+}
+
 @RoutePage()
 class FavoritesPage extends ConsumerWidget {
   const FavoritesPage({super.key, this.session});
@@ -25,6 +48,10 @@ class FavoritesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favoritePostState = ref.watch(favoritePostStateProvider);
+    final tabs = favoriteTabsOf(
+      favoritePostState,
+      ref.watch(serverStateProvider),
+    );
     final savedServerId = ref.read(
       serverSettingStateProvider.select((it) => it.lastActiveId),
     );
@@ -32,9 +59,7 @@ class FavoritesPage extends ConsumerWidget {
 
     return ProviderScope(
       overrides: [searchSessionProvider.overrideWith((ref) => session)],
-      child: favoritePostState.isNotEmpty
-          ? _Pager(favoritePostState)
-          : const _EmptyView(),
+      child: tabs.isEmpty ? const _EmptyView() : _Pager(tabs),
     );
   }
 }
@@ -62,30 +87,22 @@ class _EmptyView extends StatelessWidget {
   }
 }
 
-class _Pager extends ConsumerWidget {
-  const _Pager(this.posts);
+class _Pager extends StatelessWidget {
+  const _Pager(this.tabs);
 
-  final Iterable<Post> posts;
+  final List<FavoriteTab> tabs;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final servers = ref.watch(serverStateProvider);
-
-    final pages = posts
-        .groupListsBy((e) => servers.getById(e.serverId, or: Server.empty))
-        .entries
-        .where((it) => it.key != Server.empty)
-        .sortedBy((it) => it.key.id);
-
+  Widget build(BuildContext context) {
     return DefaultTabController(
-      length: pages.length,
+      length: tabs.length,
       child: Scaffold(
         extendBody: true,
         appBar: AppBar(title: Text(context.t.favorites.title)),
         body: TabBarView(
           children: [
-            for (final page in pages)
-              _Content(server: page.key, posts: page.value),
+            for (final tab in tabs)
+              _Content(server: tab.server, posts: tab.posts),
           ],
         ),
         bottomNavigationBar: Material(
@@ -104,15 +121,15 @@ class _Pager extends ConsumerWidget {
               ),
               splashFactory: InkSparkle.splashFactory,
               tabs: [
-                for (final page in pages)
+                for (final tab in tabs)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: DesignTokens.spacingSm,
                     ),
                     child: Tab(
-                      text: page.key.name,
+                      text: tab.server.name,
                       icon: Favicon(
-                        url: page.key.homepage,
+                        url: tab.server.homepage,
                         size: 16,
                         shape: BoxShape.rectangle,
                       ),
