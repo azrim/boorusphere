@@ -6,8 +6,8 @@ import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
+import 'package:boorusphere/data/repository/fallback_box.dart';
 import 'package:boorusphere/domain/provider.dart';
-import 'package:boorusphere/domain/repository/settings_repo.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_boot_state.dart';
@@ -35,6 +35,19 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+/// What the app lost at boot, in terms the boot card can report.
+enum BootProblem {
+  /// The server list could not be loaded. A retry can still work.
+  servers,
+
+  /// The settings box never opened, so this run cannot keep preferences.
+  settings,
+
+  /// A storage box only opened as an empty stand-in, so this run starts
+  /// without that data and cannot keep changes made to it.
+  storage,
+}
+
 class Boorusphere extends HookConsumerWidget {
   const Boorusphere({super.key});
 
@@ -46,21 +59,28 @@ class Boorusphere extends HookConsumerWidget {
   /// list and a way to try again.
   Future<void> initializeAsyncStates(
     WidgetRef ref, {
-    required void Function(Object? failure) onCompleted,
+    required void Function(BootProblem? problem) onCompleted,
   }) async {
-    Object? failure;
+    BootProblem? problem;
     try {
       await ref.read(serverStateProvider.notifier).populate();
     } catch (e, stack) {
       mainLog.e('Boot: failed to load the server list', e, stack);
-      failure = e;
+      problem = BootProblem.servers;
     }
 
+    // A box that only opened as an empty stand-in outranks the others: the run
+    // starts without that data and anything written to it is left behind on
+    // the next start, while a retry of the list above would only read the
+    // stand-in and report success.
+    //
     // The settings box can fail on its own while the server list loads fine.
     // The app then runs on defaults, so the failure is reported through the
     // same card instead of resetting the user's preferences without a word.
-    if (!ref.read(settingsRepoProvider).isPersistent) {
-      failure ??= const SettingsUnavailableException();
+    if (degradedBoxNames.isNotEmpty) {
+      problem = BootProblem.storage;
+    } else if (!ref.read(settingsRepoProvider).isPersistent) {
+      problem = BootProblem.settings;
     }
 
     try {
@@ -78,35 +98,52 @@ class Boorusphere extends HookConsumerWidget {
       mainLog.e('Boot: failed to restore the update state', e, stack);
     }
 
-    onCompleted(failure);
+    onCompleted(problem);
   }
 
-  /// Reports a boot failure the app survived. The server list stays empty, and
-  /// the action retries the load that failed.
+  /// Reports a boot problem the app survived.
+  ///
+  /// Only a failed list load offers a retry: the boxes are opened before the
+  /// app is built, so retrying them from here would report success while the
+  /// run kept going on defaults or on a stand-in.
   void _reportBootFailure(
     BuildContext context,
     WidgetRef ref,
     GlobalKey<ScaffoldMessengerState> messenger,
+    BootProblem problem,
   ) {
     final t = TranslationProvider.of(context).translations;
     final messengerState = messenger.currentState;
     if (messengerState == null) return;
 
+    final message = switch (problem) {
+      BootProblem.servers => t.error.serverListUnavailable,
+      BootProblem.settings => t.error.settingsUnavailable,
+      BootProblem.storage => t.error.storageUnavailable,
+    };
+    final retryable = problem == BootProblem.servers;
+
     messengerState.hideCurrentSnackBar();
     showToastOn(
       messengerState,
-      t.error.unknown,
-      actionLabel: t.retry,
-      onAction: () {
-        ref.read(serverStateProvider.notifier).populate().catchError((
-          Object error,
-          StackTrace stack,
-        ) {
-          mainLog.e('Boot: retrying the server list failed', error, stack);
-          if (!context.mounted) return;
-          _reportBootFailure(context, ref, messenger);
-        });
-      },
+      message,
+      actionLabel: retryable ? t.retry : null,
+      onAction: retryable
+          ? () {
+              ref.read(serverStateProvider.notifier).populate().catchError((
+                Object error,
+                StackTrace stack,
+              ) {
+                mainLog.e(
+                  'Boot: retrying the server list failed',
+                  error,
+                  stack,
+                );
+                if (!context.mounted) return;
+                _reportBootFailure(context, ref, messenger, problem);
+              });
+            }
+          : null,
     );
   }
 
@@ -143,13 +180,13 @@ class Boorusphere extends HookConsumerWidget {
     useEffect(() {
       initializeAsyncStates(
         ref,
-        onCompleted: (failure) {
+        onCompleted: (problem) {
           // Whatever the outcome, the server list is settled now: the start
           // page may open the timeline.
           ref.read(appBootStateProvider.notifier).complete();
           initialized.value = true;
-          if (failure != null) {
-            _reportBootFailure(context, ref, messengerKey);
+          if (problem != null) {
+            _reportBootFailure(context, ref, messengerKey, problem);
           }
           // The interval check reads stored settings, so it waits for the
           // boxes to be open instead of running during the first frame.

@@ -28,3 +28,13 @@ Box<T>? fallbackFor<T>(String name) {
   final box = _fallbacks[name];
   return box is Box<T> ? box : null;
 }
+
+/// Whether [name] is running on a stand-in because its own box never opened.
+bool isDegradedBox(String name) => _fallbacks.containsKey(name);
+
+/// Names of the boxes boot had to replace with a stand-in.
+///
+/// Read by the boot card: a run where one of these is missing looks like a
+/// fresh install, and anything written to the stand-in is left behind on the
+/// next start.
+Set<String> get degradedBoxNames => Set.unmodifiable(_fallbacks.keys);

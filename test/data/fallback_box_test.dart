@@ -39,5 +39,13 @@ void main() {
       await openFallbackBox<BooruTag>('blockedTags');
       expect(fallbackFor<BooruTag>('blockedTags'), same(first));
     });
+
+    test('names the boxes running on a stand-in', () async {
+      await openFallbackBox<BooruTag>('blockedTags');
+
+      expect(isDegradedBox('blockedTags'), isTrue);
+      expect(isDegradedBox('server'), isFalse);
+      expect(degradedBoxNames, contains('blockedTags'));
+    });
   });
 }
