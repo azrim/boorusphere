@@ -83,6 +83,23 @@ class HomeContent extends HookConsumerWidget {
       [data.posts, blockedExpressions, hidden],
     );
 
+    // The selection only names posts the grid still shows. Blocking a tag,
+    // turning on a local filter or a reload that landed other results can take
+    // a selected post away; the bar would keep counting it while the batch
+    // handler silently skipped it. Written after the frame, like the reset
+    // below, because the provider cannot be touched during build.
+    final visibleIds = useMemoized(
+      () => {for (final post in filteredPosts) post.id},
+      [filteredPosts],
+    );
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        ref.read(postSelectionProvider.notifier).retainAll(visibleIds);
+      });
+      return null;
+    }, [visibleIds]);
+
     // The fetched page already had the filters applied, so turning one off
     // cannot bring those posts back from the loaded data alone. Reload when the
     // pair changes; the page-state guards fold this into an in-flight fetch.
