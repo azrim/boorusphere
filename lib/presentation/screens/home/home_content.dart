@@ -199,9 +199,11 @@ class HomeContent extends HookConsumerWidget {
     // any selection that belonged to the previous results.
     final pageIndex = data.pageIndex;
     final query = data.option.query;
+    final restartSerial = data.restartSerial;
     final lastPageIndex = useMemoized(() => <int>[pageIndex]);
     final lastQuery = useMemoized(() => <String>[query]);
     final lastFeedMode = useMemoized(() => <FeedMode>[feedMode]);
+    final lastRestartSerial = useMemoized(() => <int>[restartSerial]);
     useEffect(() {
       final indexChanged = lastPageIndex[0] != pageIndex;
       lastPageIndex[0] = pageIndex;
@@ -211,10 +213,17 @@ class HomeContent extends HookConsumerWidget {
       lastQuery[0] = query;
       final modeChanged = lastFeedMode[0] != feedMode;
       lastFeedMode[0] = feedMode;
-      // Appending in infinite mode also moves the page index, but it must not
-      // yank the reader back to the top; only a paged step, a new query or a
-      // mode switch opens at the first result.
+      // A reload that starts the result set over — a rating or filter change,
+      // a refresh — also has to move the viewport back. Its page index is not
+      // enough to tell it from an append, which must leave the reader where
+      // they are, so the page state counts restarts separately.
+      final resetChanged = lastRestartSerial[0] != restartSerial;
+      lastRestartSerial[0] = restartSerial;
+      // Appending in infinite mode moves the page index, but it must not yank
+      // the reader back to the top; only a paged step, a restart, a new query
+      // or a mode switch opens at the first result.
       final restart =
+          resetChanged ||
           queryChanged ||
           modeChanged ||
           (indexChanged && feedMode == FeedMode.paged);
@@ -228,7 +237,7 @@ class HomeContent extends HookConsumerWidget {
         ref.read(postSelectionProvider.notifier).clear();
       });
       return null;
-    }, [pageIndex, query, feedMode, scrollController]);
+    }, [pageIndex, query, feedMode, restartSerial, scrollController]);
 
     final isNewSearch = !isData && data.option.clear;
 
@@ -451,10 +460,15 @@ class HomeContent extends HookConsumerWidget {
                     storage: ref.read(sharedStorageHandleProvider),
                     ref: ref,
                     posts: selectedPosts,
-                    onProgress: (progress) => downloadProgress.value = progress,
+                    // The batch outlives this page when the reader leaves, so
+                    // both writes check that the notifier still has an owner
+                    // before touching it.
+                    onProgress: (progress) {
+                      if (context.mounted) downloadProgress.value = progress;
+                    },
                   );
                 } finally {
-                  downloadProgress.value = null;
+                  if (context.mounted) downloadProgress.value = null;
                 }
 
                 if (context.mounted) {
@@ -484,7 +498,7 @@ class HomeContent extends HookConsumerWidget {
                     .where((post) => !favorites.isFavorite(post))
                     .toList();
                 for (final post in added) {
-                  await ref.read(favoritePostStateProvider.notifier).save(post);
+                  await favorites.save(post);
                 }
                 if (context.mounted) {
                   showToast(
@@ -496,18 +510,22 @@ class HomeContent extends HookConsumerWidget {
                         ? DesignTokens.durationSnackbar
                         : const Duration(days: 1),
                     actionLabel: added.isEmpty ? null : context.t.undo,
+                    // The toast lives in the root messenger, so it survives
+                    // this page being popped. Undo therefore has to use the
+                    // keepAlive notifier captured above instead of this
+                    // widget's ref, which is disposed with the page.
                     onAction: added.isEmpty
                         ? null
                         : () {
                             for (final post in added) {
-                              ref
-                                  .read(favoritePostStateProvider.notifier)
-                                  .remove(post);
+                              favorites.remove(post);
                             }
                           },
                   );
                 }
-                ref.read(postSelectionProvider.notifier).clear();
+                if (context.mounted) {
+                  ref.read(postSelectionProvider.notifier).clear();
+                }
               },
               onClear: () {
                 ref.read(postSelectionProvider.notifier).clear();

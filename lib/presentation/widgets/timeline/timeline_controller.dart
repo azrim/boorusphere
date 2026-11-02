@@ -16,4 +16,10 @@ class TimelineController extends ChangeNotifier {
     if (!scrollController.hasClients) return;
     scrollController.scrollToIndex(index);
   }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
+  }
 }

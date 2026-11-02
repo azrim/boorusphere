@@ -20,6 +20,11 @@ abstract class PageData with _$PageData {
     // Infinite mode stopped accumulating posts at its in-memory cap. The feed
     // still has results, but the session must be restarted to see them.
     @Default(false) bool limitReached,
+    // Increments whenever a reload restarts the result set at its first page.
+    // The page index cannot carry that signal alone: an append moves it too,
+    // and a reload in infinite mode can land on the same first page the reader
+    // was already on. The feed uses the change to reset the viewport.
+    @Default(0) int restartSerial,
   }) = _PageData;
 
   const PageData._();

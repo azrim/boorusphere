@@ -50,6 +50,11 @@ void showToastOn(
   Duration duration = DesignTokens.durationSnackbar,
   double bottomInset = 0,
 }) {
+  // The messenger queues a new snackbar behind the one on screen, and an undo
+  // that stays until it is used would keep every later message — a finished
+  // batch, a failure — waiting behind it for good. The newest message is the
+  // one that matters, so it replaces the current toast instead.
+  messenger.removeCurrentSnackBar();
   messenger.showSnackBar(
     buildAppToast(
       message: message,

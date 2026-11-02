@@ -9,11 +9,15 @@ part 'favorite_post_state.g.dart';
 // an auto-disposed provider would be gone before the second one landed.
 @Riverpod(keepAlive: true)
 class FavoritePostState extends _$FavoritePostState {
+  /// Read once: an undo kept by the root messenger can still run after the
+  /// page that started it is gone, and a backup import can invalidate this
+  /// provider while that action waits. The repo outlives both, so the write can
+  /// still land; only the state publication has to check that this element is
+  /// still alive.
+  late final _repo = ref.read(favoritePostRepoProvider);
+
   @override
-  Iterable<Post> build() {
-    final repo = ref.read(favoritePostRepoProvider);
-    return repo.get();
-  }
+  Iterable<Post> build() => _repo.get();
 
   /// Whether [post] is saved, matched by the same identity the storage key
   /// uses: a post id is only unique within a booru, so the server counts too.
@@ -21,22 +25,22 @@ class FavoritePostState extends _$FavoritePostState {
       state.any((it) => it.id == post.id && it.serverId == post.serverId);
 
   Future<void> clear() async {
-    final repo = ref.read(favoritePostRepoProvider);
-    await repo.clear();
-    state = repo.get();
+    await _repo.clear();
+    if (!ref.mounted) return;
+    state = _repo.get();
   }
 
   Future<void> remove(Post post) async {
-    final repo = ref.read(favoritePostRepoProvider);
-    await repo.remove(post);
-    state = repo.get();
+    await _repo.remove(post);
+    if (!ref.mounted) return;
+    state = _repo.get();
   }
 
   /// Saves [post], replacing an earlier snapshot of the same post so refreshed
   /// metadata such as score or tags is kept.
   Future<void> save(Post post) async {
-    final repo = ref.read(favoritePostRepoProvider);
-    await repo.save(post);
-    state = repo.get();
+    await _repo.save(post);
+    if (!ref.mounted) return;
+    state = _repo.get();
   }
 }

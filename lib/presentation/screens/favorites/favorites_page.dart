@@ -31,12 +31,7 @@ class FavoritesPage extends ConsumerWidget {
     final session = this.session ?? SearchSession(serverId: savedServerId);
 
     return ProviderScope(
-      overrides: [
-        searchSessionProvider.overrideWith((ref) => session),
-        timelineControllerProvider.overrideWith(
-          (ref) => TimelineController(scrollController: AutoScrollController()),
-        ),
-      ],
+      overrides: [searchSessionProvider.overrideWith((ref) => session)],
       child: favoritePostState.isNotEmpty
           ? _Pager(favoritePostState)
           : const _EmptyView(),
@@ -136,27 +131,43 @@ class _Pager extends ConsumerWidget {
   }
 }
 
-class _Content extends ConsumerWidget {
+class _Content extends StatelessWidget {
   const _Content({required this.posts, required this.server});
 
   final Iterable<Post> posts;
   final Server server;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final timelineController = ref.watch(timelineControllerProvider);
-
-    return CustomScrollView(
-      controller: timelineController.scrollController,
-      slivers: [
-        SliverSafeArea(
-          sliver: SliverPadding(
-            padding: const EdgeInsets.all(DesignTokens.spacingMd),
-            // No batch action bar here, so selection would be a dead end.
-            sliver: Timeline(posts: posts, enableSelection: false),
-          ),
+  Widget build(BuildContext context) {
+    return ProviderScope(
+      overrides: [
+        // One controller per tab. A controller shared by every tab shares its
+        // tag map too: a neighbouring tab built during a cancelled swipe would
+        // overwrite the visible tab's indices, and the viewer could no longer
+        // scroll the feed it was opened from.
+        timelineControllerProvider.overrideWith(
+          (ref) => TimelineController(scrollController: AutoScrollController()),
         ),
       ],
+      child: Consumer(
+        builder: (context, ref, _) {
+          final timelineController = ref.watch(timelineControllerProvider);
+
+          return CustomScrollView(
+            controller: timelineController.scrollController,
+            slivers: [
+              SliverSafeArea(
+                sliver: SliverPadding(
+                  padding: const EdgeInsets.all(DesignTokens.spacingMd),
+                  // No batch action bar here, so selection would be a dead
+                  // end.
+                  sliver: Timeline(posts: posts, enableSelection: false),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

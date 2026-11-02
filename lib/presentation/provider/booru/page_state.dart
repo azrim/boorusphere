@@ -244,13 +244,24 @@ class PageState extends _$PageState {
       //
       // Infinite mode has no page to stay on: a reload (pull-to-refresh, a
       // filter change) starts the accumulated list over from its first page.
-      if (option.clear ||
+      final restart =
+          option.clear ||
           _windowChanged(option, shown) ||
-          _feedMode == FeedMode.infinite) {
-        _page = 0;
-      }
+          _feedMode == FeedMode.infinite;
+      if (restart) _page = 0;
 
-      state = FetchResult.loading(state.data.copyWith(option: option));
+      state = FetchResult.loading(
+        state.data.copyWith(
+          option: option,
+          // A reload that starts over can keep the same page index (or land on
+          // the first page again), so an append and a restart are told apart by
+          // this counter rather than by the index. The feed resets its viewport
+          // when it changes.
+          restartSerial: restart
+              ? state.data.restartSerial + 1
+              : state.data.restartSerial,
+        ),
+      );
 
       var result = await _fetchPage(option, server, _page);
       // The page can be popped while the request is on the wire; the element
