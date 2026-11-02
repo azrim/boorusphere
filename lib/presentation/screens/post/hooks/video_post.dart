@@ -74,6 +74,13 @@ class _VideoPostHook extends Hook<VideoPostHandle> {
 class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   VideoPostSource source = VideoPostSource();
 
+  /// Bumped whenever a setup starts or is dropped. A continuation compares
+  /// the value it captured before its last await, so a page change, a retry
+  /// or a disposal invalidates the setups it interrupts: a slow lookup can
+  /// no longer publish a controller over a newer one (leaking the player it
+  /// replaced) or after the widget is gone.
+  int _generation = 0;
+
   /// Flags the source as failed so the viewer shows its retry banner.
   void reportFailure() {
     if (!context.mounted) return;
@@ -94,6 +101,7 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   Future<void> createController() async {
     if (!hook.active) return;
 
+    final generation = ++_generation;
     final mediaUrl = hook.post.content.url;
     final cache = hook.ref.read(videoCacheProvider);
 
@@ -106,7 +114,7 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
     } catch (e, stack) {
       mainLog.w('VideoPost: failed to read the cache for $mediaUrl', e, stack);
     }
-    if (!_stillCurrent(mediaUrl)) return;
+    if (!_stillCurrent(mediaUrl, generation)) return;
 
     if (cached != null) {
       final controller = VideoPlayerController.file(
@@ -120,12 +128,29 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
       return;
     }
 
-    final cookieJar = hook.ref.read(cookieJarProvider);
-    final cookies = await cookieJar.loadForRequest(mediaUrl.toUri());
-    final headers = hook.ref.read(
-      postHeadersFactoryProvider(hook.post, cookies: cookies),
-    );
-    if (!_stillCurrent(mediaUrl)) return;
+    final Map<String, String> headers;
+    try {
+      final cookieJar = hook.ref.read(cookieJarProvider);
+      final cookies = await cookieJar.loadForRequest(mediaUrl.toUri());
+      if (!_stillCurrent(mediaUrl, generation)) return;
+      headers = hook.ref.read(
+        postHeadersFactoryProvider(hook.post, cookies: cookies),
+      );
+    } catch (e, stack) {
+      // The request cannot be prepared even though the player is fine — an
+      // unreadable cookie store, a header factory that throws. Fail the same
+      // way as a broken player: an escaping error would leave the viewer on
+      // a loader with no retry banner. A setup dropped while awaiting is not
+      // a failure.
+      if (!_stillCurrent(mediaUrl, generation)) return;
+      mainLog.w(
+        'VideoPost: failed to prepare the request for $mediaUrl',
+        e,
+        stack,
+      );
+      reportFailure();
+      return;
+    }
 
     final controller = VideoPlayerController.networkUrl(
       mediaUrl.toUri(),
@@ -144,10 +169,14 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
     unawaited(cache.cache(mediaUrl, headers));
   }
 
-  /// Whether [mediaUrl] still belongs to the post this hook shows and the
-  /// widget is still able to take a controller.
-  bool _stillCurrent(String mediaUrl) =>
-      hook.active && hook.post.content.url == mediaUrl && context.mounted;
+  /// Whether this setup still owns the slot: [mediaUrl] still belongs to the
+  /// post this hook shows, no newer setup or teardown has replaced it, and
+  /// the widget is still able to take a controller.
+  bool _stillCurrent(String mediaUrl, int generation) =>
+      generation == _generation &&
+      hook.active &&
+      hook.post.content.url == mediaUrl &&
+      context.mounted;
 
   /// Manual retry: drop the failed controller and request the media again. The
   /// fresh controller instance re-triggers the viewer's
@@ -161,6 +190,7 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   }
 
   void destroyController() {
+    _generation++;
     unawaited(source.controller?.pause());
     source.controller?.dispose();
     source = VideoPostSource();

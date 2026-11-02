@@ -930,6 +930,17 @@ class _PostVideoContent extends HookConsumerWidget {
       final player = controller;
       if (player == null) return null;
 
+      // The effect can outlive its controller: a page change, a retry or the
+      // viewer closing disposes the player while `initialize` is still
+      // waiting on the platform. Every step after an await checks this flag,
+      // so a dropped player is neither reported as a failure nor played into.
+      var cancelled = false;
+
+      void onFirstFrame() {
+        player.removeListener(onFirstFrame);
+        markMayNeedRebuild();
+      }
+
       Future<void> initialize() async {
         // The controller is recreated only when this post becomes active
         // again, so a new visit autoplays even if the previous one was paused.
@@ -937,31 +948,33 @@ class _PostVideoContent extends HookConsumerWidget {
 
         try {
           await player.initialize();
+          if (cancelled) return;
+
+          player.addListener(onFirstFrame);
+          await player.setVolume(contentSettings.videoMuted ? 0 : 1);
+          if (cancelled) return;
+
+          // Starting here would put audio on another page if the viewer was
+          // covered while the player initialized; the visibility effect above
+          // resumes playback when the viewer comes back.
+          if (isPlaying.value && context.mounted && routeVisibleRef.value) {
+            await player.play();
+            if (cancelled) return;
+            scheduleHide();
+          }
         } catch (_) {
           // Surface the failure instead of letting it escape as an
           // unhandled async error; the viewer shows a manual retry banner.
-          video.reportFailure();
-          return;
-        }
-
-        void onFirstFrame() {
-          player.removeListener(onFirstFrame);
-          markMayNeedRebuild();
-        }
-
-        player.addListener(onFirstFrame);
-        await player.setVolume(contentSettings.videoMuted ? 0 : 1);
-        // Starting here would put audio on another page if the viewer was
-        // covered while the player initialized; the visibility effect above
-        // resumes playback when the viewer comes back.
-        if (isPlaying.value && context.mounted && routeVisibleRef.value) {
-          await player.play();
-          scheduleHide();
+          // A player dropped mid-setup is not a failure.
+          if (!cancelled) video.reportFailure();
         }
       }
 
       unawaited(initialize());
-      return null;
+      return () {
+        cancelled = true;
+        player.removeListener(onFirstFrame);
+      };
     }, [controller]);
 
     return RepaintBoundary(
