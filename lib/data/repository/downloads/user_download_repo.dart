@@ -353,10 +353,12 @@ Future<void> _syncProgresses(
 
       // A row still reporting work the plugin no longer knows about: settle it
       // as failed while its entry is around, and drop it as an orphan once
-      // nothing refers to it any more.
+      // nothing refers to it any more. A status that was never written is
+      // settled the same way instead of staying empty forever.
       if (progress.status.isPending ||
           progress.status.isDownloading ||
-          progress.status.isPaused) {
+          progress.status.isPaused ||
+          progress.status.isEmpty) {
         if (hasEntry) {
           updates[progress.id] = progress.copyWith(
             status: DownloadStatus.failed,
@@ -420,7 +422,45 @@ Future<void> _syncProgresses(
     }
   }
 
+  // The cache copy and the batch path write an entry and its progress row in
+  // two separate boxes, so a process death in between leaves a record the
+  // list can show without a status, or with a status that was never written.
+  // The missing row is rebuilt from the native task when one survives, and
+  // from the file on disk otherwise. The updater APK is left to the updater,
+  // which owns both of its records.
+  final repaired = <String, DownloadProgress>{};
+  for (final entry in entryBox.values) {
+    if (entry.post.isReserved) continue;
+    if (progressBox.containsKey(entry.id) || updates.containsKey(entry.id)) {
+      continue;
+    }
+
+    final task = byId[entry.id];
+    if (task != null) {
+      final status = downloadStatusOf(task.status);
+      final usable =
+          !status.isDownloaded ||
+          await _isCompletedFileUsable(downloadDir, entry);
+      repaired[entry.id] = DownloadProgress(
+        id: entry.id,
+        status: usable ? status : DownloadStatus.failed,
+        progress: task.progress,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
+      continue;
+    }
+
+    final usable = await _isCompletedFileUsable(downloadDir, entry);
+    repaired[entry.id] = DownloadProgress(
+      id: entry.id,
+      status: usable ? DownloadStatus.downloaded : DownloadStatus.failed,
+      progress: usable ? 100 : 0,
+      timestamp: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
   if (updates.isNotEmpty) await progressBox.putAll(updates);
+  if (repaired.isNotEmpty) await progressBox.putAll(repaired);
   if (orphans.isNotEmpty) await progressBox.deleteAll(orphans);
 }
 

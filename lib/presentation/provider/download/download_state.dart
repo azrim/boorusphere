@@ -20,11 +20,18 @@ class DownloadEntryState extends _$DownloadEntryState {
   ///
   /// A task can finish before its record lands, and the download completion
   /// callback drops an event it cannot find an entry for: publishing first
-  /// keeps the record readable while the write is still in flight.
+  /// keeps the record readable while the write is still in flight. A write
+  /// that fails takes the record back out, so the in-memory list does not keep
+  /// an entry the box never received.
   Future<void> add(DownloadEntry entry) async {
     final repo = ref.read(downloadsRepoProvider);
     state = [...state.where((it) => it.id != entry.id), entry];
-    await repo.addEntry(entry);
+    try {
+      await repo.addEntry(entry);
+    } catch (_) {
+      state = [...state.where((it) => it.id != entry.id)];
+      rethrow;
+    }
   }
 
   Future<void> remove(String id) async {

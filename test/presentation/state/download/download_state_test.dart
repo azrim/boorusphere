@@ -122,6 +122,20 @@ void main() {
       await pending;
       expect(repo.hasEntry('new'), isTrue);
     });
+
+    test('a failed write takes the published record back out', () async {
+      repo.abortAtWrite = 1;
+
+      await expectLater(
+        notifier().add(const DownloadEntry(id: 'new', dest: 'b.jpg')),
+        throwsStateError,
+      );
+
+      expect(container.read(downloadEntryStateProvider).map((it) => it.id), [
+        'old',
+      ]);
+      expect(repo.hasEntry('new'), isFalse);
+    });
   });
 
   group('DownloadEntryState.clear', () {

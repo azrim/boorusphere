@@ -385,23 +385,50 @@ class Downloader {
         post: post,
         dest: dest?.call(fileName) ?? p.join(folder, fileName),
       );
-      await ref.read(downloadEntryStateProvider.notifier).add(entry);
+      try {
+        await ref.read(downloadEntryStateProvider.notifier).add(entry);
+      } catch (e, stack) {
+        // The worker is already running, but no record refers to it: its
+        // completion event would be dropped and its file would land where no
+        // row points. The task and whatever it already wrote are removed.
+        mainLog.e('Downloader: failed to record the task $taskId', e, stack);
+        try {
+          await FlutterDownloader.remove(
+            taskId: taskId,
+            shouldDeleteContent: true,
+          );
+        } catch (e, stack) {
+          mainLog.e('Downloader: failed to drop the task $taskId', e, stack);
+        }
+        return null;
+      }
+
       // The plugin's ENQUEUED event has no Dart handler, so without this row
       // the entry keeps reporting an empty status until the worker starts,
       // which never happens while the device is offline. A task that already
-      // reported itself keeps the status it wrote.
-      final current = ref.read(downloadProgressStateProvider).getById(taskId);
-      if (current.status.isEmpty) {
-        await ref
-            .read(downloadProgressStateProvider.notifier)
-            .update(
-              DownloadProgress(
-                id: taskId,
-                status: DownloadStatus.pending,
-                progress: 0,
-                timestamp: DateTime.now().millisecondsSinceEpoch,
-              ),
-            );
+      // reported itself keeps the status it wrote. A write that fails here is
+      // rebuilt from the native row at the next boot, so it cannot take the
+      // running download down with it.
+      try {
+        final current = ref.read(downloadProgressStateProvider).getById(taskId);
+        if (current.status.isEmpty) {
+          await ref
+              .read(downloadProgressStateProvider.notifier)
+              .update(
+                DownloadProgress(
+                  id: taskId,
+                  status: DownloadStatus.pending,
+                  progress: 0,
+                  timestamp: DateTime.now().millisecondsSinceEpoch,
+                ),
+              );
+        }
+      } catch (e, stack) {
+        mainLog.e(
+          'Downloader: failed to record the pending state of $taskId',
+          e,
+          stack,
+        );
       }
     }
     return taskId;
