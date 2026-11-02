@@ -11,8 +11,79 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+// The controller type is only re-exported by video_player; the platform
+// interface it talks to is deliberately not part of that export.
+// ignore: depend_on_referenced_packages
+import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
 class MockCookieJar extends Mock implements CookieJar {}
+
+/// Records the platform calls per player id, so a test can prove that a
+/// controller the hook dropped is actually torn down on the platform — not
+/// just forgotten in Dart while its player keeps decoding and playing audio.
+class _FakeVideoPlayerPlatform extends VideoPlayerPlatform {
+  final created = <int>[];
+  final disposed = <int>[];
+  final played = <int>[];
+  final paused = <int>[];
+
+  int _nextId = 1;
+  final _events = <int, StreamController<VideoEvent>>{};
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<int?> createWithOptions(VideoCreationOptions options) async {
+    final id = _nextId++;
+    created.add(id);
+    // Single-subscription, so the initialized event is buffered until
+    // `initialize` subscribes a moment later.
+    final events = StreamController<VideoEvent>()
+      ..add(
+        VideoEvent(
+          eventType: VideoEventType.initialized,
+          duration: const Duration(seconds: 1),
+          size: const Size(100, 100),
+        ),
+      );
+    _events[id] = events;
+    return id;
+  }
+
+  @override
+  Stream<VideoEvent> videoEventsFor(int playerId) => _events[playerId]!.stream;
+
+  @override
+  Future<void> dispose(int playerId) async {
+    disposed.add(playerId);
+    await _events.remove(playerId)?.close();
+  }
+
+  @override
+  Future<void> play(int playerId) async => played.add(playerId);
+
+  @override
+  Future<void> pause(int playerId) async => paused.add(playerId);
+
+  @override
+  Future<void> setLooping(int playerId, bool looping) async {}
+
+  @override
+  Future<void> setVolume(int playerId, double volume) async {}
+
+  @override
+  Future<void> setPlaybackSpeed(int playerId, double speed) async {}
+
+  @override
+  Future<void> setMixWithOthers(bool mixWithOthers) async {}
+
+  @override
+  Future<void> setPreventsDisplaySleepDuringVideoPlayback(
+    int playerId,
+    bool preventsDisplaySleepDuringVideoPlayback,
+  ) async {}
+}
 
 /// A cache whose lookups stay pending until the test releases them, so two
 /// setups can be in flight at once.
@@ -93,6 +164,16 @@ void main() {
     await tester.pump();
   }
 
+  // `VideoPlayerController.dispose` awaits work chained behind the platform
+  // subscription, which needs a real event-loop turn: pumping only gets as
+  // far as cancelling the event subscription. Run outside the fake-async
+  // zone so the platform player is actually released before we assert.
+  Future<void> drainRealAsync(WidgetTester tester) async {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+  }
+
   testWidgets('a superseded lookup cannot publish a controller', (
     tester,
   ) async {
@@ -154,5 +235,81 @@ void main() {
     // An escaping error would leave the viewer on a loader with no retry.
     expect(seen.last.controller, isNull);
     expect(seen.last.hasError, true);
+  });
+
+  testWidgets('a superseded controller is torn down on the platform', (
+    tester,
+  ) async {
+    final cache = _GatedVideoCache();
+    final seen = <VideoPostSource>[];
+    final platform = _FakeVideoPlayerPlatform();
+    final previousPlatform = VideoPlayerPlatform.instance;
+    VideoPlayerPlatform.instance = platform;
+
+    try {
+      await tester.pumpWidget(
+        harness(cache: cache, post: post(1, urlA), seen: seen),
+      );
+      cache.lookupCall(urlA, 0).complete(File('a.mp4'));
+      await settle(tester);
+
+      final first = seen.last.controller!;
+      await first.initialize();
+      await first.play();
+      expect(platform.created, hasLength(1));
+      final playerId = platform.created.single;
+      expect(platform.played, contains(playerId));
+
+      // Advance to the next post while its own lookup is still pending, so
+      // the page the user left is the only setup being torn down here.
+      await tester.pumpWidget(
+        harness(cache: cache, post: post(2, urlB), seen: seen),
+      );
+      expect(seen.last.controller, isNull);
+
+      // Silence is the point: the platform player behind the replaced
+      // controller must stop immediately, or it keeps playing audio after
+      // its page is gone.
+      expect(platform.paused, contains(playerId));
+
+      // And the player itself is released, not merely muted.
+      await drainRealAsync(tester);
+      expect(platform.disposed, contains(playerId));
+
+      // The next page still publishes normally once its lookup lands.
+      cache.lookupCall(urlB, 0).complete(File('b.mp4'));
+      await settle(tester);
+      expect(seen.last.controller, isNotNull);
+      expect(seen.last.controller, isNot(same(first)));
+    } finally {
+      // Unmount while the fake is still installed: disposing a controller
+      // reaches the platform, and the real one must not be initialized from
+      // here.
+      await tester.pumpWidget(const SizedBox());
+      await settle(tester);
+      await drainRealAsync(tester);
+      VideoPlayerPlatform.instance = previousPlatform;
+    }
+  });
+
+  testWidgets('a setup resuming after the viewer closes publishes nothing', (
+    tester,
+  ) async {
+    final cache = _GatedVideoCache();
+    final seen = <VideoPostSource>[];
+
+    await tester.pumpWidget(
+      harness(cache: cache, post: post(1, urlA), seen: seen),
+    );
+
+    // The viewer closes while the cache lookup is still in flight.
+    await tester.pumpWidget(const SizedBox());
+
+    cache.lookupCall(urlA, 0).complete(File('late.mp4'));
+    await settle(tester);
+
+    // Publishing here would touch a disposed hook; the lookup is dropped.
+    expect(seen.last.controller, isNull);
+    expect(seen.last.hasError, false);
   });
 }
