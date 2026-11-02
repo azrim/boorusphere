@@ -434,9 +434,14 @@ class Downloader {
     return taskId;
   }
 
-  Future<void> retry({required String id}) async {
+  /// Retries the download behind [id] and reports whether it restarted.
+  ///
+  /// The platform retry keeps the task id; the fallback starts a new task and
+  /// moves the record, so the caller's id no longer names the download after
+  /// a successful fallback.
+  Future<bool> retry({required String id}) async {
     final entry = ref.read(downloadEntryStateProvider).getById(id);
-    if (entry.id.isEmpty) return;
+    if (entry.id.isEmpty) return false;
 
     final task = _hasNativeTask(id) ? await _taskById(id) : null;
     String? newId;
@@ -473,7 +478,7 @@ class Downloader {
               ),
             );
       }
-      return;
+      return true;
     }
 
     // The plugin only retries a FAILED or CANCELED row. A download cancelled
@@ -481,7 +486,7 @@ class Downloader {
     // report, so the platform refuses it and the row here can never recover on
     // its own. The task is started again from the URL recorded with it, or from
     // the post when no native row survives.
-    await _reenqueue(entry, task: task);
+    return _reenqueue(entry, task: task);
   }
 
   /// Length the server reports for the file behind [id], or null when it
@@ -575,7 +580,7 @@ class Downloader {
   /// One at a time: a burst of retries would open as many requests at once
   /// and let several name claims race for the same path. A row that cannot be
   /// retried is skipped without stopping the rest, and the count returned is
-  /// the number of entries this call asked the platform to retry.
+  /// the number of entries that really restarted.
   Future<int> retryAllFailed() async {
     final entries = ref
         .read(downloadEntryStateProvider)
@@ -592,8 +597,7 @@ class Downloader {
     var retried = 0;
     for (final entry in entries) {
       try {
-        await retry(id: entry.id);
-        retried++;
+        if (await retry(id: entry.id)) retried++;
       } catch (e, stack) {
         mainLog.e('Downloader: failed to retry ${entry.id}', e, stack);
       }
@@ -719,8 +723,11 @@ class Downloader {
   /// is dropped; the refused row would otherwise be read back as live by the
   /// boot reconciliation. A record without such a row, such as one restored
   /// from a backup, falls back to the URLs kept with its post.
-  Future<void> _reenqueue(DownloadEntry entry, {DownloadTask? task}) async {
-    if (entry.post.isReserved) return;
+  ///
+  /// Reports whether a replacement download was started. A false leaves the
+  /// old record in place, so the user still has something to retry from.
+  Future<bool> _reenqueue(DownloadEntry entry, {DownloadTask? task}) async {
+    if (entry.post.isReserved) return false;
 
     task ??= await _taskById(entry.id);
     final url = task != null && task.url.isNotEmpty
@@ -728,7 +735,7 @@ class Downloader {
         : _postFileUrl(entry.post);
     if (url.isEmpty) {
       mainLog.w('Downloader: no URL left to restart ${entry.id}');
-      return;
+      return false;
     }
 
     if (task != null) {
@@ -743,12 +750,13 @@ class Downloader {
     final newId = await download(entry.post, url: url, preferCache: false);
     if (newId == null) {
       mainLog.w('Downloader: failed to restart ${entry.id}');
-      return;
+      return false;
     }
 
     // The replacement record is in place; the old one goes last so a failed
     // start above left the user something to retry from.
     await ref.read(downloadEntryStateProvider.notifier).remove(entry.id);
+    return true;
   }
 
   /// Best URL a record still carries for itself.
