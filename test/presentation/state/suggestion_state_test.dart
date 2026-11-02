@@ -56,15 +56,33 @@ class _FakeServerState extends ServerState {
 }
 
 class _FakeTagsBlocker extends TagsBlockerState {
+  _FakeTagsBlocker([Iterable<String> blocked = const []])
+    : blocked = [...blocked];
+
+  final List<String> blocked;
+
   @override
-  Map<int, BooruTag> build() => {};
+  Map<int, BooruTag> build() {
+    return {
+      for (var i = 0; i < blocked.length; i++)
+        i: BooruTag(serverId: '', name: blocked[i]),
+    };
+  }
+
+  /// Adds [tags] to the blocker set the way the blocker screen does.
+  void block(Iterable<String> tags) {
+    blocked.addAll(tags);
+    state = build();
+  }
 }
 
-ProviderContainer _container(ImageboardRepo repo) {
+ProviderContainer _container(ImageboardRepo repo, {TagsBlockerState? blocker}) {
   final container = ProviderContainer(
     overrides: [
       serverStateProvider.overrideWith(_FakeServerState.new),
-      tagsBlockerStateProvider.overrideWith(_FakeTagsBlocker.new),
+      tagsBlockerStateProvider.overrideWith(
+        () => blocker ?? _FakeTagsBlocker(),
+      ),
       suggestionStateProvider.overrideWith(
         () => SuggestionState(session: const SearchSession(serverId: 'S')),
       ),
@@ -145,5 +163,36 @@ void main() {
     expect(container.read(suggestionStateProvider).data.map((it) => it.name), [
       'cat_ear',
     ]);
+  });
+
+  test('reopening on the same word drops a tag blocked since', () async {
+    // The bar asks for suggestions again when it reopens on the word already
+    // on screen. That used to return early and leave the old list, so a tag
+    // blocked meanwhile stayed on offer and tapping it submitted a query the
+    // feed refuses. The cached answer is re-published, which re-filters it
+    // without another request.
+    final repo = _FakeRepo(const {
+      'cat': [Suggestion('cat', 9), Suggestion('cat_ear', 3)],
+    });
+    final blocker = _FakeTagsBlocker();
+    final container = _container(repo, blocker: blocker);
+    addTearDown(container.dispose);
+    final notifier = container.read(suggestionStateProvider.notifier);
+
+    final first = notifier.get('cat');
+    repo.gate.complete();
+    await first;
+    expect(container.read(suggestionStateProvider).data.map((it) => it.name), [
+      'cat',
+      'cat_ear',
+    ]);
+
+    blocker.block(['cat_ear']);
+    await notifier.get('cat');
+
+    expect(container.read(suggestionStateProvider).data.map((it) => it.name), [
+      'cat',
+    ]);
+    expect(repo.calls, 1);
   });
 }

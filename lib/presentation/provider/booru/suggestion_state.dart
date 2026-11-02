@@ -66,9 +66,6 @@ class SuggestionState extends _$SuggestionState {
   Future<void> get(String query) async {
     final word = _lastWordOf(query);
 
-    // The list already belongs to this word, so there is nothing to ask for.
-    if (word == _lastWord && state is DataFetchResult) return;
-
     // Don't fetch suggestions for very short queries to reduce API load.
     if (word.length < 2) {
       _lastWord = word;
@@ -86,8 +83,10 @@ class SuggestionState extends _$SuggestionState {
     final cached = cache.get(server.id, word);
     if (cached != null) {
       // The list was shown before; putting it back is instant and costs no
-      // request. The blockers are applied again below because they can have
-      // changed since the answer was stored.
+      // request. It also runs when the bar reopens on the word already on
+      // screen, so a tag blocked meanwhile is filtered out again instead of
+      // staying on offer. The blockers are applied in [_publish] because they
+      // can have changed since the answer was stored.
       _lastWord = word;
       _publish(cached, word, server);
       return;
