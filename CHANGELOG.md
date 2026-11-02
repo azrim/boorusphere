@@ -1,3 +1,10 @@
+## 3.1.2
+
+* **Downloads**: clearing all records keeps the updater's row, retry all failed counts only real restarts, a size probe falls back to a ranged GET, a partial cached copy rolls back, entry paths are read literally and enqueue and boot repair keep their rows in step, and the downloader port closes with its owner
+* **Feed and search**: suggestions re-filter when the same word is typed again, the history write stays off the page fetch, the infinite ceiling resets when the list restarts, a reload returns the viewport to the top even on its first page, and a selection leaves with the posts that leave the grid
+* **Viewer**: volume keys and the screen-awake hold follow the visible viewer, video pauses and fullscreen drops when another route covers it, the zoom claim resets on a page change, and a superseded video setup no longer fails late
+* **Favorites and messages**: a batch undo still works after the page closes, batch progress stops writing once the page is gone, each Favorites tab keeps its own scroll position, and the newest message replaces the persistent undo instead of queueing behind it
+
 ## 3.1.1
 
 * **Cache**: Settings now shows one Cache section instead of separate video-cache and clear-cache rows — the stored video count and size, a size cap of 100 MB, 300 MB, 500 MB or 1 GB that drops the least recently watched videos as soon as it is lowered, and a single confirmed Clear cache action for images and videos
