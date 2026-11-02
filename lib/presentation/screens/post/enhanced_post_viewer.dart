@@ -5,6 +5,7 @@ import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/routes/route_visibility.dart';
 import 'package:boorusphere/presentation/routes/slide_page_route.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
@@ -96,6 +97,14 @@ class EnhancedPostViewer extends HookConsumerWidget {
             : ViewMode.horizontal,
       ),
       [initial, postsList.length, swipeMode],
+    );
+
+    // Whether this viewer is the route on screen. Another timeline can be
+    // pushed above it (related posts, tag search) while it stays mounted, so
+    // the process-wide hooks below have to know when to let go.
+    final routeVisible = useRouteVisible(
+      ModalRoute.of(context),
+      appRouteObserver,
     );
 
     final slideshowInterval = ref.watch(
@@ -278,33 +287,37 @@ class EnhancedPostViewer extends HookConsumerWidget {
       return null;
     }, [slideshowInterval]);
 
+    final volumeKeysActive =
+        volumeKeyNavigation && !sheetExpanded.value && routeVisible;
+    // Capture follows the viewer, not the process. A covered page must not
+    // keep answering: a related post can push a timeline above it, where the
+    // buttons belong to media volume again. Stacked viewers hand the keys back
+    // to the one underneath when they close, which a plain enable/disable
+    // switch would lose. The handler reads the sheet and zoom state when a
+    // press arrives, so it always reflects what is on screen then.
     useEffect(() {
-      VolumeKeys.setHandler((direction) {
-        // A zoomed image owns the volume keys' neighbour gestures; stepping
-        // the page while the user is panning would lose their place.
-        if (sheetExpanded.value || zoomed.value) return;
-        if (direction == VolumeKeyDirection.up) {
-          unawaited(controller.nextPage());
-        } else {
-          unawaited(controller.previousPage());
-        }
-      });
-      return () => VolumeKeys.setHandler(null);
-    }, [controller]);
+      if (!volumeKeysActive) {
+        unawaited(VolumeKeys.release(controller));
+        return null;
+      }
 
-    final volumeKeysActive = volumeKeyNavigation && !sheetExpanded.value;
-    // flutter_hooks recreates the hook state when the key changes and runs its
-    // disposer after the new effect, so a disposer that disables capture would
-    // silently undo the new value — the sheet would leave the volume keys dead
-    // for the rest of the session. Apply the newest value directly and only
-    // release capture when the viewer itself goes away.
-    useEffect(() {
-      unawaited(VolumeKeys.setEnabled(volumeKeysActive));
+      unawaited(
+        VolumeKeys.acquire(controller, (direction) {
+          // A zoomed image owns the volume keys' neighbour gestures; stepping
+          // the page while the user is panning would lose their place.
+          if (sheetExpanded.value || zoomed.value) return;
+          if (direction == VolumeKeyDirection.up) {
+            unawaited(controller.nextPage());
+          } else {
+            unawaited(controller.previousPage());
+          }
+        }),
+      );
       return null;
-    }, [volumeKeysActive]);
+    }, [volumeKeysActive, controller]);
     useEffect(() {
-      return () => unawaited(VolumeKeys.setEnabled(false));
-    }, []);
+      return () => unawaited(VolumeKeys.release(controller));
+    }, [controller]);
 
     void expandSheet() {
       if (sheetController.isAttached) {

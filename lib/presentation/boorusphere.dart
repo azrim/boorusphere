@@ -22,6 +22,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_route_observer.dart';
 import 'package:boorusphere/presentation/routes/app_router.dart';
+import 'package:boorusphere/presentation/routes/route_visibility.dart';
 import 'package:boorusphere/presentation/screens/app_lock/app_lock_screen.dart';
 import 'package:boorusphere/presentation/widgets/app_theme_builder.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
@@ -294,7 +295,7 @@ class Boorusphere extends HookConsumerWidget {
           routeInformationProvider: router.routeInfoProvider(),
           routeInformationParser: router.defaultRouteParser(),
           routerDelegate: router.delegate(
-            navigatorObservers: () => [AppRouteObserver(ref)],
+            navigatorObservers: () => [AppRouteObserver(ref), appRouteObserver],
           ),
           // Back must not reach the navigator under the lock cover: it would
           // pop pages the user cannot see, or close the app. The builder sits
