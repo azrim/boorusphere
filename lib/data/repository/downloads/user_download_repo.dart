@@ -65,7 +65,7 @@ class UserDownloadsRepo implements DownloadsRepo {
   }
 
   @override
-  Future<void> clearEntries() async {
+  Future<Set<String>> clearEntries() async {
     // The plugin database is shared with the rest of the app and still holds
     // tasks this repo never recorded. Removing those would leave their owner
     // pointing at a row that no longer exists, so only the ids with an entry
@@ -108,6 +108,7 @@ class UserDownloadsRepo implements DownloadsRepo {
     // deleting one is an explicit action on its entry. The kept entries stay
     // recorded for the same reason their tasks were left in the plugin.
     await entryBox.deleteAll(entryBox.keys.where((key) => !kept.contains(key)));
+    return kept;
   }
 
   @override

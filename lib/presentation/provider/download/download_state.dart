@@ -2,6 +2,7 @@ import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/domain/provider.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:collection/collection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -48,9 +49,25 @@ class DownloadEntryState extends _$DownloadEntryState {
 
   Future<void> clear() async {
     final repo = ref.read(downloadsRepoProvider);
-    await repo.clearEntries();
-    await ref.read(downloadProgressStateProvider.notifier).clear();
-    state = [];
+    // The updater APK is kept by the repo, so its progress row has to stay as
+    // well; clearing every row would leave the kept entry without a status.
+    final kept = await repo.clearEntries();
+    final progressState = ref.read(downloadProgressStateProvider.notifier);
+    final dropped = ref
+        .read(downloadProgressStateProvider)
+        .where((it) => !kept.contains(it.id))
+        .map((it) => it.id)
+        .toList();
+    for (final id in dropped) {
+      try {
+        await progressState.remove(id);
+      } catch (e, stack) {
+        // One row that cannot be removed must not keep the rest of the list
+        // on screen after the entries are already gone.
+        mainLog.e('Downloads: failed to drop the progress of $id', e, stack);
+      }
+    }
+    state = repo.getEntries().toList();
   }
 }
 

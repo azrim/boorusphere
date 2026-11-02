@@ -1,5 +1,6 @@
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
+import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/downloads_repo.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
@@ -21,6 +22,9 @@ class _FakeDownloadsRepo implements DownloadsRepo {
 
   /// 1-based index of the write that never lands.
   int? abortAtWrite;
+
+  /// Ids [clearEntries] leaves in the box, standing in for the updater APK.
+  Set<String> keptOnClear = {};
 
   Future<void> _write(String label) async {
     writes.add(label);
@@ -54,14 +58,21 @@ class _FakeDownloadsRepo implements DownloadsRepo {
   }
 
   @override
-  Future<void> clearEntries() async {
-    _entries.clear();
+  Future<Set<String>> clearEntries() async {
+    _entries.removeWhere((id, _) => !keptOnClear.contains(id));
+    return keptOnClear;
   }
 
   @override
   Future<void> clearProgresses() async {
     _progresses.clear();
   }
+
+  void seedProgress(DownloadProgress progress) {
+    _progresses[progress.id] = progress;
+  }
+
+  bool hasProgress(String id) => _progresses.containsKey(id);
 
   @override
   Iterable<DownloadEntry> getEntries() => _entries.values;
@@ -110,6 +121,28 @@ void main() {
 
       await pending;
       expect(repo.hasEntry('new'), isTrue);
+    });
+  });
+
+  group('DownloadEntryState.clear', () {
+    test('keeps the progress rows of the entries that stay', () async {
+      repo.keptOnClear = {'old'};
+      repo.seedProgress(
+        const DownloadProgress(id: 'old', status: DownloadStatus.downloaded),
+      );
+      repo.seedProgress(
+        const DownloadProgress(id: 'stale', status: DownloadStatus.downloaded),
+      );
+
+      await notifier().clear();
+
+      // The kept entry needs its row; the leftover row of a dropped record
+      // would only be an invisible orphan.
+      expect(container.read(downloadEntryStateProvider).map((it) => it.id), [
+        'old',
+      ]);
+      expect(repo.hasProgress('old'), isTrue);
+      expect(repo.hasProgress('stale'), isFalse);
     });
   });
 

@@ -9,7 +9,12 @@ abstract interface class DownloadsRepo {
   Future<void> updateProgress(DownloadProgress progress);
   Future<void> removeEntry(String id);
   Future<void> removeProgress(String id);
-  Future<void> clearEntries();
+
+  /// Drops every download record and reports the ids that were kept.
+  ///
+  /// A record owned by another part of the app (the updater APK) survives a
+  /// clear, so its progress row has to survive as well.
+  Future<Set<String>> clearEntries();
   Future<void> clearProgresses();
   Future<void> import(String src);
   Future<BackupItem> export();
