@@ -238,6 +238,19 @@ void main() {
       expect(entryBox.isEmpty, isTrue);
     });
 
+    test('reads a percent escape literally instead of decoding it', () async {
+      final data = jsonDecode(payload()) as Map<String, dynamic>;
+      data['entries'] = [
+        {'id': 'task-1', 'post': post.toJson(), 'dest': '%2e%2e/a.jpg'},
+      ];
+
+      await repo.import(jsonEncode(data));
+
+      // Every reader joins this path as one name under the download folder;
+      // decoding it here is what would turn it into a parent hop.
+      expect(entryBox.get('task-1')?.dest, '%2e%2e/a.jpg');
+    });
+
     test('a malformed archive leaves the stored records intact', () async {
       await entryBox.put(
         'local',

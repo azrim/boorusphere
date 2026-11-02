@@ -809,9 +809,7 @@ class Downloader {
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
     if (sharedStorageHandle.fileExists(dest)) {
       try {
-        final file = File(
-          p.join(sharedStorageHandle.path, Uri.decodeFull(dest)),
-        );
+        final file = File(p.join(sharedStorageHandle.path, dest));
         await file.delete();
         // The bytes are gone but the gallery keeps its row for the path, which
         // turns into a thumbnail that cannot be opened: scanning the removed

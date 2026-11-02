@@ -209,9 +209,7 @@ class UserDownloadsRepo implements DownloadsRepo {
       final timestamp = _restoredTimestamp(archived?['timestamp']);
 
       final root = downloadDir;
-      final file = root == null
-          ? null
-          : File(path.join(root, decodeComponentSafely(entry.dest)));
+      final file = root == null ? null : File(path.join(root, entry.dest));
       final present = file?.existsSync() ?? false;
       final usable = present && isMediaFile(file!);
       if (usable) {
@@ -299,11 +297,23 @@ Future<void> _adaptEntryDest(Box<DownloadEntry> box) async {
   final downloadPath = await _downloadDir();
   final newEntries = <MapEntry<String, DownloadEntry>>[];
   for (final entry in box.values) {
-    if (!path.isAbsolute(entry.dest)) {
+    if (path.isAbsolute(entry.dest)) {
+      final newDest = path.relative(entry.dest, from: downloadPath);
+      newEntries.add(MapEntry(entry.id, entry.copyWith(dest: newDest)));
       continue;
     }
-    final newDest = path.relative(entry.dest, from: downloadPath);
-    newEntries.add(MapEntry(entry.id, entry.copyWith(dest: newDest)));
+
+    // An archive written by an older build stored the path percent-encoded,
+    // while every reader now joins it literally. The path is decoded once,
+    // only when the literal path has no file behind it and the decoded one
+    // does: a real `%` in a folder name keeps pointing at its own file.
+    if (!entry.dest.contains('%')) continue;
+    final decoded = _restoreDest(decodeComponentSafely(entry.dest));
+    if (decoded == null || decoded == entry.dest) continue;
+    final literal = File(path.join(downloadPath, entry.dest));
+    final present = File(path.join(downloadPath, decoded));
+    if (literal.existsSync() || !present.existsSync()) continue;
+    newEntries.add(MapEntry(entry.id, entry.copyWith(dest: decoded)));
   }
   await box.putAll(Map.fromEntries(newEntries));
 }
@@ -479,7 +489,7 @@ Future<bool> _isCompletedFileUsable(
 ) async {
   if (downloadDir == null) return true;
 
-  final file = File(path.join(downloadDir, decodeComponentSafely(entry.dest)));
+  final file = File(path.join(downloadDir, entry.dest));
   if (!isMediaFile(file)) return false;
 
   try {
@@ -520,6 +530,10 @@ Future<Set<String>> _loadNativeTaskIds() async {
 /// absolute path or a parent hop belongs to a file the archive does not own.
 /// A dot segment is refused as well: the metadata folder and the gallery
 /// marker are not media the download list can point at.
+///
+/// The path is read literally. Every reader joins it to the download folder
+/// without decoding, so a percent escape in an archive is part of a file name
+/// and cannot be used to reach another directory.
 String? _restoreDest(String dest) {
   if (dest.isEmpty || dest.contains('\x00')) return null;
 

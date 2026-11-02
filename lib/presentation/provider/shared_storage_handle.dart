@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
-import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:boorusphere/utils/media_file.dart';
 import 'package:path/path.dart' as p;
@@ -80,7 +79,7 @@ class SharedStorageHandle {
 
   bool fileExists(String relativePath) {
     try {
-      final file = File(p.join(path, decodeComponentSafely(relativePath)));
+      final file = File(p.join(path, relativePath));
       return file.existsSync();
     } catch (e) {
       mainLog.e('SharedStorageHandle: Failed to check file $relativePath', e);
@@ -156,7 +155,7 @@ class SharedStorageHandle {
 
   Future<void> open(String dest, {String? on}) async {
     try {
-      final filePath = p.join(on ?? path, Uri.decodeFull(dest));
+      final filePath = p.join(on ?? path, dest);
       await StorageUtil().open(filePath);
     } catch (e) {
       mainLog.e('SharedStorageHandle: Failed to open $dest', e);
@@ -165,6 +164,6 @@ class SharedStorageHandle {
 
   File _resolveFile(String dest) {
     if (p.isAbsolute(dest)) return File(dest);
-    return File(p.join(path, decodeComponentSafely(dest)));
+    return File(p.join(path, dest));
   }
 }

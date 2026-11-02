@@ -117,7 +117,7 @@ class DownloadEntryView extends HookConsumerWidget {
 
     return ListTile(
       title: Text(
-        Uri.decodeFull(entry.dest.fileName),
+        entry.dest.fileName,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
