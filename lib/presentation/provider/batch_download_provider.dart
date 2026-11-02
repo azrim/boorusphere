@@ -16,6 +16,7 @@ import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/download_quality.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/concurrency.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
@@ -45,6 +46,17 @@ class BatchDownloadResult {
 
   /// URLs that produced no usable file.
   final int failedCount;
+}
+
+/// The file a batch saves for [post] at [quality].
+///
+/// The batch has no picker, so "ask" takes the original instead of quietly
+/// saving the preview the reader never chose.
+String batchSourceUrlOf(Post post, DownloadQuality quality) {
+  if (quality == DownloadQuality.sample && post.sampleFile.isNotEmpty) {
+    return post.sampleFile;
+  }
+  return post.originalFile;
 }
 
 class BatchDownloadProvider {

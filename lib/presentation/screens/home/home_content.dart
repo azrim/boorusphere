@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/post_selection_provider.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
@@ -434,12 +435,11 @@ class HomeContent extends HookConsumerWidget {
 
                 if (selectedPosts.isEmpty) return;
 
+                // The batch saves what the quality setting asks for, the same
+                // way the single-file picker does.
+                final quality = ref.read(downloadSettingStateProvider).quality;
                 final imageUrls = selectedPosts
-                    .map(
-                      (post) => post.sampleFile.isNotEmpty
-                          ? post.sampleFile
-                          : post.originalFile,
-                    )
+                    .map((post) => batchSourceUrlOf(post, quality))
                     .where((url) => url.isNotEmpty)
                     .toList();
 
