@@ -510,23 +510,62 @@ class Downloader {
       ..autoUncompress = false
       ..connectionTimeout = _sizeProbeTimeout;
     try {
-      final request = await client.headUrl(uri);
-      request.followRedirects = true;
-      // The worker fetches media anonymously; the probe keeps the same request
-      // and only adds the headers hotlink protection checks.
-      headers.forEach((name, value) => request.headers.set(name, value));
-      request.headers.set(HttpHeaders.acceptEncodingHeader, 'identity');
+      try {
+        final head = await _probeSize(client, uri, headers, head: true);
+        if (head != null) return head;
+      } catch (e) {
+        // A host that closes the connection on HEAD still answers the range
+        // request below.
+        mainLog.w('Downloader: HEAD probe failed for ${task.url}', e);
+      }
 
-      final response = await request.close().timeout(_sizeProbeTimeout);
-      if (response.statusCode != HttpStatus.ok) return null;
-      final length = response.contentLength;
-      return length > 0 ? length : null;
+      // A host that denies HEAD or leaves the length out of the answer still
+      // reports the whole size of a one-byte range request in `Content-Range`.
+      return await _probeSize(client, uri, headers, head: false);
     } catch (e) {
       mainLog.w('Downloader: no length for ${task.url}', e);
       return null;
     } finally {
       client.close(force: true);
     }
+  }
+
+  /// Length the server reports for [uri], or null when the answer carries
+  /// none.
+  ///
+  /// The body is never read: the response is dropped together with the client
+  /// in [expectedSizeOf], so a host that ignores the range cannot stream a
+  /// whole file just for the probe.
+  Future<int?> _probeSize(
+    HttpClient client,
+    Uri uri,
+    Map<String, String> headers, {
+    required bool head,
+  }) async {
+    final request = head ? await client.headUrl(uri) : await client.getUrl(uri);
+    request.followRedirects = true;
+    // The worker fetches media anonymously; the probe keeps the same request
+    // and only adds the headers hotlink protection checks.
+    headers.forEach((name, value) => request.headers.set(name, value));
+    request.headers.set(HttpHeaders.acceptEncodingHeader, 'identity');
+    if (!head) {
+      request.headers.set(HttpHeaders.rangeHeader, 'bytes=0-0');
+    }
+
+    final response = await request.close().timeout(_sizeProbeTimeout);
+    if (response.statusCode == HttpStatus.ok) {
+      final length = response.contentLength;
+      return length > 0 ? length : null;
+    }
+    if (!head && response.statusCode == HttpStatus.partialContent) {
+      final range = response.headers.value(HttpHeaders.contentRangeHeader);
+      if (range == null) return null;
+      final slash = range.lastIndexOf('/');
+      if (slash < 0) return null;
+      final total = int.tryParse(range.substring(slash + 1).trim());
+      return total != null && total > 0 ? total : null;
+    }
+    return null;
   }
 
   static const _sizeProbeTimeout = Duration(seconds: 5);
