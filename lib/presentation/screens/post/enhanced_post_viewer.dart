@@ -22,11 +22,11 @@ import 'package:boorusphere/presentation/widgets/slidefade_visibility.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:boorusphere/utils/volume_keys.dart';
+import 'package:boorusphere/utils/wakelock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 
 class EnhancedPostViewer extends HookConsumerWidget {
   const EnhancedPostViewer({
@@ -258,9 +258,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
       });
 
       Future(() => timelineController.scrollTo(initial));
-      WakelockPlus.enable();
       return () {
-        WakelockPlus.disable();
         controller.dispose();
         currentPostNotifier.dispose();
       };
@@ -317,6 +315,23 @@ class EnhancedPostViewer extends HookConsumerWidget {
     }, [volumeKeysActive, controller]);
     useEffect(() {
       return () => unawaited(VolumeKeys.release(controller));
+    }, [controller]);
+
+    // The screen-on request belongs to the visible viewer as well: a covered
+    // page must not keep the display awake above it, and a stacked viewer must
+    // not turn the request off for this one when it closes. The manager counts
+    // holders, so the covered page letting go first cannot cancel the viewer
+    // that was just pushed on top.
+    useEffect(() {
+      if (routeVisible) {
+        wakelockManager.acquire(controller);
+      } else {
+        wakelockManager.release(controller);
+      }
+      return null;
+    }, [routeVisible, controller]);
+    useEffect(() {
+      return () => wakelockManager.release(controller);
     }, [controller]);
 
     void expandSheet() {
