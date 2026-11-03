@@ -90,6 +90,12 @@ class _Content extends ConsumerWidget {
                     title: Text(it.name),
                     subtitle: RowSubtitle(Text(it.homepage)),
                     leading: Favicon(url: it.homepage),
+                    // The row is the biggest target on the line, so it carries
+                    // the page's main action, the same way the drawer's server
+                    // rows do. The menu keeps the choices that need a second
+                    // step.
+                    onTap: () =>
+                        context.router.push(ServerEditorRoute(server: it)),
                     trailing: PopupMenuButton(
                       tooltip: MaterialLocalizations.of(
                         context,
