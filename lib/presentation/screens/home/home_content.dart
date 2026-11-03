@@ -23,6 +23,7 @@ import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_screen.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -615,9 +616,7 @@ class _InfiniteFooter extends StatelessWidget {
       child = Text(
         context.t.feed.limitReached,
         textAlign: TextAlign.center,
-        style: context.theme.textTheme.labelMedium?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
-        ),
+        style: AppTextRoles.of(context).rowSupporting,
       );
     } else if (loading) {
       child = const SizedBox.square(
@@ -628,9 +627,7 @@ class _InfiniteFooter extends StatelessWidget {
       child = Text(
         context.t.feed.endOfResults,
         textAlign: TextAlign.center,
-        style: context.theme.textTheme.labelMedium?.copyWith(
-          color: context.colorScheme.onSurfaceVariant,
-        ),
+        style: AppTextRoles.of(context).rowSupporting,
       );
     } else {
       child = null;
@@ -675,8 +672,9 @@ class _BackToTopButton extends StatelessWidget {
 }
 
 /// Contextual bar shown while posts are selected. The count is a readout, not
-/// a button label, and the archive option is a menu choice instead of a
-/// switch-shaped icon, so each control names the action it performs.
+/// a button label, and every control does exactly one thing: the download
+/// button saves the selection as files, with no archive mode behind it that
+/// would silently carry from one tap to the next.
 class _SelectionActionBar extends StatelessWidget {
   const _SelectionActionBar({
     required this.selectedCount,

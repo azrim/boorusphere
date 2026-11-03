@@ -79,7 +79,7 @@ class _TagsBlockerContent extends HookConsumerWidget {
                     decoration:
                         flatFieldDecoration(
                           context,
-                          label: context.t.tagsBlocker.title,
+                          label: context.t.tagsBlocker.add,
                           hint: context.t.tagsBlocker.hint,
                         ).copyWith(
                           // A field whose only way in is the keyboard's done key
@@ -100,7 +100,11 @@ class _TagsBlockerContent extends HookConsumerWidget {
         if (blockedTags.isEmpty)
           NoticeCard(
             icon: const Icon(Icons.tag),
-            children: Text(context.t.tagsBlocker.empty),
+            children: Text(
+              context.t.tagsBlocker.empty,
+              textAlign: TextAlign.center,
+              style: AppTextRoles.of(context).rowTitle,
+            ),
           )
         else
           TileGroup(
