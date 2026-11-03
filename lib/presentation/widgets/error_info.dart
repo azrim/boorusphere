@@ -3,9 +3,14 @@ import 'dart:io';
 
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+
+/// How much of the screen a stack trace may take when expanded. It is a
+/// reading pane, not the page: past this the message it belongs to scrolls away.
+const double _kStackTraceMaxHeight = 128.0;
 
 class ErrorInfo extends HookWidget {
   const ErrorInfo({
@@ -15,7 +20,7 @@ class ErrorInfo extends HookWidget {
     this.textAlign = TextAlign.center,
     this.style,
     this.crossAxisAlignment = CrossAxisAlignment.center,
-    this.padding = const EdgeInsets.symmetric(vertical: 16),
+    this.padding = const EdgeInsets.symmetric(vertical: DesignTokens.spacingMd),
   });
 
   final Object? error;
@@ -109,7 +114,10 @@ class ErrorInfo extends HookWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 16, bottom: 8),
+                      padding: const EdgeInsets.only(
+                        top: DesignTokens.spacingMd,
+                        bottom: DesignTokens.spacingSm,
+                      ),
                       child: Text(
                         TranslationProvider.of(
                           context,
@@ -117,7 +125,9 @@ class ErrorInfo extends HookWidget {
                       ),
                     ),
                     ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 128),
+                      constraints: const BoxConstraints(
+                        maxHeight: _kStackTraceMaxHeight,
+                      ),
                       child: SingleChildScrollView(
                         child: Text(stackTrace.toString()),
                       ),

@@ -93,10 +93,9 @@ class QuickBar extends StatelessWidget {
                   color: context.theme.colorScheme.surface,
                 ),
                 padding: const EdgeInsets.all(DesignTokens.spacingSm),
-                margin: const EdgeInsets.all(2),
-                child: SizedBox(
-                  width: 21,
-                  height: 21,
+                margin: const EdgeInsets.all(DesignTokens.spacingXs),
+                child: SizedBox.square(
+                  dimension: DesignTokens.iconAction,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
                     valueColor: AlwaysStoppedAnimation(
