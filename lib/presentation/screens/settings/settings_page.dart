@@ -16,6 +16,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/color_palettes.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
@@ -27,6 +28,10 @@ import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+/// A little over three rows tall, so the per-load menu lists its choices
+/// without burying the setting it belongs to.
+const double _kPostLimitMenuMaxHeight = 178.0;
 
 @RoutePage()
 class SettingsPage extends StatelessWidget {
@@ -653,7 +658,7 @@ class _PostLimit extends ConsumerWidget {
       title: Text(context.t.settings.postLimit.title),
       subtitle: RowSubtitle(Text(context.t.settings.postLimit.desc)),
       trailing: DropdownButton(
-        menuMaxHeight: 178,
+        menuMaxHeight: _kPostLimitMenuMaxHeight,
         value: ref.watch(
           serverSettingStateProvider.select((it) => it.postLimit),
         ),
@@ -748,7 +753,7 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
           : null,
       choices: [
         for (final value in ContentSettingState.videoCacheLimitMegabytes)
-          Choice(value: value, label: _formatMegabytes(value)),
+          Choice(value: value, label: _formatMegabytes(context, value)),
       ],
     );
     if (picked == null || !mounted) return;
@@ -763,7 +768,7 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
       showToast(
         context,
         context.t.settings.cache.limitDone(
-          size: _formatMegabytes(picked.value),
+          size: _formatMegabytes(context, picked.value),
         ),
       );
     }
@@ -771,7 +776,10 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
 
   @override
   Widget build(BuildContext context) {
-    final stats = _stats ?? VideoCacheStats.empty;
+    // Null means the walk has not answered yet. Collapsing that into an empty
+    // cache told a reader their videos were gone while the count was still
+    // running, so the three cases stay three different subtitles.
+    final stats = _stats;
     final limit = ref.watch(
       contentSettingStateProvider.select((it) => it.videoCacheMaxBytes),
     );
@@ -784,19 +792,26 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
           title: Text(context.t.settings.cache.stored),
           subtitle: RowSubtitle(
             Text(
-              stats.count == 0
+              stats == null
+                  ? context.t.settings.cache.counting
+                  : stats.count == 0
                   ? context.t.settings.cache.empty
                   : context.t.settings.cache.storedCount(count: stats.count),
             ),
           ),
-          trailing: stats.bytes <= 0 ? null : Text(_formatBytes(stats.bytes)),
+          trailing: stats == null || stats.bytes <= 0
+              ? null
+              : Text(
+                  _formatBytes(context, stats.bytes),
+                  style: AppTextRoles.of(context).numeric,
+                ),
         ),
         ListTile(
           title: Text(context.t.settings.cache.limit),
           subtitle: RowSubtitle(
             Text(
               context.t.settings.cache.limitDesc(
-                size: _formatMegabytes(limit ~/ (1024 * 1024)),
+                size: _formatMegabytes(context, limit ~/ (1024 * 1024)),
               ),
             ),
           ),
@@ -814,18 +829,22 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
   }
 }
 
-String _formatBytes(int bytes) {
+/// Byte sizes go through i18n so the unit is a word the locale owns, and the
+/// caller pairs them with `AppTextRoles.numeric` so a column of them lines up.
+String _formatBytes(BuildContext context, int bytes) {
   const kb = 1024;
   const mb = kb * 1024;
   const gb = mb * 1024;
-  if (bytes < mb) return '${(bytes / kb).ceil()} KB';
-  if (bytes < gb) return '${(bytes / mb).toStringAsFixed(1)} MB';
-  return '${(bytes / gb).toStringAsFixed(1)} GB';
+  final t = context.t;
+  if (bytes < mb) return t.unitKb(value: (bytes / kb).ceil());
+  if (bytes < gb) return t.unitMb(value: (bytes / mb).toStringAsFixed(1));
+  return t.unitGb(value: (bytes / gb).toStringAsFixed(1));
 }
 
-String _formatMegabytes(int megabytes) {
+String _formatMegabytes(BuildContext context, int megabytes) {
+  final t = context.t;
   if (megabytes >= 1024 && megabytes % 1024 == 0) {
-    return '${megabytes ~/ 1024} GB';
+    return t.unitGb(value: '${megabytes ~/ 1024}');
   }
-  return '$megabytes MB';
+  return t.unitMb(value: '$megabytes');
 }
