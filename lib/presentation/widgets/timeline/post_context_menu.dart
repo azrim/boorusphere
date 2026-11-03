@@ -42,7 +42,7 @@ const double _kChipSize = 24;
 const double _kBackdropBlur = 11;
 const double _kBackdropOpacity = 0.16;
 
-/// Shows the post context menu as a floating glass card over a blurred,
+/// Shows the post context menu as a floating card over a blurred,
 /// tap-to-dismiss backdrop, resolving to the tapped action (or `null` when
 /// dismissed).
 ///
@@ -201,7 +201,7 @@ class _MenuLayout extends SingleChildLayoutDelegate {
       oldDelegate.anchor != anchor || oldDelegate.margin != margin;
 }
 
-/// The floating glass card holding the grouped menu rows.
+/// The floating card holding the grouped menu rows.
 class _MenuCard extends StatelessWidget {
   const _MenuCard({required this.animation, required this.groups});
 
@@ -235,42 +235,41 @@ class _MenuCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(_kCardRadius),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-            child: Container(
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerHigh.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(_kCardRadius),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.4),
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              // Opaque, and no blur of its own: the backdrop already blurs the
+              // app behind the menu, so a second blur under a fill that is
+              // nearly solid costs raster time with nothing left to show for it.
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(_kCardRadius),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.4),
               ),
-              child: Material(
-                type: MaterialType.transparency,
-                child: Padding(
-                  padding: const EdgeInsets.all(DesignTokens.spacingXs),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var g = 0; g < groups.length; g++) ...[
-                        if (g > 0)
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            indent: DesignTokens.spacingSm,
-                            endIndent: DesignTokens.spacingSm,
-                            color: scheme.outlineVariant.withValues(alpha: 0.4),
-                          ),
-                        for (final entry in groups[g])
-                          _MenuRowTile(
-                            entry: entry,
-                            animation: _rowAnimation(rowIndex++),
-                            onTap: () =>
-                                Navigator.of(context).pop(entry.action),
-                          ),
-                      ],
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Padding(
+                padding: const EdgeInsets.all(DesignTokens.spacingXs),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var g = 0; g < groups.length; g++) ...[
+                      if (g > 0)
+                        Divider(
+                          height: 1,
+                          thickness: 1,
+                          indent: DesignTokens.spacingSm,
+                          endIndent: DesignTokens.spacingSm,
+                          color: scheme.outlineVariant.withValues(alpha: 0.4),
+                        ),
+                      for (final entry in groups[g])
+                        _MenuRowTile(
+                          entry: entry,
+                          animation: _rowAnimation(rowIndex++),
+                          onTap: () => Navigator.of(context).pop(entry.action),
+                        ),
                     ],
-                  ),
+                  ],
                 ),
               ),
             ),
