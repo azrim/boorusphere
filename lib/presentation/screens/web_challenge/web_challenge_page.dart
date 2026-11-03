@@ -7,6 +7,8 @@ import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
@@ -49,6 +51,11 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
   Uri? _site;
   bool _capturing = false;
 
+  /// The server's own address could not be read, so there is no page to load.
+  /// Kept apart from `_controller == null`, which only means "not loaded yet",
+  /// so a first frame never reads as a failure.
+  bool _addressUnreadable = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +76,10 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
         ? server.homepage
         : server.apiAddress;
     final site = Uri.tryParse(target);
-    if (site == null || !site.hasScheme || site.host.isEmpty) return;
+    if (site == null || !site.hasScheme || site.host.isEmpty) {
+      setState(() => _addressUnreadable = true);
+      return;
+    }
     _site = site;
 
     final controller = WebViewController()
@@ -219,6 +229,9 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
+    final server = ref.watch(
+      serverStateProvider.select((it) => it.getById(widget.serverId)),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -230,17 +243,28 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
           ),
         ],
       ),
-      body: controller == null
-          ? EmptyState(
-              icon: const Icon(Icons.link_off),
-              title: context.t.error.unknown,
-            )
-          : Column(
-              children: [
-                _Hint(text: context.t.webChallenge.hint),
-                Expanded(child: WebViewWidget(controller: controller)),
-              ],
-            ),
+      body: switch ((controller, _addressUnreadable)) {
+        // The address is the one thing this page cannot work around, so the
+        // state names it and hands the reader the form that fixes it.
+        (null, true) => EmptyState(
+          icon: const Icon(Icons.link_off),
+          title: context.t.webChallenge.badAddress,
+          body: context.t.webChallenge.badAddressDesc(name: server.name),
+          action: FilledButton(
+            onPressed: () =>
+                context.router.push(ServerEditorRoute(server: server)),
+            child: Text(context.t.webChallenge.fixServer),
+          ),
+        ),
+        // Still inside the post-frame callback that builds the controller.
+        (null, false) => const Center(child: RefreshProgressIndicator()),
+        (final WebViewController loaded, _) => Column(
+          children: [
+            _Hint(text: context.t.webChallenge.hint),
+            Expanded(child: WebViewWidget(controller: loaded)),
+          ],
+        ),
+      },
     );
   }
 }
@@ -253,9 +277,12 @@ class _Hint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // The strip is a block on the page, so in Midnight it keeps the page tone
+    // instead of lifting off pure black as a grey slab.
+    final flat = AppSurfacePolicy.of(context).flat;
 
     return Material(
-      color: scheme.surfaceContainerHighest,
+      color: flat ? scheme.surface : scheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: DesignTokens.spacingMd,
@@ -265,7 +292,7 @@ class _Hint extends StatelessWidget {
           children: [
             Icon(
               Icons.shield_outlined,
-              size: 16,
+              size: DesignTokens.iconInline,
               color: scheme.onSurfaceVariant,
             ),
             const SizedBox(width: DesignTokens.spacingSm),
