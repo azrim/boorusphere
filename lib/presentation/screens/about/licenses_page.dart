@@ -147,6 +147,12 @@ double _subtitleBarHeight(BuildContext context) {
   return MediaQuery.textScalerOf(context).scale(line) + DesignTokens.spacingSm;
 }
 
+/// The pause between two license texts: a short rule that starts on the same
+/// edge as the paragraphs above it, in a line tone the ramp already allows.
+/// Painted in primary it would read as a claim; drawn full width it would read
+/// as a section border, and neither is what sits between two license bodies.
+const double _kLicenseRuleWidth = 72.0;
+
 class PackageLicenses extends StatelessWidget {
   const PackageLicenses({
     super.key,
@@ -203,15 +209,20 @@ class PackageLicenses extends StatelessWidget {
           );
         },
         separatorBuilder: (context, index) {
-          return Container(
-            margin: const EdgeInsets.symmetric(
+          return Padding(
+            padding: const EdgeInsets.symmetric(
               vertical: DesignTokens.spacingXl,
             ),
-            child: SizedBox(
-              width: 72,
-              height: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: context.colorScheme.primary),
+            // The list hands a separator a tight width, so without the align the
+            // rule is stretched to it and the short mark never paints.
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: SizedBox(
+                width: _kLicenseRuleWidth,
+                height: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: context.colorScheme.outline),
+                ),
               ),
             ),
           );
