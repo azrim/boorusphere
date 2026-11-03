@@ -28,6 +28,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+/// The mark that opens an empty state: a step above every inline icon size, so
+/// it reads as the block's own object instead of a glyph beside a row.
+const double _kEmptyGlyphSize = 48.0;
+
 class SearchSuggestion extends HookConsumerWidget {
   const SearchSuggestion({
     super.key,
@@ -270,12 +274,14 @@ class _SearchHistory extends HookConsumerWidget {
           padding: const EdgeInsets.all(DesignTokens.spacingXl),
           child: Column(
             children: [
+              // Full `onSurfaceVariant`, not a thinned version of it: the
+              // panel is translucent over whatever artwork the timeline is
+              // showing, so a hand-picked alpha would leave the glyph's
+              // contrast up to what happens to be behind it.
               Icon(
                 Icons.history,
-                size: 48,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                size: _kEmptyGlyphSize,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: DesignTokens.spacingMd),
               Text(
