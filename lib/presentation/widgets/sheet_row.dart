@@ -1,4 +1,5 @@
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -93,7 +94,14 @@ class SheetRow extends StatelessWidget {
         minHeight: DesignTokens.controlHeightMin,
       ),
       padding: _rowPadding,
-      color: selected ? scheme.surfaceContainerHighest : null,
+      // A tone step is the lift the Midnight rule forbids, so in that theme
+      // the current option is carried by its check and its announced state
+      // instead of by a slab off the page.
+      color: AppSurfacePolicy.of(context).flat
+          ? null
+          : selected
+          ? scheme.surfaceContainerHighest
+          : null,
       child: Row(
         children: [
           if (leading case final leading?) ...[

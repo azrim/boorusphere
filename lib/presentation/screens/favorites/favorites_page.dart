@@ -6,6 +6,7 @@ import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/empty_state.dart';
@@ -94,6 +95,7 @@ class _Pager extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final flat = AppSurfacePolicy.of(context).flat;
     return DefaultTabController(
       length: tabs.length,
       child: Scaffold(
@@ -106,10 +108,18 @@ class _Pager extends StatelessWidget {
           ],
         ),
         bottomNavigationBar: Material(
-          color: context.colorScheme.surfaceContainer,
+          // The strip floats over the grid in the lifted themes, but Midnight
+          // keeps every surface on the page: black, no elevation, a hairline
+          // for the edge. Asking the policy is what keeps it off black as a
+          // grey slab with a shadow.
+          color: flat
+              ? context.colorScheme.surface
+              : context.colorScheme.surfaceContainer,
           surfaceTintColor: context.colorScheme.surfaceTint,
-          elevation: DesignTokens.elevationFloating,
-          shadowColor: DesignTokens.shadowColor(context.colorScheme),
+          elevation: flat ? 0 : DesignTokens.elevationFloating,
+          shadowColor: flat
+              ? Colors.transparent
+              : DesignTokens.shadowColor(context.colorScheme),
           child: SafeArea(
             child: TabBar(
               dividerColor: Colors.transparent,

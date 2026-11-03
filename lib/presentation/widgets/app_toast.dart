@@ -124,7 +124,7 @@ class _ToastCard extends StatelessWidget {
         child: Material(
           // Midnight keeps its flat black surfaces with a hairline; every
           // other theme lifts the card one tone above the page.
-          color: flat ? Colors.black : scheme.surfaceContainerHigh,
+          color: flat ? scheme.surface : scheme.surfaceContainerHigh,
           elevation: flat ? 0 : DesignTokens.elevationFloating,
           shadowColor: DesignTokens.shadowColor(scheme),
           shape: RoundedRectangleBorder(
