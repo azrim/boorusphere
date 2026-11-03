@@ -8,10 +8,12 @@ import 'package:boorusphere/presentation/provider/data_backup/entity/backup_resu
 import 'package:boorusphere/presentation/provider/data_backup/telegram_backup_service.dart';
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
+import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/presentation/widgets/sheet_row.dart';
@@ -22,6 +24,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+/// The mask a stored secret shows as. A fixed run of bullets, so the value
+/// never reaches the screen and its length cannot be read off the dots.
+const String _kSecretMask = '••••••••';
+
+/// How many trailing characters of a token stay visible, enough to tell two
+/// saved tokens apart without showing one.
+const int _kSecretTail = 8;
 
 @RoutePage()
 class DataBackupPage extends StatelessWidget {
@@ -100,7 +110,11 @@ class _Content extends HookConsumerWidget {
                   actions: [
                     // Closing the activity is the whole point: the restored
                     // boxes are only read on a cold start, so the app has to
-                    // be opened again for them to take effect.
+                    // be opened again for them to take effect. There is
+                    // deliberately no "Later": staying open would keep showing
+                    // the data that was just replaced, with no way left to
+                    // reload it, so the only honest choice here is the one that
+                    // ends the session.
                     FilledButton(
                       onPressed: SystemNavigator.pop,
                       child: Text(context.t.dataBackup.restore.restartNow),
@@ -205,6 +219,11 @@ class _Content extends HookConsumerWidget {
               value: periodicState.enabled,
               onChanged: periodicNotifier.setEnabled,
             ),
+            // Everything under this switch answers to it. The reason is said
+            // while it is off, so the greyed rows have an explanation next to
+            // the one control that unlocks them.
+            if (!periodicState.enabled)
+              _LockedNote(context.t.periodicBackup.turnOnForSchedule),
             _FrequencyTile(
               state: periodicState,
               notifier: periodicNotifier,
@@ -253,6 +272,11 @@ class _Content extends HookConsumerWidget {
                   ? periodicNotifier.setTelegramEnabled
                   : null,
             ),
+            // This switch is off limits until periodic backups run, and the
+            // rows under it go grey with it. One line says which switch
+            // unlocks the whole group.
+            if (!periodicState.enabled)
+              _LockedNote(context.t.periodicBackup.telegram.turnOnFirst),
             _TelegramChatIdTile(
               state: periodicState,
               notifier: periodicNotifier,
@@ -276,6 +300,27 @@ class _Content extends HookConsumerWidget {
         ),
         const SizedBox(height: DesignTokens.spacingLg),
       ],
+    );
+  }
+}
+
+/// The line that names the switch a greyed group answers to.
+///
+/// It sits inside the same block as the rows it explains, in the supporting
+/// role, so it reads as part of the group rather than as a warning.
+class _LockedNote extends StatelessWidget {
+  const _LockedNote(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingCardInset,
+        vertical: DesignTokens.spacingXs,
+      ),
+      child: Text(text, style: AppTextRoles.of(context).rowSupporting),
     );
   }
 }
@@ -451,6 +496,17 @@ class _PassphraseResult {
   final bool remove;
 }
 
+/// A rejected passphrase, with the field that has to carry the reason.
+class _FieldError {
+  const _FieldError(this.message, {this.onConfirmation = false});
+
+  final String message;
+
+  /// True when the mismatch belongs under the repeated line rather than the
+  /// first one.
+  final bool onConfirmation;
+}
+
 /// Asks for a backup passphrase.
 ///
 /// A new passphrase is typed twice, because a typo would produce an archive
@@ -477,19 +533,27 @@ class _PassphraseDialog extends HookWidget {
     final confirmationFocus = useFocusNode();
     final showPassphrase = useState(false);
     final save = useState(true);
-    final error = useState<String?>(null);
+    // The rejection and the line it belongs to: the reason has to sit on the
+    // field that caused it, so a reader hears that field refuse its own value
+    // rather than finding a loose sentence under the form.
+    final error = useState<_FieldError?>(null);
 
     void submit() {
       final value = passphrase.text;
       if (value.length < _minLength) {
-        error.value = _confirm
-            ? context.t.dataBackup.passphraseTooShort(n: _minLength)
-            : context.t.dataBackup.wrongPassphrase;
+        error.value = _FieldError(
+          _confirm
+              ? context.t.dataBackup.passphraseTooShort(n: _minLength)
+              : context.t.dataBackup.wrongPassphrase,
+        );
         passphraseFocus.requestFocus();
         return;
       }
       if (_confirm && value != confirmation.text) {
-        error.value = context.t.dataBackup.passphraseMismatch;
+        error.value = _FieldError(
+          context.t.dataBackup.passphraseMismatch,
+          onConfirmation: true,
+        );
         confirmationFocus.requestFocus();
         return;
       }
@@ -517,23 +581,31 @@ class _PassphraseDialog extends HookWidget {
             textInputAction: _confirm
                 ? TextInputAction.next
                 : TextInputAction.done,
-            decoration: InputDecoration(
-              labelText: context.t.dataBackup.passphrase,
-              helperText: context.t.dataBackup.passphraseHint(n: _minLength),
-              suffixIcon: IconButton(
-                tooltip: showPassphrase.value
-                    ? context.t.hidePassword
-                    : context.t.showPassword,
-                icon: Icon(
-                  showPassphrase.value
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
+            decoration:
+                flatFieldDecoration(
+                  context,
+                  label: context.t.dataBackup.passphrase,
+                ).copyWith(
+                  helperText: context.t.dataBackup.passphraseHint(
+                    n: _minLength,
+                  ),
+                  errorText: error.value?.onConfirmation ?? false
+                      ? null
+                      : error.value?.message,
+                  suffixIcon: IconButton(
+                    tooltip: showPassphrase.value
+                        ? context.t.hidePassword
+                        : context.t.showPassword,
+                    icon: Icon(
+                      showPassphrase.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                    ),
+                    onPressed: () {
+                      showPassphrase.value = !showPassphrase.value;
+                    },
+                  ),
                 ),
-                onPressed: () {
-                  showPassphrase.value = !showPassphrase.value;
-                },
-              ),
-            ),
             onSubmitted: _confirm ? null : (_) => submit(),
           ),
           if (_confirm) ...[
@@ -544,22 +616,16 @@ class _PassphraseDialog extends HookWidget {
               obscureText: !showPassphrase.value,
               autocorrect: false,
               enableSuggestions: false,
-              decoration: InputDecoration(
-                labelText: context.t.dataBackup.passphraseConfirm,
-              ),
+              decoration:
+                  flatFieldDecoration(
+                    context,
+                    label: context.t.dataBackup.passphraseConfirm,
+                  ).copyWith(
+                    errorText: error.value?.onConfirmation ?? false
+                        ? error.value?.message
+                        : null,
+                  ),
               onSubmitted: (_) => submit(),
-            ),
-          ],
-          if (error.value case final message?) ...[
-            const SizedBox(height: DesignTokens.spacingSm),
-            Semantics(
-              liveRegion: true,
-              child: Text(
-                message,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
             ),
           ],
           if (mode == _PassphraseMode.backup)
@@ -622,6 +688,7 @@ class _FrequencyTile extends StatelessWidget {
       enabled: enabled,
       title: Text(context.t.periodicBackup.frequency),
       subtitle: RowSubtitle(Text(frequencyLabel(context, state.frequency))),
+      trailing: const Icon(Icons.chevron_right),
       onTap: enabled
           ? () async {
               final picked = await showChoiceSheet<BackupFrequency>(
@@ -689,10 +756,16 @@ class _PassphraseTile extends StatelessWidget {
       leading: const Icon(Icons.key),
       title: Text(context.t.dataBackup.passphraseTile),
       subtitle: RowSubtitle(
+        // The dots say "a value is here" without leaking it; a reader hears the
+        // fact rather than eight bullet characters.
         Text(
-          hasPassphrase ? '••••••••' : context.t.dataBackup.passphraseNotSet,
+          hasPassphrase ? _kSecretMask : context.t.dataBackup.passphraseNotSet,
+          semanticsLabel: hasPassphrase
+              ? context.t.dataBackup.passphraseSaved
+              : null,
         ),
       ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         final result = await showDialog<_PassphraseResult>(
           context: context,
@@ -749,14 +822,22 @@ class _TelegramChatIdTile extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chatId = state.telegramChatId;
+
     return ListTile(
       enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.chatId),
-      subtitle: Text(
-        state.telegramChatId.isEmpty
-            ? context.t.periodicBackup.telegram.notSet
-            : state.telegramChatId,
+      subtitle: RowSubtitle(
+        // A bare number in a subtitle leaves a reader guessing which field it
+        // belongs to, so the label rides along in the announcement.
+        Text(
+          chatId.isEmpty ? context.t.periodicBackup.telegram.notSet : chatId,
+          semanticsLabel: chatId.isEmpty
+              ? null
+              : context.t.periodicBackup.telegram.chatIdValue(value: chatId),
+        ),
       ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: enabled
           ? () async {
               final result = await showTextSheet(
@@ -792,14 +873,28 @@ class _TelegramBotTokenTile extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final token = state.telegramBotToken;
+    // Only the tail stays visible: enough to tell two saved tokens apart, not
+    // enough to read one over a shoulder.
+    final tail = token.length <= _kSecretTail
+        ? token
+        : token.substring(token.length - _kSecretTail);
+
     return ListTile(
       enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.botToken),
-      subtitle: Text(
-        state.telegramBotToken.isEmpty
-            ? context.t.periodicBackup.telegram.notSet
-            : '••••••••${state.telegramBotToken.substring(state.telegramBotToken.length > 8 ? state.telegramBotToken.length - 8 : 0)}',
+      subtitle: RowSubtitle(
+        // The dots carry the masking on screen; the label carries the fact.
+        Text(
+          token.isEmpty
+              ? context.t.periodicBackup.telegram.notSet
+              : '$_kSecretMask$tail',
+          semanticsLabel: token.isEmpty
+              ? null
+              : context.t.periodicBackup.telegram.botTokenSaved(value: tail),
+        ),
       ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: enabled
           ? () async {
               final result = await showTextSheet(
@@ -859,9 +954,8 @@ class _TestConnectionTile extends HookConsumerWidget {
       trailing: isLoading.value
           ? Semantics(
               label: context.t.periodicBackup.telegram.connecting,
-              child: const SizedBox(
-                width: 24,
-                height: 24,
+              child: const SizedBox.square(
+                dimension: DesignTokens.iconAction,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
@@ -918,13 +1012,21 @@ class _BackupNowTile extends HookConsumerWidget {
       enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.backupNow),
       subtitle: RowSubtitle(
-        Text(context.t.periodicBackup.telegram.backupNowDesc),
+        Text(
+          // The row is dead until both halves of the address exist, so the
+          // line under it names what is missing instead of going quiet.
+          isConfigured
+              ? context.t.periodicBackup.telegram.backupNowDesc
+              : context.t.periodicBackup.telegram.needsChatAndToken,
+        ),
       ),
       trailing: isLoading.value
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
+          ? Semantics(
+              label: context.t.periodicBackup.telegram.uploading,
+              child: const SizedBox.square(
+                dimension: DesignTokens.iconAction,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             )
           : const Icon(Icons.cloud_upload),
       onTap: !enabled || !isConfigured || isLoading.value
