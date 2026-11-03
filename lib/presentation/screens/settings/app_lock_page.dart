@@ -172,7 +172,7 @@ class AppLockPage extends ConsumerWidget {
                   Text(
                     t.appLock.forgotTitle,
                     textAlign: TextAlign.center,
-                    style: context.theme.textTheme.titleSmall,
+                    style: AppTextRoles.of(context).rowTitle,
                   ),
                   const SizedBox(height: DesignTokens.spacingXs),
                   Text(

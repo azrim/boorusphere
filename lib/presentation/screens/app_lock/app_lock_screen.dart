@@ -1,12 +1,22 @@
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/app_lock/clock.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/pin_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+/// The gate keeps one reading measure on a wide screen: the mark, the title and
+/// the field stay a column instead of stretching edge to edge.
+const double _kGateMaxWidth = 360.0;
+
+/// The emblem behind the lock glyph: a filled circle a step over the row chip,
+/// with the glyph at half its width so it reads as a mark rather than a button.
+const double _kGateMarkSize = 56.0;
+const double _kGateMarkGlyph = 28.0;
 
 /// The opaque cover shown over the app while the lock is on.
 ///
@@ -108,41 +118,44 @@ class AppLockScreen extends HookConsumerWidget {
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 360),
+                      constraints: const BoxConstraints(
+                        maxWidth: _kGateMaxWidth,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Center(
                             child: Container(
-                              width: 56,
-                              height: 56,
+                              width: _kGateMarkSize,
+                              height: _kGateMarkSize,
                               decoration: BoxDecoration(
                                 color: scheme.primaryContainer,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.lock_outline_rounded,
-                                size: 28,
+                                size: _kGateMarkGlyph,
                                 color: scheme.onPrimaryContainer,
                               ),
                             ),
                           ),
                           const SizedBox(height: DesignTokens.spacingLg),
+                          // A gate is a hero, not a row: the title takes the
+                          // display step the theme already reserves for a
+                          // full-screen gate. The line under it is a supporting
+                          // line like every other title, so it takes that role
+                          // rather than a size of its own.
                           Text(
                             t.appLock.lockedTitle,
                             textAlign: TextAlign.center,
-                            style: textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: textTheme.headlineSmall,
                           ),
                           const SizedBox(height: DesignTokens.spacingSm),
                           Text(
                             t.appLock.lockedDesc,
                             textAlign: TextAlign.center,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                            style: AppTextRoles.of(context).rowSupporting,
                           ),
                           const SizedBox(height: DesignTokens.spacingXl),
                           PinField(
