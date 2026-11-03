@@ -17,6 +17,7 @@ import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/download_dialog.dart';
+import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
 import 'package:boorusphere/presentation/widgets/wordmark.dart';
@@ -25,6 +26,14 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+
+/// The app mark on the About page: one turn larger than the drawer's lockup,
+/// because here it is the page's subject rather than its signature.
+const double _kAboutLogoSize = 48.0;
+
+/// How much of the screen the inline changelog may take before it scrolls.
+/// The update action and its button have to stay reachable under it.
+const double _kInlineChangelogMaxHeight = 320.0;
 
 @RoutePage()
 class AboutPage extends ConsumerWidget {
@@ -53,7 +62,7 @@ class AboutPage extends ConsumerWidget {
                 ),
                 child: Image.asset(
                   'assets/icons/exported/logo.png',
-                  height: 48,
+                  height: _kAboutLogoSize,
                   color: context.colorScheme.onPrimaryContainer,
                 ),
               ),
@@ -89,11 +98,9 @@ class AboutPage extends ConsumerWidget {
                 loading: () {
                   return FilledButton.icon(
                     onPressed: null,
-                    icon: Container(
-                      width: 24,
-                      height: 24,
-                      padding: const EdgeInsets.all(2.0),
-                      child: const CircularProgressIndicator(),
+                    icon: const SizedBox.square(
+                      dimension: DesignTokens.iconAction,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     label: Text(context.t.updater.checking),
                   );
@@ -223,7 +230,9 @@ class _InlineChangelog extends ConsumerWidget {
             vertical: DesignTokens.spacingSm,
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
+            constraints: const BoxConstraints(
+              maxHeight: _kInlineChangelogMaxHeight,
+            ),
             child: SingleChildScrollView(
               child: ChangelogDataView(
                 changelog: entries.first,
@@ -235,13 +244,39 @@ class _InlineChangelog extends ConsumerWidget {
       },
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(vertical: DesignTokens.spacingMd),
-        child: SizedBox(
-          height: 20,
-          width: 20,
+        child: SizedBox.square(
+          dimension: DesignTokens.iconAction,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      // The notes for an unreleased version come from a network fetch, so a
+      // failure here is a cause the code knows. It used to render nothing,
+      // which left "could not load" indistinguishable from "no notes".
+      error: (err, _) => Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: DesignTokens.spacingMd,
+          vertical: DesignTokens.spacingSm,
+        ),
+        child: NoticeCard(
+          icon: const Icon(Icons.cloud_off_outlined),
+          children: Column(
+            children: [
+              Text(
+                context.t.changelog.loadFailed,
+                textAlign: TextAlign.center,
+                style: AppTextRoles.of(context).rowTitle,
+              ),
+              const SizedBox(height: DesignTokens.spacingMd),
+              TextButton(
+                onPressed: () => ref.invalidate(
+                  changelogStateProvider(ChangelogType.git, version),
+                ),
+                child: Text(context.t.retry),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -275,15 +310,13 @@ class _Downloader extends ConsumerWidget {
         entry.dest == updateApkFileName(version);
     final inFlight = progress.status.isDownloading || progress.status.isPending;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (!hasUpdateApk && !inFlight)
-          FilledButton(
-            onPressed: () => unawaited(_startUpdate(context, ref)),
-            child: Text(context.t.updater.download(version: version)),
-          ),
-        if (inFlight) ...[
+    // The download and install states each own one button, so they are laid
+    // out on their own. Holding them in the same Row as the progress bar gave
+    // the button an intrinsic width, and a long translated label at a large
+    // font scale pushed that Row past the screen.
+    if (inFlight) {
+      return Row(
+        children: [
           const SizedBox(width: DesignTokens.spacingMd),
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -299,10 +332,12 @@ class _Downloader extends ConsumerWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
               child: LinearProgressIndicator(
+                // The track is as tall as the clip's radius, so the bar reads
+                // as one pill instead of a rectangle with rounded corners.
                 value: progress.status.isPending
                     ? null
                     : progress.progress.ratio,
-                minHeight: 16,
+                minHeight: DesignTokens.radiusXl,
               ),
             ),
           ),
@@ -315,14 +350,21 @@ class _Downloader extends ConsumerWidget {
           ),
           const SizedBox(width: DesignTokens.spacingMd),
         ],
-        if (hasUpdateApk)
-          FilledButton(
-            onPressed: () {
-              ref.read(appUpdaterProvider.notifier).install(version);
-            },
-            child: Text(context.t.updater.install),
-          ),
-      ],
+      );
+    }
+
+    return Center(
+      child: hasUpdateApk
+          ? FilledButton(
+              onPressed: () {
+                ref.read(appUpdaterProvider.notifier).install(version);
+              },
+              child: Text(context.t.updater.install),
+            )
+          : FilledButton(
+              onPressed: () => unawaited(_startUpdate(context, ref)),
+              child: Text(context.t.updater.download(version: version)),
+            ),
     );
   }
 }
