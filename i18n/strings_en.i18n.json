@@ -29,6 +29,9 @@
   "file_og": "Original file",
   "dimensions": "Dimensions",
   "format": "Format",
+  "unit_kb": "${value} KB",
+  "unit_mb": "${value} MB",
+  "unit_gb": "${value} GB",
   "links": "Links",
   "tags": "Tags",
   "meta": "Meta",
@@ -45,6 +48,7 @@
   "hide_password": "Hide password",
   "load_image_failed": "Failed to load image",
   "load_video_failed": "Failed to load video",
+  "loading_media": "Loading media",
   "video_position": "Video position",
   "unsafe_content": "Content is not safe",
   "unblur": "Show me",
@@ -139,7 +143,10 @@
     "done": "Done",
     "saved": "Session saved for ${server_name}",
     "nothing_saved": "No session to save yet",
-    "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again."
+    "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+    "badAddress": "The address cannot be opened",
+    "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+    "fixServer": "Edit the server"
   },
   "suggestion": {
     "not_supported": "${server_name} did not support search suggestion",
@@ -185,7 +192,9 @@
     "open_link": "Open link",
     "start_slideshow": "Start slideshow",
     "stop_slideshow": "Stop slideshow",
-    "slideshow_progress": "Slideshow progress"
+    "slideshow_progress": "Slideshow progress",
+    "swipe_mode_vertical": "Posts change with vertical swipes",
+    "swipe_mode_horizontal": "Posts change with horizontal swipes"
   },
   "updater": {
     "check": "Check for update",
@@ -202,6 +211,7 @@
     "title": "Changelog",
     "view": "View changes",
     "none": "No changelog available",
+    "loadFailed": "The changelog could not be loaded",
     "whats_new": "What's new in ${version}"
   },
   "license": {
@@ -255,6 +265,7 @@
     "title": "Tags Blocker",
     "desc": "Each entry is one expression. Space means AND, ~ means OR, and - excludes a tag. Example: foo bar hides posts with both; ~foo ~bar hides posts with either; -foo hides posts without foo.",
     "empty": "No blocked tags yet",
+    "add": "Block a tag expression",
     "hint": "e.g. foo bar, ~foo ~bar, -foo"
   },
   "servers": {
@@ -334,7 +345,7 @@
     },
     "midnight_theme": {
       "title": "Midnight Theme",
-      "desc": "Use darker color for the dark-mode"
+      "desc": "Pure black backgrounds in dark mode, so an OLED screen switches those pixels off"
     },
     "ui_blur": {
       "title": "Enable blur",
@@ -362,7 +373,7 @@
     },
     "post_limit": {
       "title": "Max content per-load",
-      "desc": "Result might less than expected (caused by blocked tags or invalid data)"
+      "desc": "How many posts one request asks for. Blocked tags and unusable entries are dropped after the fetch, so a page can come back shorter."
     },
     "feed_mode": {
       "title": "Feed mode",
@@ -383,6 +394,7 @@
     "cache": {
       "title": "Cache",
       "stored": "Stored video cache",
+      "counting": "Counting cached videos...",
       "stored_count": "Watched videos kept: ${count}",
       "empty": "No videos cached yet",
       "limit": "Cache size limit",
@@ -397,7 +409,7 @@
   },
   "data_backup": {
     "title": "Backup and Restore",
-    "desc": "Backup and Restore app data",
+    "desc": "Copy your servers, favorites and settings to a file, or bring them back",
     "backup": {
       "title": "Backup data",
       "desc": "Backup app data into a file",
@@ -427,6 +439,7 @@
     "passphraseTile": "Backup passphrase",
     "passphraseTileDesc": "Used for automatic backups and encrypted restores",
     "passphraseNotSet": "Not set",
+    "passphraseSaved": "Saved",
     "passphraseRemove": "Remove passphrase",
     "savePassphrase": "Save for automatic backups",
     "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -434,6 +447,7 @@
   "periodicBackup": {
     "title": "Periodic Backups",
     "enable": "Enable periodic backups",
+    "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
     "frequency": "Backup frequency",
     "frequency_daily": "Every day",
     "frequency_weekly": "Every week",
@@ -462,15 +476,19 @@
     "telegram": {
       "title": "Telegram integration",
       "enable": "Send backups to Telegram",
+      "turnOnFirst": "Turn on periodic backups to configure this",
       "chatId": "Telegram chat ID",
       "chatIdHint": "e.g. -1001234567890",
+      "chatIdValue": "Chat ID ${value}",
       "botToken": "Bot token",
       "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+      "botTokenSaved": "Saved, ends with ${value}",
       "notSet": "Not set",
       "openBot": "Create a Telegram bot",
       "openBotDesc": "Open BotFather to create your backup bot",
       "testConnection": "Test connection",
       "connecting": "Connecting…",
+      "uploading": "Uploading backup…",
       "testSuccess": "Connection successful!",
       "invalidToken": "Invalid bot token",
       "invalidChatId": "Invalid chat ID",
@@ -478,6 +496,7 @@
       "unknownError": "Unknown error",
       "backupNow": "Backup now",
       "backupNowDesc": "Create and send backup to Telegram immediately",
+      "needsChatAndToken": "Set the chat ID and the bot token first",
       "backupSent": "Backup sent to Telegram",
       "backupFailed": "Failed to send backup"
     }
@@ -497,7 +516,6 @@
     "failed": "Batch download failed",
     "favorited": "Added ${n} posts to favorites",
     "selected": "${n} selected",
-    "as_archive": "Save as ZIP",
     "download_files": "Download files"
   },
   "settings_page": {

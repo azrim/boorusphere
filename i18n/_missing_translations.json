@@ -4,9 +4,16 @@
     "After editing this file, you can run 'dart run slang apply --locale=<locale>' to quickly apply the newly added translations."
   ],
   "fil": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "meta": "Meta",
     "artist": "Artist",
@@ -15,6 +22,7 @@
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -57,17 +65,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "action_tag": {
       "search": "Search tag"
@@ -89,13 +131,23 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
     },
     "changelog": {
       "title": "Changelog",
+      "loadFailed": "The changelog could not be loaded",
       "whats_new": "What's new in ${version}"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
@@ -107,10 +159,11 @@
       "filter_by_status": "Filter by status",
       "no_filter": "No filter",
       "clear_all": "Clear all",
-      "clear_all_warning": "Are you sure you want to clear all the download record ?"
+      "clear_all_warning": "Are you sure you want to clear all download records?"
     },
     "tags_blocker": {
-      "title": "Tags Blocker"
+      "title": "Tags Blocker",
+      "add": "Block a tag expression"
     },
     "servers": {
       "title": "Server",
@@ -128,7 +181,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -149,7 +202,21 @@
     "settings": {
       "title": "Settings",
       "interface": "Interface",
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
       "safe_mode": "Safe mode",
+      "privacy": "Privacy",
       "misc": "Miscellaneous",
       "midnight_theme": {
         "title": "Midnight Theme"
@@ -160,11 +227,42 @@
       },
       "ime_incognito": {
         "title": "Incognito Keyboard"
+      },
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
       }
     },
     "data_backup": {
       "title": "Backup and Restore",
-      "desc": "Backup and Restore app data",
+      "desc": "Copy your servers, favorites and settings to a file, or bring them back",
       "backup": {
         "title": "Backup data",
         "desc": "Backup app data into a file",
@@ -174,13 +272,15 @@
       "restore": {
         "title": "Restore data",
         "desc": "Restore app data from backup file",
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now",
         "invalid": "Invalid backup file",
         "warningFile": "Restore \"${file}\"?\nThis overwrites any existing data.\nAre you sure you want to continue?",
         "loading": "Restoring data..."
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -192,6 +292,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -199,6 +300,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -227,15 +329,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -243,6 +349,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -262,7 +369,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -287,6 +393,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -294,6 +445,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -303,14 +457,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "ru": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -349,17 +511,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -378,12 +574,22 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
     },
     "changelog": {
+      "loadFailed": "The changelog could not be loaded",
       "whats_new": "What's new in ${version}"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
@@ -391,7 +597,10 @@
       "filter_by_status": "Filter by status",
       "no_filter": "No filter",
       "clear_all": "Clear all",
-      "clear_all_warning": "Are you sure you want to clear all the download record ?"
+      "clear_all_warning": "Are you sure you want to clear all download records?"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -405,7 +614,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -424,17 +633,64 @@
       }
     },
     "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
       "blur_timeline_only": {
         "title": "Only blur content on timeline",
         "desc": "Explicit-rated content will not be blurred on view-mode"
+      },
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
       }
     },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -446,6 +702,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -453,6 +710,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -481,15 +739,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -497,6 +759,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -516,7 +779,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -541,6 +803,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -548,6 +855,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -557,14 +867,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "uk": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -595,17 +913,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -624,13 +976,28 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -644,7 +1011,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -655,12 +1022,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -672,6 +1088,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -679,6 +1096,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -707,15 +1125,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -723,6 +1145,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -742,7 +1165,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -767,6 +1189,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -774,6 +1241,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -783,14 +1253,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "uwu": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -821,17 +1299,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -850,13 +1362,28 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -870,7 +1397,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -881,12 +1408,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -898,6 +1474,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -905,6 +1482,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -933,15 +1511,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -949,6 +1531,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -968,7 +1551,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -993,6 +1575,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -1000,6 +1627,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -1009,14 +1639,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "de-DE": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1047,17 +1685,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -1076,13 +1748,28 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -1096,7 +1783,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -1107,12 +1794,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1124,6 +1860,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -1131,6 +1868,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -1159,15 +1897,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1175,6 +1917,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -1194,7 +1937,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -1219,6 +1961,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -1226,6 +2013,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -1238,8 +2028,12 @@
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
     "sidebar": {
@@ -1269,16 +2063,24 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
     },
     "page_status": {
       "change_server": "Change server"
     },
+    "web_challenge": {
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
+    },
     "suggestion": {
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_counter": "${index} of ${total}",
     "viewer": {
@@ -1288,11 +2090,19 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -1305,7 +2115,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -1317,9 +2127,14 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "cache": {
+        "counting": "Counting cached videos..."
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
@@ -1334,6 +2149,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -1341,6 +2157,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -1369,15 +2186,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1385,6 +2206,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -1404,7 +2226,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -1436,6 +2257,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "downloads_hint": "Open any post and tap download to save it to your device.",
@@ -1443,14 +2267,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "ja-JP": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1481,17 +2313,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -1510,13 +2376,28 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -1530,7 +2411,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -1541,12 +2422,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1558,6 +2488,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -1565,6 +2496,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -1593,15 +2525,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1609,6 +2545,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -1628,7 +2565,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -1653,6 +2589,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -1660,6 +2641,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -1669,14 +2653,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "th-TH": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1707,17 +2699,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -1736,13 +2762,28 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -1756,7 +2797,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -1767,12 +2808,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -1784,6 +2874,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -1791,6 +2882,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -1819,15 +2911,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -1835,6 +2931,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -1854,7 +2951,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -1879,6 +2975,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -1886,6 +3027,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -1895,14 +3039,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "tr-TR": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -1934,17 +3086,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -1963,18 +3149,31 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
     },
     "changelog": {
+      "loadFailed": "The changelog could not be loaded",
       "whats_new": "What's new in ${version}"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started",
       "clear_all": "Clear all",
-      "clear_all_warning": "Are you sure you want to clear all the download record ?"
+      "clear_all_warning": "Are you sure you want to clear all download records?"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -1988,7 +3187,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -2005,12 +3204,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -2022,6 +3270,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -2029,6 +3278,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -2057,15 +3307,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -2073,6 +3327,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -2092,7 +3347,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -2117,6 +3371,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -2124,6 +3423,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -2133,14 +3435,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "zh-Hans": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -2171,17 +3481,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -2200,13 +3544,28 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -2220,7 +3579,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -2231,12 +3590,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -2248,6 +3656,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -2255,6 +3664,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -2283,15 +3693,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -2299,6 +3713,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -2318,7 +3733,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -2343,6 +3757,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -2350,6 +3809,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
@@ -2359,14 +3821,22 @@
     "page_status_empty_hint_rating": "Your rating filter might be hiding results. Try disabling it."
   },
   "zh-TW": {
+    "feed": {
+      "end_of_results": "No more posts",
+      "limit_reached": "Loaded as much as one session keeps. Pull down to start over."
+    },
     "findRelated": "Find related",
     "dimensions": "Dimensions",
     "format": "Format",
+    "unit_kb": "${value} KB",
+    "unit_mb": "${value} MB",
+    "unit_gb": "${value} GB",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
     "hide_password": "Hide password",
     "load_video_failed": "Failed to load video",
+    "loading_media": "Loading media",
     "video_position": "Video position",
     "exit": "Exit",
     "exit_confirmation": "Are you sure you want to exit Boorusphere?",
@@ -2397,17 +3867,51 @@
       "double_tap": "Double-tap to zoom",
       "swipe_up": "Swipe up for details",
       "swipe_down": "Swipe down to close the viewer",
+      "tag_info": "Long-press a tag for its details",
       "rating": "Rating letters: S safe, Q questionable, E explicit, SN sensitive"
+    },
+    "tag_info": {
+      "loading": "Loading tag info...",
+      "category": "Category",
+      "posts": "Posts",
+      "wiki": "Wiki",
+      "aliases": "Aliases",
+      "related": "Related tags",
+      "unsupported": "This server does not provide tag details.",
+      "unknown": "No details for this tag on ${server_name}.",
+      "unavailable": "Tag details could not be loaded from ${server_name}."
     },
     "page_status": {
       "unparsable": "Cannot read the response from ${server_name}",
-      "change_server": "Change server"
+      "unauthorized": "${server_name} needs a sign-in. Add an account or API key in the server settings.",
+      "forbidden": "${server_name} refused this request. Check the account permissions or the search tags.",
+      "rate_limited": "${server_name} is limiting requests. Wait a moment and try again.",
+      "change_server": "Change server",
+      "cloudflare_challenge": "${server_name} is asking for a browser check, which this app cannot run. Verify once in the built-in browser.",
+      "verify": "Verify"
+    },
+    "web_challenge": {
+      "title": "Browser check",
+      "hint": "Finish the check on this page. The result is saved and this page closes by itself.",
+      "done": "Done",
+      "saved": "Session saved for ${server_name}",
+      "nothing_saved": "No session to save yet",
+      "verify_failed": "The check did not pass yet. Finish it on the page, then press Done again.",
+      "badAddress": "The address cannot be opened",
+      "badAddressDesc": "The homepage of ${name} is not a readable web address, so there is no page to run the check on.",
+      "fixServer": "Edit the server"
     },
     "suggestion": {
+      "selected": "${count} selected",
+      "add_selected": "Add selected",
+      "clear_selection": "Clear selection",
+      "usage_count": "searched ${count}×",
       "history_empty": "No search history yet",
       "history_no_match": "No matching history found",
       "history_hint": "Your recent searches will appear here",
-      "history_hint_query": "Try a different search term"
+      "history_hint_query": "Try a different search term",
+      "clear_history": "Clear search history",
+      "clear_history_warning": "Every saved search will be removed. This cannot be undone."
     },
     "post_action": {
       "select": "Select",
@@ -2426,13 +3930,28 @@
       "exit_fullscreen": "Exit fullscreen",
       "play": "Play",
       "pause": "Pause",
-      "open_link": "Open link"
+      "open_link": "Open link",
+      "start_slideshow": "Start slideshow",
+      "stop_slideshow": "Stop slideshow",
+      "slideshow_progress": "Slideshow progress",
+      "swipe_mode_vertical": "Posts change with vertical swipes",
+      "swipe_mode_horizontal": "Posts change with horizontal swipes"
+    },
+    "changelog": {
+      "loadFailed": "The changelog could not be loaded"
     },
     "downloads": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "retry_all_failed": "Retry all failed",
+      "retrying": "Retrying failed downloads (${count})",
       "delete_file": "Delete file",
       "delete_file_warning": "The file will be removed from storage. You can download it again later.",
       "no_match": "No downloads match this filter",
       "failed_to_start": "Download could not be started"
+    },
+    "tags_blocker": {
+      "add": "Block a tag expression"
     },
     "servers": {
       "remove_warning": "Remove ${name}? Its parser settings and credentials will be deleted.",
@@ -2446,7 +3965,7 @@
       "scanHint": "Fill in the profile name and homepage below, then scan to detect the engine automatically.",
       "scanning": "Scanning...",
       "scanFailed": "No supported engine was detected. Switch to Manual mode to pick one yourself.",
-      "scanResult": "Detected — search: ${search}, suggestion: ${suggestion}",
+      "scanResult": "Detected. Search: ${search}, suggestion: ${suggestion}",
       "profile_name": "Profile name",
       "profile_name_hint": "e.g. Safebooru",
       "name_error": "Please enter a name",
@@ -2457,12 +3976,61 @@
         "apiKey": "API Key"
       }
     },
+    "settings": {
+      "viewer": {
+        "title": "Viewer",
+        "slideshow_direction": "Slideshow direction",
+        "slideshow_forward": "Forward",
+        "slideshow_backward": "Backward",
+        "slideshow_random": "Random",
+        "slideshow_interval": "Slideshow interval",
+        "slideshow_interval_desc": "${seconds} seconds per post",
+        "double_tap_seek": "Double-tap seek",
+        "double_tap_seek_desc": "Jump ${seconds} seconds per double-tap on a video",
+        "volume_keys": "Volume key navigation",
+        "volume_keys_desc": "Volume up opens the next post, volume down the previous one"
+      },
+      "privacy": "Privacy",
+      "feed_mode": {
+        "title": "Feed mode",
+        "desc": "How the timeline moves through the results",
+        "paged": "Paged",
+        "paged_desc": "Step through numbered pages with the arrows",
+        "infinite": "Infinite scroll",
+        "infinite_desc": "Keep scrolling and more posts load below"
+      },
+      "hide_favorited": {
+        "title": "Hide favorited posts",
+        "desc": "Favorited posts are left out of the feed; they stay in Favorites"
+      },
+      "hide_downloaded": {
+        "title": "Hide downloaded posts",
+        "desc": "Posts whose download finished are left out of the feed; the files stay on the device"
+      },
+      "cache": {
+        "title": "Cache",
+        "stored": "Stored video cache",
+        "counting": "Counting cached videos...",
+        "stored_count": "Watched videos kept: ${count}",
+        "empty": "No videos cached yet",
+        "limit": "Cache size limit",
+        "limit_desc": "Up to ${size}; the least recently watched are dropped first",
+        "limit_done": "Cache limit set to ${size}",
+        "clear": "Clear cache",
+        "clear_desc": "Remove cached images and videos from this device",
+        "clear_title": "Clear cache?",
+        "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
+        "done": "Cache cleared"
+      }
+    },
     "data_backup": {
       "restore": {
-        "completed": "Restore complete — ${file}",
+        "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
         "restartNow": "Restart now"
       },
+      "downloadRecords": "Download records",
+      "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
       "encrypt": "Encrypt with passphrase",
       "encryptDesc": "Protect the backup with a passphrase only you know",
       "passphrase": "Passphrase",
@@ -2474,6 +4042,7 @@
       "passphraseTile": "Backup passphrase",
       "passphraseTileDesc": "Used for automatic backups and encrypted restores",
       "passphraseNotSet": "Not set",
+      "passphraseSaved": "Saved",
       "passphraseRemove": "Remove passphrase",
       "savePassphrase": "Save for automatic backups",
       "wrongPassphrase": "Wrong passphrase, or the file is damaged"
@@ -2481,6 +4050,7 @@
     "periodicBackup": {
       "title": "Periodic Backups",
       "enable": "Enable periodic backups",
+      "turnOnForSchedule": "Turn on to choose how often it runs and where it goes",
       "frequency": "Backup frequency",
       "frequency_daily": "Every day",
       "frequency_weekly": "Every week",
@@ -2509,15 +4079,19 @@
       "telegram": {
         "title": "Telegram integration",
         "enable": "Send backups to Telegram",
+        "turnOnFirst": "Turn on periodic backups to configure this",
         "chatId": "Telegram chat ID",
         "chatIdHint": "e.g. -1001234567890",
+        "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
+        "botTokenSaved": "Saved, ends with ${value}",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
         "testConnection": "Test connection",
         "connecting": "Connecting…",
+        "uploading": "Uploading backup…",
         "testSuccess": "Connection successful!",
         "invalidToken": "Invalid bot token",
         "invalidChatId": "Invalid chat ID",
@@ -2525,6 +4099,7 @@
         "unknownError": "Unknown error",
         "backupNow": "Backup now",
         "backupNowDesc": "Create and send backup to Telegram immediately",
+        "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
         "backupFailed": "Failed to send backup"
       }
@@ -2544,7 +4119,6 @@
       "failed": "Batch download failed",
       "favorited": "Added ${n} posts to favorites",
       "selected": "${n} selected",
-      "as_archive": "Save as ZIP",
       "download_files": "Download files"
     },
     "settings_page": {
@@ -2569,6 +4143,51 @@
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
     },
+    "app_lock": {
+      "title": "App lock",
+      "desc": "Ask for a PIN or biometrics when the app opens",
+      "summary_on": "On",
+      "summary_off": "Off",
+      "setup_title": "Set a PIN",
+      "setup_desc": "This PIN opens the app when biometrics cannot. It cannot be recovered if forgotten.",
+      "new_pin": "New PIN",
+      "confirm_pin": "Confirm PIN",
+      "pin": "PIN",
+      "pin_hint": "At least 4 digits",
+      "pin_too_short": "Use at least 4 digits",
+      "pin_mismatch": "The PINs do not match",
+      "wrong_pin": "Wrong PIN",
+      "saved": "App lock is on",
+      "changed": "PIN changed",
+      "removed": "App lock is off",
+      "unavailable": "Secure storage is unavailable, the PIN could not be saved",
+      "change_pin": "Change PIN",
+      "verify_title": "Enter your PIN",
+      "verify_desc": "Confirm the current PIN to continue.",
+      "confirm_action": "Continue",
+      "timeout_title": "Lock after",
+      "timeout_desc": "How long the app may stay in the background before it asks again",
+      "timeout_immediate": "Immediately",
+      "timeout_30_seconds": "After 30 seconds",
+      "timeout_1_minute": "After 1 minute",
+      "timeout_5_minutes": "After 5 minutes",
+      "timeout_never": "Only on cold start",
+      "locked_title": "Boorusphere is locked",
+      "locked_desc": "Enter your PIN or use biometrics to continue",
+      "unlock": "Unlock",
+      "unlocking": "Checking...",
+      "retry_in": "Try again in ${seconds}s",
+      "biometric": "Use biometrics",
+      "biometric_prompt": "Unlock Boorusphere",
+      "biometric_locked_out": "Biometrics are locked. Use your PIN.",
+      "biometric_unavailable": "Biometrics are not available on this device",
+      "biometric_failed": "Biometrics did not match. Try again.",
+      "screenshot_title": "Block screenshots",
+      "screenshot_desc": "Hide the app in recent apps and block screenshots",
+      "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
+      "forgot_title": "Forgot your PIN?",
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    },
     "error": {
       "unknown": "Something went wrong and we don't know why",
       "connection_failed": "Connection failed",
@@ -2576,6 +4195,9 @@
       "connection_timeout": "Connection timeout",
       "insecure_connection": "Cannot establish a secure connection",
       "insecure_connection_host": "Cannot establish a secure connection to ${host}",
+      "server_list_unavailable": "The server list could not be opened",
+      "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
+      "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
       "stacktrace": "Stacktrace"
     },
     "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",
