@@ -13,6 +13,8 @@ import 'package:boorusphere/presentation/screens/post/post_details_sheet.dart';
 import 'package:boorusphere/presentation/screens/post/post_media.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/post_viewer_controller.dart';
+import 'package:boorusphere/presentation/theme/app_media_chrome.dart';
+import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
@@ -405,7 +407,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
         zoomResetTick.value++;
       },
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppMediaChrome.of(context).stage,
         body: StyledOverlayRegion(
           nightMode: true,
           child: Stack(
@@ -548,7 +550,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
                               builder: (context, _) => LinearProgressIndicator(
                                 value: slideshowAnimator.value,
                                 minHeight: 2,
-                                backgroundColor: Colors.white24,
+                                backgroundColor: AppMediaChrome.of(
+                                  context,
+                                ).track,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
@@ -725,17 +729,18 @@ class _PostAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chrome = AppMediaChrome.of(context);
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomLeft,
-          colors: [Colors.black54, Colors.transparent],
+          colors: [chrome.scrim, Colors.transparent],
         ),
       ),
       child: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: chrome.foreground,
         // The title carries two lines, so the toolbar grows with the system
         // font scale instead of clipping them at the default height.
         toolbarHeight: MediaQuery.textScalerOf(context).scale(kToolbarHeight),
@@ -757,21 +762,32 @@ class _PostAppBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 4),
+              padding: const EdgeInsets.only(
+                top: DesignTokens.spacingMd,
+                bottom: DesignTokens.spacingXs,
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(fontWeight: FontWeight.w300),
+                      // The lightest weight the bundle ships: Geist has no thin,
+                      // and the query line has to stay quiet under the artwork's
+                      // own edges.
+                      style: const TextStyle(fontWeight: AppTypography.regular),
                     ),
                   ),
+                  // The mode is a fact about how the screen behaves, so it is
+                  // named for a reader rather than left as a glyph.
                   Icon(
                     swipeMode == SwipeMode.vertical
                         ? Icons.swap_vert
                         : Icons.swap_horiz,
-                    size: 16,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    semanticLabel: swipeMode == SwipeMode.vertical
+                        ? context.t.viewer.swipeModeVertical
+                        : context.t.viewer.swipeModeHorizontal,
+                    size: DesignTokens.iconInline,
+                    color: chrome.foregroundMuted,
                   ),
                 ],
               ),
@@ -781,7 +797,7 @@ class _PostAppBar extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: context.theme.textTheme.labelSmall?.copyWith(
-                color: Colors.white,
+                color: chrome.foreground,
               ),
             ),
           ],

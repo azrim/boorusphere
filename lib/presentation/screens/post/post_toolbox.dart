@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_media_chrome.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
@@ -47,7 +48,7 @@ class PostRelatedButton extends StatelessWidget {
 
     return IconButton(
       padding: const EdgeInsets.all(DesignTokens.spacingMd),
-      color: Colors.white,
+      color: AppMediaChrome.of(context).foreground,
       icon: const Icon(Icons.find_in_page_outlined),
       tooltip: context.t.findRelated,
       onPressed: () {
@@ -57,6 +58,12 @@ class PostRelatedButton extends StatelessWidget {
     );
   }
 }
+
+/// The height of the scrim band the controls sit in: one control row (56 dp, a
+/// 24 dp glyph plus the 16 dp padding each button asks for) with room above it
+/// for the gradient to fade through. The bar grows past this floor when the
+/// row has to wrap, which is what a fixed height used to clip instead.
+const double _kToolboxBandHeight = 86.0;
 
 class PostToolbox extends HookConsumerWidget {
   const PostToolbox(this.post, {super.key, this.onShowDetails, this.session});
@@ -88,14 +95,16 @@ class PostToolbox extends HookConsumerWidget {
     }, [viewPadding.bottom]);
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [Colors.black54, Colors.transparent],
+          colors: [AppMediaChrome.of(context).scrim, Colors.transparent],
         ),
       ),
-      height: safePaddingBottom.value + 86,
+      constraints: BoxConstraints(
+        minHeight: safePaddingBottom.value + _kToolboxBandHeight,
+      ),
       alignment: Alignment.bottomRight,
       // Left/right insets matter in landscape, where a cutout can sit under
       // the trailing button.
@@ -104,8 +113,10 @@ class PostToolbox extends HookConsumerWidget {
         right: viewPadding.right + DesignTokens.spacingSm,
         bottom: safePaddingBottom.value + DesignTokens.spacingSm,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      // A wrap, not a row: five controls do not always fit one run in
+      // landscape, and a second run costs nothing in portrait.
+      child: Wrap(
+        alignment: WrapAlignment.end,
         children: [
           if (onShowDetails != null)
             PostDetailsButton(onPressed: onShowDetails!),
@@ -134,7 +145,7 @@ class PostDetailsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       padding: const EdgeInsets.all(DesignTokens.spacingMd),
-      color: Colors.white,
+      color: AppMediaChrome.of(context).foreground,
       icon: const Icon(Icons.info_outline),
       tooltip: context.t.details,
       onPressed: onPressed,
@@ -149,19 +160,22 @@ class PostOpenLinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // An unsafe address used to leave a live-looking button that swallowed the
+    // tap. The guard now decides the control's state, so a link the app will
+    // not open reads as closed before it is pressed.
+    final openable = isSafeUrl(post.originalFile);
+
     return IconButton(
       padding: const EdgeInsets.all(DesignTokens.spacingMd),
-      color: Colors.white,
+      color: AppMediaChrome.of(context).foreground,
       tooltip: context.t.viewer.openLink,
       icon: const Icon(Icons.link_outlined),
-      onPressed: () {
-        if (isSafeUrl(post.originalFile)) {
-          launchUrlString(
-            post.originalFile,
-            mode: LaunchMode.externalApplication,
-          );
-        }
-      },
+      onPressed: openable
+          ? () => launchUrlString(
+              post.originalFile,
+              mode: LaunchMode.externalApplication,
+            )
+          : null,
     );
   }
 }
@@ -176,12 +190,13 @@ class PostFavoriteButton extends HookConsumerWidget {
     // Watching the list keeps the button in step with saves and removals made
     // elsewhere; the predicate below then reads that list.
     ref.watch(favoritePostStateProvider);
+    final chrome = AppMediaChrome.of(context);
     final animator = useAnimationController(
       duration: context.motionDuration(const Duration(milliseconds: 300)),
     );
     final animation = useAnimation(
       ColorTween(
-        begin: Colors.white,
+        begin: chrome.foreground,
         end: Theme.of(context).colorScheme.error,
       ).animate(animator),
     );
@@ -201,7 +216,7 @@ class PostFavoriteButton extends HookConsumerWidget {
       toggled: isFav,
       child: IconButton(
         padding: const EdgeInsets.all(DesignTokens.spacingMd),
-        color: Colors.white,
+        color: chrome.foreground,
         tooltip: isFav
             ? context.t.postAction.unfavorite
             : context.t.postAction.favorite,
@@ -267,7 +282,7 @@ class PostDownloadButton extends HookConsumerWidget {
         ),
         IconButton(
           padding: const EdgeInsets.all(DesignTokens.spacingMd),
-          color: Colors.white,
+          color: AppMediaChrome.of(context).foreground,
           tooltip: inFlight ? context.t.cancel : label,
           icon: Icon(isDownloaded ? Icons.download_done : Icons.download),
           onPressed: pending.value || isDownloaded
@@ -293,8 +308,10 @@ class PostDownloadButton extends HookConsumerWidget {
                   }
                 },
           // A control that ignores the tap must not wear the accent that
-          // means "this is the live action".
-          disabledColor: context.colorScheme.onSurface.withValues(alpha: 0.38),
+          // means "this is the live action". The disabled tone comes from the
+          // media role set, not the scheme's own `onSurface`, because a light
+          // palette would hand a dark grey to a glyph sitting on black scrim.
+          disabledColor: AppMediaChrome.of(context).foregroundDisabled,
         ),
       ],
     );

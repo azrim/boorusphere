@@ -1,4 +1,5 @@
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/theme/app_media_chrome.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/color_palettes.dart';
@@ -128,7 +129,11 @@ ThemeData _createThemeData(
   return origin.copyWith(
     colorScheme: colorScheme,
     textTheme: textTheme,
-    extensions: [roles, const AppSurfacePolicy(flat: false)],
+    extensions: [
+      roles,
+      const AppSurfacePolicy(flat: false),
+      AppMediaChrome.from(colorScheme),
+    ],
     shadowColor: shadowColor,
     appBarTheme: AppBarTheme(
       backgroundColor: colorScheme.surface,
@@ -230,13 +235,23 @@ ThemeData _createThemeDataMidnight(
     preset: preset,
   );
   final shadowColor = DesignTokens.shadowColor(origin.colorScheme);
+  // The midnight rule is pure black surfaces. The container roles keep
+  // their tonal lift so depth still reads, but anything painting plain
+  // surface has to land on black instead of the night tint.
+  final colorScheme = origin.colorScheme.copyWith(
+    brightness: Brightness.dark,
+    surface: Colors.black,
+  );
   return origin.copyWith(
-    // Midnight is the one theme that stays flat: the page is black on
-    // purpose, so a block keeps the page tone and a hairline separates it, and
-    // overlays drop their shadow because a shadow on black draws nothing.
+    // Midnight stays flat: the page is black on purpose, so a block keeps the
+    // page tone and a hairline separates it, and overlays drop their shadow
+    // because a shadow on black draws nothing.
     extensions: [
       ...origin.extensions.values,
       const AppSurfacePolicy(flat: true),
+      // The backdrop here is the black of the page itself, so the scrim the
+      // viewer paints is the black of the stage rather than the night tint.
+      AppMediaChrome.from(colorScheme),
     ],
     popupMenuTheme: origin.popupMenuTheme.copyWith(
       color: Colors.black,
@@ -273,12 +288,6 @@ ThemeData _createThemeDataMidnight(
     canvasColor: Colors.black,
     scaffoldBackgroundColor: Colors.black,
     drawerTheme: origin.drawerTheme.copyWith(backgroundColor: Colors.black),
-    colorScheme: origin.colorScheme.copyWith(
-      brightness: Brightness.dark,
-      // The midnight rule is pure black surfaces. The container roles keep
-      // their tonal lift so depth still reads, but anything painting plain
-      // surface has to land on black instead of the night tint.
-      surface: Colors.black,
-    ),
+    colorScheme: colorScheme,
   );
 }

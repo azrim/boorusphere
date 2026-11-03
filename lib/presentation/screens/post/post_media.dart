@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/screens/post/hooks/video_post.dart';
 import 'package:boorusphere/presentation/screens/post/post_placeholder_image.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
 import 'package:boorusphere/presentation/screens/post/quickbar.dart';
+import 'package:boorusphere/presentation/theme/app_media_chrome.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -673,12 +674,15 @@ class _PostImageLoadingPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = this.progress;
+    // The pill used to read as a bare "47%", a number with no subject, and it
+    // asked for weight 400 inline, which is what the role already carries. The
+    // label now names what is loading; the visible text keeps its own role.
     return QuickBar.progress(
       title: progress == null
           ? null
-          : Text(
-              '${(progress * 100).round()}%',
-              style: const TextStyle(fontWeight: FontWeight.w400),
+          : Semantics(
+              label: '${context.t.loadingMedia} ${(progress * 100).round()}%',
+              child: Text('${(progress * 100).round()}%'),
             ),
       progress: progress,
     );
@@ -1013,7 +1017,7 @@ class _PostVideoContent extends HookConsumerWidget {
             onDoubleTap: handleDoubleTap,
             child: Container(
               color: showPauseOverlay.value
-                  ? Colors.black38
+                  ? AppMediaChrome.of(context).scrimSoft
                   : Colors.transparent,
               child: Visibility(
                 visible: showOverlay.value,
@@ -1136,13 +1140,14 @@ class _ToolboxOverlay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final viewPadding = context.mqViewPadding;
+    final chrome = AppMediaChrome.of(context);
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [Colors.black54, Colors.transparent],
+          colors: [chrome.scrim, Colors.transparent],
         ),
       ),
       padding: EdgeInsets.only(
@@ -1168,8 +1173,8 @@ class _ToolboxOverlay extends ConsumerWidget {
                 post: post,
               ),
               IconButton(
-                padding: const EdgeInsets.all(16),
-                color: Colors.white,
+                padding: const EdgeInsets.all(DesignTokens.spacingMd),
+                color: chrome.foreground,
                 tooltip: isMuted
                     ? context.t.viewer.unmute
                     : context.t.viewer.mute,
@@ -1182,7 +1187,7 @@ class _ToolboxOverlay extends ConsumerWidget {
                 icon: Icon(isMuted ? Icons.volume_mute : Icons.volume_up),
               ),
               IconButton(
-                color: Colors.white,
+                color: chrome.foreground,
                 tooltip: isFullscreen
                     ? context.t.viewer.exitFullscreen
                     : context.t.viewer.fullscreen,
@@ -1191,7 +1196,7 @@ class _ToolboxOverlay extends ConsumerWidget {
                       ? Icons.fullscreen_exit
                       : Icons.fullscreen_outlined,
                 ),
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(DesignTokens.spacingMd),
                 onPressed: () {
                   ref
                       .read(fullscreenStateProvider.notifier)
@@ -1266,10 +1271,11 @@ class _VideoGestureFeedback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = hint.label;
+    final chrome = AppMediaChrome.of(context);
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black54,
+        color: chrome.scrim,
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
       ),
       child: Padding(
@@ -1280,14 +1286,18 @@ class _VideoGestureFeedback extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(hint.icon, color: Colors.white, size: DesignTokens.iconAction),
+            Icon(
+              hint.icon,
+              color: chrome.foreground,
+              size: DesignTokens.iconAction,
+            ),
             if (label != null) ...[
               const SizedBox(width: DesignTokens.spacingSm),
               Text(
                 label,
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.white),
+                ).textTheme.titleMedium?.copyWith(color: chrome.foreground),
               ),
             ],
           ],
@@ -1305,14 +1315,15 @@ class _PlayPauseOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chrome = AppMediaChrome.of(context);
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: Colors.black38,
+      decoration: BoxDecoration(
+        color: chrome.scrimSoft,
         shape: BoxShape.circle,
       ),
       child: IconButton(
         padding: const EdgeInsets.all(8.0),
-        color: Colors.white,
+        color: chrome.foreground,
         iconSize: 72,
         tooltip: isPlaying ? context.t.viewer.pause : context.t.viewer.play,
         icon: Icon(isPlaying ? Icons.pause_outlined : Icons.play_arrow),
@@ -1334,15 +1345,14 @@ class _Progress extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = source.controller;
     final colorScheme = Theme.of(context).colorScheme;
+    final chrome = AppMediaChrome.of(context);
 
     if (controller == null || !controller.value.isInitialized) {
       return Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 16),
         child: LinearProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-          backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
-          ),
+          backgroundColor: chrome.track,
         ),
       );
     }
@@ -1385,9 +1395,7 @@ class _Progress extends StatelessWidget {
         controller,
         colors: VideoProgressColors(
           playedColor: colorScheme.primary,
-          backgroundColor: colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
-          ),
+          backgroundColor: chrome.track,
         ),
         allowScrubbing: true,
         padding: const EdgeInsets.only(top: 16, bottom: 16),
@@ -1425,20 +1433,28 @@ class _PostUnknown extends ConsumerWidget {
               context.mediaQuery.viewInsets.bottom +
               kBottomNavigationBarHeight +
               32,
-          child: QuickBar.action(
-            title: Text(
-              context.t.unsupportedMedia(fileExt: post.content.url.fileExt),
-            ),
-            actionTitle: Text(context.t.openExternally),
-            onPressed: () {
-              if (isSafeUrl(post.originalFile)) {
-                launchUrlString(
-                  post.originalFile,
-                  mode: LaunchMode.externalApplication,
-                );
-              }
-            },
-          ),
+          // The guard decides whether the action exists at all: an address the
+          // app will not open used to leave a button that swallowed the tap.
+          child: isSafeUrl(post.originalFile)
+              ? QuickBar.action(
+                  title: Text(
+                    context.t.unsupportedMedia(
+                      fileExt: post.content.url.fileExt,
+                    ),
+                  ),
+                  actionTitle: Text(context.t.openExternally),
+                  onPressed: () => launchUrlString(
+                    post.originalFile,
+                    mode: LaunchMode.externalApplication,
+                  ),
+                )
+              : QuickBar(
+                  title: Text(
+                    context.t.unsupportedMedia(
+                      fileExt: post.content.url.fileExt,
+                    ),
+                  ),
+                ),
         ),
       ],
     );

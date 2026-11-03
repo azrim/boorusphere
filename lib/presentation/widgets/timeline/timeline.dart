@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/provider/settings/content_setting_state
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
+import 'package:boorusphere/presentation/theme/app_media_chrome.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/theme/tag_category_accents.dart';
 import 'package:boorusphere/presentation/utils/entity/content.dart';
@@ -36,13 +37,9 @@ import 'package:url_launcher/url_launcher_string.dart';
 /// Selection border width for multi-select mode on timeline thumbnails.
 const double _kSelectionBorderWidth = 3.0;
 
-/// Neutral scrim used by the on-image overlays. Image content is arbitrary, so
-/// these can't come from the [ColorScheme]; the fixed black gradient is one of
-/// two documented exceptions to the adaptive-palette rule.
-const Color _kScrimStrong = Color(0x80000000); // 50% black
-const Color _kScrimMid = Color(0x2E000000);
-const Color _kScrimClear = Color(0x00000000);
-const Color _kLabelBackground = Color(0xB3000000); // ~70% black
+/// The on-image overlays paint over arbitrary artwork, so their scrim, plate
+/// and label shadows come from [AppMediaChrome]: the theme's media role set,
+/// built from the palette's neutral pair rather than from a per-widget literal.
 
 /// Tag category accents for the on-image chip follow the booru convention
 /// (artist orange, copyright purple, character green, general blue). The chip
@@ -564,6 +561,7 @@ class _OverlayScrim extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final chrome = AppMediaChrome.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -571,7 +569,7 @@ class _OverlayScrim extends StatelessWidget {
           end: top ? Alignment.bottomCenter : Alignment.topCenter,
           // A mid stop clears the band faster than a straight ramp, so the
           // label keeps its footing without a grey bar across the artwork.
-          colors: const [_kScrimStrong, _kScrimMid, _kScrimClear],
+          colors: [chrome.scrim, chrome.scrimMid, Colors.transparent],
           stops: const [0, 0.45, 1],
         ),
       ),
@@ -591,12 +589,13 @@ class _ScoreRatingOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final badge = ratingBadgeOf(post.rating, context.colorScheme);
     if (badge == null && post.score == 0) return const SizedBox.shrink();
+    final foreground = AppMediaChrome.of(context).foreground;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (post.score != 0) ...[
-          Icon(Icons.star_rounded, size: 13 * scale, color: Colors.white),
+          Icon(Icons.star_rounded, size: 13 * scale, color: foreground),
           const SizedBox(width: 2),
           Flexible(
             child: Text(
@@ -607,7 +606,7 @@ class _ScoreRatingOverlay extends StatelessWidget {
               style: _overlayLabelStyle(
                 context,
                 scale,
-              ).copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+              ).copyWith(color: foreground, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -639,18 +638,21 @@ class _MediaTypeLabel extends StatelessWidget {
     if (ext.isEmpty) return const SizedBox.shrink();
 
     final isVideo = post.originalFile.asContent().isVideo;
+    final chrome = AppMediaChrome.of(context);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 6 * scale, vertical: 3 * scale),
-      decoration: const BoxDecoration(
-        color: _kLabelBackground,
-        borderRadius: BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
+      decoration: BoxDecoration(
+        color: chrome.plate,
+        borderRadius: const BorderRadius.all(
+          Radius.circular(DesignTokens.radiusSm),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (isVideo) ...[
-            Icon(Icons.play_arrow, size: 12 * scale, color: Colors.white),
+            Icon(Icons.play_arrow, size: 12 * scale, color: chrome.foreground),
             const SizedBox(width: 2),
           ],
           Text(
@@ -658,7 +660,7 @@ class _MediaTypeLabel extends StatelessWidget {
             maxLines: 1,
             textScaler: TextScaler.noScaling,
             style: _overlayLabelStyle(context, scale).copyWith(
-              color: Colors.white,
+              color: chrome.foreground,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
             ),
@@ -682,6 +684,7 @@ class _TagChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final tag = _topTagOf(post);
     if (tag == null) return const SizedBox.shrink();
+    final chrome = AppMediaChrome.of(context);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -701,9 +704,9 @@ class _TagChip extends StatelessWidget {
         style: _overlayLabelStyle(context, scale).copyWith(
           color: tag.color,
           fontWeight: FontWeight.w700,
-          // Coloured text is weaker than the white labels, so it carries a
-          // slightly stronger shadow to stay readable over bright images.
-          shadows: const [Shadow(blurRadius: 3, color: Color(0xCC000000))],
+          // Coloured text is weaker than the plain light labels, so it carries
+          // a slightly stronger shadow to stay readable over bright images.
+          shadows: [Shadow(blurRadius: 3, color: chrome.labelShadowStrong)],
         ),
       ),
     );
@@ -721,6 +724,7 @@ class _DimensionsLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (post.width <= 0 || post.height <= 0) return const SizedBox.shrink();
+    final chrome = AppMediaChrome.of(context);
 
     return Text(
       '${post.width}×${post.height}',
@@ -729,9 +733,9 @@ class _DimensionsLabel extends StatelessWidget {
       textAlign: TextAlign.end,
       textScaler: TextScaler.noScaling,
       style: _overlayLabelStyle(context, scale).copyWith(
-        color: Colors.white,
+        color: chrome.foreground,
         fontWeight: FontWeight.w600,
-        shadows: const [Shadow(blurRadius: 2, color: Color(0x80000000))],
+        shadows: [Shadow(blurRadius: 2, color: chrome.labelShadow)],
       ),
     );
   }
@@ -753,13 +757,20 @@ class _RatingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // This is the smallest text on the tile, and a scheme accent at full
+    // strength has no guaranteed contrast over arbitrary art. The letter takes
+    // the neutral plate every other overlay uses; the rating colour moves to
+    // the plate's edge and a faint tint, so S/Q/E/SN stay colour-coded without
+    // asking an 8 px glyph to carry the contrast on its own.
+    final chrome = AppMediaChrome.of(context);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: DesignTokens.spacingXs * scale,
         vertical: scale,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: Color.lerp(chrome.plate, color, 0.2),
+        border: Border.all(color: color, width: scale),
         borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
       ),
       child: Text(
@@ -767,10 +778,11 @@ class _RatingBadge extends StatelessWidget {
         semanticsLabel: semanticLabel,
         maxLines: 1,
         textScaler: TextScaler.noScaling,
-        style: _overlayLabelStyle(
-          context,
-          scale,
-        ).copyWith(color: color, fontWeight: FontWeight.w700),
+        style: _overlayLabelStyle(context, scale).copyWith(
+          color: chrome.foreground,
+          fontWeight: FontWeight.w700,
+          shadows: [Shadow(blurRadius: 2, color: chrome.labelShadow)],
+        ),
       ),
     );
   }
@@ -880,7 +892,11 @@ class TimelineSkeleton extends ConsumerWidget {
             baseColor: base,
             highlightColor: highlight,
             enabled: !context.reducedMotion,
-            child: const ColoredBox(color: Colors.black),
+            // The child is only the surface the gradient is painted onto, so it
+            // takes the shimmer's own base tone. A black here would show
+            // through as solid slabs whenever reduced motion switches the
+            // shimmer off.
+            child: ColoredBox(color: base),
           ),
         ),
       ),
@@ -932,9 +948,10 @@ class _Placeholder extends StatelessWidget {
       ),
       period: DesignTokens.durationSlow,
       // A shimmer is looping decorative motion; under reduced motion the
-      // placeholder keeps its tint and stops sweeping.
+      // placeholder keeps its tint and stops sweeping. The child paints that
+      // same tint, because it is what stays visible once the sweep is off.
       enabled: !context.reducedMotion,
-      child: Container(color: Colors.black, child: const SizedBox.expand()),
+      child: Container(color: baseColor, child: const SizedBox.expand()),
     );
   }
 }
