@@ -1,3 +1,11 @@
+## 3.1.3
+
+* **Viewer chrome**: the app bar band, the toolbox, the gesture feedback and the pause wash take their light and dark tones from the theme palette instead of fixed white and black, so a curated palette tints its own artwork overlays and a disabled download button stays legible on a dark scrim
+* **Timeline**: the score, media type, dimensions and rating labels sit on that same plate, the video progress track is visible again in dark themes, and the placeholder shimmer no longer turns into solid black tiles when animations are off
+* **Live controls**: a link that cannot be launched greys itself out instead of looking tappable, a saved-server row opens its editor when tapped, and the swipe-mode glyph announces which way posts change
+* **Honest states**: an empty or failed changelog says which, the cache row tells measuring apart from measured, a homepage that cannot be opened names its server, and each greyed backup group names the switch that unlocks it
+* **Consistency**: destructive clears confirm first, the post context menu stops blurring twice, a long download alias stays inside its card, the licenses separator finally paints the width it declares, and the leftover magic paddings and sizes come from the design tokens
+
 ## 3.1.2
 
 * **Downloads**: clearing all records keeps the updater's row, retry all failed counts only real restarts, a size probe falls back to a ranged GET, a partial cached copy rolls back, entry paths are read literally and enqueue and boot repair keep their rows in step, and the downloader port closes with its owner
