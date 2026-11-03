@@ -86,7 +86,7 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 
 ### Named Rules
 
-**The Adaptive Rule.** No widget hard-codes a color. Widgets read `ColorScheme`; hex values live only in `lib/presentation/theme/color_palettes.dart` and the theme builder.
+**The Adaptive Rule.** No widget hard-codes a color. Widgets read `ColorScheme`; hex values live only in `lib/presentation/theme/color_palettes.dart` and the theme builder. Chrome painted *on* the artwork, where what sits behind it changes with every post, reads `AppMediaChrome` instead: a role set the theme builds once from the palette's own neutral pair, so its foreground is the lightest neutral it owns and its stage, scrim, plates, tracks and label shadows are the darkest, each at a named alpha. A widget asks for a role and never for `Colors.white` or `Colors.black`, which is what lets a curated palette or the Midnight rule change how the viewer reads in one place. The scrim is still what makes the glyph legible, not the scheme; the theme only decides which black and which white that scrim is made of.
 
 **The Palette Rule.** A curated palette is never harmonized and its surfaces are never re-shaded; the theme is shown as designed, down to its own page color.
 
@@ -107,7 +107,7 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 | Role | Size | Weight | Tracking | Used for |
 | --- | --- | --- | --- | --- |
 | `displayLarge` | 57 | bold | -1.5 | Not used in chrome; reserved for a future hero |
-| `headlineSmall` | 24 | semibold | -0.4 | The wordmark, an empty state's title |
+| `headlineSmall` | 24 | semibold | -0.4 | The wordmark, a full-screen gate's title (the app lock) |
 | `titleLarge` | 20 | semibold | -0.2 | A page's own name |
 | `titleMedium` | 16 | semibold | -0.1 | A sheet header |
 | `bodyLarge` | 16 | regular | 0 | Row titles, field values, body copy |
@@ -132,6 +132,7 @@ Every row inside a grouped surface (drawer, settings, server lists, forms, sheet
 - **Row supporting text**: 12 sp `bodySmall`, `onSurfaceVariant`, 1.4 line height
 - **Field label**: 11 sp `labelSmall`, `onSurfaceVariant`; the value stays 16 sp
 - **Section description / helper**: 12 sp `bodySmall`, `onSurfaceVariant`
+- **Notice title**: the row title role (16 sp `bodyLarge`, centred). A notice is a block of reading inside the page, so it takes the row role rather than a headline; `headlineSmall` there would out-shout the content the notice reports on
 
 **The One Scale Rule.** These roles come from the theme (`AppTextRoles`, `ListTileTheme`, the field decoration), never from a per-widget `copyWith` on a different size, so a title is 16 sp in settings, in a sheet, and in the server form alike. Spacing follows the same rhythm: 12 dp row inset, 8 dp between a title and its supporting line, 8 dp between fields, 24 dp above a section label and 8 dp below it.
 
@@ -204,7 +205,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 ### Timeline Grid
 - **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders
-- **Overlays**: Compact labels sit directly on the image, kept legible by a neutral top/bottom scrim (a fixed black gradient) plus a drop shadow on the tag. The scrim and the tag-category accents are the two documented exceptions to the adaptive-palette rule, since the underlying image content is arbitrary:
+- **Overlays**: Compact labels sit directly on the image, kept legible by a neutral top/bottom scrim plus a drop shadow on the tag, both read from `AppMediaChrome` (see the Adaptive Rule). The tag-category accents are the one non-scheme color left, since those hues are a booru convention rather than a palette decision:
   - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Replaced by the selection checkbox while the post is selected.
   - **Rating badge**: one-letter chip, S / Q / E / SN, colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
   - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
@@ -303,9 +304,9 @@ The one piece of chrome every timeline screen carries. It is a surface, not glas
 
 ### Selection Action Bar
 - **Trigger**: choosing *Select* in the [Context Menu](#context-menu-post-actions)
-- **Layout**: floating card on `surfaceContainerHigh` at floating elevation, full width minus `spacingMd`, docked above the system inset: a count readout on the left, then download (menu: files or ZIP), favorite, and clear
+- **Layout**: floating card on `surfaceContainerHigh` at floating elevation, full width minus `spacingMd`, docked above the system inset: a count readout on the left, then download, favorite, and clear
 - **Count**: a readout, not a button label; announced as "N selected"
-- **Download**: opens a menu choosing between individual files and a ZIP archive, so no hidden mode is carried between actions
+- **Download**: one direct action that saves the selected posts as individual files at the configured quality. There is no archive mode to choose, so nothing is carried between actions; the tooltip names what the button does
 - **Controls**: icon buttons with tooltips, 48 dp targets
 
 ### Settings
@@ -342,7 +343,7 @@ Server management reuses the same block language as the drawer and settings: a s
 
 ### Do:
 - **Do** use `ColorScheme` tokens for all colors; never hard-code hex values
-- **Do** keep thumbnails edge-to-edge within their card; the compact on-image overlays (see Timeline Grid) are the only chrome allowed on the image, and their neutral scrim plus the tag-category accents are the only non-scheme colors
+- **Do** keep thumbnails edge-to-edge within their card; the compact on-image overlays (see Timeline Grid) are the only chrome allowed on the image, and they read their scrim and label colors from `AppMediaChrome`; the tag-category accents are the only non-scheme colors left
 - **Do** use shimmer loading for thumbnails; it communicates "loading" without blank space
 - **Do** let the staggered grid handle visual interest; varied aspect ratios are the texture
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
@@ -353,7 +354,7 @@ Server management reuses the same block language as the drawer and settings: a s
 ### Don't:
 - **Don't** add shadows, borders, or elevation to image thumbnails; they are the content, not cards
 - **Don't** use generic Material defaults without considering the content-first philosophy; every chrome element must earn its pixels
-- **Don't** hard-code colors outside of `ColorScheme`; the adaptive palette is the identity (the on-image overlay scrim and tag-category accents are the only documented exceptions)
+- **Don't** hard-code colors outside of `ColorScheme`; the adaptive palette is the identity. Chrome over the artwork reads `AppMediaChrome`, not `Colors.white` or `Colors.black`, and the tag-category accents are the only documented exception left (per the Adaptive Rule)
 - **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions); deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens; the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations; motion serves feedback (loading, transitions), not delight for its own sake
