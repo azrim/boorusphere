@@ -147,14 +147,28 @@ class DownloadEntryView extends HookConsumerWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(
-                      width: DesignTokens.iconInline,
-                      child: Center(child: Text('•')),
+                    // A dot that only separates two reads is not content: it
+                    // used to be announced as eight characters of nothing.
+                    const ExcludeSemantics(
+                      child: SizedBox(
+                        width: DesignTokens.iconInline,
+                        child: Center(child: Text('•')),
+                      ),
                     ),
-                    Text(
-                      servers
-                          .getById(entry.post.serverId, or: servers.firstOrNull)
-                          .name,
+                    // The alias is user-supplied. Inside a Wrap this row gets
+                    // unbounded width, so without a bound of its own a long
+                    // name pushed the whole card off the screen.
+                    Flexible(
+                      child: Text(
+                        servers
+                            .getById(
+                              entry.post.serverId,
+                              or: servers.firstOrNull,
+                            )
+                            .name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
