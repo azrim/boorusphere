@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -439,52 +440,17 @@ class ServerAddPage extends HookConsumerWidget {
                                       const SizedBox(
                                         height: DesignTokens.spacingMd,
                                       ),
-                                      // A flat row inside the block rather than a
-                                      // tinted card on top of it: the block owns
-                                      // the only surface, and the icon carries the
-                                      // outcome.
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal:
-                                              DesignTokens.spacingCardInset,
-                                          vertical: DesignTokens.spacingSm,
-                                        ),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Icon(
-                                              Icons.check_circle_outline,
-                                              size: DesignTokens.iconInline,
-                                              color:
-                                                  context.colorScheme.primary,
-                                            ),
-                                            const SizedBox(
-                                              width: DesignTokens.spacingSm,
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                context.t.servers.scanResult(
-                                                  search:
-                                                      result
-                                                          .searchParserId
-                                                          .isEmpty
-                                                      ? context.t.auto
-                                                      : result.searchParserId,
-                                                  suggestion:
-                                                      result
-                                                          .suggestionParserId
-                                                          .isEmpty
-                                                      ? context.t.auto
-                                                      : result
-                                                            .suggestionParserId,
-                                                ),
-                                                style: AppTextRoles.of(
-                                                  context,
-                                                ).rowSupporting,
-                                              ),
-                                            ),
-                                          ],
+                                      _ScanNotice(
+                                        icon: Icons.check_circle_outline,
+                                        color: context.colorScheme.primary,
+                                        message: context.t.servers.scanResult(
+                                          search: result.searchParserId.isEmpty
+                                              ? context.t.auto
+                                              : result.searchParserId,
+                                          suggestion:
+                                              result.suggestionParserId.isEmpty
+                                              ? context.t.auto
+                                              : result.suggestionParserId,
                                         ),
                                       ),
                                     ],
@@ -492,34 +458,10 @@ class ServerAddPage extends HookConsumerWidget {
                                       const SizedBox(
                                         height: DesignTokens.spacingMd,
                                       ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal:
-                                              DesignTokens.spacingCardInset,
-                                          vertical: DesignTokens.spacingSm,
-                                        ),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Icon(
-                                              Icons.error_outline,
-                                              size: DesignTokens.iconInline,
-                                              color: context.colorScheme.error,
-                                            ),
-                                            const SizedBox(
-                                              width: DesignTokens.spacingSm,
-                                            ),
-                                            Expanded(
-                                              child: Text(
-                                                context.t.servers.scanFailed,
-                                                style: AppTextRoles.of(
-                                                  context,
-                                                ).rowSupporting,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      _ScanNotice(
+                                        icon: Icons.error_outline,
+                                        color: context.colorScheme.error,
+                                        message: context.t.servers.scanFailed,
                                       ),
                                     ],
                                   ],
@@ -740,6 +682,44 @@ class ServerAddPage extends HookConsumerWidget {
   }
 }
 
+/// One outcome line inside the scan block.
+///
+/// Success and failure are the same row with a different glyph, tone and
+/// message, so they share one build and cannot drift apart. A flat row rather
+/// than a tinted card on top of the block: the block owns the only surface,
+/// and the icon carries the outcome.
+class _ScanNotice extends StatelessWidget {
+  const _ScanNotice({
+    required this.icon,
+    required this.color,
+    required this.message,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spacingCardInset,
+        vertical: DesignTokens.spacingSm,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: DesignTokens.iconInline, color: color),
+          const SizedBox(width: DesignTokens.spacingSm),
+          Expanded(
+            child: Text(message, style: AppTextRoles.of(context).rowSupporting),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// The scanner's running log, in a box of its own.
 ///
 /// The box keeps its height while the scan runs and the lines scroll inside
@@ -781,10 +761,10 @@ class _ScanLogState extends State<_ScanLog> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
-    final style = context.theme.textTheme.bodySmall?.copyWith(
-      fontFamily: 'monospace',
-      color: scheme.onSurfaceVariant,
-    );
+    // The well reads as inset through the tone below the block it sits in.
+    // Midnight has no below: the page is already black, so there the hairline
+    // alone does the separating, as every other flat surface does.
+    final flat = AppSurfacePolicy.of(context).flat;
 
     return Padding(
       padding: const EdgeInsets.only(top: DesignTokens.spacingSm),
@@ -795,9 +775,8 @@ class _ScanLogState extends State<_ScanLog> {
           vertical: DesignTokens.spacingSm,
         ),
         decoration: BoxDecoration(
-          // A well rather than a card: darker than the block it sits in, so
-          // the text reads as an inset readout.
-          color: scheme.surfaceContainerLow,
+          color: flat ? scheme.surface : scheme.surfaceContainerLow,
+          border: flat ? Border.all(color: scheme.outlineVariant) : null,
           borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
         ),
         child: ValueListenableBuilder<List<String>>(
@@ -812,7 +791,7 @@ class _ScanLogState extends State<_ScanLog> {
                 logs[index],
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: style,
+                style: AppTextRoles.of(context).rowSupporting,
               ),
             ),
           ),

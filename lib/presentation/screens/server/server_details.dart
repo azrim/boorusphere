@@ -17,6 +17,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+/// The parser tag is a chip, not a card: one dp of fill above and below the
+/// label is enough to round it off without lifting the row text out of line.
+const double _kChipVerticalPadding = 1.0;
+
 /// Query templates and API credentials of a saved server.
 class ServerDetails extends HookConsumerWidget {
   const ServerDetails({
@@ -206,10 +210,7 @@ class ServerDetails extends HookConsumerWidget {
                             ),
                             child: Text(
                               context.t.servers.credentials.desc,
-                              style: context.theme.textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: context.colorScheme.onSurfaceVariant,
-                                  ),
+                              style: AppTextRoles.of(context).rowSupporting,
                             ),
                           ),
                           const SizedBox(height: DesignTokens.spacingSm),
@@ -395,13 +396,13 @@ class ParserLabel extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: DesignTokens.spacingXs,
-              vertical: 1,
+              vertical: _kChipVerticalPadding,
             ),
             child: Text(
               id.fileExt.toUpperCase(),
               style: context.theme.textTheme.labelSmall?.copyWith(
                 color: isJson ? scheme.onPrimary : scheme.onTertiary,
-                fontWeight: FontWeight.w700,
+                fontWeight: AppTypography.bold,
               ),
             ),
           ),
