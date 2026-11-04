@@ -212,5 +212,129 @@ void main() {
 
       expect(box.get('@paheal')!.searchUrl, current);
     });
+
+    test('keeps the autocomplete path a Shimmie site serves itself', () async {
+      await box.put(
+        '@paheal',
+        const Server(
+          id: 'Paheal',
+          homepage: 'https://rule34.paheal.net',
+          tagSuggestionUrl: 'autocomplete.php?q={tag-part}',
+        ),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@paheal')!.tagSuggestionUrl,
+        'autocomplete.php?q={tag-part}',
+        reason: 'only a Gelbooru entry is wearing a stale template here',
+      );
+    });
+  });
+
+  group('UserServerRepo.populate Rule34 suggestion URL', () {
+    const apiHost = 'https://api.rule34.xxx';
+    const autocompleteUrl = 'autocomplete.php?q={tag-part}';
+    const dapiTagUrl =
+        'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%'
+        '&orderby=count&limit={post-limit}';
+    const gelbooruAutocompleteUrl =
+        'index.php?page=autocomplete2&term={tag-part}&type=tag_query'
+        '&limit={post-limit}';
+
+    late Box<Server> box;
+    late UserServerRepo repo;
+
+    setUp(() async {
+      box = await Hive.openBox<Server>('server_rule34_test');
+      await box.clear();
+      repo = UserServerRepo(
+        defaultServers: const {'@seed': Server(id: 'seed')},
+        box: box,
+      );
+    });
+
+    tearDown(() => box.close());
+
+    test('leaves the tag endpoint that asks for an account', () async {
+      await box.put(
+        '@rule34',
+        const Server(
+          id: 'Rule34',
+          homepage: 'https://rule34.xxx',
+          apiAddr: apiHost,
+          tagSuggestionUrl: dapiTagUrl,
+          suggestionParserId: 'Gelbooru.xml',
+        ),
+      );
+
+      await repo.populate();
+
+      final server = box.get('@rule34')!;
+      expect(server.tagSuggestionUrl, autocompleteUrl);
+      expect(
+        server.suggestionParserId,
+        isEmpty,
+        reason: 'the reader is chosen by the answer, not by the old pin',
+      );
+      expect(server.apiAddr, apiHost);
+    });
+
+    test('moves back an entry the Gelbooru rewrite caught', () async {
+      await box.put(
+        '@rule34',
+        const Server(
+          id: 'Rule34',
+          homepage: 'https://rule34.xxx',
+          apiAddr: apiHost,
+          tagSuggestionUrl: gelbooruAutocompleteUrl,
+        ),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@rule34')!.tagSuggestionUrl,
+        autocompleteUrl,
+        reason: 'that host answers autocomplete2 with an empty body',
+      );
+    });
+
+    test('heals the API host and the tag endpoint in one start', () async {
+      await box.put(
+        '@rule34',
+        const Server(
+          id: 'Rule34',
+          homepage: 'https://rule34.xxx',
+          searchUrl:
+              'index.php?page=dapi&s=post&q=index&tags={tags}'
+              '&pid={page-id}&limit={post-limit}',
+          tagSuggestionUrl: dapiTagUrl,
+        ),
+      );
+
+      await repo.populate();
+
+      final server = box.get('@rule34')!;
+      expect(server.apiAddr, apiHost);
+      expect(server.tagSuggestionUrl, autocompleteUrl);
+    });
+
+    test('leaves an entry on the endpoint that answers alone', () async {
+      await box.put(
+        '@rule34',
+        const Server(
+          id: 'Rule34',
+          homepage: 'https://rule34.xxx',
+          apiAddr: apiHost,
+          tagSuggestionUrl: autocompleteUrl,
+        ),
+      );
+
+      await repo.populate();
+
+      expect(box.get('@rule34')!.tagSuggestionUrl, autocompleteUrl);
+    });
   });
 }

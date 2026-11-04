@@ -4,6 +4,7 @@ import 'package:boorusphere/data/repository/server/user_server_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
@@ -69,12 +70,31 @@ void main() async {
     expect(first.previewFile, startsWith('https://api-cdn.rule34.xxx/'));
 
     when(() => adapter.fetch(any(), any(), any())).thenAnswer(
-      (_) async => FakeResponseBody.fromFixture('rule34/tags.xml', 200),
+      (_) async =>
+          FakeResponseBody.fromFixture('rule34/autocomplete.json', 200),
     );
 
+    final suggestions = await ref
+        .read(imageboardRepoProvider(server))
+        .getSuggestion('land');
+    expect(suggestions, hasLength(10));
     expect(
-      await ref.read(imageboardRepoProvider(server)).getSuggestion('land'),
-      isA<Iterable>().having((x) => x.length, 'total', 5),
+      suggestions.map((it) => it.name),
+      containsAll(['landscape', 'landing_strip', 'lando']),
+    );
+    expect(
+      suggestions.firstWhere((it) => it.name == 'landscape').count,
+      4307,
+      reason: 'the count rides in the label, not in its own field',
+    );
+
+    final requested =
+        verify(() => adapter.fetch(captureAny(), any(), any())).captured.last
+            as RequestOptions;
+    expect(
+      requested.uri.toString(),
+      'https://api.rule34.xxx/autocomplete.php?q=land',
+      reason: 'the dapi tag endpoint on this host asks for an account',
     );
   });
 }

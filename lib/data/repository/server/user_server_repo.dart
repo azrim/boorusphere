@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:boorusphere/data/encryption.dart';
+import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
+import 'package:boorusphere/data/repository/booru/parser/gelbooru_autocomplete_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/server_data_repo.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
@@ -33,76 +35,85 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
-  /// Migrate Gelbooru-engine servers to use autocomplete2 endpoint for suggestions
-  /// instead of the DAPI tag endpoint which has UTF-8 encoding issues.
-  Future<void> _migrateGelbooruSuggestionUrl() async {
-    const oldDapiUrl =
-        'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%&orderby=count&limit={post-limit}&json=1';
-    const oldAutocompleteUrl = 'autocomplete.php?q={tag-part}';
-    const newAutocompleteUrl =
-        'index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}';
+  /// The tag endpoint each known host actually answers.
+  ///
+  /// Gelbooru, Safebooru and Rule34 share a code base and not an API: the first
+  /// moved its tag list to `autocomplete2`, the other two still answer from
+  /// `autocomplete.php`, and Rule34's `dapi` tag endpoint asks an anonymous
+  /// client for an account. The template that replaces an outdated one
+  /// therefore depends on the host that sent it. Three passes each assumed
+  /// their own answer was right for everybody, which is how two of these hosts
+  /// ended up asking for a tag list they never return.
+  Future<void> _migrateSuggestionUrl() async {
+    final autocomplete = AutocompleteJsonParser().suggestionQuery;
+    final autocomplete2 = GelbooruAutocompleteParser().suggestionQuery;
+    // The DAPI tag endpoint, in both the XML and the JSON dialect it was
+    // handed out in.
+    final dapi = {
+      'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%'
+          '&orderby=count&limit={post-limit}',
+      'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%'
+          '&orderby=count&limit={post-limit}&json=1',
+    };
+    final outdated = {...dapi, autocomplete, autocomplete2};
 
     final mapped = Map<String, Server>.from(box.toMap());
     for (final entry in mapped.entries) {
       final server = entry.value;
-      // Safebooru serves that autocomplete path itself, so its entry is not a
-      // Gelbooru one wearing the same template.
-      final isStaleAutocomplete =
-          server.tagSuggestionUrl == oldAutocompleteUrl &&
-          !_isSafebooru(server);
-      if (server.tagSuggestionUrl == oldDapiUrl || isStaleAutocomplete) {
-        await box.put(
-          entry.key,
-          server.copyWith(
-            tagSuggestionUrl: newAutocompleteUrl,
-            suggestionParserId: '', // Reset to auto-detect
-          ),
-        );
-      }
-    }
-    await box.flush();
-  }
+      if (!outdated.contains(server.tagSuggestionUrl)) continue;
 
-  /// Restores Safebooru's own autocomplete URL on entries the Gelbooru
-  /// rewrite above already converted, where it answers with the homepage
-  /// instead of a tag list.
-  Future<void> _migrateSafebooruSuggestionUrl() async {
-    const autocompleteUrl = 'autocomplete.php?q={tag-part}';
-    const gelbooruAutocompleteUrl =
-        'index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}';
-
-    final mapped = Map<String, Server>.from(box.toMap());
-    for (final entry in mapped.entries) {
-      final server = entry.value;
-      final wasRewritten = server.tagSuggestionUrl == gelbooruAutocompleteUrl;
-      if (!wasRewritten || !_isSafebooru(server)) continue;
+      final current = switch (_siteHost(server)) {
+        // A site this app has no table for keeps what its owner configured.
+        // Guessing an endpoint for it is how the passes this replaced went
+        // wrong for the sites it did recognize.
+        _SiteHost.gelbooru => autocomplete2,
+        _SiteHost.safebooru || _SiteHost.rule34 => autocomplete,
+        null => null,
+      };
+      if (current == null || current == server.tagSuggestionUrl) continue;
 
       await box.put(
         entry.key,
         server.copyWith(
-          tagSuggestionUrl: autocompleteUrl,
-          suggestionParserId: '',
+          tagSuggestionUrl: current,
+          suggestionParserId: '', // Reset to auto-detect
         ),
       );
     }
     await box.flush();
   }
 
-  bool _isSafebooru(Server server) {
-    final host = Uri.tryParse(server.homepage)?.host ?? '';
-    return host == 'safebooru.org' || host.endsWith('.safebooru.org');
+  /// The site family [server] points at, read from either of its addresses: an
+  /// entry edited onto its API host is still the same site.
+  _SiteHost? _siteHost(Server server) {
+    for (final address in [server.homepage, server.apiAddr]) {
+      final host = Uri.tryParse(address)?.host ?? '';
+      if (host.isEmpty) continue;
+      if (host == 'gelbooru.com' || host.endsWith('.gelbooru.com')) {
+        return _SiteHost.gelbooru;
+      }
+      if (host == 'safebooru.org' || host.endsWith('.safebooru.org')) {
+        return _SiteHost.safebooru;
+      }
+      if (host == 'rule34.xxx' || host.endsWith('.rule34.xxx')) {
+        return _SiteHost.rule34;
+      }
+    }
+    return null;
   }
 
   /// Rule34 serves its API from its own host, which also rejects anonymous
   /// requests. Entries still pointing at the homepage only ever get a challenge
   /// page back.
+  ///
+  /// Its suggestion template is left to [_migrateSuggestionUrl]: that host
+  /// answers a tag list from `autocomplete.php` and not from the endpoint the
+  /// site it was cloned from moved to.
   Future<void> _migrateRule34ApiHost() async {
     const homepage = 'https://rule34.xxx';
     const apiAddr = 'https://api.rule34.xxx';
     const searchUrl =
         'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}';
-    const tagSuggestionUrl =
-        'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%&orderby=count&limit={post-limit}';
 
     final mapped = Map<String, Server>.from(box.toMap());
     for (final entry in mapped.entries) {
@@ -118,7 +129,6 @@ class UserServerRepo implements ServerRepo {
         server.copyWith(
           apiAddr: apiAddr,
           searchUrl: searchUrl,
-          tagSuggestionUrl: tagSuggestionUrl,
           searchParserId: '', // Reset to auto-detect
           suggestionParserId: '',
         ),
@@ -186,12 +196,20 @@ class UserServerRepo implements ServerRepo {
       await box.putAll(_defaults);
     } else {
       await _migrateKeys();
-      await _migrateGelbooruSuggestionUrl();
-      await _migrateSafebooruSuggestionUrl();
-      await _migrateRule34ApiHost();
-      await _migrateOneBasedPageParam();
-      await _migrateShimmieSearchPath();
+      await _healOutdatedEntries();
     }
+  }
+
+  /// Every pass that fixes an entry an older release wrote.
+  ///
+  /// Both the start-up path and a restore run the same set: a backup is as
+  /// outdated as the box it came from, and a list restored on a newer build
+  /// must not keep an endpoint this release already knows is dead.
+  Future<void> _healOutdatedEntries() async {
+    await _migrateRule34ApiHost();
+    await _migrateSuggestionUrl();
+    await _migrateOneBasedPageParam();
+    await _migrateShimmieSearchPath();
   }
 
   @override
@@ -259,10 +277,7 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
 
     // Run migrations after import to fix any outdated server configs
-    await _migrateGelbooruSuggestionUrl();
-    await _migrateSafebooruSuggestionUrl();
-    await _migrateRule34ApiHost();
-    await _migrateOneBasedPageParam();
+    await _healOutdatedEntries();
   }
 
   /// Exports the servers with their credentials, so restoring on a new device
@@ -382,3 +397,6 @@ class UserServerRepo implements ServerRepo {
     }
   }
 }
+
+/// The site families this release knows the tag endpoint of.
+enum _SiteHost { gelbooru, safebooru, rule34 }
