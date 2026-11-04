@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_option.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_result.dart';
+import 'package:boorusphere/presentation/provider/data_backup/passphrase_input.dart';
 import 'package:boorusphere/presentation/provider/data_backup/telegram_backup_service.dart';
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
@@ -126,8 +127,16 @@ class _Content extends HookConsumerWidget {
           });
         case ExportedBackupResult(:final path):
           showToast(context, context.t.dataBackup.backup.success(dest: path));
-        case ErrorBackupResult():
-          showToast(context, context.t.dataBackup.restore.invalid);
+        case ErrorBackupResult(:final type):
+          // The two runs fail for different reasons, so each gets its own
+          // line: a rejected file talks about the file, a failed backup talks
+          // about where the app writes.
+          showToast(
+            context,
+            type == DataBackupType.backup
+                ? context.t.dataBackup.backup.failed
+                : context.t.dataBackup.restore.invalid,
+          );
         default:
       }
     });
@@ -539,7 +548,11 @@ class _PassphraseDialog extends HookWidget {
     final error = useState<_FieldError?>(null);
 
     void submit() {
-      final value = passphrase.text;
+      // Normalized here, once: this is the string that both seals the archive
+      // and gets stored, so the passphrase the settings report as saved is the
+      // one that opens it.
+      final value = preparePassphrase(passphrase.text, confirm: _confirm);
+      final repeated = preparePassphrase(confirmation.text, confirm: _confirm);
       if (value.length < _minLength) {
         error.value = _FieldError(
           _confirm
@@ -549,7 +562,7 @@ class _PassphraseDialog extends HookWidget {
         passphraseFocus.requestFocus();
         return;
       }
-      if (_confirm && value != confirmation.text) {
+      if (_confirm && value != repeated) {
         error.value = _FieldError(
           context.t.dataBackup.passphraseMismatch,
           onConfirmation: true,

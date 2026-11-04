@@ -51,6 +51,15 @@ class DataBackupState extends _$DataBackupState {
   /// while both read and write the same boxes and the same shared folder.
   bool _busy = false;
 
+  /// The two failures the screen can report. Each names its own run, so a
+  /// backup that could not be written never reads like a corrupt archive.
+  static const BackupResult restoreError = BackupResult.error(
+    type: DataBackupType.restore,
+  );
+  static const BackupResult backupError = BackupResult.error(
+    type: DataBackupType.backup,
+  );
+
   @override
   BackupResult build() {
     return const BackupResult.idle();
@@ -131,7 +140,7 @@ class DataBackupState extends _$DataBackupState {
       mainLog.e('DataBackupState: restore failed', e, stack);
       // The states mirroring the boxes already written are refreshed by the
       // import loop before it rethrows.
-      state = const BackupResult.error();
+      state = restoreError;
     } finally {
       _busy = false;
     }
@@ -192,7 +201,7 @@ class DataBackupState extends _$DataBackupState {
     // Refused before the bytes are parsed or decrypted: nothing this app
     // writes comes close to this size, so a bigger file is not one of ours.
     if (bytes.length > _maxArchiveSize) {
-      state = const BackupResult.error();
+      state = restoreError;
       return;
     }
 
@@ -206,7 +215,7 @@ class DataBackupState extends _$DataBackupState {
       // about this file. The stored passphrase only seals new backups.
       final askPassphrase = onPassphrase;
       if (askPassphrase == null) {
-        state = const BackupResult.error();
+        state = restoreError;
         return;
       }
       final passphrase = await askPassphrase();
@@ -220,14 +229,14 @@ class DataBackupState extends _$DataBackupState {
       } on BackupCipherException {
         // A wrong passphrase is a user mistake: the screen gets an error
         // result, and the passphrase itself is never logged.
-        state = const BackupResult.error();
+        state = restoreError;
         return;
       }
     } else if (!_isZipArchive(bytes)) {
       // Without the extension filter, any file the user picks can land here.
       // Only a ZIP can be handed to the decoder; anything else is reported
       // instead of being thrown out of it.
-      state = const BackupResult.error();
+      state = restoreError;
       return;
     }
 
@@ -237,14 +246,14 @@ class DataBackupState extends _$DataBackupState {
         .where((it) => it.isFile)
         .fold<int>(0, (sum, file) => sum + file.size);
     if (totalSize > maxDecompressedSize) {
-      state = const BackupResult.error();
+      state = restoreError;
       return;
     }
     // The marker entry is what identifies the archive as ours; its content
     // is not read, so a backup written by another build still restores.
     final hasMarker = decoder.files.any((it) => it.name == '$appId.json');
     if (!hasMarker) {
-      state = const BackupResult.error();
+      state = restoreError;
       return;
     }
 
@@ -294,7 +303,7 @@ class DataBackupState extends _$DataBackupState {
 
     // Nothing was imported, so reporting a restore would be a lie.
     if (applied == 0) {
-      state = const BackupResult.error();
+      state = restoreError;
       return;
     }
 
@@ -330,7 +339,7 @@ class DataBackupState extends _$DataBackupState {
         passphrase: passphrase,
       );
       if (backupFile == null) {
-        state = const BackupResult.error();
+        state = backupError;
         return;
       }
       // A manual backup is a backup like any other, so it owns the same
@@ -344,7 +353,7 @@ class DataBackupState extends _$DataBackupState {
       // (no space, folder not writable). Leaving the state at `loading` would
       // keep the screen blocked forever.
       mainLog.e('DataBackupState: backup failed', e, stack);
-      state = const BackupResult.error();
+      state = backupError;
     } finally {
       _busy = false;
     }

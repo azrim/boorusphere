@@ -414,6 +414,7 @@
       "title": "Backup data",
       "desc": "Backup app data into a file",
       "success": "Backup created at :\n${dest}",
+      "failed": "The backup could not be created. Check the backups folder and the free space on this device.",
       "loading": "Creating backup..."
     },
     "restore": {
