@@ -731,7 +731,10 @@ class _PostImageLoadingPill extends StatelessWidget {
     // The pill used to read as a bare "47%", a number with no subject, and it
     // asked for weight 400 inline, which is what the role already carries. The
     // label now names what is loading; the visible text keeps its own role.
-    return QuickBar.progress(
+    //
+    // With no percentage to show there is no text at all, and a ring carries
+    // nothing a screen reader can say — so the label moves onto the pill.
+    final pill = QuickBar.progress(
       title: progress == null
           ? null
           : Semantics(
@@ -740,6 +743,10 @@ class _PostImageLoadingPill extends StatelessWidget {
             ),
       progress: progress,
     );
+
+    return progress == null
+        ? Semantics(label: context.t.loadingMedia, child: pill)
+        : pill;
   }
 }
 
@@ -1477,11 +1484,16 @@ class _Progress extends StatelessWidget {
     final chrome = AppMediaChrome.of(context);
 
     if (controller == null || !controller.value.isInitialized) {
+      // The bar is the only thing saying anything is happening, and a ring
+      // with no label says nothing to a screen reader at all.
       return Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 16),
-        child: LinearProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-          backgroundColor: chrome.track,
+        child: Semantics(
+          label: context.t.loadingMedia,
+          child: LinearProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+            backgroundColor: chrome.track,
+          ),
         ),
       );
     }
