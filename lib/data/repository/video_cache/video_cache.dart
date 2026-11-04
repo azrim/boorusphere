@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:boorusphere/utils/logger.dart';
 import 'package:boorusphere/utils/media_file.dart';
+import 'package:boorusphere/utils/serial_queue.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as p;
 
@@ -69,7 +70,7 @@ class VideoCache {
 
   /// Serializes index reads and writes: two evictions or a touch and a store
   /// landing at once would otherwise write a stale entry map back.
-  Future<void> _serial = Future.value();
+  final _queue = SerialQueue();
 
   /// Bytes the cache may hold before the least recently watched entry is
   /// dropped.
@@ -410,11 +411,7 @@ class VideoCache {
     return _dir = dir;
   }
 
-  Future<T> _exclusive<T>(Future<T> Function() action) {
-    final result = _serial.then((_) => action());
-    _serial = result.then<void>((_) {}, onError: (Object _, StackTrace _) {});
-    return result;
-  }
+  Future<T> _exclusive<T>(Future<T> Function() action) => _queue.run(action);
 
   static bool _isMarkupContentType(String? raw) {
     final type = raw?.split(';').first.trim().toLowerCase();

@@ -71,6 +71,40 @@ void main() {
     });
   });
 
+  group('SharedStorageHandle nomedia writes', () {
+    test('the last toggle asked is the one that stands', () async {
+      // Overlapped on purpose: the marker write used to read the file first,
+      // so a second flip arriving before the first landed saw "not there" and
+      // the folder stayed hidden after the switch said otherwise.
+      final hiding = storage.writeNomedia(true);
+      final showing = storage.writeNomedia(false);
+      await Future.wait([hiding, showing]);
+
+      expect(storage.isHidden, isFalse);
+    });
+
+    test('a toggle asked first is not lost by the one after it', () async {
+      final showing = storage.writeNomedia(false);
+      final hiding = storage.writeNomedia(true);
+      await Future.wait([showing, hiding]);
+
+      expect(storage.isHidden, isTrue);
+    });
+
+    test('asking twice in a row leaves one marker', () async {
+      await storage.writeNomedia(true);
+      await storage.writeNomedia(true);
+
+      expect(storage.isHidden, isTrue);
+      expect(
+        Directory(
+          storage.path,
+        ).listSync().where((it) => p.basename(it.path) == '.nomedia'),
+        hasLength(1),
+      );
+    });
+  });
+
   group('SharedStorageHandle.isValidMedia', () {
     test('rejects an empty file', () {
       writeFile('empty.jpg', const []);

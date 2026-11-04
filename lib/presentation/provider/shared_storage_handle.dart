@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:boorusphere/utils/media_file.dart';
+import 'package:boorusphere/utils/serial_queue.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -25,6 +26,9 @@ class SharedStorageHandle {
   final String downloadPath;
 
   bool _permissionRequested = false;
+
+  /// Keeps the marker toggles in the order the screen asked for them.
+  final _queue = SerialQueue();
 
   String get path {
     return p.join(downloadPath, 'Boorusphere');
@@ -138,19 +142,39 @@ class SharedStorageHandle {
     await StorageUtil().scanMedia(_resolveFile(dest).path);
   }
 
+  /// Toggles the marker that keeps the folder out of the gallery.
+  ///
+  /// The write itself is queued, not the whole run: [init] waits on a permission
+  /// and [rescan] on the platform, and neither decides what the marker ends up
+  /// as. What used to happen is a check-then-act split by those gaps — two flips
+  /// of the switch both read the same answer, and the folder stayed marked the
+  /// way the *first* one wanted.
   Future<void> hide(bool hide) async {
     await init();
-    final isExists = _nomedia.existsSync();
+    await writeNomedia(hide);
+    await rescan();
+  }
+
+  /// Creates or removes the marker, exactly as [hide] asked.
+  ///
+  /// Queued, so a caller that arrives while the marker is still half-changed
+  /// finishes the change instead of undoing it, and the last request is the one
+  /// that stands. The file is written from the requested value rather than from
+  /// a snapshot taken before the awaits. Only ever reached through here; it is
+  /// public so a test can overlap two toggles without a device, because the
+  /// permission and the media scan around it are not what is being pinned.
+  Future<void> writeNomedia(bool hide) => _queue.run(() => _nomediaWrite(hide));
+
+  Future<void> _nomediaWrite(bool hide) async {
     try {
-      if (hide && !isExists) {
-        await _nomedia.create();
-      } else if (!hide && isExists) {
-        await _nomedia.delete();
+      if (hide) {
+        if (!_nomedia.existsSync()) await _nomedia.create();
+      } else {
+        if (_nomedia.existsSync()) await _nomedia.delete();
       }
-    } catch (e) {
+    } on Object catch (e) {
       mainLog.e('SharedStorageHandle: Failed to toggle .nomedia', e);
     }
-    await rescan();
   }
 
   Future<void> open(String dest, {String? on}) async {
