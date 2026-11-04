@@ -22,6 +22,11 @@ abstract class Server with _$Server {
     @HiveField(10, defaultValue: '') @Default('') String suggestionParserId,
     @HiveField(11, defaultValue: '') @Default('') String login,
     @HiveField(12, defaultValue: '') @Default('') String apiKey,
+
+    /// Where the site hands out the pair above, when it is known: the page a
+    /// server names in its own "add credentials" notice. Empty means this app
+    /// has no verified address for it, not that no key exists.
+    @HiveField(13, defaultValue: '') @Default('') String apiKeyUrl,
   }) = _Server;
 
   factory Server.fromJson(Map<String, dynamic> json) => _$ServerFromJson(json);

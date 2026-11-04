@@ -23,6 +23,7 @@ import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class HomeStatus extends HookConsumerWidget {
   const HomeStatus({super.key, this.skeletonWhenLoading = true});
@@ -199,6 +200,18 @@ class _ErrorStatus extends ConsumerWidget {
                   FilledButton(
                     onPressed: ref.read(pageStateProvider.notifier).load,
                     child: Text(context.t.retry),
+                  ),
+                if (needsAuth && server.apiKeyUrl.isNotEmpty)
+                  // The page the site itself points at for the key this
+                  // notice is asking for, one tap away from the failure.
+                  TextButton(
+                    onPressed: () => unawaited(
+                      launchUrlString(
+                        server.apiKeyUrl,
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                    child: Text(context.t.servers.credentials.getKey),
                   ),
                 if (!missingServer && safeRating)
                   TextButton(

@@ -30,6 +30,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 enum _AddMode { scan, manual }
 
 /// Represents a booru engine type that users can select
+///
+/// An engine is a dialect, so the list carries no credentials page: the address
+/// that hands out an API key belongs to the site, not to the dialect. The named
+/// presets in `assets/servers.json` carry it, and a server added from here does
+/// not, rather than pointing at some other site's account page.
 class BooruEngine {
   const BooruEngine({
     required this.name,

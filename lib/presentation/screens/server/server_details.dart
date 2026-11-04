@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/provider.dart';
@@ -16,6 +18,7 @@ import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 /// The parser tag is a chip, not a card: one dp of fill above and below the
 /// label is enough to round it off without lifting the row text out of line.
@@ -247,6 +250,27 @@ class ServerDetails extends HookConsumerWidget {
                                   ),
                                 ),
                           ),
+                          if (server.apiKeyUrl.isNotEmpty) ...[
+                            const SizedBox(height: DesignTokens.spacingXs),
+                            // The site names the page its own notice asks for,
+                            // so the reader is sent there instead of being told
+                            // to look through their account settings.
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () => unawaited(
+                                  launchUrlString(
+                                    server.apiKeyUrl,
+                                    mode: LaunchMode.externalApplication,
+                                  ),
+                                ),
+                                icon: const Icon(Icons.open_in_new),
+                                label: Text(
+                                  context.t.servers.credentials.getKey,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

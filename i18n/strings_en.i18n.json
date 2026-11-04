@@ -314,7 +314,8 @@
       "title": "API Credentials",
       "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
       "login": "User ID",
-      "apiKey": "API Key"
+      "apiKey": "API Key",
+      "getKey": "Get an API key"
     }
   },
   "server_query": {
