@@ -270,7 +270,14 @@ class _PostImage extends HookConsumerWidget {
     // server can hold the connection open and send nothing — so the watch gives
     // the pill a terminal state to fall back to. Every received byte re-arms it,
     // which means only silence trips it, never a large file moving slowly.
+    //
+    // `firstFrameSeen` ends the loading phase for good. Once the image is on
+    // screen, the network widget keeps calling the progress builder to fade its
+    // own indicator out — and for an animated image it does so once per frame,
+    // because every frame is a rebuild. Those calls carry no real progress, so
+    // without the latch they re-open `loading` on top of a fully painted post.
     final stallTimer = useRef<Timer?>(null);
+    final firstFrameSeen = useRef(false);
     void armStallWatch() {
       stallTimer.value?.cancel();
       stallTimer.value = Timer(_kImageStallTimeout, () {
@@ -280,9 +287,14 @@ class _PostImage extends HookConsumerWidget {
       });
     }
 
-    useEffect(() {
+    void beginLoad() {
+      firstFrameSeen.value = false;
       loadState.value = const _PostImageLoadState.loading(null);
       armStallWatch();
+    }
+
+    useEffect(() {
+      beginLoad();
       return () => stallTimer.value?.cancel();
     }, [imageUrl]);
 
@@ -397,14 +409,15 @@ class _PostImage extends HookConsumerWidget {
                     memCacheHeight: cacheHeight,
                     imageBuilder: (context, provider) {
                       stallTimer.value?.cancel();
+                      firstFrameSeen.value = true;
                       _scheduleLoadState(
                         loadState,
                         const _PostImageLoadState.completed(),
                       );
-                      // ponytail: cacheWidth/cacheHeight live on CachedNetworkImage's
-                      // memCacheWidth/memCacheHeight above; the generic Image()
-                      // constructor doesn't expose them. The provider from
-                      // imageBuilder is already sized by those params.
+                      // `image` is the raw provider: the `memCache*` knobs above
+                      // only size the network widget's own internal image, so
+                      // this decode is at full resolution. That is what keeps a
+                      // zoomed post sharp; the cost is a second, bigger decode.
                       final image = Image(
                         image: provider,
                         fit: BoxFit.contain,
@@ -419,12 +432,16 @@ class _PostImage extends HookConsumerWidget {
                           : image;
                     },
                     progressIndicatorBuilder: (context, url, progress) {
-                      // Bytes moved, so the watch starts again from now.
-                      armStallWatch();
-                      _scheduleLoadState(
-                        loadState,
-                        _PostImageLoadState.loading(progress.progress),
-                      );
+                      // Only the real download phase reaches here: once a frame
+                      // has been painted, later calls are the fade-out pass.
+                      if (!firstFrameSeen.value) {
+                        // Bytes moved, so the watch starts again from now.
+                        armStallWatch();
+                        _scheduleLoadState(
+                          loadState,
+                          _PostImageLoadState.loading(progress.progress),
+                        );
+                      }
                       return PostPlaceholderImage(
                         post: post,
                         shouldBlur: isBlur.value,
@@ -504,8 +521,10 @@ class _PostImage extends HookConsumerWidget {
                   onRetry: () {
                     CachedNetworkImage.evictFromCache(imageUrl);
                     retryNonce.value += 1;
-                    loadState.value = const _PostImageLoadState.loading(null);
-                    armStallWatch();
+                    // The retry key changes but `imageUrl` does not, so the URL
+                    // effect will not re-open the loading phase; do it here or
+                    // the new attempt would run without a pill or a watchdog.
+                    beginLoad();
                   },
                 ),
               ),
