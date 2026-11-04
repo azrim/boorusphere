@@ -199,11 +199,6 @@ class _PostImage extends HookConsumerWidget {
         ? imageRatio / deviceRatio
         : deviceRatio / imageRatio;
 
-    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final screenSize = MediaQuery.sizeOf(context);
-    final cacheWidth = (screenSize.width * pixelRatio).round();
-    final cacheHeight = (screenSize.height * pixelRatio).round();
-
     useEffect(() {
       void onTransformChange() {
         final scale = transformController.value.getMaxScaleOnAxis();
@@ -405,8 +400,6 @@ class _PostImage extends HookConsumerWidget {
                     imageUrl: imageUrl,
                     httpHeaders: headers,
                     fit: BoxFit.contain,
-                    memCacheWidth: cacheWidth,
-                    memCacheHeight: cacheHeight,
                     imageBuilder: (context, provider) {
                       stallTimer.value?.cancel();
                       firstFrameSeen.value = true;
@@ -414,10 +407,13 @@ class _PostImage extends HookConsumerWidget {
                         loadState,
                         const _PostImageLoadState.completed(),
                       );
-                      // `image` is the raw provider: the `memCache*` knobs above
-                      // only size the network widget's own internal image, so
-                      // this decode is at full resolution. That is what keeps a
-                      // zoomed post sharp; the cost is a second, bigger decode.
+                      // The network widget builds its own image from the same
+                      // provider object handed to this builder, so both resolve
+                      // to one cache entry and one decode. Sizing that internal
+                      // image (`memCacheWidth`/`memCacheHeight`) would put it
+                      // behind a different key: a second, wasted decode of the
+                      // same bytes. This one stays at the file's resolution
+                      // because `InteractiveViewer` can scale past the screen.
                       final image = Image(
                         image: provider,
                         fit: BoxFit.contain,
