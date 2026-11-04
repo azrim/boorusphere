@@ -667,10 +667,12 @@ class _PostLimit extends ConsumerWidget {
         borderRadius: const BorderRadius.all(
           Radius.circular(DesignTokens.radiusXl),
         ),
-        items: List<DropdownMenuItem<int>>.generate(10, (i) {
-          final x = i * 10 + 10;
-          return DropdownMenuItem(value: x, child: Text('$x'));
-        }),
+        items: [
+          // The state owns the counts, because it is the one that snaps a
+          // stored limit back to them.
+          for (final limit in ServerSettingState.postLimitChoices)
+            DropdownMenuItem(value: limit, child: Text('$limit')),
+        ],
         onChanged: (value) {
           ref
               .read(serverSettingStateProvider.notifier)

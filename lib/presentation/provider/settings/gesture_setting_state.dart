@@ -35,6 +35,17 @@ class GestureSettingState {
 
 @riverpod
 class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
+  /// Bounds of the sensitivity slider, and of a stored threshold: a `Slider`
+  /// asserts its value is one of its steps, so a threshold that arrives from
+  /// an older or hand-edited archive is pulled back to the range the screen
+  /// can show instead of opening a page that throws.
+  static const minSwipeDownThreshold = 50.0;
+  static const maxSwipeDownThreshold = 200.0;
+
+  static double thresholdFrom(double value) {
+    return value.clamp(minSwipeDownThreshold, maxSwipeDownThreshold).toDouble();
+  }
+
   @override
   GestureSettingState build() {
     final repo = ref.read(settingsRepoProvider);
@@ -48,9 +59,8 @@ class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
           or: SwipeMode.horizontal.name,
         ),
       ),
-      swipeDownThreshold: repo.get(
-        Setting.gestureSwipeDownThreshold,
-        or: 100.0,
+      swipeDownThreshold: thresholdFrom(
+        repo.get(Setting.gestureSwipeDownThreshold, or: 100.0),
       ),
       enableSwipeToDetails: repo.get(
         Setting.gestureEnableSwipeToDetails,
@@ -71,8 +81,9 @@ class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
 
   Future<void> updateSwipeDownThreshold(double threshold) async {
     final repo = ref.read(settingsRepoProvider);
-    state = state.copyWith(swipeDownThreshold: threshold);
-    await repo.put(Setting.gestureSwipeDownThreshold, threshold);
+    final value = thresholdFrom(threshold);
+    state = state.copyWith(swipeDownThreshold: value);
+    await repo.put(Setting.gestureSwipeDownThreshold, value);
   }
 
   Future<void> toggleSwipeToDetails() async {

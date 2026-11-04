@@ -48,6 +48,17 @@ abstract class PeriodicBackupState with _$PeriodicBackupState {
 
 @riverpod
 class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
+  /// Bounds the backup-count slider offers, and the range a stored count is
+  /// kept inside. A `Slider` asserts that its value is one of its steps, so a
+  /// count that arrives from an older or hand-edited archive has to come back
+  /// to the nearest one the screen can actually show.
+  static const minBackupCount = 1;
+  static const maxBackupCount = 10;
+
+  static int backupCountFrom(int value) {
+    return value.clamp(minBackupCount, maxBackupCount).toInt();
+  }
+
   @override
   PeriodicBackupState build() {
     final repo = ref.read(settingsRepoProvider);
@@ -64,7 +75,9 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
         ),
       ),
       deleteOldBackups: repo.get(Setting.periodicBackupDeleteOld, or: true),
-      maxBackupCount: repo.get(Setting.periodicBackupMaxCount, or: 3),
+      maxBackupCount: backupCountFrom(
+        repo.get(Setting.periodicBackupMaxCount, or: 3),
+      ),
       lastBackupTime: lastBackupMs != null
           ? DateTime.fromMillisecondsSinceEpoch(lastBackupMs)
           : null,
@@ -107,8 +120,9 @@ class PeriodicBackupSettingState extends _$PeriodicBackupSettingState {
 
   Future<void> setMaxBackupCount(int value) async {
     final repo = ref.read(settingsRepoProvider);
-    state = state.copyWith(maxBackupCount: value);
-    await repo.put(Setting.periodicBackupMaxCount, value);
+    final count = backupCountFrom(value);
+    state = state.copyWith(maxBackupCount: count);
+    await repo.put(Setting.periodicBackupMaxCount, count);
   }
 
   Future<void> setLastBackupTime(DateTime? value) async {

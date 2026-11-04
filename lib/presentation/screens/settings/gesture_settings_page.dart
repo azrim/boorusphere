@@ -101,8 +101,10 @@ class GestureSettingsPage extends ConsumerWidget {
                   SettingsSliderTile(
                     title: context.t.settingsPage.swipeDownThreshold,
                     value: gestureSettings.swipeDownThreshold,
-                    min: 50,
-                    max: 200,
+                    // The bounds come from the state, which clamps a stored
+                    // threshold back into them.
+                    min: GestureSettingStateNotifier.minSwipeDownThreshold,
+                    max: GestureSettingStateNotifier.maxSwipeDownThreshold,
                     divisions: 15,
                     helper: context.t.settingsPage.swipeDownThresholdDesc(
                       threshold: gestureSettings.swipeDownThreshold.round(),

@@ -44,5 +44,43 @@ void main() {
       ref.invalidate(gestureSettingStateProvider);
       expect(state().swipeMode, SwipeMode.vertical);
     });
+
+    test(
+      'a stored threshold the slider cannot show reads back inside it',
+      () async {
+        final box = Hive.box(UserSettingsRepo.key);
+
+        await box.put(Setting.gestureSwipeDownThreshold.name, 5000.0);
+        await box.flush();
+        ref.invalidate(gestureSettingStateProvider);
+        expect(
+          state().swipeDownThreshold,
+          GestureSettingStateNotifier.maxSwipeDownThreshold,
+        );
+
+        await box.put(Setting.gestureSwipeDownThreshold.name, 1.0);
+        await box.flush();
+        ref.invalidate(gestureSettingStateProvider);
+        expect(
+          state().swipeDownThreshold,
+          GestureSettingStateNotifier.minSwipeDownThreshold,
+        );
+      },
+    );
+
+    test('updateSwipeDownThreshold stores the value it accepted', () async {
+      await notifier().updateSwipeDownThreshold(1000.0);
+
+      expect(
+        state().swipeDownThreshold,
+        GestureSettingStateNotifier.maxSwipeDownThreshold,
+      );
+      expect(
+        Hive.box(
+          UserSettingsRepo.key,
+        ).get(Setting.gestureSwipeDownThreshold.name),
+        GestureSettingStateNotifier.maxSwipeDownThreshold,
+      );
+    });
   });
 }

@@ -71,6 +71,39 @@ void main() {
       expect(state().frequency, BackupFrequency.weekly);
     });
 
+    test(
+      'a stored count the slider cannot show reads back inside it',
+      () async {
+        final box = Hive.box(UserSettingsRepo.key);
+
+        await box.put(Setting.periodicBackupMaxCount.name, 0);
+        await box.flush();
+        ref.invalidate(periodicBackupSettingStateProvider);
+        expect(
+          state().maxBackupCount,
+          PeriodicBackupSettingState.minBackupCount,
+        );
+
+        await box.put(Setting.periodicBackupMaxCount.name, 40);
+        await box.flush();
+        ref.invalidate(periodicBackupSettingStateProvider);
+        expect(
+          state().maxBackupCount,
+          PeriodicBackupSettingState.maxBackupCount,
+        );
+      },
+    );
+
+    test('setMaxBackupCount stores the count it accepted', () async {
+      await notifier().setMaxBackupCount(99);
+
+      expect(state().maxBackupCount, PeriodicBackupSettingState.maxBackupCount);
+      expect(
+        Hive.box(UserSettingsRepo.key).get(Setting.periodicBackupMaxCount.name),
+        PeriodicBackupSettingState.maxBackupCount,
+      );
+    });
+
     test('backups are not encrypted until the switch is turned on', () {
       expect(state().encryptBackup, isFalse);
     });

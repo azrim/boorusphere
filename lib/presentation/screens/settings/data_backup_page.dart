@@ -743,9 +743,13 @@ class _MaxBackupSlider extends HookWidget {
       title: context.t.periodicBackup.maxBackups,
       value: sliderValue.value,
       valueLabel: '${sliderValue.value.round()}',
-      min: 1,
-      max: 10,
-      divisions: 9,
+      // The bounds come from the state, which clamps a stored count back into
+      // them — a slider that offered more would be offering an assert.
+      min: PeriodicBackupSettingState.minBackupCount.toDouble(),
+      max: PeriodicBackupSettingState.maxBackupCount.toDouble(),
+      divisions:
+          PeriodicBackupSettingState.maxBackupCount -
+          PeriodicBackupSettingState.minBackupCount,
       enabled: enabled,
       onChanged: (value) => sliderValue.value = value,
       onChangeEnd: (value) => notifier.setMaxBackupCount(value.round()),
