@@ -1,6 +1,7 @@
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
+import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:flutter/material.dart';
 
 /// Action row: leading icon, label with optional subtitle, and trailing.
@@ -30,6 +31,7 @@ class DrawerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final roles = AppTextRoles.of(context);
     final labelColor = danger ? scheme.error : scheme.onSurface;
 
     return ConstrainedBox(
@@ -40,9 +42,12 @@ class DrawerTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
         child: Padding(
+          // The inset and the vertical rhythm of a grouped row, so a drawer row
+          // and a settings row are the same row: the block they sit in owns the
+          // border, the row owns only its content.
           padding: const EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingSm,
-            vertical: DesignTokens.spacingSm,
+            horizontal: DesignTokens.spacingCardInset,
+            vertical: DesignTokens.spacingCardInset,
           ),
           child: Row(
             children: [
@@ -62,16 +67,19 @@ class DrawerTile extends StatelessWidget {
                       label,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: context.theme.textTheme.bodyMedium?.copyWith(
-                        color: labelColor,
-                      ),
+                      // The row title role, not a raw body style: a drawer row
+                      // carries the same line as every other row in the app.
+                      style: roles.rowTitle.copyWith(color: labelColor),
                     ),
                     if (subtitle != null)
-                      Text(
-                        subtitle!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextRoles.of(context).rowSupporting,
+                      // The same 8 dp a row keeps above its supporting line.
+                      RowSubtitle(
+                        Text(
+                          subtitle!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: roles.rowSupporting,
+                        ),
                       ),
                   ],
                 ),

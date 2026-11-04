@@ -18,7 +18,10 @@ class TileGroup extends StatelessWidget {
             contentPadding: const EdgeInsets.symmetric(
               horizontal: DesignTokens.spacingCardInset,
             ),
-            minVerticalPadding: DesignTokens.spacingSm,
+            // The vertical rhythm comes from the theme's own tile padding, so a
+            // row inside a block is the same row as one placed straight in a
+            // section surface; overriding it here was what made the two differ
+            // by 4 dp a side.
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
             ),

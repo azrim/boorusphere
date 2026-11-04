@@ -177,7 +177,7 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 
 - **Surface**: `SectionSurface`, a rounded (`radiusXl`) block painting `surfaceContainerHigh` with a hairline `outlineVariant` border and 4 dp inner padding. In midnight it keeps the page tone, so the block stays pure black and the hairline alone separates it
 - **Label**: `SectionLabel`, small caps, hairline underline hugging the text; `SectionHeading` adds the 24 dp space above, the 8 dp below, and an optional trailing action
-- **Rows**: `TileGroup` wraps `ListTile`s in the shared `ListTileTheme` (12 dp inset, rounded ink); custom rows (`DrawerTile`) match the same inset
+- **Rows**: `TileGroup` wraps `ListTile`s in the shared `ListTileTheme` (12 dp inset, rounded ink) and lets the theme's 12 dp tile padding stand; a block that overrode it became a shorter version of a row that looks identical outside it. Custom rows (`DrawerTile`) match the same inset, the same 16 dp gap to the label, the `rowTitle` role and the 8 dp above the supporting line — one block never holds two row scales
 - **Why**: the container carries the only border, so a section reads as one block instead of a stack of separate cards
 
 ### Empty States
