@@ -24,6 +24,7 @@ import 'package:boorusphere/presentation/utils/hooks/markmayneedrebuild.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
+import 'package:boorusphere/presentation/widgets/sectioned_list.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:boorusphere/utils/serial_queue.dart';
@@ -44,10 +45,7 @@ class SettingsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(context.t.settings.title)),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingMd,
-          ),
+        child: SectionedList(
           children: [
             SettingsSection(
               title: context.t.downloads.title,
@@ -589,13 +587,13 @@ class _FeedMode extends ConsumerWidget {
               value: FeedMode.paged,
               label: context.t.settings.feedMode.paged,
               detail: context.t.settings.feedMode.pagedDesc,
-              leading: const Icon(Icons.swap_horiz_rounded),
+              leading: const Icon(Icons.swap_horiz),
             ),
             Choice(
               value: FeedMode.infinite,
               label: context.t.settings.feedMode.infinite,
               detail: context.t.settings.feedMode.infiniteDesc,
-              leading: const Icon(Icons.expand_more_rounded),
+              leading: const Icon(Icons.expand_more),
             ),
           ],
         );
@@ -812,7 +810,6 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
     final limit = ref.watch(
       contentSettingStateProvider.select((it) => it.videoCacheMaxBytes),
     );
-    final error = Theme.of(context).colorScheme.error;
 
     return SettingsSection(
       title: context.t.settings.cache.title,
@@ -850,7 +847,6 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
         ListTile(
           title: Text(context.t.settings.cache.clear),
           subtitle: RowSubtitle(Text(context.t.settings.cache.clearDesc)),
-          trailing: Icon(Icons.delete_outline, color: error),
           onTap: _clear,
         ),
       ],

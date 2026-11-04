@@ -9,13 +9,14 @@ import 'package:boorusphere/presentation/provider/data_backup/passphrase_input.d
 import 'package:boorusphere/presentation/provider/data_backup/telegram_backup_service.dart';
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
-import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
+import 'package:boorusphere/presentation/widgets/in_block_note.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
+import 'package:boorusphere/presentation/widgets/sectioned_list.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/presentation/widgets/sheet_row.dart';
 import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
@@ -142,12 +143,13 @@ class _Content extends HookConsumerWidget {
       }
     });
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd),
+    return SectionedList(
       children: [
-        const SizedBox(height: DesignTokens.spacingMd),
         // The backup and restore rows name themselves, so they need no
-        // section label of their own.
+        // section label of their own. The gap a heading would have made is
+        // added by hand instead, so the block starts where the labelled ones
+        // do.
+        const SizedBox(height: DesignTokens.spacingLg),
         TileGroup(
           children: [
             ListTile(
@@ -197,7 +199,12 @@ class _Content extends HookConsumerWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.restore),
+              // The arrow means "put these values back" everywhere else in the
+              // app that offers a reset, and this row does not do that: it
+              // hands the choice to the file picker. The dialog that follows
+              // keeps the arrow, because there the verb is the one being
+              // confirmed.
+              leading: const Icon(Icons.folder_open),
               title: Text(context.t.dataBackup.restore.title),
               subtitle: RowSubtitle(Text(context.t.dataBackup.restore.desc)),
               onTap: () {
@@ -233,7 +240,7 @@ class _Content extends HookConsumerWidget {
             // while it is off, so the greyed rows have an explanation next to
             // the one control that unlocks them.
             if (!periodicState.enabled)
-              _LockedNote(context.t.periodicBackup.turnOnForSchedule),
+              InBlockNote(text: context.t.periodicBackup.turnOnForSchedule),
             _FrequencyTile(
               state: periodicState,
               notifier: periodicNotifier,
@@ -286,7 +293,7 @@ class _Content extends HookConsumerWidget {
             // rows under it go grey with it. One line says which switch
             // unlocks the whole group.
             if (!periodicState.enabled)
-              _LockedNote(context.t.periodicBackup.telegram.turnOnFirst),
+              InBlockNote(text: context.t.periodicBackup.telegram.turnOnFirst),
             _TelegramChatIdTile(
               state: periodicState,
               notifier: periodicNotifier,
@@ -308,29 +315,7 @@ class _Content extends HookConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: DesignTokens.spacingLg),
       ],
-    );
-  }
-}
-
-/// The line that names the switch a greyed group answers to.
-///
-/// It sits inside the same block as the rows it explains, in the supporting
-/// role, so it reads as part of the group rather than as a warning.
-class _LockedNote extends StatelessWidget {
-  const _LockedNote(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: DesignTokens.spacingCardInset,
-        vertical: DesignTokens.spacingXs,
-      ),
-      child: Text(text, style: AppTextRoles.of(context).rowSupporting),
     );
   }
 }
@@ -901,14 +886,16 @@ class _TelegramBotTokenTile extends HookWidget {
       enabled: enabled,
       title: Text(context.t.periodicBackup.telegram.botToken),
       subtitle: RowSubtitle(
-        // The dots carry the masking on screen; the label carries the fact.
+        // The dots carry the masking on screen and a reader hears only the
+        // fact: the tail is for eyes, never for the announcement, so the token
+        // does not reach whoever is standing next to the phone.
         Text(
           token.isEmpty
               ? context.t.periodicBackup.telegram.notSet
               : '$_kSecretMask$tail',
           semanticsLabel: token.isEmpty
               ? null
-              : context.t.periodicBackup.telegram.botTokenSaved(value: tail),
+              : context.t.periodicBackup.telegram.botTokenSaved,
         ),
       ),
       trailing: const Icon(Icons.chevron_right),
@@ -976,7 +963,7 @@ class _TestConnectionTile extends HookConsumerWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
-          : const Icon(Icons.send),
+          : null,
       onTap: !enabled || isLoading.value
           ? null
           : () async {
@@ -1061,7 +1048,7 @@ class _BackupNowTile extends HookConsumerWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
-          : const Icon(Icons.cloud_upload),
+          : null,
       onTap: !enabled || !isConfigured || cannotSeal || isLoading.value
           ? null
           : () async {

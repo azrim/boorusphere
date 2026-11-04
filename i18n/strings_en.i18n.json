@@ -415,7 +415,7 @@
     "backup": {
       "title": "Backup data",
       "desc": "Backup app data into a file",
-      "success": "Backup created at :\n${dest}",
+      "success": "Backup created at:\n${dest}",
       "failed": "The backup could not be created. Check the backups folder and the free space on this device.",
       "loading": "Creating backup..."
     },
@@ -485,7 +485,7 @@
       "chatIdValue": "Chat ID ${value}",
       "botToken": "Bot token",
       "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-      "botTokenSaved": "Saved, ends with ${value}",
+      "botTokenSaved": "Saved",
       "notSet": "Not set",
       "openBot": "Create a Telegram bot",
       "openBotDesc": "Open BotFather to create your backup bot",

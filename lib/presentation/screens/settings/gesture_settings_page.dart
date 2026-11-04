@@ -2,11 +2,11 @@ import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/gesture_setting_state.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
-import 'package:boorusphere/presentation/theme/app_typography.dart';
-import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
+import 'package:boorusphere/presentation/widgets/in_block_note.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
+import 'package:boorusphere/presentation/widgets/sectioned_list.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -24,26 +24,12 @@ class GestureSettingsPage extends ConsumerWidget {
       appBar: AppBar(title: Text(context.t.settingsPage.gestureSettings)),
       body: StyledOverlayRegion(
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacingMd,
-            ),
+          child: SectionedList(
             children: [
               SettingsSection(
                 title: context.t.settingsPage.swipeMode,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      DesignTokens.spacingCardInset,
-                      0,
-                      DesignTokens.spacingCardInset,
-                      DesignTokens.spacingSm,
-                    ),
-                    child: Text(
-                      context.t.settingsPage.swipeModeDesc,
-                      style: AppTextRoles.of(context).rowSupporting,
-                    ),
-                  ),
+                  InBlockNote(text: context.t.settingsPage.swipeModeDesc),
                   RadioGroup<SwipeMode>(
                     groupValue: gestureSettings.swipeMode,
                     onChanged: (value) {

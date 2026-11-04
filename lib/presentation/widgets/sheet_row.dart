@@ -287,7 +287,7 @@ class SheetLinkRow extends StatelessWidget {
           if (onCopy case final onCopy?) ...[
             const SizedBox(width: DesignTokens.spacingSm),
             IconButton(
-              icon: const Icon(Icons.copy_rounded, size: 18),
+              icon: const Icon(Icons.copy_rounded, size: DesignTokens.iconInline),
               tooltip: context.t.actionTag.copy,
               onPressed: onCopy,
             ),

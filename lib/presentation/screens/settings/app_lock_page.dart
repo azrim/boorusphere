@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/pin_field.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
+import 'package:boorusphere/presentation/widgets/sectioned_list.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
 import 'package:flutter/material.dart';
@@ -114,10 +115,7 @@ class AppLockPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(t.appLock.title)),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: DesignTokens.spacingMd,
-          ),
+        child: SectionedList(
           children: [
             SettingsSection(
               title: t.settings.privacy,
@@ -166,7 +164,11 @@ class AppLockPage extends ConsumerWidget {
             ),
             const SizedBox(height: DesignTokens.spacingLg),
             NoticeCard(
-              icon: const Icon(Icons.info_outline_rounded),
+              // A notice is a block like the sections around it, so it takes the
+              // page gutter rather than adding a card margin on top of it; the
+              // gap above is the spacer, the one below is the list's run-out.
+              margin: EdgeInsets.zero,
+              icon: const Icon(Icons.info_outline),
               children: Column(
                 children: [
                   Text(
