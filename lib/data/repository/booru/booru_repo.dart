@@ -9,6 +9,7 @@ import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/imageboards_repo.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/utils/http/auth_error.dart';
 import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:dio/dio.dart';
@@ -87,6 +88,12 @@ class BooruRepo implements ImageboardRepo {
       data = decoded;
     }
 
+    // Some engines refuse to answer without credentials while still reporting
+    // success. There is no status code to read in that case, and the body is
+    // the only sign the complaint is about the account rather than the query —
+    // so it is settled here, before any parser gets to call it unreadable.
+    if (isAuthFailurePayload(data)) throw BooruError.authRequired;
+
     return Response(
       requestOptions: res.requestOptions,
       statusCode: res.statusCode,
@@ -156,6 +163,7 @@ class BooruRepo implements ImageboardRepo {
         return {};
       }
       if (isCloudflareChallenge(e)) throw BooruError.cloudflareChallenge;
+      if (isAuthRequired(e)) throw BooruError.authRequired;
       rethrow;
     }
   }
@@ -211,6 +219,7 @@ class BooruRepo implements ImageboardRepo {
         return const ParsedPage.empty();
       }
       if (isCloudflareChallenge(e)) throw BooruError.cloudflareChallenge;
+      if (isAuthRequired(e)) throw BooruError.authRequired;
       rethrow;
     }
   }
@@ -328,6 +337,7 @@ class BooruRepo implements ImageboardRepo {
       );
     } on DioException catch (e) {
       if (isCloudflareChallenge(e)) throw BooruError.cloudflareChallenge;
+      if (isAuthRequired(e)) throw BooruError.authRequired;
       rethrow;
     }
   }

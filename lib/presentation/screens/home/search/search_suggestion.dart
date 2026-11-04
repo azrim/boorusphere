@@ -20,6 +20,7 @@ import 'package:boorusphere/presentation/widgets/drag_handle.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/http/auth_error.dart';
 import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:boorusphere/utils/number_format.dart';
 import 'package:dio/dio.dart';
@@ -627,6 +628,10 @@ class _ErrorSuggestion extends StatelessWidget {
       // The same check that stops the timeline shows up here, and a status
       // code would read like the server refused the tag.
       msg = context.t.pageStatus.cloudflareChallenge(serverName: serverName);
+    } else if (isAuthRequired(err)) {
+      // Suggestions come from the same API that wants a key: the reader needs
+      // to know the tag list is missing credentials, not missing tags.
+      msg = context.t.pageStatus.unauthorized(serverName: serverName);
     } else if (err is DioException && err.response?.statusCode != null) {
       // The three statuses that ask for a different action than "try again"
       // get their own wording; the rest keep the query and the code.

@@ -67,6 +67,50 @@ BooruRepo _repo(Server server, HttpClientAdapter adapter) {
 String _basic(String login, String apiKey) =>
     'Basic ${base64Encode(utf8.encode('$login:$apiKey'))}';
 
+/// Rule34's API host, which answers an anonymous `dapi` request with a
+/// one-line notice under **200** instead of a status code.
+const _rule34 = Server(
+  id: 'Rule34',
+  homepage: 'https://api.rule34.xxx',
+  searchUrl:
+      'index.php?page=dapi&s=post&q=index&tags={tags}'
+      '&pid={page-id}&limit={post-limit}',
+  tagSuggestionUrl:
+      'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%'
+      '&limit={post-limit}',
+  searchParserId: 'Gelbooru.json',
+  suggestionParserId: 'Gelbooru.json',
+);
+
+/// An adapter that answers every request with one fixed body and status.
+class _FixedAdapter extends _RecordingAdapter {
+  _FixedAdapter({required this.body, super.status = 200});
+
+  final String body;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    return ResponseBody.fromString(
+      body,
+      status,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+        ...headers,
+      },
+    );
+  }
+}
+
+const _missingAuth =
+    '<?xml version="1.0" encoding="UTF-8"?>'
+    '<error>Missing authentication. Go to api.rule34.xxx for more '
+    'information</error>';
+
 void main() {
   test(
     'Danbooru sends its credentials as a Basic header, not in the URL',
@@ -141,6 +185,70 @@ void main() {
     await expectLater(
       repo.getSuggestion('ca'),
       throwsA(BooruError.cloudflareChallenge),
+    );
+  });
+
+  group('a server that wants credentials says so', () {
+    test(
+      'the notice served under a success status is not called unreadable',
+      () async {
+        final repo = _repo(_rule34, _FixedAdapter(body: _missingAuth));
+
+        // No parser reads that body, so before this check the whole exchange
+        // arrived as "cannot read the response" — the site blamed for a key
+        // the reader never got asked for.
+        await expectLater(
+          repo.getPage(const PageOption(limit: 1), 0),
+          throwsA(BooruError.authRequired),
+        );
+        await expectLater(
+          repo.getSuggestion('cat'),
+          throwsA(BooruError.authRequired),
+        );
+      },
+    );
+
+    test('a 401 becomes the same error as the notice', () async {
+      final repo = _repo(_danbooru(), _FixedAdapter(body: '', status: 401));
+
+      await expectLater(
+        repo.getPage(const PageOption(limit: 1), 0),
+        throwsA(BooruError.authRequired),
+      );
+      await expectLater(
+        repo.getSuggestion('ca'),
+        throwsA(BooruError.authRequired),
+      );
+    });
+
+    test('the tag sheet asks for the same thing the posts do', () async {
+      final repo = _repo(_danbooru(), _FixedAdapter(body: '', status: 401));
+
+      await expectLater(
+        repo.getTagInfo('cats'),
+        throwsA(BooruError.authRequired),
+      );
+    });
+
+    test(
+      'a result that merely mentions authentication is still parsed',
+      () async {
+        // A tag named for the complaint, or a wiki page quoting it, must not
+        // turn a working server into one that is blamed on the account.
+        final repo = _repo(
+          _rule34,
+          _FixedAdapter(
+            body:
+                '{"@attributes":{"limit":1,"offset":0,"count":1},'
+                '"post":[{"id":"1","file_url":"https://x/1.jpg",'
+                '"preview_url":"https://x/1p.jpg","tags":'
+                '"missing_authentication","width":"10","height":"10"}]}',
+          ),
+        );
+
+        final page = await repo.getPage(const PageOption(limit: 1), 0);
+        expect(page.posts, hasLength(1));
+      },
     );
   });
 }

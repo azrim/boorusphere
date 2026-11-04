@@ -18,6 +18,7 @@ import 'package:boorusphere/presentation/utils/extensions/strings.dart';
 import 'package:boorusphere/presentation/widgets/error_info.dart';
 import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
+import 'package:boorusphere/utils/http/auth_error.dart';
 import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +61,10 @@ class _ErrorStatus extends ConsumerWidget {
       // code would read as the server's answer, so the line says what the
       // check is and the card offers the browser that can answer it.
       return context.t.pageStatus.cloudflareChallenge(serverName: server.name);
+    } else if (isAuthRequired(e)) {
+      // The server would answer a signed request. Naming the missing
+      // credentials beats reporting a status code the reader cannot act on.
+      return context.t.pageStatus.unauthorized(serverName: server.name);
     } else if (e is DioException && e.response?.statusCode != null) {
       // A bare status code leaves the reader guessing whether the account, the
       // query or the rate limit is at fault; each of these names the fix.
@@ -91,6 +96,8 @@ class _ErrorStatus extends ConsumerWidget {
   Icon _getIconForError(Object? error) {
     if (isCloudflareChallenge(error)) {
       return const Icon(Icons.shield_outlined);
+    } else if (isAuthRequired(error)) {
+      return const Icon(Icons.key_outlined);
     } else if (error is DioException) {
       return const Icon(Icons.wifi_off);
     } else if (error == BooruError.empty) {
@@ -123,6 +130,7 @@ class _ErrorStatus extends ConsumerWidget {
     final server = ref.watch(serverStateProvider).getById(session.serverId);
     final safeRating = data.option.searchRating == BooruRating.safe;
     final challenged = isCloudflareChallenge(error);
+    final needsAuth = isAuthRequired(error);
     // The session server is gone: the card carries no error of its own, and
     // the only way out is a different server. Retrying or changing the rating
     // cannot make this one resolve.
@@ -160,6 +168,15 @@ class _ErrorStatus extends ConsumerWidget {
                   FilledButton(
                     onPressed: () => Scaffold.of(context).openDrawer(),
                     child: Text(context.t.pageStatus.changeServer),
+                  )
+                else if (needsAuth)
+                  // Retrying cannot fill in the key, so the filled action goes
+                  // where the credentials live.
+                  FilledButton.icon(
+                    onPressed: () =>
+                        context.router.push(ServerEditorRoute(server: server)),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(context.t.servers.edit(name: server.name)),
                   )
                 else if (safeRating)
                   FilledButton(
