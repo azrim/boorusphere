@@ -12,6 +12,7 @@ import 'package:boorusphere/presentation/screens/settings/widgets/settings_secti
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
+import 'package:boorusphere/presentation/widgets/block_checkbox_tile.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/in_block_note.dart';
@@ -666,12 +667,12 @@ class _PassphraseSheet extends HookWidget {
               ),
             ],
             if (mode == _PassphraseMode.backup)
-              CheckboxListTile(
+              BlockCheckboxTile(
+                // The sheet's padding is the gutter, and the tick keeps the
+                // trailing edge like every other toggle in the app.
                 value: save.value,
-                onChanged: (v) => save.value = v ?? true,
-                title: Text(context.t.dataBackup.savePassphrase),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
+                title: context.t.dataBackup.savePassphrase,
+                onChanged: (isChecked) => save.value = isChecked,
               ),
           ],
         ),

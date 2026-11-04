@@ -16,8 +16,8 @@ import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
+import 'package:boorusphere/presentation/widgets/block_checkbox_tile.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
-import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:boorusphere/utils/logger.dart';
@@ -538,20 +538,16 @@ class ServerAddPage extends HookConsumerWidget {
                                 },
                               ),
                               const SizedBox(height: DesignTokens.spacingSm),
-                              CheckboxListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: DesignTokens.spacingCardInset,
-                                ),
+                              // The same opt-in as the editor's, in the one
+                              // row shape: its tick now lines up with the field
+                              // above it instead of stepping in another 12 dp.
+                              BlockCheckboxTile(
                                 value: useApiAddr.value,
-                                title: Text(context.t.servers.useCustomApi),
-                                subtitle: RowSubtitle(
-                                  Text(context.t.servers.useCustomApiDesc),
-                                ),
+                                title: context.t.servers.useCustomApi,
+                                subtitle: context.t.servers.useCustomApiDesc,
                                 onChanged: (isChecked) {
-                                  if (isChecked != null) {
-                                    useApiAddr.value = isChecked;
-                                    updateServer();
-                                  }
+                                  useApiAddr.value = isChecked;
+                                  updateServer();
                                 },
                               ),
                               if (useApiAddr.value) ...[

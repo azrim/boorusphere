@@ -1,5 +1,6 @@
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
+import 'package:boorusphere/presentation/widgets/block_checkbox_tile.dart';
 import 'package:boorusphere/presentation/widgets/in_block_note.dart';
 import 'package:boorusphere/presentation/widgets/section_surface.dart';
 import 'package:boorusphere/presentation/widgets/sectioned_list.dart';
@@ -107,4 +108,57 @@ void main() {
       );
     });
   });
+
+  group('BlockCheckboxTile', () {
+    // The shape a server form and a settings sheet both hand the row: a column
+    // that has already paid for its own gutter, with a field label above it.
+    Widget form() {
+      return _host(
+        const SectionSurface(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(DesignTokens.spacingSm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Homepage'),
+                  BlockCheckboxTile(
+                    value: true,
+                    title: 'Use a custom API address',
+                    onChanged: _noop,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    testWidgets('starts where the field above it starts', (tester) async {
+      await tester.pumpWidget(form());
+
+      // The row adds no inset of its own: a second one on top of the column's
+      // padding put the tick out of line with every field it was written under.
+      expect(
+        tester.getRect(find.text('Use a custom API address')).left,
+        tester.getRect(find.text('Homepage')).left,
+      );
+    });
+
+    testWidgets('carries its box on the trailing edge, like a switch', (
+      tester,
+    ) async {
+      await tester.pumpWidget(form());
+
+      // One column answers every toggle in the app, whatever the toggle is
+      // spelled as: a checkbox row that put its box on the leading edge asked
+      // the reader to look in two places for the same kind of control.
+      final title = tester.getRect(find.text('Use a custom API address'));
+      final box = tester.getRect(find.byType(Checkbox));
+      expect(box.left, greaterThan(title.left));
+    });
+  });
 }
+
+void _noop(bool value) {}
