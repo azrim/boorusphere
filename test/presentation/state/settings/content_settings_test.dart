@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
+import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,16 +98,10 @@ void main() async {
 
     test('video cache limit is clamped to the offered range', () async {
       await notifier().setVideoCacheMaxBytes(1);
-      expect(
-        state().videoCacheMaxBytes,
-        ContentSettingState.minVideoCacheMaxBytes,
-      );
+      expect(state().videoCacheMaxBytes, VideoCache.minBudgetBytes);
 
       await notifier().setVideoCacheMaxBytes(9 * 1024 * 1024 * 1024);
-      expect(
-        state().videoCacheMaxBytes,
-        ContentSettingState.maxVideoCacheMaxBytes,
-      );
+      expect(state().videoCacheMaxBytes, VideoCache.maxBudgetBytes);
 
       await notifier().setVideoCacheMaxBytes(500 * 1024 * 1024);
       expect(state().videoCacheMaxBytes, 500 * 1024 * 1024);

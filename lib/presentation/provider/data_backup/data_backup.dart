@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
+import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/downloads/user_download_repo.dart';
 import 'package:boorusphere/data/repository/favorite_post/user_favorite_post_repo.dart';
 import 'package:boorusphere/data/repository/search_history/user_search_history.dart';
@@ -10,6 +11,7 @@ import 'package:boorusphere/data/repository/server/user_server_repo.dart';
 import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
+import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/data_backup/archive_name.dart';
@@ -123,7 +125,31 @@ class DataBackupState extends _$DataBackupState {
     // The restored rows point at paths whose files were just checked, so the
     // memoized answer of every existing row has to be read again.
     ref.read(downloadFileRevisionProvider.notifier).bump();
+    // The video cache reads its budget once, when the provider is built, and
+    // is kept alive so the player and the settings screen share one instance.
+    // A restore that carried a different budget therefore has to be handed to
+    // the running cache: invalidating the provider instead would orphan the
+    // downloads it has in flight, whose index write would land after a fresh
+    // instance already read the file.
+    await _applyRestoredCacheBudget();
     await ref.read(serverStateProvider.notifier).populate();
+  }
+
+  /// Gives the running video cache the budget the restored settings name.
+  ///
+  /// A failure here is not a failed restore: the boxes are already written, and
+  /// the cache simply keeps the budget it booted with until the next launch.
+  Future<void> _applyRestoredCacheBudget() async {
+    try {
+      final stored = ref
+          .read(settingsRepoProvider)
+          .get(Setting.videoCacheMaxBytes, or: VideoCache.defaultMaxBytes);
+      await ref
+          .read(videoCacheProvider)
+          .applyMaxBytes(VideoCache.budgetFrom(stored));
+    } on Object catch (e, stack) {
+      mainLog.w('DataBackupState: restored cache budget not applied', e, stack);
+    }
   }
 
   Future<void> restore({

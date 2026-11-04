@@ -82,10 +82,9 @@ VideoCache videoCache(Ref ref) {
       final root = await getApplicationCacheDirectory();
       return Directory(path.join(root.path, 'videos'));
     },
-    maxBytes: settings
-        .get(Setting.videoCacheMaxBytes, or: VideoCache.defaultMaxBytes)
-        .clamp(VideoCache.minBudgetBytes, VideoCache.maxBudgetBytes)
-        .toInt(),
+    maxBytes: VideoCache.budgetFrom(
+      settings.get(Setting.videoCacheMaxBytes, or: VideoCache.defaultMaxBytes),
+    ),
   );
 }
 

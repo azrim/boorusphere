@@ -41,6 +41,14 @@ class VideoCache {
   static const minBudgetBytes = 100 * 1024 * 1024;
   static const maxBudgetBytes = 1024 * 1024 * 1024;
 
+  /// The budget a stored setting allows. Every reader of the setting goes
+  /// through here — the cache built at boot, the settings state, and a restore
+  /// that hands the running cache a new number — so one archived value cannot
+  /// mean a different budget in one of the three.
+  static int budgetFrom(int bytes) {
+    return bytes.clamp(minBudgetBytes, maxBudgetBytes).toInt();
+  }
+
   static const _indexName = 'index.json';
   static const _indexVersion = 1;
 

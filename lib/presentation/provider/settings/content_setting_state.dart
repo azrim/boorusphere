@@ -17,11 +17,9 @@ class ContentSettingState extends _$ContentSettingState {
   static const maxVideoSeekSeconds = 15;
 
   /// Video cache budgets the settings offer, in megabytes. A stored value is
-  /// clamped to the same range, so an imported archive cannot leave the cache
-  /// with no room or let it grow past a gigabyte.
+  /// clamped to the range [VideoCache] publishes, so an imported archive cannot
+  /// leave the cache with no room or let it grow past a gigabyte.
   static const videoCacheLimitMegabytes = [100, 300, 500, 1024];
-  static const minVideoCacheMaxBytes = VideoCache.minBudgetBytes;
-  static const maxVideoCacheMaxBytes = VideoCache.maxBudgetBytes;
 
   @override
   ContentSetting build() {
@@ -51,10 +49,9 @@ class ContentSettingState extends _$ContentSettingState {
       ),
       hideFavorited: repo.get(Setting.timelineHideFavorited, or: false),
       hideDownloaded: repo.get(Setting.timelineHideDownloaded, or: false),
-      videoCacheMaxBytes: repo
-          .get(Setting.videoCacheMaxBytes, or: VideoCache.defaultMaxBytes)
-          .clamp(minVideoCacheMaxBytes, maxVideoCacheMaxBytes)
-          .toInt(),
+      videoCacheMaxBytes: VideoCache.budgetFrom(
+        repo.get(Setting.videoCacheMaxBytes, or: VideoCache.defaultMaxBytes),
+      ),
     );
   }
 
@@ -136,11 +133,8 @@ class ContentSettingState extends _$ContentSettingState {
 
   Future<void> setVideoCacheMaxBytes(int bytes) async {
     final repo = ref.read(settingsRepoProvider);
-    state = state.copyWith(
-      videoCacheMaxBytes: bytes
-          .clamp(minVideoCacheMaxBytes, maxVideoCacheMaxBytes)
-          .toInt(),
-    );
-    await repo.put(Setting.videoCacheMaxBytes, state.videoCacheMaxBytes);
+    final budget = VideoCache.budgetFrom(bytes);
+    state = state.copyWith(videoCacheMaxBytes: budget);
+    await repo.put(Setting.videoCacheMaxBytes, budget);
   }
 }
