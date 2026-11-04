@@ -156,6 +156,28 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
+  /// Shimmie's `danbooru_api` extension answers under its clean path: the
+  /// `/index.xml` suffix these entries still carry resolves to the site's error
+  /// page, which no parser reads, so every search on such an entry fails.
+  Future<void> _migrateShimmieSearchPath() async {
+    const stalePath = 'api/danbooru/find_posts/index.xml';
+    const currentPath = 'api/danbooru/find_posts';
+
+    final mapped = Map<String, Server>.from(box.toMap());
+    for (final entry in mapped.entries) {
+      final server = entry.value;
+      if (!server.searchUrl.contains(stalePath)) continue;
+
+      await box.put(
+        entry.key,
+        server.copyWith(
+          searchUrl: server.searchUrl.replaceFirst(stalePath, currentPath),
+        ),
+      );
+    }
+    await box.flush();
+  }
+
   @override
   Future<void> populate() async {
     if (_defaults.isEmpty) return;
@@ -168,6 +190,7 @@ class UserServerRepo implements ServerRepo {
       await _migrateSafebooruSuggestionUrl();
       await _migrateRule34ApiHost();
       await _migrateOneBasedPageParam();
+      await _migrateShimmieSearchPath();
     }
   }
 

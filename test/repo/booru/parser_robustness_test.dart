@@ -290,6 +290,100 @@ void main() async {
     });
   });
 
+  group('shimmie reads the payload shapes its installs actually send', () {
+    test('current installs put the post under <post>', () {
+      const payload =
+          "<posts count='1'><post id='7494083' "
+          "file_url='https://cdn.example.com/1.jpg' "
+          "preview_url='https://cdn.example.com/1-thumb.jpg' "
+          "width='3840' height='2160' rating='?' "
+          "tags='AI-generated Cat Floragato'></post></posts>";
+      final parser = ShimmieXmlParser();
+
+      expect(parser.canParsePage(_response(payload)), isTrue);
+
+      final page = parser.parsePage(_server, _response(payload));
+      expect(page.posts, hasLength(1));
+      expect(page.single.id, 7494083);
+      expect(page.single.width, 3840);
+      expect(page.single.tags, contains('Cat'));
+    });
+
+    test('older installs wrap the same attributes in <tag>', () {
+      const payload =
+          '<posts count="1"><tag id="5754271" '
+          'file_url="https://cdn.example.com/1.jpg" '
+          'preview_url="https://cdn.example.com/1-thumb.jpg" '
+          'width="990" height="785" tags="Cat"/></posts>';
+
+      final page = ShimmieXmlParser().parsePage(_server, _response(payload));
+
+      expect(page.posts, hasLength(1));
+      expect(page.single.id, 5754271);
+    });
+
+    test('entries without a file url are not claimed as posts', () {
+      // Claiming them would parse to an empty page, which the reader would
+      // read as "the server has nothing more" and stop paginating.
+      const payload =
+          '<posts count="40"><post id="1" fileurl="https://cdn.example.com/1.jpg"'
+          ' preview_url="https://cdn.example.com/1-thumb.jpg"/></posts>';
+
+      expect(ShimmieXmlParser().canParsePage(_response(payload)), isFalse);
+    });
+
+    test('current autocomplete counts inside the tag object', () {
+      final payload = {
+        'Catwoman': {'newtag': null, 'count': 4611},
+        'Cat': {'newtag': null, 'count': 485},
+        'Catnappe': {'newtag': null, 'count': 0},
+      };
+      final parser = ShimmieXmlParser();
+
+      expect(parser.canParseSuggestion(_response(payload)), isTrue);
+
+      final suggestions = parser.parseSuggestion(_server, _response(payload));
+      expect(
+        suggestions.map((it) => it.name),
+        containsAll(['Catwoman', 'Cat']),
+      );
+      expect(suggestions, hasLength(2));
+      expect(
+        suggestions.firstWhere((it) => it.name == 'Cat').count,
+        485,
+        reason: 'the count travels inside the object, not beside the tag',
+      );
+    });
+
+    test('older autocomplete counts sit directly behind the tag', () {
+      final payload = {'Book': 136, 'bookshelf': 0};
+
+      final suggestions = ShimmieXmlParser().parseSuggestion(
+        _server,
+        _response(payload),
+      );
+
+      expect(suggestions, hasLength(1));
+      expect(suggestions.single.name, 'Book');
+    });
+
+    test('another engine\'s envelope stays with that engine', () {
+      // A szurubooru tag search: a `results` list under a counted envelope.
+      // Claiming it would answer the reader with an empty suggestion list.
+      final payload = {
+        'total': 3,
+        'results': [
+          {'name': 'cat'},
+        ],
+      };
+
+      expect(
+        ShimmieXmlParser().canParseSuggestion(_response(payload)),
+        isFalse,
+      );
+    });
+  });
+
   group('numeric dimensions', () {
     test(
       'a non-integer dimension is truncated instead of dropping the post',

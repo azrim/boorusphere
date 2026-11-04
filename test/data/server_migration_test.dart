@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/encryption.dart';
+import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -140,6 +141,76 @@ void main() {
       await repo.populate();
 
       expect(box.get('@gelbooru')!.tagSuggestionUrl, gelbooruAutocompleteUrl);
+    });
+  });
+
+  group('UserServerRepo.populate shimmie search path', () {
+    late Box<Server> box;
+    late UserServerRepo repo;
+
+    setUp(() async {
+      box = await Hive.openBox<Server>('server_shimmie_test');
+      await box.clear();
+      repo = UserServerRepo(
+        defaultServers: const {'@seed': Server(id: 'seed')},
+        box: box,
+      );
+    });
+
+    tearDown(() => box.close());
+
+    test('drops the /index.xml suffix that answers an error page', () async {
+      await box.put(
+        '@paheal',
+        const Server(
+          id: 'Paheal',
+          homepage: 'https://rule34.paheal.net',
+          searchParserId: 'Shimmie.xml',
+          searchUrl:
+              'api/danbooru/find_posts/index.xml?tags={tags}'
+              '&limit={post-limit}&page={page-num}',
+        ),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@paheal')!.searchUrl,
+        ShimmieXmlParser().searchQuery,
+        reason: 'a saved row must heal to the path that still answers',
+      );
+    });
+
+    test('heals a row that is stale in both ways at once', () async {
+      await box.put(
+        '@paheal',
+        const Server(
+          id: 'Paheal',
+          homepage: 'https://rule34.paheal.net',
+          searchUrl:
+              'api/danbooru/find_posts/index.xml?tags={tags}'
+              '&limit={post-limit}&page={page-id}',
+        ),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@paheal')!.searchUrl,
+        ShimmieXmlParser().searchQuery,
+        reason: 'the page rewrite runs first, the path rewrite after it',
+      );
+    });
+
+    test('leaves a row that already uses the clean path alone', () async {
+      const current =
+          'api/danbooru/find_posts?tags={tags}&limit={post-limit}'
+          '&page={page-num}';
+      await box.put('@paheal', const Server(id: 'Paheal', searchUrl: current));
+
+      await repo.populate();
+
+      expect(box.get('@paheal')!.searchUrl, current);
     });
   });
 }

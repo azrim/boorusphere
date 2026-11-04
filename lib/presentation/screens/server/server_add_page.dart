@@ -92,7 +92,7 @@ const booruEngines = <BooruEngine>[
     searchParserId: 'Shimmie.xml',
     suggestionParserId: 'Shimmie.xml',
     searchQuery:
-        'api/danbooru/find_posts/index.xml?tags={tags}&limit={post-limit}&page={page-num}',
+        'api/danbooru/find_posts?tags={tags}&limit={post-limit}&page={page-num}',
     suggestionQuery: 'api/internal/autocomplete?s={tag-part}',
     postUrl: 'post/view/{post-id}',
   ),
