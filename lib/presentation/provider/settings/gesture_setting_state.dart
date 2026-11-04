@@ -100,12 +100,19 @@ class GestureSettingStateNotifier extends _$GestureSettingStateNotifier {
     await repo.put(Setting.gestureEnableSwipeToDismiss, newValue);
   }
 
-  Future<void> reset() async {
+  /// Puts every gesture back to its default and answers whether the defaults
+  /// reached storage.
+  ///
+  /// A run whose settings box never opened holds the choices in memory only,
+  /// so a row that reported success would be promising something the next
+  /// start takes back.
+  Future<bool> reset() async {
     final repo = ref.read(settingsRepoProvider);
     state = const GestureSettingState();
     await repo.put(Setting.gestureSwipeMode, SwipeMode.horizontal.name);
     await repo.put(Setting.gestureSwipeDownThreshold, 100.0);
     await repo.put(Setting.gestureEnableSwipeToDetails, true);
     await repo.put(Setting.gestureEnableSwipeToDismiss, true);
+    return repo.isPersistent;
   }
 }

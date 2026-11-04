@@ -124,9 +124,19 @@ class GestureSettingsPage extends ConsumerWidget {
                   ListTile(
                     title: Text(context.t.resetToDefault),
                     leading: const Icon(Icons.restore),
-                    onTap: () {
-                      gestureNotifier.reset();
-                      showToast(context, context.t.settingsPage.resetSuccess);
+                    onTap: () async {
+                      final t = context.t;
+                      final kept = await gestureNotifier.reset();
+                      if (!context.mounted) return;
+                      // The row used to promise the defaults before the writes
+                      // had even answered, and on a run whose settings box
+                      // never opened they were gone again with the process.
+                      showToast(
+                        context,
+                        kept
+                            ? t.settingsPage.resetSuccess
+                            : t.settingsPage.resetNotSaved,
+                      );
                     },
                   ),
                 ],

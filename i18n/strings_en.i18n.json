@@ -539,6 +539,7 @@
     "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
     "reset": "Reset",
     "reset_success": "Gesture settings reset to defaults",
+    "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
     "horizontal": "Horizontal",
     "horizontal_desc": "Swipe left/right to navigate between posts",
     "vertical": "Vertical",
