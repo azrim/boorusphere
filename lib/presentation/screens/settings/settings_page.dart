@@ -25,6 +25,8 @@ import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
+import 'package:boorusphere/utils/logger.dart';
+import 'package:boorusphere/utils/serial_queue.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -717,42 +719,62 @@ class _CacheSection extends ConsumerStatefulWidget {
 class _CacheSectionState extends ConsumerState<_CacheSection> {
   VideoCacheStats? _stats;
 
+  /// The walk, the clear and a new limit share one queue. A size read while an
+  /// action is still running describes a cache that is about to change, and it
+  /// can answer after the next read and leave the row showing a number that
+  /// nobody has any more.
+  final _actions = SerialQueue();
+
   @override
   void initState() {
     super.initState();
     unawaited(_refresh());
   }
 
-  Future<void> _refresh() async {
-    final stats = await ref.read(videoCacheProvider).stats();
-    if (!mounted) return;
-    setState(() => _stats = stats);
+  Future<void> _refresh() => _actions.run(_readStats);
+
+  /// Kept out of the queue on its own, so an action can re-read the size
+  /// without waiting for itself to finish.
+  Future<void> _readStats() async {
+    try {
+      final stats = await ref.read(videoCacheProvider).stats();
+      if (!mounted) return;
+      setState(() => _stats = stats);
+    } on Object catch (e, stack) {
+      // A walk that cannot run leaves the last number on screen: the row has
+      // nothing to say about a size it never measured.
+      mainLog.w('CacheSection: the cache size could not be read', e, stack);
+    }
   }
 
   Future<void> _clear() async {
+    final t = context.t;
     final confirmed = await confirmDestructive(
       context,
-      title: context.t.settings.cache.clearTitle,
-      message: context.t.settings.cache.clearMessage,
-      confirmLabel: context.t.clear,
+      title: t.settings.cache.clearTitle,
+      message: t.settings.cache.clearMessage,
+      confirmLabel: t.clear,
     );
     if (!confirmed || !mounted) return;
 
-    showToast(context, context.t.clearing);
-    await DefaultCacheManager().emptyCache();
-    PaintingBinding.instance.imageCache.clear();
-    PaintingBinding.instance.imageCache.clearLiveImages();
-    await ref.read(videoCacheProvider).clear();
-    await _refresh();
-    if (mounted) showToast(context, context.t.settings.cache.done);
+    await _actions.run(() async {
+      showToast(context, t.clearing);
+      await DefaultCacheManager().emptyCache();
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+      await ref.read(videoCacheProvider).clear();
+      await _readStats();
+      if (mounted) showToast(context, t.settings.cache.done);
+    });
   }
 
   Future<void> _pickLimit() async {
+    final t = context.t;
     final bytes = ref.read(contentSettingStateProvider).videoCacheMaxBytes;
     final megabytes = bytes ~/ (1024 * 1024);
     final picked = await showChoiceSheet<int>(
       context: context,
-      title: context.t.settings.cache.limit,
+      title: t.settings.cache.limit,
       selected: ContentSettingState.videoCacheLimitMegabytes.contains(megabytes)
           ? megabytes
           : null,
@@ -764,19 +786,21 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
     if (picked == null || !mounted) return;
 
     final limit = picked.value * 1024 * 1024;
-    await ref
-        .read(contentSettingStateProvider.notifier)
-        .setVideoCacheMaxBytes(limit);
-    await ref.read(videoCacheProvider).applyMaxBytes(limit);
-    await _refresh();
-    if (mounted) {
-      showToast(
-        context,
-        context.t.settings.cache.limitDone(
-          size: _formatMegabytes(context, picked.value),
-        ),
-      );
-    }
+    await _actions.run(() async {
+      await ref
+          .read(contentSettingStateProvider.notifier)
+          .setVideoCacheMaxBytes(limit);
+      await ref.read(videoCacheProvider).applyMaxBytes(limit);
+      await _readStats();
+      if (mounted) {
+        showToast(
+          context,
+          t.settings.cache.limitDone(
+            size: _formatMegabytes(context, picked.value),
+          ),
+        );
+      }
+    });
   }
 
   @override

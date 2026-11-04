@@ -27,6 +27,24 @@ class _FakeAppLockRepo implements AppLockRepo {
   bool throwOnWrite = false;
   Completer<bool>? verifyCompleter;
 
+  /// The writes that reached storage, in the order they entered.
+  final List<String> writes = [];
+
+  final List<Completer<void>> _holds = [];
+
+  /// The next config write stops here until the test completes the answer.
+  Completer<void> holdNextWrite() {
+    final hold = Completer<void>();
+    _holds.add(hold);
+    return hold;
+  }
+
+  Future<void> _entered(String which) async {
+    writes.add(which);
+    if (_holds.isEmpty) return;
+    await _holds.removeAt(0).future;
+  }
+
   @override
   AppLockConfig get config =>
       AppLockConfig(enabled: enabled, hasPin: pin != null, timeout: timeout);
@@ -34,6 +52,7 @@ class _FakeAppLockRepo implements AppLockRepo {
   @override
   Future<void> enable(String pin) async {
     if (throwOnWrite) throw const AppLockUnavailableException();
+    await _entered('enable:$pin');
     this.pin = pin;
     enabled = true;
   }
@@ -41,12 +60,14 @@ class _FakeAppLockRepo implements AppLockRepo {
   @override
   Future<void> changePin(String pin) async {
     if (throwOnWrite) throw const AppLockUnavailableException();
+    await _entered('changePin:$pin');
     this.pin = pin;
   }
 
   @override
   Future<void> disable() async {
     if (throwOnWrite) throw const AppLockUnavailableException();
+    await _entered('disable');
     pin = null;
     enabled = false;
   }
@@ -62,6 +83,7 @@ class _FakeAppLockRepo implements AppLockRepo {
   @override
   Future<void> setTimeout(LockTimeout timeout) async {
     if (throwOnWrite) throw const AppLockUnavailableException();
+    await _entered('setTimeout:$timeout');
     this.timeout = timeout;
   }
 }
@@ -443,6 +465,30 @@ void main() {
 
       expect(data().timeout, LockTimeout.minutes5);
       expect(repo.timeout, LockTimeout.minutes5);
+    });
+
+    test('a second toggle waits for the first to reach storage', () async {
+      await create(enabled: false, pin: null);
+      final held = repo.holdNextWrite();
+
+      // Both taps land while the switch still reads off. They used to put two
+      // PINs on their way to storage at once, and whichever arrived last owned
+      // the lock: the person who typed the first PIN was locked out of a lock
+      // they believe they set once.
+      final first = notifier().enable('1111');
+      final second = notifier().enable('2222');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repo.writes, ['enable:1111']);
+      expect(repo.pin, isNull);
+
+      held.complete();
+      await first;
+      await second;
+
+      expect(repo.writes, ['enable:1111', 'enable:2222']);
+      expect(repo.pin, '2222');
+      expect(data().isActive, isTrue);
     });
   });
 }

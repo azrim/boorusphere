@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/provider/app_lock/clock.dart';
 import 'package:boorusphere/presentation/provider/app_lock/entity/app_lock_data.dart';
 import 'package:boorusphere/presentation/provider/app_lock/lockout.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:boorusphere/utils/serial_queue.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_lock_state.g.dart';
@@ -34,6 +35,9 @@ enum UnlockResult {
 @Riverpod(keepAlive: true)
 class AppLock extends _$AppLock {
   bool _busy = false;
+
+  /// Lock config writes, one at a time.
+  final _configWrites = SerialQueue();
 
   /// Set while the system prompt is on screen. The prompt pauses the app on
   /// Android, and that pause must not be read as the user leaving it.
@@ -237,38 +241,57 @@ class AppLock extends _$AppLock {
     if (!away.isNegative && away >= grace) _lock();
   }
 
-  Future<void> enable(String pin) async {
-    await ref.read(appLockRepoProvider).enable(pin);
-    if (!ref.mounted) return;
-
-    _clearFailures();
-    state = state.copyWith(enabled: true, hasPin: true, locked: false);
+  /// Runs one [enable], [changePin], [disable] or [setTimeout] after another.
+  ///
+  /// The settings page stays tappable while a write is in flight and its
+  /// switch still shows the value from before, so a second toggle can open a
+  /// second PIN entry. Whichever write reaches secure storage last owns the
+  /// lock, and someone who typed the earlier PIN is then locked out of a lock
+  /// they believe they set once.
+  Future<void> _config(Future<void> Function() write) {
+    return _configWrites.run(write);
   }
 
-  Future<void> changePin(String pin) async {
-    await ref.read(appLockRepoProvider).changePin(pin);
-    if (!ref.mounted) return;
+  Future<void> enable(String pin) {
+    return _config(() async {
+      await ref.read(appLockRepoProvider).enable(pin);
+      if (!ref.mounted) return;
 
-    _clearFailures();
-    state = state.copyWith(hasPin: true);
+      _clearFailures();
+      state = state.copyWith(enabled: true, hasPin: true, locked: false);
+    });
   }
 
-  Future<void> disable() async {
-    await ref.read(appLockRepoProvider).disable();
-    if (!ref.mounted) return;
+  Future<void> changePin(String pin) {
+    return _config(() async {
+      await ref.read(appLockRepoProvider).changePin(pin);
+      if (!ref.mounted) return;
 
-    _clearFailures();
-    _pausedAt = null;
-    _pausedDuringExternalFlow = false;
-    state = state.copyWith(enabled: false, hasPin: false, locked: false);
+      _clearFailures();
+      state = state.copyWith(hasPin: true);
+    });
   }
 
-  Future<void> setTimeout(LockTimeout timeout) async {
-    await ref.read(appLockRepoProvider).setTimeout(timeout);
-    if (!ref.mounted) return;
+  Future<void> disable() {
+    return _config(() async {
+      await ref.read(appLockRepoProvider).disable();
+      if (!ref.mounted) return;
 
-    state = state.copyWith(timeout: timeout);
-    if (timeout == LockTimeout.never) _pausedAt = null;
+      _clearFailures();
+      _pausedAt = null;
+      _pausedDuringExternalFlow = false;
+      state = state.copyWith(enabled: false, hasPin: false, locked: false);
+    });
+  }
+
+  Future<void> setTimeout(LockTimeout timeout) {
+    return _config(() async {
+      await ref.read(appLockRepoProvider).setTimeout(timeout);
+      if (!ref.mounted) return;
+
+      state = state.copyWith(timeout: timeout);
+      if (timeout == LockTimeout.never) _pausedAt = null;
+    });
   }
 
   void _unlock() {
