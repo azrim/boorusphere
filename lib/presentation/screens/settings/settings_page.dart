@@ -32,10 +32,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// A little over three rows tall, so the per-load menu lists its choices
-/// without burying the setting it belongs to.
-const double _kPostLimitMenuMaxHeight = 178.0;
-
 @RoutePage()
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -657,31 +653,44 @@ class _PostLimit extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final t = context.t;
+    final limit = ref.watch(
+      serverSettingStateProvider.select((it) => it.postLimit),
+    );
+
     return ListTile(
-      title: Text(context.t.settings.postLimit.title),
-      subtitle: RowSubtitle(Text(context.t.settings.postLimit.desc)),
-      trailing: DropdownButton(
-        menuMaxHeight: _kPostLimitMenuMaxHeight,
-        value: ref.watch(
-          serverSettingStateProvider.select((it) => it.postLimit),
-        ),
-        elevation: DesignTokens.elevationOverlay.toInt(),
-        underline: const SizedBox.shrink(),
-        borderRadius: const BorderRadius.all(
-          Radius.circular(DesignTokens.radiusXl),
-        ),
-        items: [
-          // The state owns the counts, because it is the one that snaps a
-          // stored limit back to them.
-          for (final limit in ServerSettingState.postLimitChoices)
-            DropdownMenuItem(value: limit, child: Text('$limit')),
+      // The count the setting stands at is read without opening anything, the
+      // way a slider shows its value, and the row itself is the tap target: an
+      // inline menu could name only about three of the ten counts and left the
+      // title and description dead to the touch.
+      title: Row(
+        children: [
+          Expanded(child: Text(t.settings.postLimit.title)),
+          Text('$limit', style: AppTextRoles.of(context).numeric),
         ],
-        onChanged: (value) {
-          ref
-              .read(serverSettingStateProvider.notifier)
-              .setPostLimit(value as int);
-        },
       ),
+      subtitle: RowSubtitle(Text(t.settings.postLimit.desc)),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () async {
+        final picked = await showChoiceSheet<int>(
+          context: context,
+          title: t.settings.postLimit.title,
+          selected: limit,
+          choices: [
+            // The state owns the counts, because it is the one that snaps a
+            // stored limit back to them.
+            for (final value in ServerSettingState.postLimitChoices)
+              Choice(
+                value: value,
+                label: t.unitPosts(value: value),
+              ),
+          ],
+        );
+        if (picked == null) return;
+        await ref
+            .read(serverSettingStateProvider.notifier)
+            .setPostLimit(picked.value);
+      },
     );
   }
 }

@@ -19,6 +19,12 @@ import '../../utils/riverpod.dart';
 class FakeEnvRepo extends Mock implements EnvRepo {
   @override
   AppVersion get appVersion => AppVersion.fromString('1.1.1');
+
+  /// Widget pages style the system bars through `StyledOverlayRegion`, which
+  /// compares this against 28. An unstubbed mock answers with null and that
+  /// comparison throws, so a page harness needs a number here.
+  @override
+  int get sdkVersion => 34;
 }
 
 void main() async {

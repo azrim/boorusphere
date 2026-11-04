@@ -34,6 +34,7 @@
   "unit_gb": "${value} GB",
   "unit_px": "${value} px",
   "unit_sec": "${value} s",
+  "unit_posts": "${value} posts",
   "links": "Links",
   "tags": "Tags",
   "meta": "Meta",

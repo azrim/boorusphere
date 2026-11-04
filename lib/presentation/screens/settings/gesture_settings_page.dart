@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/in_block_note.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
 import 'package:boorusphere/presentation/widgets/sectioned_list.dart';
+import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/presentation/widgets/styled_overlay_region.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -19,6 +20,7 @@ class GestureSettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final gestureSettings = ref.watch(gestureSettingStateProvider);
     final gestureNotifier = ref.read(gestureSettingStateProvider.notifier);
+    final swipeMode = gestureSettings.swipeMode;
 
     return Scaffold(
       appBar: AppBar(title: Text(context.t.settingsPage.gestureSettings)),
@@ -30,33 +32,48 @@ class GestureSettingsPage extends ConsumerWidget {
                 title: context.t.settingsPage.swipeMode,
                 children: [
                   InBlockNote(text: context.t.settingsPage.swipeModeDesc),
-                  RadioGroup<SwipeMode>(
-                    groupValue: gestureSettings.swipeMode,
-                    onChanged: (value) {
-                      if (value != null) {
-                        gestureNotifier.updateSwipeMode(value);
-                      }
-                    },
-                    child: Column(
-                      children: [
-                        RadioListTile<SwipeMode>(
-                          value: SwipeMode.horizontal,
-                          title: Text(context.t.settingsPage.horizontal),
-                          subtitle: RowSubtitle(
-                            Text(context.t.settingsPage.horizontalDesc),
-                          ),
-                          secondary: const Icon(Icons.swap_horiz),
-                        ),
-                        RadioListTile<SwipeMode>(
-                          value: SwipeMode.vertical,
-                          title: Text(context.t.settingsPage.vertical),
-                          subtitle: RowSubtitle(
-                            Text(context.t.settingsPage.verticalDesc),
-                          ),
-                          secondary: const Icon(Icons.swap_vert),
-                        ),
-                      ],
+                  ListTile(
+                    // The mode in force is the row's name, so the block states
+                    // one value rather than offering two radio rows — the only
+                    // pair of their kind, in a page family that asks for one
+                    // value out of a short list through a sheet.
+                    title: Text(
+                      swipeMode == SwipeMode.horizontal
+                          ? context.t.settingsPage.horizontal
+                          : context.t.settingsPage.vertical,
                     ),
+                    subtitle: RowSubtitle(
+                      Text(
+                        swipeMode == SwipeMode.horizontal
+                            ? context.t.settingsPage.horizontalDesc
+                            : context.t.settingsPage.verticalDesc,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () async {
+                      final t = context.t;
+                      final picked = await showChoiceSheet<SwipeMode>(
+                        context: context,
+                        title: t.settingsPage.swipeMode,
+                        selected: swipeMode,
+                        choices: [
+                          Choice(
+                            value: SwipeMode.horizontal,
+                            label: t.settingsPage.horizontal,
+                            detail: t.settingsPage.horizontalDesc,
+                            leading: const Icon(Icons.swap_horiz),
+                          ),
+                          Choice(
+                            value: SwipeMode.vertical,
+                            label: t.settingsPage.vertical,
+                            detail: t.settingsPage.verticalDesc,
+                            leading: const Icon(Icons.swap_vert),
+                          ),
+                        ],
+                      );
+                      if (picked == null) return;
+                      await gestureNotifier.updateSwipeMode(picked.value);
+                    },
                   ),
                 ],
               ),

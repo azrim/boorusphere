@@ -176,10 +176,10 @@ class _Content extends HookConsumerWidget {
                     // The passphrase is asked for before the run starts:
                     // backing out of the prompt has to leave no archive
                     // behind, plain or otherwise.
-                    final result = await showDialog<_PassphraseResult>(
+                    final result = await showSheet<_PassphraseResult>(
                       context: context,
                       builder: (_) =>
-                          const _PassphraseDialog(mode: _PassphraseMode.backup),
+                          const _PassphraseSheet(mode: _PassphraseMode.backup),
                     );
                     if (result == null) return;
                     passphrase = result.passphrase;
@@ -215,9 +215,9 @@ class _Content extends HookConsumerWidget {
                           _warningDialog(context, fileName),
                       onPassphrase: () async {
                         if (!context.mounted) return null;
-                        final result = await showDialog<_PassphraseResult>(
+                        final result = await showSheet<_PassphraseResult>(
                           context: context,
-                          builder: (_) => const _PassphraseDialog(
+                          builder: (_) => const _PassphraseSheet(
                             mode: _PassphraseMode.restore,
                           ),
                         );
@@ -474,7 +474,7 @@ enum _PassphraseMode {
   stored,
 }
 
-/// What the passphrase dialog returns.
+/// What the passphrase sheet returns.
 class _PassphraseResult {
   const _PassphraseResult(
     this.passphrase, {
@@ -506,12 +506,16 @@ class _FieldError {
 ///
 /// A new passphrase is typed twice, because a typo would produce an archive
 /// nobody can open. A restore asks once.
-class _PassphraseDialog extends HookWidget {
-  const _PassphraseDialog({required this.mode, this.canRemove = false});
+///
+/// A sheet, like every other credential the page edits: the page stays behind
+/// it, and the form is one surface rather than a dialog that invents its own
+/// arrangement of the same two fields.
+class _PassphraseSheet extends HookWidget {
+  const _PassphraseSheet({required this.mode, this.canRemove = false});
 
   final _PassphraseMode mode;
 
-  /// Whether the dialog offers to drop the passphrase stored in the settings.
+  /// Whether the sheet offers to drop the passphrase stored in the settings.
   final bool canRemove;
 
   /// The shortest passphrase the backup flow accepts, so anything shorter is
@@ -564,100 +568,114 @@ class _PassphraseDialog extends HookWidget {
       );
     }
 
-    return AlertDialog(
-      icon: const Icon(Icons.lock_outline),
-      title: Text(context.t.dataBackup.passphraseTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+    return SheetShell(
+      title: context.t.dataBackup.passphraseTitle,
+      // One action, and the sheet's own close control is the way out: a Cancel
+      // button was a third exit taking width from the only action that matters.
+      // Dropping the stored passphrase is a different answer, not a second way
+      // to leave, so it stays a button of its own.
+      footer: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextField(
-            controller: passphrase,
-            focusNode: passphraseFocus,
-            autofocus: true,
-            obscureText: !showPassphrase.value,
-            autocorrect: false,
-            enableSuggestions: false,
-            textInputAction: _confirm
-                ? TextInputAction.next
-                : TextInputAction.done,
-            decoration:
-                flatFieldDecoration(
-                  context,
-                  label: context.t.dataBackup.passphrase,
-                ).copyWith(
-                  helperText: context.t.dataBackup.passphraseHint(
-                    n: _minLength,
-                  ),
-                  errorText: error.value?.onConfirmation ?? false
-                      ? null
-                      : error.value?.message,
-                  suffixIcon: IconButton(
-                    tooltip: showPassphrase.value
-                        ? context.t.hidePassword
-                        : context.t.showPassword,
-                    icon: Icon(
-                      showPassphrase.value
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                    ),
-                    onPressed: () {
-                      showPassphrase.value = !showPassphrase.value;
-                    },
-                  ),
-                ),
-            onSubmitted: _confirm ? null : (_) => submit(),
-          ),
-          if (_confirm) ...[
-            const SizedBox(height: DesignTokens.spacingSm),
-            TextField(
-              controller: confirmation,
-              focusNode: confirmationFocus,
-              obscureText: !showPassphrase.value,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration:
-                  flatFieldDecoration(
-                    context,
-                    label: context.t.dataBackup.passphraseConfirm,
-                  ).copyWith(
-                    errorText: error.value?.onConfirmation ?? false
-                        ? error.value?.message
-                        : null,
-                  ),
-              onSubmitted: (_) => submit(),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: submit,
+              child: Text(switch (mode) {
+                _PassphraseMode.backup => context.t.backup,
+                _PassphraseMode.restore => context.t.restore,
+                _PassphraseMode.stored => context.t.save,
+              }),
             ),
-          ],
-          if (mode == _PassphraseMode.backup)
-            CheckboxListTile(
-              value: save.value,
-              onChanged: (v) => save.value = v ?? true,
-              title: Text(context.t.dataBackup.savePassphrase),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
+          ),
+          if (canRemove)
+            TextButton(
+              onPressed: () => Navigator.of(
+                context,
+              ).pop(const _PassphraseResult('', remove: true)),
+              child: Text(context.t.dataBackup.passphraseRemove),
             ),
         ],
       ),
-      actions: [
-        if (canRemove)
-          TextButton(
-            onPressed: () => Navigator.of(
-              context,
-            ).pop(const _PassphraseResult('', remove: true)),
-            child: Text(context.t.dataBackup.passphraseRemove),
-          ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.t.cancel),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          DesignTokens.spacingMd,
+          DesignTokens.spacingSm,
+          DesignTokens.spacingMd,
+          DesignTokens.spacingMd,
         ),
-        FilledButton(
-          onPressed: submit,
-          child: Text(switch (mode) {
-            _PassphraseMode.backup => context.t.backup,
-            _PassphraseMode.restore => context.t.restore,
-            _PassphraseMode.stored => context.t.save,
-          }),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: passphrase,
+              focusNode: passphraseFocus,
+              autofocus: true,
+              obscureText: !showPassphrase.value,
+              autocorrect: false,
+              enableSuggestions: false,
+              textInputAction: _confirm
+                  ? TextInputAction.next
+                  : TextInputAction.done,
+              decoration:
+                  flatFieldDecoration(
+                    context,
+                    label: context.t.dataBackup.passphrase,
+                  ).copyWith(
+                    helperText: context.t.dataBackup.passphraseHint(
+                      n: _minLength,
+                    ),
+                    errorText: error.value?.onConfirmation ?? false
+                        ? null
+                        : error.value?.message,
+                    suffixIcon: IconButton(
+                      tooltip: showPassphrase.value
+                          ? context.t.hidePassword
+                          : context.t.showPassword,
+                      icon: Icon(
+                        showPassphrase.value
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                      ),
+                      onPressed: () {
+                        showPassphrase.value = !showPassphrase.value;
+                      },
+                    ),
+                  ),
+              onSubmitted: _confirm ? null : (_) => submit(),
+            ),
+            if (_confirm) ...[
+              const SizedBox(height: DesignTokens.spacingSm),
+              TextField(
+                controller: confirmation,
+                focusNode: confirmationFocus,
+                obscureText: !showPassphrase.value,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration:
+                    flatFieldDecoration(
+                      context,
+                      label: context.t.dataBackup.passphraseConfirm,
+                    ).copyWith(
+                      errorText: error.value?.onConfirmation ?? false
+                          ? error.value?.message
+                          : null,
+                    ),
+                onSubmitted: (_) => submit(),
+              ),
+            ],
+            if (mode == _PassphraseMode.backup)
+              CheckboxListTile(
+                value: save.value,
+                onChanged: (v) => save.value = v ?? true,
+                title: Text(context.t.dataBackup.savePassphrase),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -769,9 +787,9 @@ class _PassphraseTile extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
-        final result = await showDialog<_PassphraseResult>(
+        final result = await showSheet<_PassphraseResult>(
           context: context,
-          builder: (_) => _PassphraseDialog(
+          builder: (_) => _PassphraseSheet(
             mode: _PassphraseMode.stored,
             canRemove: hasPassphrase,
           ),
