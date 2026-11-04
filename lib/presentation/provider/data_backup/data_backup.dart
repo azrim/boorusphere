@@ -12,6 +12,7 @@ import 'package:boorusphere/data/repository/setting/user_setting_repo.dart';
 import 'package:boorusphere/data/repository/tags_blocker/booru_tags_blocker_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
+import 'package:boorusphere/presentation/provider/data_backup/archive_name.dart';
 import 'package:boorusphere/presentation/provider/data_backup/backup_cipher.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_option.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_result.dart';
@@ -422,12 +423,10 @@ class DataBackupState extends _$DataBackupState {
 
       final dir = await _backupDir();
       final time = DateFormat('yyyy-MM-dd-HH-mm-ss').format(DateTime.now());
-      final name = '${appId}_backup_$time.${encrypted ? 'enc' : 'zip'}';
-      final backup = File(path.join(dir.path, name));
-      if (backup.existsSync()) {
-        backup.deleteSync();
-      }
-
+      // A name is chosen from what the folder already holds: two runs in the
+      // same second used to delete each other's archive, and the only copy the
+      // user kept was whichever run finished last.
+      final backup = freeArchiveFile(dir, time, encrypted ? 'enc' : 'zip');
       await payload.copy(backup.path);
       _pruneBackups(dir, keep: backup);
       await ref.read(sharedStorageHandleProvider).rescan();
@@ -452,13 +451,12 @@ class DataBackupState extends _$DataBackupState {
     final max = settings.get(Setting.periodicBackupMaxCount, or: 3);
     if (max <= 0) return;
 
-    final pattern = RegExp('^${appId}_backup_.+\\.(zip|enc)\$');
     try {
       final archives =
           dir
               .listSync()
               .whereType<File>()
-              .where((it) => pattern.hasMatch(path.basename(it.path)))
+              .where((it) => isArchiveName(path.basename(it.path)))
               .where((it) => it.path != keep.path)
               .toList()
             ..sort((a, b) => b.path.compareTo(a.path));
@@ -474,13 +472,33 @@ class DataBackupState extends _$DataBackupState {
   /// Creates a backup and returns the file path for external use (e.g.,
   /// Telegram).
   ///
-  /// Telegram backups stay plain: the upload runs unattended, so there is
-  /// nowhere to keep the passphrase an encrypted one would need.
+  /// The archive follows the same sealing rule as the scheduled run: with
+  /// encryption on it is written with the stored passphrase, and a run that
+  /// cannot be sealed is refused instead of uploaded plain. Nothing asks for
+  /// the passphrase here, so a plain archive would be the only copy the user
+  /// ever sees — and the one that leaves the device.
+  ///
+  /// It claims the same busy flag a local run does: both write into one folder
+  /// and read the same boxes, and an overlap buries the other's result.
   Future<File?> createBackupForTelegram() async {
-    return _createBackupFile(const BackupOption());
+    if (_busy) return null;
+    _busy = true;
+    try {
+      final setting = ref.read(periodicBackupSettingStateProvider);
+      final sealing = setting.encryptBackup;
+      // An encrypted run with nothing stored to seal with could only send the
+      // plain archive, so it is refused instead.
+      if (sealing && setting.backupPassphrase.isEmpty) return null;
+      return await _createBackupFile(
+        const BackupOption(),
+        passphrase: sealing ? setting.backupPassphrase : null,
+      );
+    } finally {
+      _busy = false;
+    }
   }
 
-  static const appId = 'boorusphere';
+  static const appId = archiveAppId;
 
   /// Upper bound for a picked archive. Nothing this app writes comes close,
   /// so a bigger file is not one of ours and is refused before it is read

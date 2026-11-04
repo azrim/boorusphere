@@ -499,7 +499,8 @@
       "backupNowDesc": "Create and send backup to Telegram immediately",
       "needsChatAndToken": "Set the chat ID and the bot token first",
       "backupSent": "Backup sent to Telegram",
-      "backupFailed": "Failed to send backup"
+      "backupFailed": "Failed to send backup",
+      "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
     }
   },
   "onboarding": {

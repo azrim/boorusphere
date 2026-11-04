@@ -20,6 +20,7 @@ import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/presentation/widgets/sheet_row.dart';
 import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
 import 'package:boorusphere/presentation/widgets/tile_group.dart';
+import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -977,15 +978,21 @@ class _TestConnectionTile extends HookConsumerWidget {
           ? null
           : () async {
               isLoading.value = true;
-              final TelegramResult result;
+              TelegramResult result;
               try {
                 result = await ref
                     .read(telegramBackupServiceProvider.notifier)
                     .testConnection();
+              } on Object catch (e, stack) {
+                // A throw is a finished attempt too: the row has to say so,
+                // or the tap looks like nothing ever happened.
+                mainLog.e('Telegram backup: connection test failed', e, stack);
+                result = TelegramResult.unknownError;
               } finally {
                 // The spinner is the only feedback while this runs, so it has
-                // to clear even when the request throws.
-                isLoading.value = false;
+                // to clear even when the request throws. Only while the row is
+                // still on screen: the hook disposed its notifier on a pop.
+                if (context.mounted) isLoading.value = false;
               }
 
               if (!context.mounted) return;
@@ -1020,6 +1027,14 @@ class _BackupNowTile extends HookConsumerWidget {
     final isConfigured =
         settings.telegramChatId.isNotEmpty &&
         settings.telegramBotToken.isNotEmpty;
+    // Encryption is a promise the upload cannot quietly break: with nothing
+    // stored to seal with, the only archive it could send is the plain one.
+    final cannotSeal =
+        settings.encryptBackup && settings.backupPassphrase.isEmpty;
+    // Read before the first gap: the strings come from an inherited lookup,
+    // and the run outlives the row that started it.
+    final sent = context.t.periodicBackup.telegram.backupSent;
+    final failed = context.t.periodicBackup.telegram.backupFailed;
 
     return ListTile(
       enabled: enabled,
@@ -1028,9 +1043,11 @@ class _BackupNowTile extends HookConsumerWidget {
         Text(
           // The row is dead until both halves of the address exist, so the
           // line under it names what is missing instead of going quiet.
-          isConfigured
-              ? context.t.periodicBackup.telegram.backupNowDesc
-              : context.t.periodicBackup.telegram.needsChatAndToken,
+          !isConfigured
+              ? context.t.periodicBackup.telegram.needsChatAndToken
+              : cannotSeal
+              ? context.t.periodicBackup.telegram.backupNeedsPassphrase
+              : context.t.periodicBackup.telegram.backupNowDesc,
         ),
       ),
       trailing: isLoading.value
@@ -1042,47 +1059,45 @@ class _BackupNowTile extends HookConsumerWidget {
               ),
             )
           : const Icon(Icons.cloud_upload),
-      onTap: !enabled || !isConfigured || isLoading.value
+      onTap: !enabled || !isConfigured || cannotSeal || isLoading.value
           ? null
           : () async {
               isLoading.value = true;
+              String message;
               try {
                 final backupFile = await ref
                     .read(dataBackupStateProvider.notifier)
                     .createBackupForTelegram();
-
                 if (backupFile == null) {
-                  if (context.mounted) {
-                    showToast(
-                      context,
-                      context.t.periodicBackup.telegram.backupFailed,
-                    );
+                  // Refused: a run is already in flight, or the archive could
+                  // not be written. Nothing left the device.
+                  message = failed;
+                } else {
+                  final result = await ref
+                      .read(telegramBackupServiceProvider.notifier)
+                      .sendBackupFile(backupFile);
+                  if (result == TelegramResult.success) {
+                    await ref
+                        .read(periodicBackupSettingStateProvider.notifier)
+                        .setLastBackupTime(DateTime.now());
                   }
-                  return;
+                  message = result == TelegramResult.success ? sent : failed;
                 }
-
-                final result = await ref
-                    .read(telegramBackupServiceProvider.notifier)
-                    .sendBackupFile(backupFile);
-
-                if (result == TelegramResult.success) {
-                  await ref
-                      .read(periodicBackupSettingStateProvider.notifier)
-                      .setLastBackupTime(DateTime.now());
-                }
-
-                if (!context.mounted) return;
-
-                final message = result == TelegramResult.success
-                    ? context.t.periodicBackup.telegram.backupSent
-                    : context.t.periodicBackup.telegram.backupFailed;
-
-                showToast(context, message);
+              } on Object catch (e, stack) {
+                // The archive is written before the upload starts, so a throw
+                // here can mean either half failed. Either way the row has to
+                // say so instead of going back to idle in silence.
+                mainLog.e('Telegram backup: backup now failed', e, stack);
+                message = failed;
               } finally {
                 // The spinner is the only feedback while this runs, so it has
-                // to clear even when the backup throws.
-                isLoading.value = false;
+                // to clear even when the backup throws — and only while the
+                // row is still on screen: its notifier is gone after a pop.
+                if (context.mounted) isLoading.value = false;
               }
+
+              if (!context.mounted) return;
+              showToast(context, message);
             },
     );
   }
