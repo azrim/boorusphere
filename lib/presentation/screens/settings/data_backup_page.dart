@@ -724,7 +724,7 @@ class _FrequencyTile extends StatelessWidget {
   }
 }
 
-class _MaxBackupSlider extends HookWidget {
+class _MaxBackupSlider extends StatelessWidget {
   const _MaxBackupSlider({
     required this.state,
     required this.notifier,
@@ -737,21 +737,20 @@ class _MaxBackupSlider extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sliderValue = useState(state.maxBackupCount.toDouble());
-
     return SettingsSliderTile(
       title: context.t.periodicBackup.maxBackups,
-      value: sliderValue.value,
-      valueLabel: '${sliderValue.value.round()}',
+      value: state.maxBackupCount.toDouble(),
       // The bounds come from the state, which clamps a stored count back into
-      // them — a slider that offered more would be offering an assert.
+      // them — a slider that offered more would be offering an assert. There is
+      // no draft here either: the row shows what is stored, and the number
+      // under the finger is the slider's own business.
       min: PeriodicBackupSettingState.minBackupCount.toDouble(),
       max: PeriodicBackupSettingState.maxBackupCount.toDouble(),
       divisions:
           PeriodicBackupSettingState.maxBackupCount -
           PeriodicBackupSettingState.minBackupCount,
+      labelFor: (value) => '${value.round()}',
       enabled: enabled,
-      onChanged: (value) => sliderValue.value = value,
       onChangeEnd: (value) => notifier.setMaxBackupCount(value.round()),
     );
   }

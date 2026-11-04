@@ -106,10 +106,12 @@ class GestureSettingsPage extends ConsumerWidget {
                     min: GestureSettingStateNotifier.minSwipeDownThreshold,
                     max: GestureSettingStateNotifier.maxSwipeDownThreshold,
                     divisions: 15,
-                    helper: context.t.settingsPage.swipeDownThresholdDesc(
-                      threshold: gestureSettings.swipeDownThreshold.round(),
-                    ),
-                    onChanged: gestureNotifier.updateSwipeDownThreshold,
+                    labelFor: (value) => context.t.unitPx(value: value.round()),
+                    helperFor: (value) => context.t.settingsPage
+                        .swipeDownThresholdDesc(threshold: value.round()),
+                    // Once per drag, not once per step: the threshold is only
+                    // interesting after the finger leaves the thumb.
+                    onChangeEnd: gestureNotifier.updateSwipeDownThreshold,
                   ),
                 ],
               ),

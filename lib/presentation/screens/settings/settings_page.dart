@@ -338,11 +338,13 @@ class _SlideshowInterval extends ConsumerWidget {
       divisions:
           ContentSettingState.maxSlideshowInterval -
           ContentSettingState.minSlideshowInterval,
-      valueLabel: '$interval',
-      helper: context.t.settings.viewer.slideshowIntervalDesc(
-        seconds: interval,
+      // The unit belongs on the readout: a bare "6" next to a slider says
+      // nothing about what it counts.
+      labelFor: (value) => context.t.unitSec(value: value.round()),
+      helperFor: (value) => context.t.settings.viewer.slideshowIntervalDesc(
+        seconds: value.round(),
       ),
-      onChanged: (value) {
+      onChangeEnd: (value) {
         ref
             .read(contentSettingStateProvider.notifier)
             .setSlideshowInterval(value.round());
@@ -368,9 +370,10 @@ class _VideoSeekStep extends ConsumerWidget {
       divisions:
           ContentSettingState.maxVideoSeekSeconds -
           ContentSettingState.minVideoSeekSeconds,
-      valueLabel: '$seconds',
-      helper: context.t.settings.viewer.doubleTapSeekDesc(seconds: seconds),
-      onChanged: (value) {
+      labelFor: (value) => context.t.unitSec(value: value.round()),
+      helperFor: (value) =>
+          context.t.settings.viewer.doubleTapSeekDesc(seconds: value.round()),
+      onChangeEnd: (value) {
         ref
             .read(contentSettingStateProvider.notifier)
             .setVideoSeekSeconds(value.round());

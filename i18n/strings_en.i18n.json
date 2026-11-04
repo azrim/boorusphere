@@ -32,6 +32,8 @@
   "unit_kb": "${value} KB",
   "unit_mb": "${value} MB",
   "unit_gb": "${value} GB",
+  "unit_px": "${value} px",
+  "unit_sec": "${value} s",
   "links": "Links",
   "tags": "Tags",
   "meta": "Meta",
