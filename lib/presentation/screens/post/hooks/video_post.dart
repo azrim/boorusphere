@@ -17,10 +17,11 @@ class VideoPostSource {
 
   final VideoPlayerController? controller;
 
-  /// True once playback setup has failed: either the player could not be
-  /// created or [VideoPlayerController.initialize] threw. The viewer surfaces
-  /// a manual retry banner while set. Cleared when [destroyController]
-  /// resets the source.
+  /// True once playback is known not to be running: the player could not be
+  /// created, `initialize` threw or timed out, or the player itself reported an
+  /// error through its value — which is the only way a failure that arrives
+  /// after setup can be heard at all. The viewer shows a manual retry banner
+  /// while set, and [reportReady] clears it if the player recovers.
   final bool hasError;
 
   VideoPostSource copyWith({
@@ -45,10 +46,11 @@ class VideoPostSource {
 }
 
 /// Handle returned by [useVideoPostSource]: the current [VideoPostSource]
-/// plus the two failure-path callbacks the viewer wires into its chrome.
+/// plus the failure-path callbacks the viewer wires into its chrome.
 typedef VideoPostHandle = ({
   VideoPostSource source,
   void Function() reportFailure,
+  void Function() reportReady,
   Future<void> Function() retry,
 });
 
@@ -82,11 +84,27 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   int _generation = 0;
 
   /// Flags the source as failed so the viewer shows its retry banner.
+  ///
+  /// Idempotent: the player keeps reporting the same error on every later
+  /// notification, and a failure that is already showing needs no rebuild.
   void reportFailure() {
-    if (!context.mounted) return;
+    if (source.hasError || !context.mounted) return;
 
     setState(() {
       source = source.copyWith(hasError: true);
+    });
+  }
+
+  /// Clears a failure the player has since outgrown.
+  ///
+  /// Setup can answer after the viewer has already given up on it — the
+  /// initialization is bounded by a timeout — and a retry banner left over a
+  /// player that turns out to work is worse than the loader it replaced.
+  void reportReady() {
+    if (!source.hasError || !context.mounted) return;
+
+    setState(() {
+      source = source.copyWith(hasError: false);
     });
   }
 
@@ -212,8 +230,12 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   }
 
   @override
-  VideoPostHandle build(BuildContext context) =>
-      (source: source, reportFailure: reportFailure, retry: retry);
+  VideoPostHandle build(BuildContext context) => (
+    source: source,
+    reportFailure: reportFailure,
+    reportReady: reportReady,
+    retry: retry,
+  );
 
   @override
   void dispose() {

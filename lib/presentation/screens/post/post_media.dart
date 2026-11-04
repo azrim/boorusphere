@@ -116,6 +116,17 @@ final ImageFilter _kExplicitBlur = ImageFilter.blur(
   tileMode: TileMode.decal,
 );
 
+/// How long the video chrome waits for the platform to answer `initialize`
+/// before it admits this post is not going to play. A platform that accepts
+/// the request and then stays silent never throws, so without a bound the
+/// loader has no terminal state and no retry to offer.
+const Duration _kVideoSetupTimeout = Duration(seconds: 30);
+
+/// The same bound for the image download, which has no timeout of its own.
+/// Every received byte re-arms it, so it only fires on a connection that went
+/// quiet — never on a large file moving slowly.
+const Duration _kImageStallTimeout = Duration(seconds: 30);
+
 class _PostImage extends HookConsumerWidget {
   const _PostImage({
     required this.post,
@@ -252,6 +263,29 @@ class _PostImage extends HookConsumerWidget {
       [post.originalFile, post.content.url, contentSetting.loadOriginal],
     );
 
+    // The load state is only about the resource it last reported, so a new URL
+    // must not inherit the previous one's verdict.
+    //
+    // A request that stops answering never becomes a failure on its own — a
+    // server can hold the connection open and send nothing — so the watch gives
+    // the pill a terminal state to fall back to. Every received byte re-arms it,
+    // which means only silence trips it, never a large file moving slowly.
+    final stallTimer = useRef<Timer?>(null);
+    void armStallWatch() {
+      stallTimer.value?.cancel();
+      stallTimer.value = Timer(_kImageStallTimeout, () {
+        if (loadState.value case _PostImageLoading()) {
+          loadState.value = const _PostImageLoadState.failed();
+        }
+      });
+    }
+
+    useEffect(() {
+      loadState.value = const _PostImageLoadState.loading(null);
+      armStallWatch();
+      return () => stallTimer.value?.cancel();
+    }, [imageUrl]);
+
     Future<void> handleDoubleTap() async {
       if (zoomAnimator.isAnimating) {
         return;
@@ -362,6 +396,7 @@ class _PostImage extends HookConsumerWidget {
                     memCacheWidth: cacheWidth,
                     memCacheHeight: cacheHeight,
                     imageBuilder: (context, provider) {
+                      stallTimer.value?.cancel();
                       _scheduleLoadState(
                         loadState,
                         const _PostImageLoadState.completed(),
@@ -384,6 +419,8 @@ class _PostImage extends HookConsumerWidget {
                           : image;
                     },
                     progressIndicatorBuilder: (context, url, progress) {
+                      // Bytes moved, so the watch starts again from now.
+                      armStallWatch();
                       _scheduleLoadState(
                         loadState,
                         _PostImageLoadState.loading(progress.progress),
@@ -395,6 +432,7 @@ class _PostImage extends HookConsumerWidget {
                       );
                     },
                     errorWidget: (context, url, error) {
+                      stallTimer.value?.cancel();
                       _scheduleLoadState(
                         loadState,
                         const _PostImageLoadState.failed(),
@@ -449,21 +487,29 @@ class _PostImage extends HookConsumerWidget {
                 },
               ),
             ),
-            if (!isBlur.value)
-              Positioned(
-                bottom: QuickBar.preferredBottomPosition(context),
-                child: ValueListenableBuilder<_PostImageLoadState>(
-                  valueListenable: loadState,
-                  builder: (context, state, _) => _PostMediaStatus(
-                    state: state,
-                    onRetry: () {
-                      CachedNetworkImage.evictFromCache(imageUrl);
-                      retryNonce.value += 1;
-                      loadState.value = const _PostImageLoadState.loading(null);
-                    },
-                  ),
+            // The status chrome stays mounted while blurred: a blurred post is
+            // still downloading its real image, and a load that failed has to
+            // offer retry without making the user unblur the artwork first to
+            // reach the button. Only the progress pill yields, because it would
+            // sit on top of the unblur pill.
+            Positioned(
+              bottom:
+                  QuickBar.preferredBottomPosition(context) +
+                  (isBlur.value ? DesignTokens.controlHeightMin : 0),
+              child: ValueListenableBuilder<_PostImageLoadState>(
+                valueListenable: loadState,
+                builder: (context, state, _) => _PostMediaStatus(
+                  state: state,
+                  hideProgress: isBlur.value,
+                  onRetry: () {
+                    CachedNetworkImage.evictFromCache(imageUrl);
+                    retryNonce.value += 1;
+                    loadState.value = const _PostImageLoadState.loading(null);
+                    armStallWatch();
+                  },
                 ),
               ),
+            ),
             if (isBlur.value)
               Positioned(
                 bottom: QuickBar.preferredBottomPosition(context),
@@ -616,6 +662,7 @@ class _PostMediaStatus extends StatelessWidget {
     required this.state,
     required this.onRetry,
     this.failedTitle,
+    this.hideProgress = false,
   });
 
   final _PostImageLoadState state;
@@ -625,6 +672,11 @@ class _PostMediaStatus extends StatelessWidget {
   /// image path stays byte-for-byte unchanged; video passes its own
   /// `load_video_failed` string.
   final String? failedTitle;
+
+  /// Suppresses the progress pill. A blurred post shows its own action pill in
+  /// the same slot, so only the failure — the thing the user cannot otherwise
+  /// reach — is worth rendering on top of it.
+  final bool hideProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -643,6 +695,8 @@ class _PostMediaStatus extends StatelessWidget {
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
       child: switch (state) {
+        _PostImageCompleted() || _PostImageLoading() when hideProgress =>
+          const SizedBox.shrink(key: ValueKey('idle')),
         _PostImageCompleted() => const SizedBox.shrink(
           key: ValueKey('completed'),
         ),
@@ -790,7 +844,7 @@ class _PostVideoContent extends HookConsumerWidget {
     final showPauseOverlay = useState(false);
     final markMayNeedRebuild = useMarkMayNeedRebuild();
     final isPlaying = useState(true);
-    final hideTimer = useState(Timer(const Duration(seconds: 2), () {}));
+    final hideTimer = useRef<Timer?>(null);
     final video = useVideoPostSource(ref, post: post, active: isActive);
     final source = video.source;
     final controller = isBlur.value ? null : source.controller;
@@ -803,9 +857,14 @@ class _PostVideoContent extends HookConsumerWidget {
     final routeVisibleRef = useRef(isRouteVisible);
     routeVisibleRef.value = isRouteVisible;
 
+    // Both timers are page-owned: a pending auto-hide left running past the
+    // page's death is a leak the test framework can only forgive by pumping
+    // the clock until it fires.
     useEffect(
-      () =>
-          () => feedbackTimer.value?.cancel(),
+      () => () {
+        feedbackTimer.value?.cancel();
+        hideTimer.value?.cancel();
+      },
       [],
     );
 
@@ -823,7 +882,7 @@ class _PostVideoContent extends HookConsumerWidget {
 
     scheduleHide() {
       if (!context.mounted) return;
-      hideTimer.value.cancel();
+      hideTimer.value?.cancel();
       if (keepControlsVisible) return;
       hideTimer.value = Timer(const Duration(seconds: 2), () {
         if (context.mounted) {
@@ -939,10 +998,54 @@ class _PostVideoContent extends HookConsumerWidget {
       // waiting on the platform. Every step after an await checks this flag,
       // so a dropped player is neither reported as a failure nor played into.
       var cancelled = false;
+      // True until setup finishes, so the intent to autoplay is not overwritten
+      // by a plugin that has not been told to play yet.
+      var settingUp = true;
 
-      void onFirstFrame() {
-        player.removeListener(onFirstFrame);
-        markMayNeedRebuild();
+      // The controller's own value is the only place a failure that arrives
+      // after setup shows up: `initialize` completes on the platform's
+      // `initialized` event, so anything the plugin reports later cannot reach
+      // the catch below. Listening for the whole life of the controller is what
+      // gives the loading chrome a terminal state, keeps the play/pause
+      // affordance honest when the plugin pauses on its own (backgrounding
+      // does), and lets a player that answers after the timeout take its
+      // failure back.
+      //
+      // The player also notifies ten times a second while it runs, so only the
+      // facts the chrome draws from are allowed to dirty it. The playhead label
+      // belongs to the plugin's own indicator, not to this page's rebuild rate.
+      var sawError = player.value.hasError;
+      var sawReady = player.value.isInitialized;
+      var sawPlaying = player.value.isPlaying;
+
+      void onPlayerValue() {
+        if (cancelled) return;
+
+        final value = player.value;
+        final chromeChanged =
+            value.hasError != sawError ||
+            value.isInitialized != sawReady ||
+            value.isPlaying != sawPlaying;
+        sawError = value.hasError;
+        sawReady = value.isInitialized;
+        sawPlaying = value.isPlaying;
+
+        if (value.hasError) {
+          // An errored player is not playing, whatever the intent said. Left
+          // alone, the pause glyph would keep claiming playback that stopped.
+          isPlaying.value = false;
+          video.reportFailure();
+          return;
+        }
+
+        if (value.isInitialized) {
+          video.reportReady();
+          // While setting up, `isPlaying` carries the intent to autoplay; the
+          // plugin has not been told to play yet, so its answer is not a fact.
+          if (!settingUp) isPlaying.value = value.isPlaying;
+        }
+
+        if (chromeChanged) markMayNeedRebuild();
       }
 
       Future<void> initialize() async {
@@ -951,10 +1054,11 @@ class _PostVideoContent extends HookConsumerWidget {
         isPlaying.value = true;
 
         try {
-          await player.initialize();
+          // Nothing else bounds this wait: a platform that accepts the request
+          // and stays silent would hold the toolbox open on a loader forever.
+          await player.initialize().timeout(_kVideoSetupTimeout);
           if (cancelled) return;
 
-          player.addListener(onFirstFrame);
           await player.setVolume(contentSettings.videoMuted ? 0 : 1);
           if (cancelled) return;
 
@@ -971,13 +1075,16 @@ class _PostVideoContent extends HookConsumerWidget {
           // unhandled async error; the viewer shows a manual retry banner.
           // A player dropped mid-setup is not a failure.
           if (!cancelled) video.reportFailure();
+        } finally {
+          settingUp = false;
         }
       }
 
+      player.addListener(onPlayerValue);
       unawaited(initialize());
       return () {
         cancelled = true;
-        player.removeListener(onFirstFrame);
+        player.removeListener(onPlayerValue);
       };
     }, [controller]);
 
@@ -1035,7 +1142,12 @@ class _PostVideoContent extends HookConsumerWidget {
                       ),
                       _ToolboxOverlay(
                         isPlaying: isPlaying.value,
-                        source: source,
+                        controller: controller,
+                        hasError: source.hasError,
+                        // A blurred post has no playback to report progress
+                        // for: its player is deliberately withheld, so the row
+                        // would claim a load that can never finish.
+                        showProgress: !isBlur.value,
                         post: post,
                         isMuted: contentSettings.videoMuted,
                         isFullscreen: fullscreen,
@@ -1119,7 +1231,9 @@ class _PostVideoContent extends HookConsumerWidget {
 class _ToolboxOverlay extends ConsumerWidget {
   const _ToolboxOverlay({
     required this.post,
-    required this.source,
+    required this.controller,
+    required this.hasError,
+    required this.showProgress,
     required this.isPlaying,
     required this.isMuted,
     required this.isFullscreen,
@@ -1129,7 +1243,20 @@ class _ToolboxOverlay extends ConsumerWidget {
   });
 
   final bool isPlaying;
-  final VideoPostSource source;
+
+  /// The player this overlay may talk to: null while the post is blurred or the
+  /// source has not produced a controller yet.
+  final VideoPlayerController? controller;
+
+  /// Playback is known to be dead, so the progress row is replaced by the
+  /// viewer's retry banner.
+  final bool hasError;
+
+  /// Whether there is a load to report. False for a blurred post, whose player
+  /// is withheld on purpose: an indeterminate bar there would claim a load that
+  /// can never finish.
+  final bool showProgress;
+
   final Post post;
   final bool isMuted;
   final bool isFullscreen;
@@ -1182,7 +1309,7 @@ class _ToolboxOverlay extends ConsumerWidget {
                   final mute = await ref
                       .read(contentSettingStateProvider.notifier)
                       .toggleVideoPlayerMute();
-                  await source.controller?.setVolume(mute ? 0 : 1);
+                  await controller?.setVolume(mute ? 0 : 1);
                 },
                 icon: Icon(isMuted ? Icons.volume_mute : Icons.volume_up),
               ),
@@ -1206,7 +1333,7 @@ class _ToolboxOverlay extends ConsumerWidget {
               ),
             ],
           ),
-          if (!source.hasError) _Progress(source: source),
+          if (showProgress && !hasError) _Progress(controller: controller),
         ],
       ),
     );
@@ -1334,16 +1461,18 @@ class _PlayPauseOverlay extends StatelessWidget {
 }
 
 class _Progress extends StatelessWidget {
-  const _Progress({required this.source});
+  const _Progress({required this.controller});
 
   /// How far a screen-reader adjust step moves the playhead.
   static const _seekStep = Duration(seconds: 5);
 
-  final VideoPostSource source;
+  /// The player to read progress from, or null while the source has not
+  /// produced one yet. Both cases are drawn as a load in progress.
+  final VideoPlayerController? controller;
 
   @override
   Widget build(BuildContext context) {
-    final controller = source.controller;
+    final controller = this.controller;
     final colorScheme = Theme.of(context).colorScheme;
     final chrome = AppMediaChrome.of(context);
 
