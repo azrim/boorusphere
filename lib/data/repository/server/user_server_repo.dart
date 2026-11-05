@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:boorusphere/data/encryption.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
-import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_autocomplete_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/philomena_json_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/server_data_repo.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
@@ -212,7 +212,7 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
-  /// The post page a scan of a BooruOnRails board used to write: the parser
+  /// The post page a scan of a Philomena board used to write: the parser
   /// handed out the bare id, while the engine list has always pointed at the
   /// `images/` page the site itself links to. So the same board ended up with
   /// one address added by hand and another detected, and the detected one opens
@@ -226,17 +226,17 @@ class UserServerRepo implements ServerRepo {
   /// [_bareIdPostHosts] then takes back exactly what it gives: the boards that
   /// answer the bare id *are* the post page there, so for them the stale template
   /// is the working one.
-  Future<void> _migrateBooruOnRailsPostUrl() async {
+  Future<void> _migratePhilomenaPostUrl() async {
     const stale = '{post-id}';
-    final parser = BooruOnRailsJsonParser();
+    final parser = PhilomenaJsonParser();
 
     final mapped = Map<String, Server>.from(box.toMap());
     for (final entry in mapped.entries) {
       final server = entry.value;
-      final isBooruOnRails =
+      final isPhilomena =
           server.searchParserId == parser.id ||
           server.suggestionParserId == parser.id;
-      if (!isBooruOnRails || server.postUrl != stale) continue;
+      if (!isPhilomena || server.postUrl != stale) continue;
       if (_servesPostsAtBareId(server)) continue;
 
       await box.put(entry.key, server.copyWith(postUrl: parser.postUrl));
@@ -287,7 +287,7 @@ class UserServerRepo implements ServerRepo {
     await _migrateSuggestionUrl();
     await _migrateOneBasedPageParam();
     await _migrateShimmieSearchPath();
-    await _migrateBooruOnRailsPostUrl();
+    await _migratePhilomenaPostUrl();
   }
 
   @override

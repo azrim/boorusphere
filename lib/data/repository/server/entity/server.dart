@@ -48,7 +48,7 @@ abstract class Server with _$Server {
       // Szurubooru has exclusive-way (but still same shit) of rating
       tags += ' ${_szuruRateString(option.searchRating)}';
     } else if (searchUrl.contains('api/v1/json/search')) {
-      // booru-on-rails didn't support rating
+      // Philomena has no rating filter
       tags = tags.replaceAll(RegExp(r'\brating:\S+'), '');
     } else {
       tags += ' ${_rateString(option.searchRating)}';

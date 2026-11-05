@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
-import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_xml_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/philomena_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/safebooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/szurubooru_json_parser.dart';
@@ -190,7 +190,7 @@ void main() async {
     });
 
     test('booru on rails', () {
-      final page = BooruOnRailsJsonParser().parsePage(
+      final page = PhilomenaJsonParser().parsePage(
         _server,
         _response({
           'images': {

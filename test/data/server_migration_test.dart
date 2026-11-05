@@ -1,8 +1,8 @@
 import 'package:boorusphere/data/encryption.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
-import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/philomena_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
@@ -429,7 +429,7 @@ void main() {
     });
   });
 
-  group('UserServerRepo.populate BooruOnRails post page', () {
+  group('UserServerRepo.populate Philomena post page', () {
     const bareId = '{post-id}';
 
     late Box<Server> box;
@@ -463,7 +463,7 @@ void main() {
       await repo.populate();
 
       final server = box.get('@derpibooru')!;
-      expect(server.postUrl, BooruOnRailsJsonParser().postUrl);
+      expect(server.postUrl, PhilomenaJsonParser().postUrl);
       expect(
         server.postUrlOf(1183740),
         'https://derpibooru.org/images/1183740',

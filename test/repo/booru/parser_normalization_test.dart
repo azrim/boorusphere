@@ -1,5 +1,5 @@
-import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_xml_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/philomena_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/safebooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
@@ -74,14 +74,14 @@ void main() {
     });
   });
 
-  group('BooruOnRails rating normalization', () {
+  group('Philomena rating normalization', () {
     test('falls back to q when no rating tag is present', () {
       final res = _response({
         'images': [
           _image(id: 1, tags: ['artist:foo', 'general']),
         ],
       });
-      final posts = BooruOnRailsJsonParser().parsePage(_server, res);
+      final posts = PhilomenaJsonParser().parsePage(_server, res);
       expect(posts, hasLength(1));
       expect(posts.single.rateValue, 'q');
     });
@@ -92,7 +92,7 @@ void main() {
           _image(id: 2, tags: ['explicit', 'artist:foo']),
         ],
       });
-      final posts = BooruOnRailsJsonParser().parsePage(_server, res);
+      final posts = PhilomenaJsonParser().parsePage(_server, res);
       expect(posts.single.rateValue, 'explicit');
     });
   });
@@ -104,7 +104,7 @@ void main() {
         _image(id: 5, tags: ['explicit']),
       ],
     });
-    final posts = BooruOnRailsJsonParser().parsePage(_server, res);
+    final posts = PhilomenaJsonParser().parsePage(_server, res);
     expect(posts, hasLength(1));
     expect(posts.single.rateValue, 'safe');
   });

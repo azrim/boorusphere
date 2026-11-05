@@ -13,11 +13,12 @@ import 'package:dio/dio.dart';
 /// Philomena — the board software behind Derpibooru and Ponybooru, whose API
 /// is `/api/v1/json/*` and whose image pages live at `images/{id}`.
 ///
-/// The name here describes the Rails-ness of the URL rather than the name of
-/// anything, and it is the one string that cannot change: a saved server keeps
-/// [id], so every row already in the box points at this parser through it. The
-/// label the user chooses from says Philomena.
-class BooruOnRailsJsonParser extends BooruParser {
+/// [id] keeps the name this reader was first registered under, `BooruOnRails`:
+/// a saved server stores the parser id it was configured with, so every row
+/// already in the box and every preset shipped against it reaches this class
+/// through that string. Renaming it would leave them naming a parser that does
+/// not exist, which the dispatcher then resolves by guessing from the payload.
+class PhilomenaJsonParser extends BooruParser {
   @override
   final id = 'BooruOnRails.json';
 

@@ -4,12 +4,12 @@ import 'dart:typed_data';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
-import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/moebooru_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/philomena_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/safebooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/szurubooru_json_parser.dart';
@@ -177,20 +177,20 @@ void main() async {
       expect(result.postUrl, parser.postUrl);
     });
 
-    test('BooruOnRails', () async {
+    test('Philomena', () async {
       const host = 'https://derpibooru.test';
       adapter
         ..put(
           '$host/api/v1/json/search/images?q=*&per_page=30&page=1',
-          FakeResponseBody.fromFixture('booruonrails/posts.json', 200),
+          FakeResponseBody.fromFixture('philomena/posts.json', 200),
         )
         ..put(
           '$host/api/v1/json/search/tags?q=*a*',
-          FakeResponseBody.fromFixture('booruonrails/tags.json', 200),
+          FakeResponseBody.fromFixture('philomena/tags.json', 200),
         )
         ..put(
           '$host/images/100',
-          FakeResponseBody.fromFixture('booruonrails/post.html', 200),
+          FakeResponseBody.fromFixture('philomena/post.html', 200),
         );
 
       final scanner = BooruScanner(
@@ -199,7 +199,7 @@ void main() async {
       );
 
       final result = await scanner.scan(const Server(homepage: host));
-      final parser = BooruOnRailsJsonParser();
+      final parser = PhilomenaJsonParser();
 
       expect(result.searchUrl, parser.searchQuery);
       expect(result.searchParserId, parser.id);
@@ -248,11 +248,11 @@ void main() async {
         adapter
           ..put(
             '$host/api/v1/json/search/images?q=*&per_page=30&page=1',
-            FakeResponseBody.fromFixture('booruonrails/posts.json', 200),
+            FakeResponseBody.fromFixture('philomena/posts.json', 200),
           )
           ..put(
             '$host/api/v1/json/search/tags?q=*a*',
-            FakeResponseBody.fromFixture('booruonrails/tags.json', 200),
+            FakeResponseBody.fromFixture('philomena/tags.json', 200),
           )
           ..put(
             '$host/post/view/100',
@@ -271,7 +271,7 @@ void main() async {
         );
 
         final result = await scanner.scan(const Server(homepage: host));
-        final parser = BooruOnRailsJsonParser();
+        final parser = PhilomenaJsonParser();
 
         expect(result.searchParserId, parser.id);
         expect(result.postUrl, parser.postUrl);

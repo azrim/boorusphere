@@ -102,7 +102,7 @@ void main() {
   });
 
   group('Server.searchUrlOf', () {
-    test('drops the whole rating token on booru-on-rails', () {
+    test('drops the whole rating token on Philomena', () {
       const server = Server(
         homepage: 'https://derpibooru.test',
         searchUrl:

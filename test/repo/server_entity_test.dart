@@ -28,9 +28,9 @@ void main() {
       expect(url, contains('safety%3Asafe'));
     });
 
-    test('booru-on-rails strips rating prefix', () {
+    test('philomena strips rating prefix', () {
       const server = Server(
-        homepage: 'https://test.booru-on-rails.org',
+        homepage: 'https://test.philomena.org',
         searchUrl:
             'api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-id}',
       );

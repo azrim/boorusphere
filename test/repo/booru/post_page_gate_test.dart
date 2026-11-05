@@ -24,7 +24,7 @@ void main() {
       // address simply stays empty, and every post link goes to the homepage.
       // These are the pages the engines serve today.
       const fixtures = [
-        'booruonrails/post.html',
+        'philomena/post.html',
         'danbooru/post.html',
         'e621/post.html',
         'gelbooru/post.html',

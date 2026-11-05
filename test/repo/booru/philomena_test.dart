@@ -1,6 +1,6 @@
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
-import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/philomena_json_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
 import 'package:boorusphere/domain/provider.dart';
@@ -21,7 +21,7 @@ void main() async {
   TestWidgetsFlutterBinding.ensureInitialized();
   final hiveContainer = HiveTestContainer();
 
-  test('BooruOnRails', () async {
+  test('Philomena', () async {
     final ref = ProviderContainer(
       overrides: [
         defaultServersProvider.overrideWithValue(await provideDefaultServers()),
@@ -38,7 +38,7 @@ void main() async {
     ref.setupTestFor(dioProvider);
     final adapter = DioAdapterMock(ref.read(dioProvider));
 
-    final parser = BooruOnRailsJsonParser();
+    final parser = PhilomenaJsonParser();
     final server = Server(
       homepage: 'https://derpibooru.org',
       searchUrl: parser.searchQuery,
@@ -47,7 +47,7 @@ void main() async {
 
     const option = PageOption(limit: 5);
 
-    const fakePage = 'booruonrails/posts.json';
+    const fakePage = 'philomena/posts.json';
     when(
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakePage, 200));
@@ -66,7 +66,7 @@ void main() async {
     expect(first.rateValue, 'safe');
     expect(first.tags, contains('safe'));
 
-    const fakeTags = 'booruonrails/tags.json';
+    const fakeTags = 'philomena/tags.json';
     when(
       () => adapter.fetch(any(), any(), any()),
     ).thenAnswer((_) async => FakeResponseBody.fromFixture(fakeTags, 200));
