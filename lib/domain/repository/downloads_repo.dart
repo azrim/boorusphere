@@ -16,6 +16,11 @@ abstract interface class DownloadsRepo {
   /// clear, so its progress row has to survive as well.
   Future<Set<String>> clearEntries();
   Future<void> clearProgresses();
-  Future<void> import(String src);
+
+  /// Merges [src] into the stored records and reports how many records were
+  /// written, or null when the payload is not a download backup. An empty list
+  /// of records is zero: the merge never removes records that are already
+  /// there, because their files belong to this device.
+  Future<int?> import(String src);
   Future<BackupItem> export();
 }

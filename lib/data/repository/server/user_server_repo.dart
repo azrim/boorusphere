@@ -363,15 +363,23 @@ class UserServerRepo implements ServerRepo {
   }
 
   @override
-  Future<void> import(String src) async {
+  Future<int?> import(String src) async {
     final List maps;
     try {
       maps = jsonDecode(src) as List;
     } catch (e) {
       // Not a server backup; leave the existing data intact.
-      return;
+      return null;
     }
-    if (maps.isEmpty) return;
+
+    // An empty list is the archive saying the source had no servers. The
+    // stored list is emptied to match, and the presets fill it again the way
+    // they do on a fresh install.
+    if (maps.isEmpty) {
+      await box.deleteAll(box.keys);
+      await box.flush();
+      return 0;
+    }
 
     // Decode every entry before touching the box: a malformed entry used to
     // abort the loop after the box had already been cleared, leaving the user
@@ -386,9 +394,11 @@ class UserServerRepo implements ServerRepo {
             : server;
       }
     } catch (e) {
-      return;
+      return null;
     }
-    if (restored.isEmpty) return;
+    // A list this build could not read a single entry from is not an empty
+    // list: it leaves the stored servers alone.
+    if (restored.isEmpty) return null;
 
     // The new entries reach the disk before the ones the backup does not
     // mention are dropped, so a failed write never leaves an empty list.
@@ -399,6 +409,7 @@ class UserServerRepo implements ServerRepo {
 
     // Run migrations after import to fix any outdated server configs
     await _healOutdatedEntries();
+    return restored.length;
   }
 
   /// Exports the servers with their credentials, so restoring on a new device

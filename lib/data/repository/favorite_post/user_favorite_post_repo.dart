@@ -38,9 +38,21 @@ class UserFavoritePostRepo implements FavoritePostRepo {
   }
 
   @override
-  Future<void> import(String src) async {
-    final List maps = jsonDecode(src);
-    if (maps.isEmpty) return;
+  Future<int?> import(String src) async {
+    final List maps;
+    try {
+      maps = jsonDecode(src) as List;
+    } catch (e) {
+      // Not a favorites list this build can read; keep the stored favorites.
+      return null;
+    }
+
+    // An empty list is the archive saying nothing was favorited. The stored
+    // list is emptied to match instead of surviving as a stale copy.
+    if (maps.isEmpty) {
+      await box.clear();
+      return 0;
+    }
 
     // Every entry is decoded before the box is touched, so a malformed entry
     // reaches the caller with the stored favorites still intact.
@@ -50,11 +62,14 @@ class UserFavoritePostRepo implements FavoritePostRepo {
       final fav = FavoritePost.fromJson(Map.from(map));
       restored[fav.key] = fav;
     }
-    if (restored.isEmpty) return;
+    // A list with nothing usable in it is not an empty list: it leaves the
+    // stored favorites alone.
+    if (restored.isEmpty) return null;
 
     await box.putAll(restored);
     final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
     if (stale.isNotEmpty) await box.deleteAll(stale);
+    return restored.length;
   }
 
   @override

@@ -6,6 +6,10 @@ abstract interface class FavoritePostRepo {
   Future<void> clear();
   Future<void> remove(Post post);
   Future<void> save(Post post);
-  Future<void> import(String src);
+
+  /// Restores [src] and reports how many favorites it carried, or null when
+  /// the payload is not a favorites list. An empty list is zero: the archive
+  /// named an empty store, and the stored list is emptied to match.
+  Future<int?> import(String src);
   Future<BackupItem> export();
 }

@@ -29,9 +29,21 @@ class BooruTagsBlockerRepo implements TagsBlockerRepo {
   }
 
   @override
-  Future<void> import(String src) async {
-    final List maps = jsonDecode(src);
-    if (maps.isEmpty) return;
+  Future<int?> import(String src) async {
+    final List maps;
+    try {
+      maps = jsonDecode(src) as List;
+    } catch (e) {
+      // Not a blocklist this build can read; keep the stored one.
+      return null;
+    }
+
+    // An empty list is the archive saying nothing was blocked. The stored
+    // blocklist is emptied to match instead of surviving as a stale copy.
+    if (maps.isEmpty) {
+      await box.deleteAll(box.keys);
+      return 0;
+    }
 
     // Every entry is decoded before the box is touched, so a malformed entry
     // reaches the caller with the stored blocklist still intact. The entries
@@ -51,7 +63,9 @@ class BooruTagsBlockerRepo implements TagsBlockerRepo {
       if (trimmed.name.isEmpty || tags.contains(trimmed)) continue;
       tags.add(trimmed);
     }
-    if (tags.isEmpty) return;
+    // A list with nothing usable in it is not an empty list: it leaves the
+    // stored blocklist alone.
+    if (tags.isEmpty) return null;
 
     final restored = {
       for (var index = 0; index < tags.length; index++) index: tags[index],
@@ -59,6 +73,7 @@ class BooruTagsBlockerRepo implements TagsBlockerRepo {
     await box.putAll(restored);
     final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
     if (stale.isNotEmpty) await box.deleteAll(stale);
+    return tags.length;
   }
 
   @override

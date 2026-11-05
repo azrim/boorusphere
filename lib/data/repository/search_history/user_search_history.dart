@@ -46,9 +46,21 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
   Future<void> clear() => box.clear();
 
   @override
-  Future<void> import(String src) async {
-    final List maps = jsonDecode(src);
-    if (maps.isEmpty) return;
+  Future<int?> import(String src) async {
+    final List maps;
+    try {
+      maps = jsonDecode(src) as List;
+    } catch (e) {
+      // Not a history list this build can read; keep the stored history.
+      return null;
+    }
+
+    // An empty list is the archive saying nothing was searched for. The stored
+    // history is emptied to match instead of surviving as a stale copy.
+    if (maps.isEmpty) {
+      await box.clear();
+      return 0;
+    }
 
     // Every entry is decoded before the box is touched, so a malformed entry
     // reaches the caller with the stored history still intact. Keys are
@@ -59,11 +71,14 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
       if (map is! Map) continue;
       restored[restored.length] = SearchHistory.fromJson(Map.from(map));
     }
-    if (restored.isEmpty) return;
+    // A list with nothing usable in it is not an empty list: it leaves the
+    // stored history alone.
+    if (restored.isEmpty) return null;
 
     await box.putAll(restored);
     final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
     if (stale.isNotEmpty) await box.deleteAll(stale);
+    return restored.length;
   }
 
   @override

@@ -151,12 +151,22 @@ class UserDownloadsRepo implements DownloadsRepo {
   }
 
   @override
-  Future<void> import(String src) async {
-    final data = jsonDecode(src);
-    if (data is! Map || data['schema'] != backupSchema) return;
+  Future<int?> import(String src) async {
+    final Object? data;
+    try {
+      data = jsonDecode(src);
+    } catch (e) {
+      // Not a download payload this build can read; keep the stored records.
+      return null;
+    }
+    if (data is! Map || data['schema'] != backupSchema) return null;
 
     final rawEntries = data['entries'];
-    if (rawEntries is! List || rawEntries.isEmpty) return;
+    if (rawEntries is! List) return null;
+
+    // The archive named no records. The list is merged rather than replaced,
+    // so there is nothing to write and nothing to remove.
+    if (rawEntries.isEmpty) return 0;
 
     // Every record is decoded before a box is touched, so one malformed entry
     // leaves the current download list as it is.
@@ -183,14 +193,19 @@ class UserDownloadsRepo implements DownloadsRepo {
 
       restored[id] = DownloadEntry(id: id, post: decoded, dest: normalizedDest);
     }
-    if (restored.isEmpty) return;
+    // A payload whose records none of which could be read is not an empty
+    // one: it leaves the stored records alone.
+    if (restored.isEmpty) return null;
 
     // A native task that is still around keeps its own record: writing the
     // archived one over it would leave the running task pointing at a row the
     // plugin never wrote.
     final busy = await _nativeTaskIds();
     restored.removeWhere((id, _) => busy.contains(id));
-    if (restored.isEmpty) return;
+    // Every record the archive carried belongs to a task that is still
+    // running here, so none of them may be written. That is not a failed
+    // import, only an empty one.
+    if (restored.isEmpty) return 0;
 
     final progressById = <String, Map>{};
     if (data['progresses'] case final List rawProgresses) {
@@ -244,6 +259,7 @@ class UserDownloadsRepo implements DownloadsRepo {
 
     await entryBox.putAll(entries);
     await progressBox.putAll(progresses);
+    return entries.length;
   }
 
   /// Schema of the download payload inside a backup.

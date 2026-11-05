@@ -84,7 +84,7 @@ class _FakeDownloadsRepo implements DownloadsRepo {
   Future<BackupItem> export() => throw UnimplementedError();
 
   @override
-  Future<void> import(String src) => throw UnimplementedError();
+  Future<int?> import(String src) => throw UnimplementedError();
 
   bool hasEntry(String id) => _entries.containsKey(id);
 }

@@ -5,6 +5,10 @@ abstract interface class TagsBlockerRepo {
   Map<int, BooruTag> get();
   Future<void> delete(key);
   Future<void> push(BooruTag value);
-  Future<void> import(String src);
+
+  /// Restores [src] and reports how many entries it carried, or null when the
+  /// payload is not a blocklist. An empty list is zero: the archive named an
+  /// empty store, and the stored list is emptied to match.
+  Future<int?> import(String src);
   Future<BackupItem> export();
 }

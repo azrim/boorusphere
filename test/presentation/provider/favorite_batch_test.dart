@@ -27,7 +27,7 @@ class _MemoryFavoriteRepo implements FavoritePostRepo {
   Future<void> clear() async => _byKey.clear();
 
   @override
-  Future<void> import(String src) async {}
+  Future<int?> import(String src) async => 0;
 
   @override
   Future<BackupItem> export() async => const BackupItem('favorites', []);

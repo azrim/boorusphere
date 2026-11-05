@@ -56,10 +56,24 @@ void main() {
         ).toJson(),
       ]);
 
-      await repo.import(payload);
+      expect(await repo.import(payload), 1);
 
       expect(box.keys, ['2@srv']);
       expect(box.values.single.post.id, 2);
+    });
+
+    test('an empty list clears the stored favorites', () async {
+      await repo.save(const Post(id: 1, serverId: 'srv'));
+
+      expect(await repo.import('[]'), 0);
+      expect(box.isEmpty, isTrue);
+    });
+
+    test('a payload that is not a list reports nothing imported', () async {
+      await repo.save(const Post(id: 1, serverId: 'srv'));
+
+      expect(await repo.import(jsonEncode({'post': 1})), isNull);
+      expect(box.length, 1);
     });
   });
 
@@ -96,10 +110,17 @@ void main() {
         const SearchHistory(query: 'b', server: 'srv').toJson(),
       ]);
 
-      await repo.import(payload);
+      expect(await repo.import(payload), 2);
 
       expect(box.keys, [0, 1]);
       expect(box.values.map((it) => it.query), ['a', 'b']);
+    });
+
+    test('an empty list clears the stored history', () async {
+      await repo.save('cat', 'srv');
+
+      expect(await repo.import('[]'), 0);
+      expect(box.isEmpty, isTrue);
     });
   });
 
@@ -137,9 +158,16 @@ void main() {
         'dog',
       ]);
 
-      await repo.import(payload);
+      expect(await repo.import(payload), 2);
 
       expect(box.values.map((it) => it.name), ['cat', 'dog']);
+    });
+
+    test('an empty list clears the stored blocklist', () async {
+      await repo.push(const BooruTag(name: 'cat'));
+
+      expect(await repo.import('[]'), 0);
+      expect(box.isEmpty, isTrue);
     });
   });
 
@@ -156,10 +184,13 @@ void main() {
     test('a malformed entry keeps the stored servers', () async {
       await box.put('@keep', const Server(id: 'keep'));
 
-      await repo.import(
-        jsonEncode([
-          {'id': 5},
-        ]),
+      expect(
+        await repo.import(
+          jsonEncode([
+            {'id': 5},
+          ]),
+        ),
+        isNull,
       );
 
       expect(box.keys, ['@keep']);
@@ -169,10 +200,20 @@ void main() {
       await box.put('@drop', const Server(id: 'drop'));
       await box.put('@keep', const Server(id: 'keep'));
 
-      await repo.import(jsonEncode([const Server(id: 'keep').toJson()]));
+      expect(
+        await repo.import(jsonEncode([const Server(id: 'keep').toJson()])),
+        1,
+      );
 
       expect(box.keys, ['@keep']);
       expect(box.values.single.id, 'keep');
+    });
+
+    test('an empty list clears the stored servers', () async {
+      await box.put('@keep', const Server(id: 'keep'));
+
+      expect(await repo.import('[]'), 0);
+      expect(box.isEmpty, isTrue);
     });
 
     test(

@@ -94,7 +94,7 @@ class _Content extends HookConsumerWidget {
               child: _LoadingDialog(type: type),
             ),
           );
-        case ImportedBackupResult(:final fileName):
+        case ImportedBackupResult(:final fileName, :final stores):
           // The loading dialog is closed by its own listener, and a dialog
           // cannot be pushed in the frame that pops another one. Waiting for
           // the frame keeps this prompt from being dismissed with it.
@@ -110,7 +110,7 @@ class _Content extends HookConsumerWidget {
                   title: Text(
                     context.t.dataBackup.restore.completed(file: fileName),
                   ),
-                  content: Text(context.t.dataBackup.restore.completedDesc),
+                  content: _RestoreReport(stores: stores),
                   actions: [
                     // Closing the activity is the whole point: the restored
                     // boxes are only read on a cold start, so the app has to
@@ -316,6 +316,55 @@ class _Content extends HookConsumerWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+/// What a completed restore actually wrote, store by store.
+///
+/// The counts are the point. An archive that carried no servers and one whose
+/// servers could not be read both leave the list alone; only the number says
+/// which of the two happened.
+class _RestoreReport extends StatelessWidget {
+  const _RestoreReport({required this.stores});
+
+  final Map<BackupStore, int> stores;
+
+  String _label(BuildContext context, BackupStore store) => switch (store) {
+    BackupStore.servers => context.t.servers.title,
+    BackupStore.blockedTags => context.t.tagsBlocker.title,
+    BackupStore.favorites => context.t.favorites.title,
+    BackupStore.settings => context.t.settings.title,
+    BackupStore.searchHistory => context.t.searchHistory,
+    BackupStore.downloads => context.t.dataBackup.downloadRecords,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    // A fixed order, so the report reads the same no matter how the archive
+    // that produced it happened to be packed.
+    final ordered = stores.entries.toList()
+      ..sort((a, b) => a.key.index.compareTo(b.key.index));
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(context.t.dataBackup.restore.completedDesc),
+        for (final entry in ordered)
+          Padding(
+            padding: const EdgeInsets.only(top: DesignTokens.spacingXs),
+            child: Row(
+              children: [
+                Expanded(child: Text(_label(context, entry.key))),
+                Text(
+                  '${entry.value}',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

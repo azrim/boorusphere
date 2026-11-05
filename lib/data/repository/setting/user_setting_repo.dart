@@ -42,29 +42,46 @@ class UserSettingsRepo implements SettingsRepo {
   }
 
   @override
-  Future<void> import(String src) async {
-    final Map map = jsonDecode(src);
-    if (map.isEmpty) return;
+  Future<int?> import(String src) async {
+    final Map map;
+    try {
+      map = jsonDecode(src) as Map;
+    } catch (e) {
+      // Not a settings map this build can read; keep the stored values.
+      return null;
+    }
+
+    // An empty map writes nothing. The exporter still produces one when the
+    // settings box could not be read, so emptiness is not proof that the
+    // source had no settings, and clearing the local ones would lose them for
+    // nothing.
+    if (map.isEmpty) return 0;
 
     // The new values are stored before the keys the backup does not mention
     // are dropped: deleting first left the user without any setting when a
     // write failed halfway through.
     var stored = true;
+    var written = 0;
     for (final entry in map.entries) {
       // The passphrase is what opens an encrypted backup, so an archive never
       // carries one and an archive that does cannot replace the local one.
       if (entry.key == Setting.backupPassphrase.name) continue;
-      stored &= await _write('${entry.key}', _decode(entry.key, entry.value));
+      final ok = await _write('${entry.key}', _decode(entry.key, entry.value));
+      stored &= ok;
+      if (ok) written++;
     }
-    if (!stored) return;
+    // A store that could not take every value is not reported as restored:
+    // the rows that did land stay, but the run does not claim this store.
+    if (!stored) return null;
 
     final target = box;
-    if (target == null) return;
+    if (target == null) return written;
     final stale = target.keys
         .where((it) => it != Setting.backupPassphrase.name)
         .where((it) => !map.containsKey(it))
         .toList();
     if (stale.isNotEmpty) await target.deleteAll(stale);
+    return written;
   }
 
   @override

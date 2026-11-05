@@ -9,6 +9,11 @@ abstract interface class SettingsRepo {
 
   T get<T>(Setting key, {required T or});
   Future<void> put<T>(Setting key, T value);
-  Future<void> import(String src);
+
+  /// Restores [src] and reports how many settings reached the store, or null
+  /// when the payload is not a settings map. An empty map is zero and writes
+  /// nothing: the exporter can produce one without knowing the stored values,
+  /// so it is not proof that the source had no settings.
+  Future<int?> import(String src);
   Future<BackupItem> export();
 }

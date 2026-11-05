@@ -284,43 +284,47 @@ class DataBackupState extends _$DataBackupState {
       return;
     }
 
-    var applied = 0;
-    var importedServers = false;
+    // The six stores an archive can carry, each with the reader that applies
+    // its payload. A file whose name matches none of them is not ours to read.
+    final stores = <String, (BackupStore, Future<int?> Function(String))>{
+      UserServerRepo.key: (
+        BackupStore.servers,
+        ref.read(serverRepoProvider).import,
+      ),
+      BooruTagsBlockerRepo.boxKey: (
+        BackupStore.blockedTags,
+        ref.read(tagsBlockerRepoProvider).import,
+      ),
+      UserFavoritePostRepo.key: (
+        BackupStore.favorites,
+        ref.read(favoritePostRepoProvider).import,
+      ),
+      UserSettingsRepo.key: (
+        BackupStore.settings,
+        ref.read(settingsRepoProvider).import,
+      ),
+      UserSearchHistoryRepo.key: (
+        BackupStore.searchHistory,
+        ref.read(searchHistoryRepoProvider).import,
+      ),
+      UserDownloadsRepo.entryKey: (
+        BackupStore.downloads,
+        ref.read(downloadsRepoProvider).import,
+      ),
+    };
+    final imported = <BackupStore, int>{};
     try {
       for (final json in decoder.files.where((it) => it.isFile)) {
         // Only the entries the exporter wrote at the root are ours; a
         // folder prefix means the archive was packed by something else.
         if (path.dirname(json.name) != '.') continue;
-        final content = utf8.decode(json.content);
-        switch (path.basenameWithoutExtension(json.name)) {
-          case UserServerRepo.key:
-            await ref.read(serverRepoProvider).import(content);
-            applied++;
-            importedServers = true;
-            break;
-          case BooruTagsBlockerRepo.boxKey:
-            await ref.read(tagsBlockerRepoProvider).import(content);
-            applied++;
-            break;
-          case UserFavoritePostRepo.key:
-            await ref.read(favoritePostRepoProvider).import(content);
-            applied++;
-            break;
-          case UserSettingsRepo.key:
-            await ref.read(settingsRepoProvider).import(content);
-            applied++;
-            break;
-          case UserSearchHistoryRepo.key:
-            await ref.read(searchHistoryRepoProvider).import(content);
-            applied++;
-            break;
-          case UserDownloadsRepo.entryKey:
-            await ref.read(downloadsRepoProvider).import(content);
-            applied++;
-            break;
-          default:
-            break;
-        }
+        final entry = stores[path.basenameWithoutExtension(json.name)];
+        if (entry == null) continue;
+
+        // A store answers null for a payload it does not recognize. That
+        // store is left out of the report instead of being counted as done.
+        final count = await entry.$2(utf8.decode(json.content));
+        if (count != null) imported[entry.$1] = count;
       }
     } finally {
       // The entries imported before a failure are already on disk, so the
@@ -328,15 +332,17 @@ class DataBackupState extends _$DataBackupState {
       await _invalidateProviders();
     }
 
-    // Nothing was imported, so reporting a restore would be a lie.
-    if (applied == 0) {
+    // Every store the archive named was unreadable, so reporting a restore
+    // would be a lie. A store that was read and held nothing counts as
+    // imported: zero rows are still an answer.
+    if (imported.isEmpty) {
       state = restoreError;
       return;
     }
 
     // The log carries counts only: the entries hold logins and API keys,
     // which stay out of it.
-    if (importedServers) {
+    if (imported.containsKey(BackupStore.servers)) {
       final servers = ref.read(serverRepoProvider).servers;
       final withCredentials = servers.where((it) => it.hasCredentials).length;
       mainLog.i(
@@ -345,7 +351,7 @@ class DataBackupState extends _$DataBackupState {
       );
     }
 
-    state = BackupResult.imported(fileName);
+    state = BackupResult.imported(fileName, stores: imported);
   }
 
   Future<void> backup({
@@ -423,11 +429,11 @@ class DataBackupState extends _$DataBackupState {
       await Future.wait(
         entries.map((entry) async {
           final item = await entry;
-          final data = item.value;
-          if (data is List && data.isEmpty) return;
-
+          // An empty store is still written: its presence is what tells a
+          // restore that the source had nothing there, instead of leaving the
+          // target's old data behind as if the choice had never been made.
           final file = File('${temp.path}/${item.key}.json');
-          await file.writeAsString(jsonEncode(data));
+          await file.writeAsString(jsonEncode(item.value));
           return encoder.addFile(file);
         }),
       );

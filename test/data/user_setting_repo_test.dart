@@ -66,7 +66,10 @@ void main() {
         final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
         await repo.put(Setting.uiBlur, false);
 
-        await repo.import(jsonEncode({Setting.uiTimelineGrid.name: 2}));
+        expect(
+          await repo.import(jsonEncode({Setting.uiTimelineGrid.name: 2})),
+          1,
+        );
 
         expect(repo.get(Setting.uiTimelineGrid, or: 1), 2);
         expect(
@@ -75,6 +78,25 @@ void main() {
         );
       },
     );
+
+    test('an empty import writes nothing and changes nothing', () async {
+      final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
+      await repo.put(Setting.uiBlur, true);
+      await repo.put(Setting.backupPassphrase, 'local-secret');
+
+      expect(await repo.import('{}'), 0);
+
+      expect(repo.get(Setting.uiBlur, or: false), isTrue);
+      expect(repo.get(Setting.backupPassphrase, or: ''), 'local-secret');
+    });
+
+    test('a payload that is not a map reports nothing imported', () async {
+      final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));
+      await repo.put(Setting.uiBlur, true);
+
+      expect(await repo.import(jsonEncode([1, 2])), isNull);
+      expect(repo.get(Setting.uiBlur, or: false), isTrue);
+    });
 
     test('export carries the Telegram credentials in the backup', () async {
       final repo = UserSettingsRepo(Hive.box(UserSettingsRepo.key));

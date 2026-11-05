@@ -132,7 +132,7 @@ void main() {
 
   group('UserDownloadsRepo.import', () {
     test('keeps a missing file as a record that can be redownloaded', () async {
-      await repo.import(payload());
+      expect(await repo.import(payload()), 1);
 
       expect(entryBox.get('task-1')?.dest, 'Danbooru/42.jpg');
       final progress = progressBox.get('task-1');
@@ -221,7 +221,33 @@ void main() {
         ),
       );
 
-      await repo.import(payload(schema: UserDownloadsRepo.backupSchema + 1));
+      expect(
+        await repo.import(payload(schema: UserDownloadsRepo.backupSchema + 1)),
+        isNull,
+      );
+
+      expect(entryBox.keys, ['local']);
+    });
+
+    test('an empty record list leaves the stored records alone', () async {
+      await entryBox.put(
+        'local',
+        const DownloadEntry(
+          id: 'local',
+          post: Post(id: 7, serverId: 'Danbooru'),
+          dest: 'Danbooru/7.jpg',
+        ),
+      );
+
+      expect(
+        await repo.import(
+          jsonEncode({
+            'schema': UserDownloadsRepo.backupSchema,
+            'entries': const [],
+          }),
+        ),
+        0,
+      );
 
       expect(entryBox.keys, ['local']);
     });
