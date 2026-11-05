@@ -241,7 +241,26 @@ class BooruScanner {
     String host, {
     required Server server,
     required _ScanType type,
+    String preferEngine = '',
   }) async* {
+    /// Where a candidate belongs in the ordering [results] are picked from.
+    ///
+    /// The post pass asks every engine's page route against one host, and a
+    /// page only has to carry a title and not be a known gate to count as an
+    /// answer — which a soft 404, a catch-all app, or a login redirect passes
+    /// on a route that is not this board's post page at all. Ranking by the
+    /// parser id suffix alone let that stranger win and wrote a post address
+    /// the host does not serve. The engine the search pass proved does know
+    /// where its own posts live, so its template comes first; a foreign route
+    /// is still allowed to answer when the proven engine has no page template
+    /// of its own, which is how a Danbooru-shaped board read by another
+    /// parser's JSON keeps a working link. The id suffix breaks ties, so the
+    /// scan decides the same way every time it runs.
+    int engineRank(String parserId) {
+      if (preferEngine.isEmpty) return 0;
+      return parserId.fileNameNoExt == preferEngine ? 0 : 1;
+    }
+
     final results = <_ScanResult>[];
     final requests = parsers.mapIndexed((i, parser) async {
       if (i > 0) {
@@ -260,7 +279,12 @@ class BooruScanner {
       }
     }
 
-    results.sortBy((x) => x.parserId.fileExt);
+    results.sort((a, b) {
+      final byEngine = engineRank(a.parserId).compareTo(engineRank(b.parserId));
+      return byEngine != 0
+          ? byEngine
+          : a.parserId.fileExt.compareTo(b.parserId.fileExt);
+    });
     final firstFound = results.firstWhere(
       (it) => it.query.isNotEmpty && it.parserId.isNotEmpty,
       orElse: () =>
@@ -312,15 +336,33 @@ class BooruScanner {
           continue;
         }
 
+        // The suggestion pass is asked against the address the search pass
+        // proved, so all it gets to decide is which parser reads the
+        // completion answer. Its origin is written nowhere: `apiAddr` serves
+        // search as well, so a tag endpoint that redirects out of the api host
+        // would move every post request to a server that never proved it
+        // answers them. A route that only exists on such a foreign host is not
+        // representable in this model at all, so it is dropped instead of half
+        // configured — suggestions stay off while the search that works stays.
+        if (ev.parserId.isEmpty) continue;
+        if (ev.origin != data.apiAddr) {
+          _uilog('suggestion host ${ev.origin} differs from the api address');
+          continue;
+        }
+
         data = data.copyWith(
           suggestionParserId: ev.parserId,
           tagSuggestionUrl: ev.query,
-          apiAddr: ev.origin,
         );
       }
 
       _uilog('Scanning web post query...');
-      final post = _performScans(home, server: data, type: _ScanType.post);
+      final post = _performScans(
+        home,
+        server: data,
+        type: _ScanType.post,
+        preferEngine: data.searchParserId.fileNameNoExt,
+      );
       await for (var ev in post) {
         if (ev == _ScanResult.empty && isScanning.value) {
           continue;

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
@@ -400,6 +401,173 @@ void main() async {
     });
   });
 
+  group('what the probe asks decides what the scan finds', () {
+    // These three go through a rule-based adapter instead of the url map,
+    // because the point is what one engine answers *per page* or *per host* —
+    // which the same path spells differently for every parser the registry
+    // probes.
+    test(
+      'a board whose single page of posts is the last one is detected',
+      () async {
+        // The DAPI envelope of a page past the last match carries its
+        // attributes alone, with no `post` key at all, so nothing in it looks
+        // like this engine. A probe aimed at the second page therefore judged
+        // the board by a page the reader never asks for and reported a working
+        // server as having no engine — while the very same payload answers
+        // page zero with a post.
+        const host = 'https://small.test';
+        final container = ProviderContainer(
+          overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+        );
+        addTearDown(container.dispose);
+        final client = Dio()
+          ..httpClientAdapter = _RuleAdapter((request) {
+            final query = request.uri.queryParameters;
+            if (query['page'] == 'dapi' &&
+                query['s'] == 'post' &&
+                query['json'] == '1') {
+              return query['pid'] == '0'
+                  ? FakeResponseBody.fromFixture('gelbooru/posts.json', 200)
+                  : _json('{"@attributes":{"limit":30,"offset":30,"count":1}}');
+            }
+            return _notFound;
+          });
+        addTearDown(() => client.close(force: true));
+
+        final result = await BooruScanner(
+          parsers: container.read(booruParsersProvider),
+          client: client,
+        ).scan(const Server(homepage: host));
+
+        final parser = GelbooruJsonParser();
+        expect(result.searchParserId, parser.id);
+        expect(result.searchUrl, parser.searchQuery);
+      },
+    );
+
+    test(
+      'a tag endpoint on another host does not move the api address',
+      () async {
+        // The completion route followed a redirect out of the api host. That
+        // host answers tags and nothing else, so writing it as the api address
+        // sent every search request there — and the board the scan had just
+        // detected came back with 404s. The search answer is the one that
+        // proved its origin, so it stays authoritative.
+        const host = 'https://a.test';
+        final recording = _RuleAdapter((request) {
+          switch (request.uri.path) {
+            case '/posts.json':
+              return _json(_danbooruOnePost);
+            case '/autocomplete.json':
+              return _json(
+                '[{"type":"tag","label":"cat","value":"cat","post_count":5}]',
+              );
+            default:
+              return _notFound;
+          }
+        });
+        final client = Dio()
+          ..httpClientAdapter = recording
+          ..interceptors.add(
+            // What Dio hands the caller after it has followed a redirect: the
+            // record plus the address the body really came from.
+            InterceptorsWrapper(
+              onResponse: (response, handler) {
+                if (response.requestOptions.uri.path == '/autocomplete.json') {
+                  response.redirects = [
+                    RedirectRecord(
+                      301,
+                      'GET',
+                      Uri.parse('https://suggest.test/autocomplete.json'),
+                    ),
+                  ];
+                }
+                handler.next(response);
+              },
+            ),
+          );
+        addTearDown(() => client.close(force: true));
+        final container = ProviderContainer(
+          overrides: [
+            envRepoProvider.overrideWithValue(FakeEnvRepo()),
+            dioProvider.overrideWithValue(client),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final result = await BooruScanner(
+          parsers: container.read(booruParsersProvider),
+          client: client,
+        ).scan(const Server(homepage: host));
+
+        final parser = DanbooruJsonParser();
+        expect(result.searchParserId, parser.id);
+        expect(result.apiAddress, host);
+        // Suggestions are left off rather than pointed at a host the app cannot
+        // address without also moving the search onto it.
+        expect(result.suggestionParserId, isEmpty);
+        expect(result.tagSuggestionUrl, isEmpty);
+
+        // And the server the scan produced still reads: the request goes to
+        // the host that answered the probe, not to the tag host.
+        container.setupTestFor(imageboardRepoProvider(result));
+        final page = await container
+            .read(imageboardRepoProvider(result))
+            .getPage(const PageOption(), 0);
+        expect(page, hasLength(1));
+        expect(
+          recording.requests.last.uri.toString(),
+          startsWith('$host/posts.json'),
+        );
+      },
+    );
+
+    test(
+      'a titled page on a foreign route does not become the post address',
+      () async {
+        // Every page of this board answers 200 with a title — including the
+        // routes it does not have. A post probe that only reads "200 and a
+        // title" therefore finds several candidates, and picking by parser id
+        // alone wrote a route the host does not serve onto a server whose
+        // engine had already been recognised from its payload.
+        const host = 'https://soft404.test';
+        final container = ProviderContainer(
+          overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+        );
+        addTearDown(container.dispose);
+        final client = Dio()
+          ..httpClientAdapter = _RuleAdapter((request) {
+            switch (request.uri.path) {
+              case '/post.json':
+                return _json(_moebooruOnePost);
+              case '/post/show/100':
+                return _html(
+                  '<html><head><title>Cat - Board</title></head>'
+                  '<body><img src="https://img.test/1.jpg"></body></html>',
+                );
+              default:
+                return request.responseType == ResponseType.stream
+                    ? _html(
+                        '<html><head><title>Board - Page not found</title>'
+                        '</head></html>',
+                      )
+                    : _notFound;
+            }
+          });
+        addTearDown(() => client.close(force: true));
+
+        final result = await BooruScanner(
+          parsers: container.read(booruParsersProvider),
+          client: client,
+        ).scan(const Server(homepage: host));
+
+        expect(result.searchParserId, 'Moebooru.json');
+        expect(result.postUrl, MoebooruJsonParser().postUrl);
+        expect(result.postUrl, isNot('images/{post-id}'));
+      },
+    );
+  });
+
   group('probe credentials', () {
     test('an engine that reads a header is probed with that header', () async {
       // The scan decides whether a server has an engine at all, so a probe
@@ -483,3 +651,64 @@ const _anubisWall = '''
   </body>
 </html>
 ''';
+
+/// One post each of these engines answers a first page with.
+const _danbooruOnePost =
+    '[{"id":1,"file_url":"https://img.test/1.jpg",'
+    '"preview_file_url":"https://img.test/1-preview.jpg",'
+    '"tag_string":"cat","image_width":100,"image_height":100,"rating":"g"}]';
+
+const _moebooruOnePost =
+    '[{"id":1,"file_url":"https://img.test/1.jpg",'
+    '"jpeg_url":"https://img.test/1.jpg",'
+    '"preview_url":"https://img.test/1-preview.jpg","tags":"cat",'
+    '"width":100,"height":100,"rating":"s"}]';
+
+ResponseBody get _notFound => ResponseBody.fromBytes(
+  [],
+  404,
+  headers: {
+    Headers.contentTypeHeader: [_htmlContentType],
+  },
+);
+
+ResponseBody _json(String value) => ResponseBody.fromString(
+  value,
+  200,
+  headers: {
+    Headers.contentTypeHeader: [Headers.jsonContentType],
+  },
+);
+
+ResponseBody _html(String value) => ResponseBody.fromString(
+  value,
+  200,
+  headers: {
+    Headers.contentTypeHeader: [_htmlContentType],
+  },
+);
+
+/// Answers by rule instead of by url, and keeps what was asked.
+///
+/// The scans below judge what a host says *per page* or *per path*, and every
+/// parser in the registry spells the same question differently, so a url map
+/// would have to list what none of the probes asks for.
+class _RuleAdapter implements HttpClientAdapter {
+  _RuleAdapter(this.answer);
+
+  final ResponseBody Function(RequestOptions) answer;
+  final requests = <RequestOptions>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    return answer(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
