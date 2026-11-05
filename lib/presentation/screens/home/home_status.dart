@@ -125,6 +125,16 @@ class _ErrorStatus extends ConsumerWidget {
     unawaited(ref.read(pageStateProvider.notifier).load());
   }
 
+  /// Drops the rating filter and asks for the page again.
+  Future<void> _disableRatingSafe(BuildContext context, WidgetRef ref) async {
+    await ref
+        .read(serverSettingStateProvider.notifier)
+        .setRating(BooruRating.all);
+    if (context.mounted) {
+      unawaited(ref.read(pageStateProvider.notifier).load());
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
@@ -179,22 +189,18 @@ class _ErrorStatus extends ConsumerWidget {
                     icon: const Icon(Icons.edit_outlined),
                     label: Text(context.t.servers.edit(name: server.name)),
                   )
-                else if (safeRating)
-                  FilledButton(
-                    onPressed: () async {
-                      await ref
-                          .read(serverSettingStateProvider.notifier)
-                          .setRating(BooruRating.all);
-                      if (context.mounted) {
-                        unawaited(ref.read(pageStateProvider.notifier).load());
-                      }
-                    },
-                    child: Text(context.t.rating.disableRatingSafe),
-                  )
                 else if (challenged)
+                  // The server never read the query: answering the check is
+                  // the only fix, and the rating toggle in the row below is
+                  // the fallback rather than the other way around.
                   FilledButton(
                     onPressed: () => _verify(context, ref, server),
                     child: Text(context.t.pageStatus.verify),
+                  )
+                else if (safeRating)
+                  FilledButton(
+                    onPressed: () => _disableRatingSafe(context, ref),
+                    child: Text(context.t.rating.disableRatingSafe),
                   )
                 else
                   FilledButton(
@@ -213,15 +219,17 @@ class _ErrorStatus extends ConsumerWidget {
                     ),
                     child: Text(context.t.servers.credentials.getKey),
                   ),
+                if (!missingServer && challenged && safeRating)
+                  // The filter did not cause the challenge; it stays available
+                  // as the way out when the check itself cannot be answered.
+                  TextButton(
+                    onPressed: () => _disableRatingSafe(context, ref),
+                    child: Text(context.t.rating.disableRatingSafe),
+                  ),
                 if (!missingServer && safeRating)
                   TextButton(
                     onPressed: ref.read(pageStateProvider.notifier).load,
                     child: Text(context.t.retry),
-                  ),
-                if (!missingServer && safeRating && challenged)
-                  TextButton(
-                    onPressed: () => _verify(context, ref, server),
-                    child: Text(context.t.pageStatus.verify),
                   ),
                 if (!missingServer)
                   TextButton(
