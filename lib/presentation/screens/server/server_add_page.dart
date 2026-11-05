@@ -65,14 +65,38 @@ const booruEngines = <BooruEngine>[
         '&limit={post-limit}',
     postUrl: 'posts/{post-id}',
   ),
+
+  /// One name, two dialects: the site itself answers `dapi` as a JSON envelope
+  /// and has a completion endpoint built for the tag box, while the boards still
+  /// running the revision before it answer the same calls as XML — and answer
+  /// `autocomplete2` with an HTML page. Picking the wrong row there means a tag
+  /// box that never fills on a server whose posts read fine, so the list says
+  /// which revision each entry serves.
   BooruEngine(
-    name: 'Gelbooru',
+    name: 'Gelbooru (0.2)',
     searchParserId: 'Gelbooru.json',
     suggestionParserId: 'Gelbooru.autocomplete',
     searchQuery:
         'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}&json=1',
     suggestionQuery:
         'index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}',
+    postUrl: 'index.php?page=post&s=view&id={post-id}',
+  ),
+  BooruEngine(
+    name: 'Gelbooru (0.1.x)',
+    // The boards of the older revision — the booru.org family, which this app's
+    // own Safebooru entry belongs to — answer the same `dapi` calls with the
+    // attributes on the entry element rather than inside it, and `Safebooru.xml`
+    // is the reader written for that spelling. `json=1` there returns a bare
+    // array with no `post` envelope, so the 0.2 reader claims nothing.
+    searchParserId: 'Safebooru.xml',
+    // They do answer the XML tag endpoint, but it sorts its whole tag table for
+    // every keystroke; `autocomplete.php` is on the same host, built for the
+    // fragment being typed, and is the shape the generic reader takes.
+    suggestionParserId: 'Autocomplete.json',
+    searchQuery:
+        'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}',
+    suggestionQuery: 'autocomplete.php?q={tag-part}',
     postUrl: 'index.php?page=post&s=view&id={post-id}',
   ),
   BooruEngine(

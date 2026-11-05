@@ -145,6 +145,21 @@ void main() {
         );
       }
     });
+
+    test('no two entries are the same dialect', () {
+      // The server editor reads the engine back out of a saved row by its
+      // parser pair, so two entries sharing one pair would let the same server
+      // answer as two dialects. The Gelbooru rows are where that is easiest to
+      // do by accident: they differ only in which revision they ask.
+      final pairs = {
+        for (final engine in booruEngines)
+          (engine.searchParserId, engine.suggestionParserId),
+      };
+      expect(pairs, hasLength(booruEngines.length));
+
+      final names = booruEngines.map((it) => it.name).toSet();
+      expect(names, hasLength(booruEngines.length));
+    });
   });
 
   group('Server.apiKeyUrl', () {
