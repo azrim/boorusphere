@@ -465,4 +465,83 @@ void main() async {
       expect(posts, isEmpty);
     });
   });
+
+  group('a danbooru page is judged by more than its first entry', () {
+    test('an entry without a preview in front does not hide the rest', () {
+      // A post whose file was deleted answers without the preview field every
+      // other entry carries. Reading only the entry at the top handed the batch
+      // to the fallback list, no other parser read it, and the reader got a
+      // parse failure for a page full of posts.
+      final res = _response([
+        {
+          'id': 1,
+          'file_url': 'https://cdn.example.com/1.jpg',
+          'image_width': 100,
+          'image_height': 100,
+        },
+        {
+          'id': 2,
+          'file_url': 'https://cdn.example.com/2.jpg',
+          'preview_file_url': 'https://cdn.example.com/2-preview.jpg',
+          'image_width': 100,
+          'image_height': 100,
+        },
+      ]);
+
+      expect(DanbooruJsonParser().canParsePage(res), isTrue);
+    });
+
+    test('a batch carrying no danbooru entry is still not claimed', () {
+      // The wider read must not turn into a greedy one: an entry list of
+      // another engine has no preview field either way, and claiming it would
+      // answer the reader with an empty page for a page of posts.
+      final res = _response([
+        {'id': 1, 'file_url': 'https://cdn.example.com/1.jpg'},
+        {'id': 2, 'contentUrl': 'https://cdn.example.com/2.jpg'},
+      ]);
+
+      expect(DanbooruJsonParser().canParsePage(res), isFalse);
+    });
+
+    test('the dispatcher reads the page instead of falling through', () async {
+      final ref = ProviderContainer(
+        overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+      );
+      addTearDown(ref.dispose);
+      ref.setupTestFor(dioProvider);
+      final adapter = DioAdapterMock(ref.read(dioProvider));
+      const server = Server(
+        id: 'Danbooru',
+        homepage: 'https://danbooru.example.com',
+        searchUrl: 'posts.json?tags={tags}&page={page-id}&limit={post-limit}',
+        postUrl: 'posts/{post-id}',
+        searchParserId: 'Danbooru.json',
+      );
+      ref.setupTestFor(imageboardRepoProvider(server));
+
+      when(() => adapter.fetch(any(), any(), any())).thenAnswer(
+        (_) async => ResponseBody.fromString(
+          '[{"id":1,"file_url":"https://cdn.example.com/1.jpg",'
+          '"image_width":100,"image_height":100},'
+          '{"id":2,"file_url":"https://cdn.example.com/2.jpg",'
+          '"preview_file_url":"https://cdn.example.com/2-preview.jpg",'
+          '"image_width":100,"image_height":100,"tag_string":"cat"}]',
+          200,
+          headers: {
+            Headers.contentTypeHeader: ['application/json'],
+          },
+        ),
+      );
+
+      final page = await ref
+          .read(imageboardRepoProvider(server))
+          .getPage(const PageOption(limit: 10), 0);
+
+      // The entry without a preview is dropped by the content guard, not by the
+      // sniffer — and the raw count keeps the page from reading as the end.
+      expect(page.rawCount, 2);
+      expect(page.posts, hasLength(1));
+      expect(page.single.id, 2);
+    });
+  });
 }

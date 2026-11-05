@@ -47,8 +47,14 @@ class DanbooruJsonParser extends BooruParser {
 
   @override
   bool canParsePage(Response res) {
-    final first = _firstEntry(res.data);
-    return first != null && first.containsKey('preview_file_url');
+    final entries = res.data;
+    if (entries is! List) return false;
+    // The signature is looked for in the whole batch, not only in the entry at
+    // the top: a post whose file was deleted answers without a preview field,
+    // and reading only the first entry would hand that batch to the next
+    // parser. Which ends in "no results" for a page of posts the reader could
+    // have shown, and stops pagination on a live query.
+    return entries.any((it) => it is Map && it.containsKey('preview_file_url'));
   }
 
   @override
