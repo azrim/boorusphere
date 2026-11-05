@@ -10,6 +10,13 @@ import 'package:collection/collection.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:dio/dio.dart';
 
+/// Philomena — the board software behind Derpibooru and Ponybooru, whose API
+/// is `/api/v1/json/*` and whose image pages live at `images/{id}`.
+///
+/// The name here describes the Rails-ness of the URL rather than the name of
+/// anything, and it is the one string that cannot change: a saved server keeps
+/// [id], so every row already in the box points at this parser through it. The
+/// label the user chooses from says Philomena.
 class BooruOnRailsJsonParser extends BooruParser {
   @override
   final id = 'BooruOnRails.json';

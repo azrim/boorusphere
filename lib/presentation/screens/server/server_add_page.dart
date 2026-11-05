@@ -134,8 +134,15 @@ const booruEngines = <BooruEngine>[
     suggestionQuery: 'api/tags?offset=0&limit={post-limit}&query={tag-part}*',
     postUrl: 'post/{post-id}',
   ),
+
+  /// The boards a user types here are Derpibooru and Ponybooru, and the
+  /// software they run is called Philomena. `BooruOnRails` is what this app
+  /// first called it, from the shape of the URL rather than the name of
+  /// anything: the id a saved server carries is still that one, because rows
+  /// already in the box point at it, while the label being chosen is what the
+  /// reader can check against the site they came to add.
   BooruEngine(
-    name: 'BooruOnRails',
+    name: 'Philomena',
     searchParserId: 'BooruOnRails.json',
     suggestionParserId: 'BooruOnRails.json',
     searchQuery:
