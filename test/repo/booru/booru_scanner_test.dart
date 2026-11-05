@@ -208,6 +208,101 @@ void main() async {
       expect(result.postUrl, parser.postUrl);
     });
 
+    test(
+      'a board behind a bot check gives no engine and no post page',
+      () async {
+        // Derpibooru and allthefallen were measured answering every path — the
+        // API and the post page alike — with 200 and Anubis. The scan used to
+        // read that as a working post address, so it reported a board it had
+        // never reached as detected and linked every post to a page with no
+        // image in it. Nothing is proven here, so nothing is written.
+        const host = 'https://anubis.test';
+        final scanner = BooruScanner(
+          parsers: parsers,
+          client: Dio(BaseOptions(validateStatus: (it) => it == 200))
+            ..httpClientAdapter = _RecordingAdapter(
+              _anubisWall,
+              contentType: _htmlContentType,
+            ),
+        );
+
+        final result = await scanner.scan(const Server(homepage: host));
+
+        expect(result.searchParserId, '');
+        expect(result.suggestionParserId, '');
+        expect(result.postUrl, '');
+        expect(result.homepage, host);
+      },
+    );
+
+    test(
+      'a bot check does not decide where the posts of a known engine live',
+      () async {
+        // The wall is standing on another engine's post path here, and the board
+        // itself has no page at the address the probe asks. A scan that read the
+        // 200 as proof wrote that foreign address onto a server whose dialect was
+        // already known from its payload — and every post link then went to a
+        // page the board does not have. Refusing the gate leaves the dialect to
+        // answer, which is the address the reader actually needs.
+        const host = 'https://walled.test';
+        adapter
+          ..put(
+            '$host/api/v1/json/search/images?q=*&per_page=30&page=1',
+            FakeResponseBody.fromFixture('booruonrails/posts.json', 200),
+          )
+          ..put(
+            '$host/api/v1/json/search/tags?q=*a*',
+            FakeResponseBody.fromFixture('booruonrails/tags.json', 200),
+          )
+          ..put(
+            '$host/post/view/100',
+            ResponseBody.fromString(
+              _anubisWall,
+              200,
+              headers: {
+                Headers.contentTypeHeader: [_htmlContentType],
+              },
+            ),
+          );
+
+        final scanner = BooruScanner(
+          parsers: parsers,
+          client: ref.read(dioProvider),
+        );
+
+        final result = await scanner.scan(const Server(homepage: host));
+        final parser = BooruOnRailsJsonParser();
+
+        expect(result.searchParserId, parser.id);
+        expect(result.postUrl, parser.postUrl);
+        expect(result.postUrl, isNot(ShimmieXmlParser().postUrl));
+        expect(result.homepage, host);
+      },
+    );
+
+    test(
+      'a site that answers nothing keeps what the server was given',
+      () async {
+        // A scan also refreshes a server the user configured by hand, and every
+        // probe can fail on the way there. Writing the empty answer would clear
+        // the address the user typed — and Server.postUrlOf resolves an empty
+        // one to the homepage, with no error for anyone to see.
+        const host = 'https://quiet.test';
+        final scanner = BooruScanner(
+          parsers: parsers,
+          client: ref.read(dioProvider),
+        );
+
+        final result = await scanner.scan(
+          const Server(homepage: host, postUrl: 'post/show/{post-id}'),
+        );
+
+        expect(result.searchParserId, '');
+        expect(result.postUrl, 'post/show/{post-id}');
+        expect(result.homepage, host);
+      },
+    );
+
     test('E621', () async {
       const host = 'https://e621.test';
       adapter
@@ -343,9 +438,10 @@ void main() async {
 
 /// Answers every request with one body and keeps what was asked.
 class _RecordingAdapter implements HttpClientAdapter {
-  _RecordingAdapter(this.body);
+  _RecordingAdapter(this.body, {this.contentType = Headers.jsonContentType});
 
   final String body;
+  final String contentType;
   final requests = <RequestOptions>[];
 
   @override
@@ -359,7 +455,7 @@ class _RecordingAdapter implements HttpClientAdapter {
       body,
       200,
       headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
+        Headers.contentTypeHeader: [contentType],
       },
     );
   }
@@ -367,3 +463,23 @@ class _RecordingAdapter implements HttpClientAdapter {
   @override
   void close({bool force = false}) {}
 }
+
+/// Dio names its own content types and this is not one of them.
+const _htmlContentType = 'text/html';
+
+/// What an Anubis gate hands out for every path it is asked about — the API
+/// endpoint and the page holding the post alike. Measured shape from
+/// derpibooru.org, 2026-11-05: status 200, and HTML where JSON was asked for.
+const _anubisWall = '''
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Making sure you're not a bot!</title>
+    <script src="/.within.website/x/cmd/anubis/static/js/app.min.js"></script>
+  </head>
+  <body>
+    <h1>Making sure you&#39;re not a bot!</h1>
+    <p>Request ID: 7f3c1a2b &middot; 100</p>
+  </body>
+</html>
+''';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_auth.dart';
@@ -74,6 +75,32 @@ class BooruScanner {
   /// scanning, and the server list waits on every parser at once.
   static const _probeTimeout = Duration(seconds: 8);
 
+  /// How much of a post page is worth reading to judge it. Every board the
+  /// scanner is asked about writes its title within the first five hundred
+  /// bytes, so the rest of the document is markup the verdict will not use —
+  /// and a post page is routinely a few hundred kilobytes.
+  static const _postHeadLimit = 8 * 1024;
+
+  Future<String> _readHead(ResponseBody body) async {
+    final bytes = <int>[];
+    try {
+      // Breaking out of an `await for` unsubscribes, which is also how the
+      // connection is handed back: a probe that read the whole page would hold
+      // the socket open for the rest of the scan and buy certainty nobody asked
+      // for.
+      await for (final chunk in body.stream) {
+        bytes.addAll(chunk);
+        if (bytes.length >= _postHeadLimit) break;
+      }
+    } catch (e) {
+      // A body that ends early still says something: whatever arrived before it
+      // stopped is what the engine gets to judge.
+      _log.v('Post probe body ended early: $e');
+    }
+
+    return utf8.decode(bytes, allowMalformed: true);
+  }
+
   Future<_ScanResult> _scan(
     Server server, {
     required String host,
@@ -131,16 +158,18 @@ class BooruScanner {
       final origin = res.redirects.isNotEmpty && res.realUri.hasAuthority
           ? res.realUri.origin
           : host;
-
-      // The post probe only asks whether the page exists, so its body is
-      // never read; a stream response still has to be consumed or the
-      // connection is left open for the rest of the scan.
       final body = res.data;
-      if (body is ResponseBody) {
-        await body.stream.drain<void>().catchError((Object _) {});
-      }
 
       if (type == _ScanType.post) {
+        // A status code is not a page. The boards that gate access hand out
+        // 200 for every path, so the answer has to be read before it counts:
+        // whatever the engine calls a post page, and nothing else.
+        final head = body is ResponseBody ? await _readHead(body) : '$body';
+        if (!parser.isPostPage(head)) {
+          _log.v('Post probe of $probeUrl refused: not a post page');
+          return _ScanResult.empty;
+        }
+
         return _ScanResult(
           origin: origin,
           parserId: parser.id,
@@ -289,7 +318,30 @@ class BooruScanner {
           continue;
         }
 
+        // The post pass writes two things the user typed, so an answer that
+        // found nothing must not write them at all: an empty post page makes
+        // every post link resolve to the site root without an error anywhere,
+        // and the probe host is not the homepage of a site that redirected.
+        if (ev.parserId.isEmpty) {
+          continue;
+        }
+
         data = data.copyWith(postUrl: ev.query, homepage: ev.origin);
+      }
+
+      // The probe is Scan mode's only way to learn the post address, and a
+      // gated board can refuse it — but the dialect the search pass settled on
+      // already knows where that engine's posts live, which is a better answer
+      // than a link to the homepage. Manual adds carry the address anyway, and
+      // a scan that found no engine at all has nothing to borrow it from.
+      if (data.postUrl.isEmpty) {
+        final dialect = parsers.firstWhereOrNull(
+          (it) => it.id == data.searchParserId && it.postUrl.isNotEmpty,
+        );
+        if (dialect != null) {
+          data = data.copyWith(postUrl: dialect.postUrl);
+          _uilog('post page taken from ${dialect.id}');
+        }
       }
 
       _isScanning.value = false;

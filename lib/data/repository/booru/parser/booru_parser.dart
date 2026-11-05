@@ -1,5 +1,6 @@
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/tag_info.dart';
+import 'package:boorusphere/data/repository/booru/utils/post_page_gate.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:dio/dio.dart';
@@ -21,6 +22,17 @@ abstract class BooruParser {
 
   Iterable<BooruParserType> get type;
   bool canParsePage(Response res) => false;
+
+  /// Whether the page served for [postUrl] is the post.
+  ///
+  /// The scanner probes [postUrl] with an id that is plausible for the engine
+  /// and takes a 200 as proof the address is right, which the boards that gate
+  /// access abuse: they answer every path with 200 and an interstitial, so a
+  /// scan wrote a post link that opens a bot check instead of the image and
+  /// called the host detected. The base answer accepts a document that names
+  /// itself and is not a known gate — see [PostPageGate] — and an engine whose
+  /// pages carry a stronger signal than that can override it.
+  bool isPostPage(String head) => PostPageGate.isPostPage(head);
 
   /// Whether [res] is a well-formed *empty* result for this engine, as opposed
   /// to a payload this parser cannot read.
