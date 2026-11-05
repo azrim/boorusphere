@@ -1,5 +1,6 @@
 import 'package:boorusphere/data/encryption.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
+import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
@@ -426,5 +427,105 @@ void main() {
 
       expect(box.get('@rule34')!.tagSuggestionUrl, autocompleteUrl);
     });
+  });
+
+  group('UserServerRepo.populate BooruOnRails post page', () {
+    const bareId = '{post-id}';
+
+    late Box<Server> box;
+    late UserServerRepo repo;
+
+    setUp(() async {
+      box = await Hive.openBox<Server>('server_post_url_test');
+      await box.clear();
+      repo = UserServerRepo(
+        defaultServers: const {'@seed': Server(id: 'seed')},
+        box: box,
+      );
+    });
+
+    tearDown(() => box.close());
+
+    test('moves a scanned entry onto the page the site links to', () async {
+      await box.put(
+        '@derpibooru',
+        const Server(
+          id: 'Derpibooru',
+          homepage: 'https://derpibooru.org',
+          searchParserId: 'BooruOnRails.json',
+          suggestionParserId: 'BooruOnRails.json',
+          searchUrl:
+              'api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-num}',
+          postUrl: bareId,
+        ),
+      );
+
+      await repo.populate();
+
+      final server = box.get('@derpibooru')!;
+      expect(server.postUrl, BooruOnRailsJsonParser().postUrl);
+      expect(
+        server.postUrlOf(1183740),
+        'https://derpibooru.org/images/1183740',
+        reason:
+            'the link a reader shares is what this entry exists to build, '
+            'and a bare id opens whatever route that number happens to be',
+      );
+    });
+
+    test('knows the board by either parser id it pins', () async {
+      await box.put(
+        '@derpibooru',
+        const Server(
+          id: 'Derpibooru',
+          homepage: 'https://derpibooru.org',
+          suggestionParserId: 'BooruOnRails.json',
+          postUrl: bareId,
+        ),
+      );
+
+      await repo.populate();
+
+      expect(box.get('@derpibooru')!.postUrl, 'images/{post-id}');
+    });
+
+    test('leaves an entry already on the image page alone', () async {
+      await box.put(
+        '@derpibooru',
+        const Server(
+          id: 'Derpibooru',
+          homepage: 'https://derpibooru.org',
+          searchParserId: 'BooruOnRails.json',
+          postUrl: 'images/{post-id}',
+        ),
+      );
+
+      await repo.populate();
+
+      expect(box.get('@derpibooru')!.postUrl, 'images/{post-id}');
+    });
+
+    test(
+      'never guesses the page for a dialect that never asked for it',
+      () async {
+        await box.put(
+          '@gelbooru',
+          const Server(
+            id: 'Gelbooru',
+            homepage: 'https://gelbooru.com',
+            searchParserId: 'Gelbooru.xml',
+            postUrl: bareId,
+          ),
+        );
+
+        await repo.populate();
+
+        expect(
+          box.get('@gelbooru')!.postUrl,
+          bareId,
+          reason: 'this release has not asked that host where its posts live',
+        );
+      },
+    );
   });
 }

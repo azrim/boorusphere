@@ -189,7 +189,7 @@ void main() async {
           FakeResponseBody.fromFixture('booruonrails/tags.json', 200),
         )
         ..put(
-          '$host/100',
+          '$host/images/100',
           FakeResponseBody.fromFixture('booruonrails/post.html', 200),
         );
 

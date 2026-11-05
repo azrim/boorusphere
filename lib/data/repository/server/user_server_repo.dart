@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:boorusphere/data/encryption.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/booruonrails_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_autocomplete_parser.dart';
@@ -211,6 +212,33 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
+  /// The post page a scan of a BooruOnRails board used to write: the parser
+  /// handed out the bare id, while the engine list has always pointed at the
+  /// `images/` page the site itself links to. So the same board ended up with
+  /// one address added by hand and another detected, and the detected one opens
+  /// a route that number happens to be.
+  ///
+  /// The rewrite is limited to entries this release recognizes as that dialect,
+  /// through either of the parser ids it pins: a bare id is a template no other
+  /// engine was ever offered, and guessing it for a board the scan only half
+  /// read is how the passes above learned not to.
+  Future<void> _migrateBooruOnRailsPostUrl() async {
+    const stale = '{post-id}';
+    final parser = BooruOnRailsJsonParser();
+
+    final mapped = Map<String, Server>.from(box.toMap());
+    for (final entry in mapped.entries) {
+      final server = entry.value;
+      final isBooruOnRails =
+          server.searchParserId == parser.id ||
+          server.suggestionParserId == parser.id;
+      if (!isBooruOnRails || server.postUrl != stale) continue;
+
+      await box.put(entry.key, server.copyWith(postUrl: parser.postUrl));
+    }
+    await box.flush();
+  }
+
   @override
   Future<void> populate() async {
     if (_defaults.isEmpty) return;
@@ -233,6 +261,7 @@ class UserServerRepo implements ServerRepo {
     await _migrateSuggestionUrl();
     await _migrateOneBasedPageParam();
     await _migrateShimmieSearchPath();
+    await _migrateBooruOnRailsPostUrl();
   }
 
   @override

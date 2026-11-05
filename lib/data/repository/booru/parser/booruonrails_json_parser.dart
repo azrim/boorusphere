@@ -27,8 +27,13 @@ class BooruOnRailsJsonParser extends BooruParser {
   @override
   final suggestionQuery = 'api/v1/json/search/tags?q=*{tag-part}*';
 
+  /// The address the site writes into the page it serves for an image. A bare
+  /// id asks the app for whatever route that number happens to be, and every
+  /// scan still looked like it had found a post page because the boards that
+  /// serve this family answer a path they were not given — including the one
+  /// being probed — with a page of their own.
   @override
-  final postUrl = '{post-id}';
+  final postUrl = 'images/{post-id}';
 
   @override
   List<BooruParserType> get type => [
