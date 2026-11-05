@@ -84,7 +84,7 @@ void main() async {
 
       adapter
         ..put(
-          '$host/index.php?page=dapi&s=post&q=index&tags=*&pid=1&limit=30&json=1',
+          '$host/index.php?page=dapi&s=post&q=index&tags=*&pid=0&limit=30&json=1',
           FakeResponseBody.fromFixture('gelbooru/posts.json', 200),
         )
         ..put(
@@ -148,7 +148,7 @@ void main() async {
       const host = 'https://safebooru.test';
       adapter
         ..put(
-          '$host/index.php?page=dapi&s=post&q=index&tags=*&pid=1&limit=30',
+          '$host/index.php?page=dapi&s=post&q=index&tags=*&pid=0&limit=30',
           FakeResponseBody.fromFixture('safebooru/posts.xml', 200),
         )
         ..put(
@@ -372,7 +372,7 @@ void main() async {
       const host = 'https://homestuck.test/resources/booru';
       adapter
         ..put(
-          '$host/api/posts?offset=3&limit=30&query=*',
+          '$host/api/posts?offset=0&limit=30&query=*',
           FakeResponseBody.fromFixture('szurubooru/posts.json', 200),
         )
         ..put(

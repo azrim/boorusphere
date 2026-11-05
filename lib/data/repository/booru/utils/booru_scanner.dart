@@ -122,9 +122,17 @@ class BooruScanner {
         .replaceAll('{tag-part}', 'a')
         // sometimes realbooru won't show anything when limit is too low
         .replaceAll('{post-limit}', '30')
-        .replaceAll('{page-id}', '1')
+        // The probe has to ask for the page the reader will ask for first.
+        // `{page-id}` and `{post-offset}` are counted from zero the way
+        // `Server.searchUrlOf` fills them, so probing the second window would
+        // judge an engine by a page nobody requests: a board with less than a
+        // page of matches answers it without any entry at all, and the scan
+        // then reports the host as having no engine even though its first page
+        // parses fine. `{page-num}` is the ordinal the query-string engines
+        // number from one, so it stays the first page.
+        .replaceAll('{page-id}', '0')
         .replaceAll('{page-num}', '1')
-        .replaceAll('{post-offset}', '3')
+        .replaceAll('{post-offset}', '0')
         .replaceAll('{post-id}', '100');
     try {
       final testUrl = '$host/$test';
