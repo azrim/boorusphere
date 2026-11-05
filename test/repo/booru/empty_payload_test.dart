@@ -1,6 +1,7 @@
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
+import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/utils/logger.dart';
@@ -64,7 +65,7 @@ void main() async {
     return ref;
   }
 
-  Future<Iterable<dynamic>> pageFor(Server server, String body) async {
+  Future<ParsedPage> pageFor(Server server, String body) async {
     final ref = await createRef();
     addTearDown(ref.dispose);
     final adapter = DioAdapterMock(ref.read(dioProvider));
@@ -120,6 +121,64 @@ void main() async {
         () => pageFor(_gelbooruXml, _xmlPage(40, fileAttribute: 'fileurl')),
         throwsA(BooruError.unparsable),
       );
+    });
+  });
+
+  group('a page that failed is not a page with nothing on it', () {
+    test('one tag with a broken escape keeps the posts beside it', () async {
+      // Percent-decoding a tag name happens after the payload was read and
+      // throws on a damaged escape, which the repository used to answer as one
+      // more empty page. The reader takes an empty page for the end of the
+      // results and stops asking, so a single un-decodable tag threw away the
+      // posts that came with it.
+      final page = await pageFor(
+        _gelbooru,
+        '{"post":['
+        '{"id":1,"file_url":"https://cdn.test/1.jpg",'
+        '"preview_url":"https://cdn.test/1-preview.jpg","width":10,'
+        '"height":10,"tags":"cat"},'
+        '{"id":2,"file_url":"https://cdn.test/2.jpg",'
+        '"preview_url":"https://cdn.test/2-preview.jpg","width":10,'
+        '"height":10,"tags":"%FF dog"}]}',
+      );
+
+      expect(page.rawCount, 2);
+      expect(page.posts, hasLength(2));
+      expect(
+        page.posts.firstWhere((it) => it.id == 2).tags,
+        contains('%FF'),
+        reason: 'the tag the decoder could not read stays as it was written',
+      );
+    });
+
+    test('a backend answer where the entries should be fails loudly', () async {
+      // A scalar under the entry key is neither an entry nor an empty result
+      // set. Calling it empty stopped pagination on a query the very next
+      // request answers with posts.
+      expect(
+        () => pageFor(_gelbooru, '{"post":"backend timeout"}'),
+        throwsA(BooruError.unparsable),
+      );
+    });
+
+    test(
+      'a scalar envelope is not an empty result for another engine either',
+      () async {
+        // The dispatcher asks every parser whether the payload is empty, so
+        // one engine's over-reading became every engine's: any known entry key
+        // carrying text silenced the whole app.
+        expect(
+          () => pageFor(_szurubooru, '{"results":"backend timeout"}'),
+          throwsA(BooruError.unparsable),
+        );
+      },
+    );
+
+    test('an exhausted result set still reads as one', () async {
+      // The control: the shape that really does mean "no more" keeps meaning
+      // that, so these three fixes do not turn an end of results into an error.
+      expect(await pageFor(_gelbooru, '{"post":[]}'), isEmpty);
+      expect(await pageFor(_szurubooru, '{"results":[],"total":0}'), isEmpty);
     });
   });
 }

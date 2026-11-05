@@ -60,18 +60,29 @@ class BooruUtil {
   /// Whether [data] is an envelope that carries no entry under [key].
   ///
   /// A key that is missing says nothing about this engine, so the answer is
-  /// false and the caller can ask another parser.
+  /// false and the caller can ask another parser. The same holds for a value
+  /// that is neither an entry shape nor an explicit null: a text or a number
+  /// sitting where the entries should be is a backend complaint, and calling it
+  /// an empty result set would tell the reader the board has nothing more while
+  /// it answers fine one request later.
   static bool isEmptyEnvelope(Object? data, String key) {
     if (data is! Map || !data.containsKey(key)) return false;
     final value = data[key];
     if (value is List) return value.isEmpty;
-    return value is! Map;
+    return value == null;
   }
 
+  /// Decodes the percent and HTML escapes an engine wraps a tag name in.
+  ///
+  /// A tag that cannot be decoded is kept as the server wrote it: dropping the
+  /// entry instead would shrink a page of posts to one line short and, once
+  /// every entry of a page is affected, read as the end of the results.
   static String decodeTag(String str) {
     try {
       final unescaped = HtmlUnescape().convert(str);
       return Uri.decodeQueryComponent(unescaped);
+    } on FormatException {
+      return str;
     } on ArgumentError {
       return str;
     }
