@@ -5,6 +5,7 @@ import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/entity/parsed_page.dart';
 import 'package:boorusphere/data/repository/booru/entity/tag_info.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
+import 'package:boorusphere/data/repository/booru/utils/booru_auth.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/imageboards_repo.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
@@ -33,32 +34,13 @@ class BooruRepo implements ImageboardRepo {
   final Server server;
 
   /// Whether the credentials have to travel in the URL for [parser].
-  ///
-  /// Basic is only used when the parser documents it *and* the pair it needs
-  /// is configured; a lone API key is not a Basic login, so the query form
-  /// stays the fallback.
-  bool _credentialsInQuery(BooruParser parser) {
-    if (parser.authStyle != BooruAuthStyle.basic) return true;
-    return server.login.isEmpty || server.apiKey.isEmpty;
-  }
+  bool _credentialsInQuery(BooruParser parser) =>
+      BooruAuth.travelsInQuery(parser, server);
 
   /// The parser's own headers plus the account credentials it accepts as a
   /// header.
-  ///
-  /// Never logged: a credential in a log line outlives the session it was
-  /// meant for.
-  Map<String, String> _headersFor(BooruParser parser) {
-    final headers = {...parser.headers};
-    if (parser.authStyle == BooruAuthStyle.basic &&
-        server.login.isNotEmpty &&
-        server.apiKey.isNotEmpty) {
-      final pair = base64Encode(
-        utf8.encode('${server.login}:${server.apiKey}'),
-      );
-      headers['Authorization'] = 'Basic $pair';
-    }
-    return headers;
-  }
+  Map<String, String> _headersFor(BooruParser parser) =>
+      BooruAuth.headers(parser, server);
 
   Future<Response> _request(String url, BooruParser parser) async {
     final res = await client.get<List<int>>(

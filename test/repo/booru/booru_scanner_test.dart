@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
@@ -15,6 +18,7 @@ import 'package:boorusphere/data/repository/booru/utils/booru_scanner.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/utils/logger.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -300,4 +304,66 @@ void main() async {
       expect(result.postUrl, parser.postUrl);
     });
   });
+
+  group('probe credentials', () {
+    test('an engine that reads a header is probed with that header', () async {
+      // The scan decides whether a server has an engine at all, so a probe
+      // that spells the credentials in a form the host never reads reports a
+      // working private instance as an unknown site.
+      const host = 'https://szuru.test';
+      final recording = _RecordingAdapter(
+        '{"results":[{"id":1,"contentUrl":"https://szuru.test/get/1.png",'
+        '"names":["cat"],"usages":5}],"total":1}',
+      );
+      final scanner = BooruScanner(
+        parsers: [SzurubooruJsonParser()],
+        client: Dio(BaseOptions(validateStatus: (it) => it == 200))
+          ..httpClientAdapter = recording,
+      );
+
+      final result = await scanner.scan(
+        const Server(homepage: host, login: 'user', apiKey: 'secret key'),
+      );
+
+      expect(result.searchParserId, 'Szurubooru.json');
+      expect(result.suggestionParserId, 'Szurubooru.json');
+      expect(recording.requests, hasLength(3));
+      for (final request in recording.requests) {
+        expect(
+          request.headers['Authorization'],
+          'Token ${base64Encode(utf8.encode('user:secret key'))}',
+          reason: '${request.uri} was asked without the pair it reads',
+        );
+        expect(request.uri.toString(), isNot(contains('api_key')));
+        expect(request.uri.toString(), isNot(contains('user_id')));
+      }
+    });
+  });
+}
+
+/// Answers every request with one body and keeps what was asked.
+class _RecordingAdapter implements HttpClientAdapter {
+  _RecordingAdapter(this.body);
+
+  final String body;
+  final requests = <RequestOptions>[];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    return ResponseBody.fromString(
+      body,
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

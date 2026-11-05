@@ -6,6 +6,7 @@ import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/szurubooru_json_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:dio/dio.dart';
@@ -67,6 +68,9 @@ BooruRepo _repo(Server server, HttpClientAdapter adapter) {
 String _basic(String login, String apiKey) =>
     'Basic ${base64Encode(utf8.encode('$login:$apiKey'))}';
 
+String _token(String login, String apiKey) =>
+    'Token ${base64Encode(utf8.encode('$login:$apiKey'))}';
+
 /// Rule34's API host, which answers an anonymous `dapi` request with a
 /// one-line notice under **200** instead of a status code.
 const _rule34 = Server(
@@ -111,6 +115,26 @@ const _missingAuth =
     '<error>Missing authentication. Go to api.rule34.xxx for more '
     'information</error>';
 
+/// A private Szurubooru instance: its API reads one header and no parameter,
+/// so the pair this app used to append to the URL there was not a wrong
+/// credential but no credential, and the instance answered as an anonymous one.
+const _szurubooru = Server(
+  id: 'Szurubooru',
+  homepage: 'https://szuru.test',
+  searchUrl: 'api/posts?offset={post-offset}&limit={post-limit}&query={tags}',
+  tagSuggestionUrl: 'api/tags?offset=0&limit={post-limit}&query={tag-part}*',
+  searchParserId: 'Szurubooru.json',
+  suggestionParserId: 'Szurubooru.json',
+  login: 'user',
+  apiKey: 'secret key',
+);
+
+/// One envelope both of Szurubooru's readers accept, so the assertions below
+/// are about where the credentials went and not about the body.
+const _szurubooruBody =
+    '{"results":[{"id":1,"contentUrl":"https://szuru.test/get/1.png",'
+    '"names":["cat"],"usages":5}],"total":1}';
+
 void main() {
   test(
     'Danbooru sends its credentials as a Basic header, not in the URL',
@@ -129,6 +153,72 @@ void main() {
       }
     },
   );
+
+  group('Szurubooru', () {
+    BooruRepo repo(Server server, HttpClientAdapter adapter) {
+      final dio = Dio(BaseOptions(validateStatus: (it) => it == 200))
+        ..httpClientAdapter = adapter;
+      return BooruRepo(
+        parsers: [SzurubooruJsonParser()],
+        client: dio,
+        server: server,
+        serverState: ServerState(),
+      );
+    }
+
+    test('reads the pair from a Token header, not from the URL', () async {
+      final adapter = _FixedAdapter(body: _szurubooruBody);
+      final client = repo(_szurubooru, adapter);
+
+      await client.getPage(const PageOption(limit: 1), 0);
+      await client.getSuggestion('cat');
+
+      expect(adapter.requests, hasLength(2));
+      for (final request in adapter.requests) {
+        expect(
+          request.headers['Authorization'],
+          _token('user', 'secret key'),
+          reason:
+              'the engine names its scheme Token, and base64s the whole pair',
+        );
+        expect(request.uri.toString(), isNot(contains('api_key')));
+        expect(request.uri.toString(), isNot(contains('user_id')));
+      }
+    });
+
+    test('keeps the headers the engine asks its JSON with', () async {
+      final adapter = _FixedAdapter(body: _szurubooruBody);
+
+      await repo(_szurubooru, adapter).getPage(const PageOption(limit: 1), 0);
+
+      final request = adapter.requests.single;
+      expect(request.headers['Accept'], 'application/json');
+      expect(request.headers['Content-type'], 'application/json');
+    });
+
+    test('a half-configured pair still reaches the server', () async {
+      // The engine has no query form, so the key alone is asked for in the
+      // only place this app can put it: a scan of that server then answers,
+      // instead of reporting no engine at all for a site the user can browse.
+      final adapter = _FixedAdapter(body: _szurubooruBody);
+      final client = repo(
+        Server(
+          id: 'Szurubooru',
+          homepage: 'https://szuru.test',
+          searchUrl: _szurubooru.searchUrl,
+          searchParserId: 'Szurubooru.json',
+          apiKey: 'secret key',
+        ),
+        adapter,
+      );
+
+      await client.getPage(const PageOption(limit: 1), 0);
+
+      final request = adapter.requests.single;
+      expect(request.headers['Authorization'], isNull);
+      expect(request.uri.toString(), contains('api_key=secret%20key'));
+    });
+  });
 
   test(
     'a lone API key stays in the query where the engine expects it',

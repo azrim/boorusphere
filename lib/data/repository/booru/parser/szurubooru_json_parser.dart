@@ -34,6 +34,14 @@ class SzurubooruJsonParser extends BooruParser {
     'Content-type': 'application/json',
   };
 
+  /// This server reads only the header: its API has no parameter that takes a
+  /// key, so the `user_id`/`api_key` pair this app used to append asked for
+  /// nothing and a private instance answered as an anonymous request. The
+  /// scheme is the one its own clients send — base64 of `login:api_key` under
+  /// the name `Token`.
+  @override
+  BooruAuthStyle get authStyle => BooruAuthStyle.token;
+
   @override
   List<BooruParserType> get type => [
     BooruParserType.search,

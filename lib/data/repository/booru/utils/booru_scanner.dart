@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
+import 'package:boorusphere/data/repository/booru/utils/booru_auth.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
@@ -108,16 +109,21 @@ class BooruScanner {
         sendTimeout: _probeTimeout,
         receiveTimeout: _probeTimeout,
         validateStatus: (it) => it == 200,
-        headers: parser.headers,
+        headers: BooruAuth.headers(parser, server),
         responseType: type == _ScanType.post ? ResponseType.stream : null,
       );
       options.disableRetry = true;
 
       // Credentials ride along with the probe: a booru that gates its API
       // answers nothing without them, so a scan would report "no engine" for
-      // a server the user can browse once the key is attached.
+      // a server the user can browse once the key is attached. They go in the
+      // form that engine reads, which for a header engine means the URL the
+      // probe is logged and sent as stays what it was.
+      final probeUrl = BooruAuth.travelsInQuery(parser, server)
+          ? server.appendCredentials(testUrl)
+          : testUrl;
       final res = await client.get(
-        server.appendCredentials(testUrl),
+        probeUrl,
         options: options,
         cancelToken: _cancelToken,
       );

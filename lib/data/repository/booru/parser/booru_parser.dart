@@ -14,8 +14,9 @@ abstract class BooruParser {
   Map<String, String> get headers => {};
 
   /// How this engine accepts account credentials. Most only read the query
-  /// parameters the app has always sent; an engine that documents HTTP Basic
-  /// says so, and the credentials then never enter a URL.
+  /// parameters the app has always sent; an engine that documents a header —
+  /// Basic, or the `Token` form one engine's clients spell it — says so, and
+  /// the credentials then never enter a URL.
   BooruAuthStyle get authStyle => BooruAuthStyle.query;
 
   Iterable<BooruParserType> get type;
@@ -77,6 +78,12 @@ enum BooruAuthStyle {
 
   /// An HTTP Basic header. Only engines that document it use this.
   basic,
+
+  /// An HTTP `Token` header: the base64 of `login:api_key`, which is what the
+  /// clients of the engine that reads it send. This engine has no query form at
+  /// all, so the pair written into a URL there is not a wrong credential — it
+  /// is no credential.
+  token,
 }
 
 class NoParser extends BooruParser {
