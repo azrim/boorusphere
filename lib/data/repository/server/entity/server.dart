@@ -47,8 +47,11 @@ abstract class Server with _$Server {
     if (searchUrl.toUri().queryParameters.containsKey('offset')) {
       // Szurubooru has exclusive-way (but still same shit) of rating
       tags += ' ${_szuruRateString(option.searchRating)}';
-    } else if (searchUrl.contains('api/v1/json/search')) {
-      // Philomena has no rating filter
+    } else if (searchUrl.contains('api/v1/json/search') || _ratingIsAPlainTag) {
+      // Philomena has no rating filter, and Paheal runs no rating extension:
+      // either board reads `rating:safe` as a literal tag nothing carries,
+      // which answered every Paheal search — the empty browse included — with
+      // zero posts.
       tags = tags.replaceAll(RegExp(r'\brating:\S+'), '');
     } else {
       tags += ' ${_rateString(option.searchRating)}';
@@ -132,6 +135,20 @@ abstract class Server with _$Server {
   }
 
   String get apiAddress => apiAddr.isEmpty ? homepage : apiAddr;
+
+  /// Whether the board stores `rating:` as an ordinary tag.
+  ///
+  /// Shimmie installs its rating extension per board. rule34.paheal.net does
+  /// not run it, so a rating filter narrows nothing: it asks for a tag no post
+  /// carries, and the endpoint answers `count="0"` for a search that would
+  /// otherwise return tens of thousands of posts. The board's own search offers
+  /// no rating control to mirror.
+  bool get _ratingIsAPlainTag {
+    for (final address in [homepage, apiAddr]) {
+      if (Uri.tryParse(address)?.host == 'rule34.paheal.net') return true;
+    }
+    return false;
+  }
 
   String get name => alias.isNotEmpty ? alias : id;
 

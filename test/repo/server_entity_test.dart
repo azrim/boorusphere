@@ -43,6 +43,35 @@ void main() {
       expect(url, contains('test'));
     });
 
+    test('paheal sends no rating filter it would read as a tag', () {
+      const server = Server(
+        homepage: 'https://rule34.paheal.net',
+        searchUrl:
+            'api/danbooru/find_posts?tags={tags}&limit={post-limit}&page={page-num}',
+      );
+      const browse = PageOption(searchRating: BooruRating.safe);
+      final browseUrl = server.searchUrlOf(browse, page: 0);
+      // The board runs no rating extension: `rating:safe` is a tag no post
+      // carries, and the endpoint answered every search with count="0".
+      expect(browseUrl, isNot(contains('rating')));
+      expect(browseUrl, contains('tags=&'));
+
+      const search = PageOption(query: 'cat', searchRating: BooruRating.safe);
+      expect(server.searchUrlOf(search, page: 0), contains('tags=cat&'));
+    });
+
+    test('another Shimmie board keeps the filter it may understand', () {
+      const server = Server(
+        homepage: 'https://shimmie.example',
+        searchUrl:
+            'api/danbooru/find_posts?tags={tags}&limit={post-limit}&page={page-num}',
+      );
+      const option = PageOption(query: 'cat', searchRating: BooruRating.safe);
+      // Only Paheal was measured without the extension; a Shimmie board that
+      // has it must keep filtering.
+      expect(server.searchUrlOf(option, page: 0), contains('rating%3Asafe'));
+    });
+
     test('empty query sends no tag filter', () {
       const server = Server(
         homepage: 'https://danbooru.donmai.us',
