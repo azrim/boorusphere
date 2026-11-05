@@ -46,5 +46,41 @@
     "tagSuggestionUrl": "autocomplete.php?q={tag-part}",
     "postUrl": "index.php?page=post&s=view&id={post-id}",
     "apiKeyUrl": "https://rule34.xxx/index.php?page=account&s=options"
+  },
+  {
+    "id": "E621",
+    "homepage": "https://e621.net",
+    "searchUrl": "posts.json?tags={tags}&page={page-num}&limit={post-limit}",
+    "tagSuggestionUrl": "tags/autocomplete.json?search[name_matches]={tag-part}",
+    "postUrl": "posts/{post-id}",
+    "searchParserId": "E621.json",
+    "suggestionParserId": "E621.json"
+  },
+  {
+    "id": "Derpibooru",
+    "homepage": "https://derpibooru.org",
+    "searchUrl": "api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-num}",
+    "tagSuggestionUrl": "api/v1/json/search/tags?q=*{tag-part}*",
+    "postUrl": "images/{post-id}",
+    "searchParserId": "BooruOnRails.json",
+    "suggestionParserId": "BooruOnRails.json"
+  },
+  {
+    "id": "Ponybooru",
+    "homepage": "https://ponybooru.org",
+    "searchUrl": "api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-num}",
+    "tagSuggestionUrl": "api/v1/json/search/tags?q=*{tag-part}*",
+    "postUrl": "{post-id}",
+    "searchParserId": "BooruOnRails.json",
+    "suggestionParserId": "BooruOnRails.json"
+  },
+  {
+    "id": "Rule34 Paheal",
+    "homepage": "https://rule34.paheal.net",
+    "searchUrl": "api/danbooru/find_posts?tags={tags}&limit={post-limit}&page={page-num}",
+    "tagSuggestionUrl": "api/internal/autocomplete?s={tag-part}",
+    "postUrl": "post/view/{post-id}",
+    "searchParserId": "Shimmie.xml",
+    "suggestionParserId": "Shimmie.xml"
   }
 ]

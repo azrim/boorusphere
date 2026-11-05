@@ -33,7 +33,7 @@
 # Features
 
 ### Browse & search
-- Multi-server support: Danbooru, Gelbooru, Moebooru, Konachan, Safebooru, Szurubooru, e621, Shimmie, Philomena (Derpibooru, Ponybooru), and more, all manageable from the in-app drawer.
+- Multi-server support: Danbooru, Gelbooru, Moebooru, Konachan, Safebooru, Szurubooru, e621, Shimmie (rule34.paheal), Philomena (Derpibooru, Ponybooru), and more, all manageable from the in-app drawer.
 - Add new servers with a guided **engine selector** (no manual API parsing required): pick the booru engine, paste the base URL, done.
 - Tag-suggestion search with rolling search history. Single-word matches are surfaced before multi-word matches so common tags like `hololive` come up before `hololive_girl_tall` when you type `h`.
 - Per-server rating filter (Safe / Questionable / Explicit) directly in the search bar.

@@ -68,15 +68,135 @@ void main() {
       final danbooru = presets.values.firstWhere((it) => it.id == 'Danbooru');
       expect(danbooru.suggestionParserId, 'Danbooru.json');
       expect(danbooru.searchParserId, 'Danbooru.json');
+
+      // e621 is a Danbooru fork and answers the same `posts.json`, so the URL
+      // cannot tell them apart: the tag sheet picks its dialect by that URL for
+      // a row that names no reader, and Danbooru is registered first. Its own
+      // entries are nested (`file.url`, `tags.general`) where Danbooru's are
+      // flat (`file_url`, `tag_string`), so guessing here loses every tag.
+      final e621 = presets.values.firstWhere((it) => it.id == 'E621');
+      expect(e621.searchParserId, 'E621.json');
+      expect(e621.suggestionParserId, 'E621.json');
     });
 
     test('the engines that answer anonymously carry no key page', () {
       // Safebooru, Konachan and Yandere serve their API to anyone: linking a
-      // sign-up page would imply those searches need an account.
-      for (final id in ['Safebooru', 'Konachan', 'Yandere']) {
+      // sign-up page would imply those searches need an account. The four added
+      // in the same way were each asked without credentials on 2026-11-05 and
+      // answered posts, tags and a post page alike.
+      for (final id in [
+        'Safebooru',
+        'Konachan',
+        'Yandere',
+        'E621',
+        'Derpibooru',
+        'Ponybooru',
+        'Rule34 Paheal',
+      ]) {
         expect(
           presets.values.firstWhere((it) => it.id == id).apiKeyUrl,
           isEmpty,
+        );
+      }
+    });
+
+    test('a preset names a reader this build registers, and asks its URLs', () {
+      // A preset is a third copy of an engine's templates, after the parser and
+      // the manual engine list. Nothing ties them: a preset edited to a path the
+      // named parser does not serve opens the search the reader then cannot
+      // parse, and it does so only on the boards nobody re-added by hand.
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final parsers = container.read(booruParsersProvider);
+
+      // The one board this release measured as an exception: its post page is
+      // the bare id, while the engine's template says `images/` — see the
+      // heal pass that leaves it alone.
+      const bareIdPostPage = {'Ponybooru'};
+
+      for (final server in presets.values.where(
+        (it) => it.searchParserId.isNotEmpty,
+      )) {
+        final search = parsers.firstWhere(
+          (it) => it.id == server.searchParserId,
+          orElse: () => throw StateError(
+            '${server.id} names ${server.searchParserId}, which is not registered',
+          ),
+        );
+
+        if (search.searchQuery.isNotEmpty) {
+          expect(
+            _address(search.searchQuery),
+            _address(server.searchUrl),
+            reason:
+                '${server.id} searches through a path its reader never declares',
+          );
+        }
+
+        if (bareIdPostPage.contains(server.id)) {
+          expect(
+            server.postUrl,
+            '{post-id}',
+            reason: '${server.id} is the board whose page the bare id *is*',
+          );
+        } else if (search.postUrl.isNotEmpty) {
+          expect(
+            _address(search.postUrl),
+            _address(server.postUrl),
+            reason:
+                '${server.id} links posts away from the page its engine serves',
+          );
+        }
+      }
+
+      for (final server in presets.values.where(
+        (it) => it.suggestionParserId.isNotEmpty,
+      )) {
+        final suggestion = parsers.firstWhere(
+          (it) => it.id == server.suggestionParserId,
+          orElse: () => throw StateError(
+            '${server.id} names ${server.suggestionParserId}, which is not registered',
+          ),
+        );
+        expect(
+          suggestion.type.contains(BooruParserType.suggestion),
+          isTrue,
+          reason:
+              '${server.id} names ${suggestion.id}, which reads no suggestions',
+        );
+        if (suggestion.suggestionQuery.isNotEmpty) {
+          expect(
+            _address(suggestion.suggestionQuery),
+            _address(server.tagSuggestionUrl),
+            reason:
+                '${server.id} completes tags from an endpoint its reader never declares',
+          );
+        }
+      }
+    });
+
+    test('every preset can ask for a tag and name a post', () {
+      // The two expansions a server is used for: `{tag-part}` is what makes a
+      // suggestion URL usable at all (`canSuggestTags`), and a post link has to
+      // stay on the board it came from — a template that drops `{post-id}`
+      // would send every tap to some other site's page.
+      for (final server in presets.values) {
+        expect(
+          server.canSuggestTags,
+          isTrue,
+          reason: '${server.id} offers a tag URL nothing substitutes',
+        );
+
+        final link = Uri.parse(server.postUrlOf(12345));
+        expect(
+          link.host,
+          Uri.parse(server.homepage).host,
+          reason: '${server.id} sends its posts to ${link.host}',
+        );
+        expect(
+          '$link',
+          contains('12345'),
+          reason: '${server.id} writes no post number into its link',
         );
       }
     });
