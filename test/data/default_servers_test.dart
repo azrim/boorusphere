@@ -136,6 +136,18 @@ void main() {
             reason: '${engine.name} writes a suggestion template of its own',
           );
         }
+        // The post page is the third copy of the same dialect, and the one a
+        // scan reaches through a different door: the list writes it on a manual
+        // add, the parser hands it to the probe. Two addresses for one board is
+        // what this caught, and the link the reader shares is what it breaks.
+        if (search.postUrl.isNotEmpty) {
+          expect(
+            _address(search.postUrl),
+            _address(engine.postUrl),
+            reason:
+                '${engine.name} links posts to a page its parser does not serve',
+          );
+        }
         expect(
           suggestion.type.contains(BooruParserType.suggestion),
           isTrue,
