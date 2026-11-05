@@ -260,6 +260,13 @@ private open class AppEnvPigeonCodec : StandardMessageCodec() {
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface AppEnv {
   fun get(): Env
+  /**
+   * Closes the app by finishing its activity, for the restart a restore
+   * requires. A back request cannot do it: the dialog that asks for the
+   * restart holds back handling, so the request would be swallowed by the
+   * dialog that made it.
+   */
+  fun exitApp()
 
   companion object {
     /** The codec used by AppEnv. */
@@ -276,6 +283,22 @@ interface AppEnv {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
               listOf(api.get())
+            } catch (exception: Throwable) {
+              AppEnvPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.boorusphere.AppEnv.exitApp$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              api.exitApp()
+              listOf(null)
             } catch (exception: Throwable) {
               AppEnvPigeonUtils.wrapError(exception)
             }

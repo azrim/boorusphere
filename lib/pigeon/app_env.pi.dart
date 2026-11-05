@@ -210,4 +210,26 @@ class AppEnv {
     );
     return pigeonVar_replyValue! as Env;
   }
+
+  /// Closes the app by finishing its activity, for the restart a restore
+  /// requires. A back request cannot do it: the dialog that asks for the
+  /// restart holds back handling, so the request would be swallowed by the
+  /// dialog that made it.
+  Future<void> exitApp() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.boorusphere.AppEnv.exitApp$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
 }

@@ -11,6 +11,12 @@ import 'package:pigeon/pigeon.dart';
 @HostApi()
 abstract class AppEnv {
   Env get();
+
+  /// Closes the app by finishing its activity, for the restart a restore
+  /// requires. A back request cannot do it: the dialog that asks for the
+  /// restart holds back handling, so the request would be swallowed by the
+  /// dialog that made it.
+  void exitApp();
 }
 
 class Env {

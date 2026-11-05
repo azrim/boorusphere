@@ -10,7 +10,7 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        AppEnv.setUp(flutterEngine.dartExecutor.binaryMessenger, AndroidAppEnv())
+        AppEnv.setUp(flutterEngine.dartExecutor.binaryMessenger, AndroidAppEnv(this))
         StorageUtil.setUp(flutterEngine.dartExecutor.binaryMessenger, AndroidStorageUtil(this))
         SecureScreen.setUp(flutterEngine.dartExecutor.binaryMessenger, this)
         VolumeKeys.setUp(flutterEngine.dartExecutor.binaryMessenger)

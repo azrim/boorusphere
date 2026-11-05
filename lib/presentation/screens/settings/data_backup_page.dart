@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/pigeon/app_env.pi.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/data_backup/data_backup.dart';
 import 'package:boorusphere/presentation/provider/data_backup/entity/backup_option.dart';
@@ -119,8 +120,22 @@ class _Content extends HookConsumerWidget {
                     // the data that was just replaced, with no way left to
                     // reload it, so the only honest choice here is the one that
                     // ends the session.
+                    //
+                    // The activity is finished from the native side. A back
+                    // request cannot do it: this dialog's own PopScope is what
+                    // tells the engine the framework handles back, so the
+                    // request was swallowed by the dialog that made it, which
+                    // left restart as a dead end. The reply is allowed to fail
+                    // silently, since the activity may be gone before it
+                    // crosses the channel.
                     FilledButton(
-                      onPressed: SystemNavigator.pop,
+                      onPressed: () {
+                        unawaited(
+                          AppEnv().exitApp().catchError((Object _) {
+                            // The activity can be gone before the reply lands.
+                          }),
+                        );
+                      },
                       child: Text(context.t.dataBackup.restore.restartNow),
                     ),
                   ],
