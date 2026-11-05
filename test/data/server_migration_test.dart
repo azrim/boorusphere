@@ -505,6 +505,31 @@ void main() {
       expect(box.get('@derpibooru')!.postUrl, 'images/{post-id}');
     });
 
+    test('leaves a board whose post page is the bare id alone', () async {
+      await box.put(
+        '@ponybooru',
+        const Server(
+          id: 'Ponybooru',
+          homepage: 'https://ponybooru.org',
+          searchParserId: 'BooruOnRails.json',
+          suggestionParserId: 'BooruOnRails.json',
+          postUrl: bareId,
+        ),
+      );
+
+      await repo.populate();
+
+      final server = box.get('@ponybooru')!;
+      expect(server.postUrl, bareId);
+      expect(
+        server.postUrlOf(3647542),
+        'https://ponybooru.org/3647542',
+        reason:
+            'that is the page the board serves, to a browser and to this app '
+            'alike, while its /images/ path answers a 503 flood gate',
+      );
+    });
+
     test(
       'never guesses the page for a dialect that never asked for it',
       () async {

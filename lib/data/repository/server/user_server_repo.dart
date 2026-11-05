@@ -222,6 +222,10 @@ class UserServerRepo implements ServerRepo {
   /// through either of the parser ids it pins: a bare id is a template no other
   /// engine was ever offered, and guessing it for a board the scan only half
   /// read is how the passes above learned not to.
+  ///
+  /// [_bareIdPostHosts] then takes back exactly what it gives: the boards that
+  /// answer the bare id *are* the post page there, so for them the stale template
+  /// is the working one.
   Future<void> _migrateBooruOnRailsPostUrl() async {
     const stale = '{post-id}';
     final parser = BooruOnRailsJsonParser();
@@ -233,10 +237,32 @@ class UserServerRepo implements ServerRepo {
           server.searchParserId == parser.id ||
           server.suggestionParserId == parser.id;
       if (!isBooruOnRails || server.postUrl != stale) continue;
+      if (_servesPostsAtBareId(server)) continue;
 
       await box.put(entry.key, server.copyWith(postUrl: parser.postUrl));
     }
     await box.flush();
+  }
+
+  /// The Philomena boards measured to answer the bare id as the image page.
+  ///
+  /// Checked 2026-11-05 with this app's own User-Agent and with a browser's:
+  /// `ponybooru.org/3647542` is the post on both, while `…/images/3647542`
+  /// answers its flood gate with a 503 and `…/posts/3647542` bounces to the
+  /// homepage. Derpibooru is the opposite — the address its own page publishes
+  /// is `og:url = https://derpibooru.org/images/3926486` — so the engine's
+  /// template is right there and wrong here. The software is one; the route each
+  /// board installs is not.
+  static const _bareIdPostHosts = {'ponybooru.org'};
+
+  /// Whether this entry points at one of [_bareIdPostHosts], read from either of
+  /// its addresses the way the other passes read a host.
+  bool _servesPostsAtBareId(Server server) {
+    for (final address in [server.homepage, server.apiAddr]) {
+      final host = Uri.tryParse(address)?.host ?? '';
+      if (host.isNotEmpty && _bareIdPostHosts.contains(host)) return true;
+    }
+    return false;
   }
 
   @override
