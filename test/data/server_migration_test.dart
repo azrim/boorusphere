@@ -553,4 +553,104 @@ void main() {
       },
     );
   });
+
+  group('UserServerRepo.populate key page', () {
+    const gelbooruPage =
+        'https://gelbooru.com/index.php?page=account&s=options';
+    const rule34Page = 'https://rule34.xxx/index.php?page=account&s=options';
+
+    late Box<Server> box;
+    late UserServerRepo repo;
+
+    setUp(() async {
+      box = await Hive.openBox<Server>('server_key_page_test');
+      await box.clear();
+      repo = UserServerRepo(
+        defaultServers: const {
+          '@gelbooru': Server(
+            id: 'Gelbooru',
+            homepage: 'https://gelbooru.com',
+            apiKeyUrl: gelbooruPage,
+          ),
+          '@rule34': Server(
+            id: 'Rule34',
+            homepage: 'https://rule34.xxx',
+            apiAddr: 'https://api.rule34.xxx',
+            apiKeyUrl: rule34Page,
+          ),
+          '@safebooru': Server(
+            id: 'Safebooru',
+            homepage: 'https://safebooru.org',
+          ),
+        },
+        box: box,
+      );
+    });
+
+    tearDown(() => box.close());
+
+    test('an upgraded entry learns where its key lives', () async {
+      await box.put(
+        '@gelbooru',
+        const Server(id: 'Gelbooru', homepage: 'https://gelbooru.com'),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@gelbooru')!.apiKeyUrl,
+        gelbooruPage,
+        reason:
+            'the notice asks for credentials, and the page that issues them '
+            'is the one thing the reader cannot guess',
+      );
+    });
+
+    test('reads the host from the API address too', () async {
+      await box.put(
+        '@r34',
+        const Server(id: 'R34', apiAddr: 'https://api.rule34.xxx'),
+      );
+
+      await repo.populate();
+
+      expect(box.get('@r34')!.apiKeyUrl, rule34Page);
+    });
+
+    test('keeps the address the entry already carries', () async {
+      await box.put(
+        '@gelbooru',
+        const Server(
+          id: 'Gelbooru',
+          homepage: 'https://gelbooru.com',
+          apiKeyUrl: 'https://gelbooru.com/help/api',
+        ),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@gelbooru')!.apiKeyUrl,
+        'https://gelbooru.com/help/api',
+        reason: 'a page the reader set themselves is not this app to rewrite',
+      );
+    });
+
+    test('leaves a host this release has no key page for alone', () async {
+      await box.put(
+        '@safebooru',
+        const Server(id: 'Safebooru', homepage: 'https://safebooru.org'),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@safebooru')!.apiKeyUrl,
+        isEmpty,
+        reason:
+            'that board answers anonymous requests; a sign-up page would '
+            'imply a key it never asks for',
+      );
+    });
+  });
 }

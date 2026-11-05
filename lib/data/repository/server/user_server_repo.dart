@@ -265,6 +265,48 @@ class UserServerRepo implements ServerRepo {
     return false;
   }
 
+  /// Fills in where a gated site hands out the key it asks for.
+  ///
+  /// The field arrived with this release, so entries written earlier name the
+  /// missing credentials without offering the page that issues them. The
+  /// address belongs to the site rather than the entry, so it is copied from
+  /// the preset pointing at the same host; an address the entry already
+  /// carries is kept as the reader left it.
+  Future<void> _migrateApiKeyUrl() async {
+    final pages = <String, String>{};
+    for (final server in _defaults.values) {
+      if (server.apiKeyUrl.isEmpty) continue;
+      for (final address in [server.homepage, server.apiAddr]) {
+        final host = Uri.tryParse(address)?.host ?? '';
+        if (host.isNotEmpty) pages.putIfAbsent(host, () => server.apiKeyUrl);
+      }
+    }
+    if (pages.isEmpty) return;
+
+    final mapped = Map<String, Server>.from(box.toMap());
+    for (final entry in mapped.entries) {
+      final server = entry.value;
+      if (server.apiKeyUrl.isNotEmpty) continue;
+
+      final page = _keyPageFor(server, pages);
+      if (page.isEmpty) continue;
+      await box.put(entry.key, server.copyWith(apiKeyUrl: page));
+    }
+    await box.flush();
+  }
+
+  /// The key page of the site [server] points at, read from either of its
+  /// addresses. Empty when this release has no verified page for that host.
+  String _keyPageFor(Server server, Map<String, String> pages) {
+    for (final address in [server.homepage, server.apiAddr]) {
+      final host = Uri.tryParse(address)?.host ?? '';
+      if (host.isEmpty) continue;
+      final page = pages[host];
+      if (page != null) return page;
+    }
+    return '';
+  }
+
   @override
   Future<void> populate() async {
     if (_defaults.isEmpty) return;
@@ -288,6 +330,7 @@ class UserServerRepo implements ServerRepo {
     await _migrateOneBasedPageParam();
     await _migrateShimmieSearchPath();
     await _migratePhilomenaPostUrl();
+    await _migrateApiKeyUrl();
   }
 
   @override
