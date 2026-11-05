@@ -91,6 +91,35 @@ void main() {
 <!DOCTYPE html>
 <html><head><title>Access Denied</title></head></html>
 ''',
+        'the allthefallen page, as fetched 2026-11-05': '''
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>booru.allthefallen.moe | Verification</title>
+    <style>.challenge-container { max-width: 200px }</style>
+  </head>
+  <body>
+    <h1>booru.allthefallen.moe</h1>
+    <div class="challenge-container" data-nonce="c1f2"></div>
+  </body>
+</html>
+''',
+        'the ponybooru page, as fetched 2026-11-05': '''
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ponybooru.org | Anti-DDoS Flood Protection and Firewall</title>
+  </head>
+  <body><h1>Checking your browser</h1></body>
+</html>
+''',
+        'a check that only announces itself in the heading': '''
+<!DOCTYPE html>
+<html>
+  <head><title>funbox-gate</title></head>
+  <body><h1>Verifying you are human</h1></body>
+</html>
+''',
       };
 
       gates.forEach((name, body) {
@@ -104,16 +133,19 @@ void main() {
 
     test('markup about captchas is not a gate', () {
       // Boards put captcha and JavaScript boilerplate in ordinary pages —
-      // safebooru's mentions captcha nineteen times — so the phrases are
-      // matched in the title, never in the body.
+      // safebooru's mentions captcha nineteen times — and a Philomena heading
+      // is the tag list, so the phrases are read in the headline and never in
+      // the body underneath it.
       const page = '''
 <!DOCTYPE html>
 <html>
   <head><title>#512847 - rating:general, 1boy | Board</title></head>
   <body>
+    <h1><a href="/posts?tag_id=3">1boy</a> <a href="/posts?tag_id=9">hat</a></h1>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <a href="/account/reset_captcha">Captcha required</a>
     <p>Are you a human? Verify you are human by e-mail.</p>
+    <div class="challenge-container">Nonce: c1f2</div>
   </body>
 </html>
 ''';
