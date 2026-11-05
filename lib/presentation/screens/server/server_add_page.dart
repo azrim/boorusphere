@@ -179,6 +179,10 @@ class ServerAddPage extends HookConsumerWidget {
     // Result of the last successful scan, or null when a (re)scan is needed.
     final scanResult = useState<Server?>(null);
     final scanFailed = useState(false);
+    // Which form the scan in flight is answering, raised by every edit to an
+    // input the probe reads. A result whose revision is no longer current is
+    // dropped rather than published.
+    final scanRevision = useState(0);
     final scanner = useBooruScanner(
       ref.watch(dioProvider),
       ref.watch(booruParsersProvider),
@@ -231,8 +235,9 @@ class ServerAddPage extends HookConsumerWidget {
     }
 
     /// Credentials are part of the request itself: a booru that gates its API
-    /// answers nothing until the key is attached, so they ride along with the
-    /// server used for scanning too.
+    /// answers nothing until the key is attached. Manual mode rebuilds the whole
+    /// server from the live fields on every edit, so the pair rides along with
+    /// it; the scan path takes them from its own snapshot instead.
     Server withCredentials(Server value) {
       return value.copyWith(
         login: login.text.trim(),
@@ -258,9 +263,12 @@ class ServerAddPage extends HookConsumerWidget {
       );
     }
 
-    /// A previously detected engine is only valid for the name/homepage it was
-    /// scanned from, so any edit there invalidates the result.
+    /// A previously detected engine is only valid for the inputs it was
+    /// scanned from, so any edit there invalidates the result — and the
+    /// revision the scan in flight was published under, which is what drops
+    /// its answer when it settles.
     void resetScan() {
+      scanRevision.value = scanRevision.value + 1;
       if (scanResult.value != null || scanFailed.value) {
         scanResult.value = null;
         scanFailed.value = false;
@@ -273,38 +281,50 @@ class ServerAddPage extends HookConsumerWidget {
       }
 
       FocusScope.of(context).unfocus();
+
+      // Every input the probe reads is captured here, once. The fields stay
+      // editable while the scan runs, so an answer can settle for a form the
+      // reader has already changed — and publishing it would attach the
+      // account typed now to the host the scan asked about, then send that key
+      // there with the first request.
       final name = profileName.text.trim();
       final url = siteUrl.text.trim();
-
+      final base = Server(
+        id: name,
+        homepage: url,
+        apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
+        login: login.text.trim(),
+        apiKey: apiKey.text.trim(),
+      );
+      final revision = scanRevision.value + 1;
+      scanRevision.value = revision;
       scanResult.value = null;
       scanFailed.value = false;
-
-      final base = withCredentials(
-        Server(
-          id: name,
-          homepage: url,
-          apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
-        ),
-      );
 
       try {
         final scanned = await scanner.scan(base);
         // The page can be gone by the time a scan settles; its hooks are
         // disposed with it.
         if (!context.mounted) return;
+        // Still alive is not the same as still asking: the form moved while the
+        // probe was out, so this result describes another server.
+        if (scanRevision.value != revision) return;
 
         if (scanned.searchParserId.isEmpty) {
           scanFailed.value = true;
           return;
         }
 
-        final result = withCredentials(
-          scanned.copyWith(id: name, homepage: url),
-        );
+        // The scanned server carries the credentials the snapshot gave the
+        // probe; they are never re-read from the live fields here.
+        final result = scanned.copyWith(id: name, homepage: url);
         server.value = result;
         scanResult.value = result;
       } catch (_) {
         if (!context.mounted) return;
+        // A cancellation the reader asked for by editing the form is not a
+        // failed scan, and the result it would have written is already dropped.
+        if (scanRevision.value != revision) return;
         scanFailed.value = true;
       }
     }
@@ -582,7 +602,11 @@ class ServerAddPage extends HookConsumerWidget {
                                 title: context.t.servers.useCustomApi,
                                 subtitle: context.t.servers.useCustomApiDesc,
                                 onChanged: (isChecked) {
+                                  // Which address the scan probed is decided
+                                  // here, so the result it wrote belongs to the
+                                  // opt-in as it was when the scan ran.
                                   useApiAddr.value = isChecked;
+                                  resetScan();
                                   updateServer();
                                 },
                               ),
@@ -600,7 +624,13 @@ class ServerAddPage extends HookConsumerWidget {
                                     hint: context.t.servers.apiAddrHint,
                                   ),
                                   validator: validateAddress,
-                                  onChanged: (_) => updateServer(),
+                                  onChanged: (_) {
+                                    // Same as the opt-in above: this address is
+                                    // where the engine was looked for, so a new
+                                    // one asks for a scan of its own.
+                                    resetScan();
+                                    updateServer();
+                                  },
                                 ),
                               ],
                             ],
