@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:boorusphere/data/encryption.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
+import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_autocomplete_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/repository/server_data_repo.dart';
@@ -35,48 +38,66 @@ class UserServerRepo implements ServerRepo {
     await box.flush();
   }
 
-  /// The tag endpoint each known host actually answers.
+  /// The tag endpoint each known host actually answers, with the parser that
+  /// reads it.
   ///
   /// Gelbooru, Safebooru and Rule34 share a code base and not an API: the first
   /// moved its tag list to `autocomplete2`, the other two still answer from
   /// `autocomplete.php`, and Rule34's `dapi` tag endpoint asks an anonymous
-  /// client for an account. The template that replaces an outdated one
-  /// therefore depends on the host that sent it. Three passes each assumed
-  /// their own answer was right for everybody, which is how two of these hosts
-  /// ended up asking for a tag list they never return.
+  /// client for an account. Danbooru and e621 both served suggestions as a
+  /// sorted sweep of the tag table where the site offers a completion endpoint
+  /// built for the keystroke that asks. The template that replaces an outdated
+  /// one therefore depends on the host that sent it, and is read from the parser
+  /// that serves it so the table cannot drift from the engine. Three passes each
+  /// assumed their own answer was right for everybody, which is how two of these
+  /// hosts ended up asking for a tag list they never return.
   Future<void> _migrateSuggestionUrl() async {
-    final autocomplete = AutocompleteJsonParser().suggestionQuery;
-    final autocomplete2 = GelbooruAutocompleteParser().suggestionQuery;
+    final endpoints = <_SiteHost, BooruParser>{
+      _SiteHost.gelbooru: GelbooruAutocompleteParser(),
+      _SiteHost.safebooru: AutocompleteJsonParser(),
+      _SiteHost.rule34: AutocompleteJsonParser(),
+      _SiteHost.danbooru: DanbooruJsonParser(),
+      _SiteHost.e621: E621JsonParser(),
+    };
     // The DAPI tag endpoint, in both the XML and the JSON dialect it was
-    // handed out in.
-    final dapi = {
+    // handed out in, and the tag-table sweep the completion endpoints replaced.
+    const retired = {
       'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%'
           '&orderby=count&limit={post-limit}',
       'index.php?page=dapi&s=tag&q=index&name_pattern=%{tag-part}%'
           '&orderby=count&limit={post-limit}&json=1',
+      'tags.json?search[name_matches]=*{tag-part}*&search[order]=count'
+          '&limit={post-limit}',
     };
-    final outdated = {...dapi, autocomplete, autocomplete2};
+    final outdated = {
+      ...retired,
+      ...endpoints.values.map((it) => it.suggestionQuery),
+    };
 
     final mapped = Map<String, Server>.from(box.toMap());
     for (final entry in mapped.entries) {
       final server = entry.value;
       if (!outdated.contains(server.tagSuggestionUrl)) continue;
 
-      final current = switch (_siteHost(server)) {
-        // A site this app has no table for keeps what its owner configured.
-        // Guessing an endpoint for it is how the passes this replaced went
-        // wrong for the sites it did recognize.
-        _SiteHost.gelbooru => autocomplete2,
-        _SiteHost.safebooru || _SiteHost.rule34 => autocomplete,
-        null => null,
-      };
-      if (current == null || current == server.tagSuggestionUrl) continue;
+      // A site this app has no table for keeps what its owner configured:
+      // guessing an endpoint for it is how the passes this replaced went wrong
+      // for the sites it did recognize.
+      final parser = endpoints[_siteHost(server)];
+      if (parser == null) continue;
+      if (parser.suggestionQuery.isEmpty) continue;
+      if (server.tagSuggestionUrl == parser.suggestionQuery &&
+          server.suggestionParserId == parser.id) {
+        continue;
+      }
 
       await box.put(
         entry.key,
         server.copyWith(
-          tagSuggestionUrl: current,
-          suggestionParserId: '', // Reset to auto-detect
+          tagSuggestionUrl: parser.suggestionQuery,
+          // The endpoint names its own dialect: the payload two of these hosts
+          // return is the same set of keys, so which parser reads it decides
+          // whether the post count and the tag category survive the trip.
+          suggestionParserId: parser.id,
         ),
       );
     }
@@ -98,6 +119,8 @@ class UserServerRepo implements ServerRepo {
       if (host == 'rule34.xxx' || host.endsWith('.rule34.xxx')) {
         return _SiteHost.rule34;
       }
+      if (host == 'danbooru.donmai.us') return _SiteHost.danbooru;
+      if (host == 'e621.net') return _SiteHost.e621;
     }
     return null;
   }
@@ -399,4 +422,4 @@ class UserServerRepo implements ServerRepo {
 }
 
 /// The site families this release knows the tag endpoint of.
-enum _SiteHost { gelbooru, safebooru, rule34 }
+enum _SiteHost { gelbooru, safebooru, rule34, danbooru, e621 }

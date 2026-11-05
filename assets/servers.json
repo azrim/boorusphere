@@ -10,8 +10,10 @@
     "id": "Danbooru",
     "homepage": "https://danbooru.donmai.us",
     "searchUrl": "posts.json?tags={tags}&page={page-num}&limit={post-limit}",
-    "tagSuggestionUrl": "tags.json?search[name_matches]=*{tag-part}*&search[order]=count&limit={post-limit}",
+    "tagSuggestionUrl": "autocomplete.json?search[query]={tag-part}&search[type]=tag_query&limit={post-limit}",
     "postUrl": "posts/{post-id}",
+    "searchParserId": "Danbooru.json",
+    "suggestionParserId": "Danbooru.json",
     "apiKeyUrl": "https://danbooru.donmai.us/profile"
   },
   {

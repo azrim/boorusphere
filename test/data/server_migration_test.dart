@@ -1,4 +1,7 @@
 import 'package:boorusphere/data/encryption.dart';
+import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
+import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
@@ -109,7 +112,7 @@ void main() {
 
       final server = box.get('@safebooru')!;
       expect(server.tagSuggestionUrl, autocompleteUrl);
-      expect(server.suggestionParserId, isEmpty);
+      expect(server.suggestionParserId, AutocompleteJsonParser().id);
     });
 
     test('keeps a Safebooru entry on its own autocomplete URL', () async {
@@ -141,6 +144,93 @@ void main() {
       await repo.populate();
 
       expect(box.get('@gelbooru')!.tagSuggestionUrl, gelbooruAutocompleteUrl);
+    });
+  });
+
+  group('UserServerRepo.populate completion endpoints', () {
+    // The tag-table sweep both engines served suggestions from before their
+    // completion endpoints were adopted: `search[order]=count` sorts the whole
+    // table on every keystroke.
+    const tagTableUrl =
+        'tags.json?search[name_matches]=*{tag-part}*&search[order]=count'
+        '&limit={post-limit}';
+
+    late Box<Server> box;
+    late UserServerRepo repo;
+
+    setUp(() async {
+      box = await Hive.openBox<Server>('server_completion_test');
+      await box.clear();
+      repo = UserServerRepo(
+        defaultServers: const {'@seed': Server(id: 'seed')},
+        box: box,
+      );
+    });
+
+    tearDown(() => box.close());
+
+    test(
+      'moves a Danbooru entry to the endpoint built for a keystroke',
+      () async {
+        await box.put(
+          '@danbooru',
+          const Server(
+            id: 'Danbooru',
+            homepage: 'https://danbooru.donmai.us',
+            tagSuggestionUrl: tagTableUrl,
+          ),
+        );
+
+        await repo.populate();
+
+        final server = box.get('@danbooru')!;
+        final parser = DanbooruJsonParser();
+        expect(server.tagSuggestionUrl, parser.suggestionQuery);
+        expect(
+          server.suggestionParserId,
+          parser.id,
+          reason:
+              'the completion payload shares its keys with another engine\'s, '
+              'so which parser reads it decides whether the count survives',
+        );
+      },
+    );
+
+    test('moves a manually added e621 entry the same way', () async {
+      await box.put(
+        '@e621',
+        const Server(
+          id: 'e621',
+          homepage: 'https://e621.net',
+          tagSuggestionUrl: tagTableUrl,
+          suggestionParserId: 'E621.json',
+        ),
+      );
+
+      await repo.populate();
+
+      final server = box.get('@e621')!;
+      expect(server.tagSuggestionUrl, E621JsonParser().suggestionQuery);
+      expect(server.suggestionParserId, E621JsonParser().id);
+    });
+
+    test('leaves a Danbooru clone on the table it serves', () async {
+      await box.put(
+        '@clone',
+        const Server(
+          id: 'Some booru',
+          homepage: 'https://some-danbooru-clone.example',
+          tagSuggestionUrl: tagTableUrl,
+        ),
+      );
+
+      await repo.populate();
+
+      expect(
+        box.get('@clone')!.tagSuggestionUrl,
+        tagTableUrl,
+        reason: 'this app has not asked that host what it answers',
+      );
     });
   });
 
@@ -275,8 +365,8 @@ void main() {
       expect(server.tagSuggestionUrl, autocompleteUrl);
       expect(
         server.suggestionParserId,
-        isEmpty,
-        reason: 'the reader is chosen by the answer, not by the old pin',
+        AutocompleteJsonParser().id,
+        reason: 'the endpoint this host answers also names the reader of it',
       );
       expect(server.apiAddr, apiHost);
     });

@@ -1,5 +1,6 @@
 import 'package:boorusphere/data/repository/booru/entity/tag_category.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/moebooru_json_parser.dart';
@@ -119,5 +120,99 @@ void main() {
     );
 
     expect(categories, {'book': null});
+  });
+
+  test('Danbooru reads the tag from the completion endpoint it asks now', () {
+    // The keys `autocomplete.json` reports, from the engine's own serializer:
+    // the name it inserts into the search box is `value`, and a word match
+    // carries the word the reader typed as `antecedent`.
+    final res = _response([
+      {
+        'type': 'tag-word',
+        'label': 'Land of the Lost',
+        'value': 'land_of_the_lost',
+        'category': 3,
+        'post_count': 312,
+        'antecedent': 'land',
+      },
+      {
+        'type': 'tag',
+        'label': 'landscape',
+        'value': 'landscape',
+        'category': 0,
+        'post_count': 106694,
+      },
+      // A completion with no posts behind it is not a suggestion worth making.
+      {
+        'type': 'tag',
+        'label': 'land_point',
+        'value': 'land_point',
+        'category': 0,
+        'post_count': 0,
+      },
+      // Metatag completions arrive without a count at all.
+      {
+        'type': 'metatag',
+        'label': 'rating:senstive',
+        'value': 'rating:senstive',
+      },
+    ]);
+
+    final parser = DanbooruJsonParser();
+    expect(parser.canParseSuggestion(res), isTrue);
+
+    final categories = _categories(parser.parseSuggestion(_server, res));
+    expect(categories, {
+      'land_of_the_lost': TagCategory.copyright,
+      'landscape': TagCategory.general,
+    });
+  });
+
+  test('Danbooru still reads the tag table an older entry asks for', () {
+    final res = _response([
+      {'name': 'book', 'post_count': 105190, 'category': 0},
+      // An instance that spells the count differently, and one that sends it
+      // as digits instead of a number.
+      {'name': 'bookshelf', 'num_posts': 3200, 'category': 0},
+      {'name': 'book_series', 'post_count': '41', 'category': 3},
+    ]);
+
+    final parser = DanbooruJsonParser();
+    expect(parser.canParseSuggestion(res), isTrue);
+
+    final counts = <String, int>{
+      for (final it in parser.parseSuggestion(_server, res)) it.name: it.count,
+    };
+    expect(counts, {'book': 105190, 'bookshelf': 3200, 'book_series': 41});
+  });
+
+  test('e621 grades its completions with its own category codes', () {
+    // Live payload of `tags/autocomplete.json`, whose codes 5 and 8 are species
+    // and lore — the two the Danbooru table would call meta.
+    final res = _response([
+      {
+        'id': 678370,
+        'name': 'galliform',
+        'post_count': 27582,
+        'category': 5,
+        'antecedent_name': 'land_fowl',
+      },
+      {'id': 2318, 'name': 'landscape', 'post_count': 4129, 'category': 0},
+      {
+        'id': 112,
+        'name': 'landon_(fellowwolf)',
+        'post_count': 235,
+        'category': 4,
+      },
+    ]);
+
+    final parser = E621JsonParser();
+    expect(parser.canParseSuggestion(res), isTrue);
+
+    expect(_categories(parser.parseSuggestion(_server, res)), {
+      'galliform': TagCategory.general,
+      'landscape': TagCategory.general,
+      'landon_(fellowwolf)': TagCategory.character,
+    });
   });
 }

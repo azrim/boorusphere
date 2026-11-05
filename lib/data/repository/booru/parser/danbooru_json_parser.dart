@@ -21,9 +21,15 @@ class DanbooruJsonParser extends BooruParser {
   final searchQuery =
       'posts.json?tags={tags}&page={page-num}&limit={post-limit}';
 
+  /// The completion endpoint rather than the tag table.
+  ///
+  /// `tags.json?search[name_matches]=*…*&search[order]=count` sorts a whole
+  /// table of names on every keystroke; `autocomplete.json` is the endpoint the
+  /// site built for this exact input and caches per query.
   @override
   final suggestionQuery =
-      'tags.json?search[name_matches]=*{tag-part}*&search[order]=count&limit={post-limit}';
+      'autocomplete.json?search[query]={tag-part}&search[type]=tag_query'
+      '&limit={post-limit}';
 
   @override
   final postUrl = 'posts/{post-id}';
@@ -90,12 +96,14 @@ class DanbooruJsonParser extends BooruParser {
     );
   }
 
+  /// A named tag with a post count, in either of the two shapes the site
+  /// reports it in: the tag table keys it by `name`, the completion endpoint by
+  /// the `value` it inserts into the search box.
   @override
   bool canParseSuggestion(Response res) {
     final first = _firstEntry(res.data);
-    return first != null &&
-        first.containsKey('name') &&
-        first.containsKey('post_count');
+    if (first == null) return false;
+    return _tagName(first) != null && _tagCount(first) != null;
   }
 
   @override
@@ -103,17 +111,35 @@ class DanbooruJsonParser extends BooruParser {
     final entries = res.data is List ? res.data as List : const [];
     final result = <Suggestion>{};
     for (final entry in entries.whereType<Map<String, dynamic>>()) {
-      final tag = pick(entry, 'name').asStringOrNull() ?? '';
-      final postCount = pick(entry, 'post_count').asIntOrNull() ?? 0;
+      final rawTag = _tagName(entry);
+      final postCount = _tagCount(entry);
+      if (rawTag == null || postCount == null) continue;
+      final tag = BooruUtil.decodeTag(rawTag);
       final category = tagCategoryFromCode(
         pick(entry, 'category').asIntOrNull(),
       );
       if (postCount > 0 && tag.isNotEmpty) {
-        result.add(Suggestion(BooruUtil.decodeTag(tag), postCount, category));
+        result.add(Suggestion(tag, postCount, category));
       }
     }
 
     return result;
+  }
+
+  String? _tagName(Map entry) {
+    return pick(entry, 'name').asStringOrNull() ??
+        pick(entry, 'value').asStringOrNull();
+  }
+
+  /// The count, whichever key carries it: an older instance spells the field
+  /// `num_posts`, and a clone that proxies the tag table hands it over as a
+  /// string.
+  int? _tagCount(Map entry) {
+    for (final key in ['post_count', 'num_posts']) {
+      final count = pick(entry, key).asCountOrNull();
+      if (count != null) return count;
+    }
+    return null;
   }
 
   @override

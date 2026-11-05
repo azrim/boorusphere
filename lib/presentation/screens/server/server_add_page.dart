@@ -61,7 +61,8 @@ const booruEngines = <BooruEngine>[
     suggestionParserId: 'Danbooru.json',
     searchQuery: 'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
     suggestionQuery:
-        'tags.json?search[name_matches]=*{tag-part}*&search[order]=count&limit={post-limit}',
+        'autocomplete.json?search[query]={tag-part}&search[type]=tag_query'
+        '&limit={post-limit}',
     postUrl: 'posts/{post-id}',
   ),
   BooruEngine(
@@ -88,8 +89,7 @@ const booruEngines = <BooruEngine>[
     searchParserId: 'E621.json',
     suggestionParserId: 'E621.json',
     searchQuery: 'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
-    suggestionQuery:
-        'tags.json?search[name_matches]=*{tag-part}*&search[order]=count&limit={post-limit}',
+    suggestionQuery: 'tags/autocomplete.json?search[name_matches]={tag-part}',
     postUrl: 'posts/{post-id}',
   ),
   BooruEngine(
@@ -107,7 +107,7 @@ const booruEngines = <BooruEngine>[
     suggestionParserId: 'Szurubooru.json',
     searchQuery:
         'api/posts?offset={post-offset}&limit={post-limit}&query={tags}',
-    suggestionQuery: 'api/tags?offset=0&limit={tag-limit}&query=*{tag-part}*',
+    suggestionQuery: 'api/tags?offset=0&limit={post-limit}&query={tag-part}*',
     postUrl: 'post/{post-id}',
   ),
   BooruEngine(

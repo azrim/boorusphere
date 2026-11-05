@@ -1,0 +1,45 @@
+[
+  {
+    "type": "tag-word",
+    "label": "Landscape",
+    "value": "landscape",
+    "category": 0,
+    "post_count": 106694,
+    "antecedent": "land"
+  },
+  {
+    "type": "tag-word",
+    "label": "Land of the Lost",
+    "value": "land_of_the_lost",
+    "category": 3,
+    "post_count": 312,
+    "antecedent": "land"
+  },
+  {
+    "type": "tag",
+    "label": "looking_at_viewer",
+    "value": "looking_at_viewer",
+    "category": 0,
+    "post_count": 541275
+  },
+  {
+    "type": "tag",
+    "label": "land_point",
+    "value": "land_point",
+    "category": 0,
+    "post_count": 0
+  },
+  {
+    "type": "artist",
+    "label": "landower",
+    "value": "landower",
+    "category": 1,
+    "post_count": 42
+  },
+  {
+    "type": "metatag",
+    "label": "locked",
+    "value": "locked",
+    "antecedent": "land"
+  }
+]

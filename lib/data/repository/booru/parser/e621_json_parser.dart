@@ -8,6 +8,7 @@ import 'package:boorusphere/data/repository/booru/utils/dtext_summary.dart';
 import 'package:boorusphere/data/repository/booru/utils/post_pipeline.dart';
 import 'package:boorusphere/data/repository/booru/utils/tag_alias_payload.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
+import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
 import 'package:boorusphere/utils/extensions/pick.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:dio/dio.dart';
@@ -16,8 +17,54 @@ class E621JsonParser extends BooruParser {
   @override
   final id = 'E621.json';
 
+  /// The site's own completion endpoint: it answers the same tag records the
+  /// tag table does, from a query built to run on every keystroke.
   @override
-  List<BooruParserType> get type => [BooruParserType.search];
+  final suggestionQuery =
+      'tags/autocomplete.json?search[name_matches]={tag-part}';
+
+  @override
+  List<BooruParserType> get type => [
+    BooruParserType.search,
+    BooruParserType.suggestion,
+  ];
+
+  @override
+  bool canParseSuggestion(Response res) {
+    final first = _firstSuggestionEntry(res.data);
+    return first != null &&
+        pick(first, 'name').asStringOrNull() != null &&
+        pick(first, 'post_count').asCountOrNull() != null;
+  }
+
+  @override
+  Set<Suggestion> parseSuggestion(Server server, Response res) {
+    final entries = res.data is List ? res.data as List : const [];
+    final result = <Suggestion>{};
+    for (final entry in entries.whereType<Map>()) {
+      final tag = BooruUtil.decodeTag(
+        pick(entry, 'name').asStringOrNull() ?? '',
+      );
+      final postCount = pick(entry, 'post_count').asCountOrNull() ?? 0;
+      if (postCount > 0 && tag.isNotEmpty) {
+        result.add(
+          Suggestion(
+            tag,
+            postCount,
+            _categoryFromCode(pick(entry, 'category').asIntOrNull()),
+          ),
+        );
+      }
+    }
+
+    return result;
+  }
+
+  Map? _firstSuggestionEntry(Object? data) {
+    if (data is! List || data.isEmpty) return null;
+    final first = data.first;
+    return first is Map ? first : null;
+  }
 
   @override
   bool canParsePage(Response res) {

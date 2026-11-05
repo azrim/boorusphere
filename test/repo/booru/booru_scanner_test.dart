@@ -52,8 +52,8 @@ void main() async {
           FakeResponseBody.fromFixture('danbooru/posts.json', 200),
         )
         ..put(
-          '$host/tags.json?search[name_matches]=*a*&search[order]=count&limit=30',
-          FakeResponseBody.fromFixture('danbooru/tags.json', 200),
+          '$host/autocomplete.json?search[query]=a&search[type]=tag_query&limit=30',
+          FakeResponseBody.fromFixture('danbooru/autocomplete.json', 200),
         )
         ..put(
           '$host/posts/100',
@@ -181,7 +181,7 @@ void main() async {
           FakeResponseBody.fromFixture('booruonrails/posts.json', 200),
         )
         ..put(
-          '$host/api/v1/json/search/tags?q=a*',
+          '$host/api/v1/json/search/tags?q=*a*',
           FakeResponseBody.fromFixture('booruonrails/tags.json', 200),
         )
         ..put(
@@ -212,8 +212,8 @@ void main() async {
           FakeResponseBody.fromFixture('e621/posts.json', 200),
         )
         ..put(
-          '$host/tags.json?search[name_matches]=*a*&search[order]=count&limit=30',
-          FakeResponseBody.fromFixture('e621/tags.json', 200),
+          '$host/tags/autocomplete.json?search[name_matches]=a',
+          FakeResponseBody.fromFixture('e621/autocomplete.json', 200),
         )
         ..put(
           '$host/posts/100',
@@ -226,13 +226,15 @@ void main() async {
       );
 
       final result = await scanner.scan(const Server(homepage: host));
+      // The post page and the search template are Danbooru's own shape, which
+      // is why the parser ids differ from the one answering suggestions.
       final parser = DanbooruJsonParser();
       final pageParser = E621JsonParser();
 
       expect(result.searchUrl, parser.searchQuery);
       expect(result.searchParserId, pageParser.id);
-      expect(result.tagSuggestionUrl, parser.suggestionQuery);
-      expect(result.suggestionParserId, parser.id);
+      expect(result.tagSuggestionUrl, pageParser.suggestionQuery);
+      expect(result.suggestionParserId, pageParser.id);
       expect(result.postUrl, parser.postUrl);
     });
 
@@ -271,11 +273,11 @@ void main() async {
       const host = 'https://homestuck.test/resources/booru';
       adapter
         ..put(
-          '$host/api/posts/?offset=3&limit=30&query=*',
+          '$host/api/posts?offset=3&limit=30&query=*',
           FakeResponseBody.fromFixture('szurubooru/posts.json', 200),
         )
         ..put(
-          '$host/api/tags/?offset=0&limit=30&query=a*',
+          '$host/api/tags?offset=0&limit=30&query=a*',
           FakeResponseBody.fromFixture('szurubooru/tags.json', 200),
         )
         ..put(

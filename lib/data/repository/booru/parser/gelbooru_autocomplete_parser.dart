@@ -4,6 +4,7 @@ import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
+import 'package:boorusphere/utils/extensions/pick.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:dio/dio.dart';
 
@@ -75,9 +76,8 @@ class GelbooruAutocompleteParser extends BooruParser {
       if (entry is! Map) continue;
 
       final tag = pick(entry, 'value').asStringOrNull() ?? '';
-      // post_count is a string in the response
-      final postCountStr = pick(entry, 'post_count').asStringOrNull() ?? '0';
-      final postCount = int.tryParse(postCountStr) ?? 0;
+      // The endpoint has sent this as a string and as a number; both are a count.
+      final postCount = pick(entry, 'post_count').asCountOrNull() ?? 0;
 
       if (tag.isNotEmpty) {
         result.add(Suggestion(BooruUtil.decodeTag(tag), postCount));

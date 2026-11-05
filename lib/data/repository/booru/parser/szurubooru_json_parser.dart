@@ -12,13 +12,18 @@ class SzurubooruJsonParser extends BooruParser {
   @override
   final id = 'Szurubooru.json';
 
+  /// The collection routes, without the trailing slash a hand-written copy of
+  /// the template carried: this server's routes are matched exactly, so the
+  /// slashed path answers nothing. The engine list users pick from always asked
+  /// for the unslashed one, which is why a manual add worked where a scan did
+  /// not.
   @override
   final searchQuery =
-      'api/posts/?offset={post-offset}&limit={post-limit}&query={tags}';
+      'api/posts?offset={post-offset}&limit={post-limit}&query={tags}';
 
   @override
   final suggestionQuery =
-      'api/tags/?offset=0&limit={post-limit}&query={tag-part}*';
+      'api/tags?offset=0&limit={post-limit}&query={tag-part}*';
 
   @override
   final postUrl = 'post/{post-id}';

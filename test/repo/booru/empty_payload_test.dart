@@ -17,7 +17,7 @@ import '../../utils/riverpod.dart';
 const _szurubooru = Server(
   id: 'Szurubooru',
   homepage: 'https://szuru.example.com',
-  searchUrl: 'api/posts/?offset={post-offset}&limit={post-limit}&query={tags}',
+  searchUrl: 'api/posts?offset={post-offset}&limit={post-limit}&query={tags}',
   searchParserId: 'Szurubooru.json',
 );
 

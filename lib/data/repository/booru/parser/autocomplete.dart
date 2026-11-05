@@ -4,6 +4,7 @@ import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/utils/booru_util.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
+import 'package:boorusphere/utils/extensions/pick.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:dio/dio.dart';
 
@@ -58,13 +59,10 @@ class AutocompleteJsonParser extends BooruParser {
       final label = pick(entry, 'label').asStringOrNull() ?? '';
       final tag = pick(entry, 'value').asStringOrNull() ?? '';
 
-      // Try to get post_count from dedicated field first (Gelbooru autocomplete2 format)
-      int postCount = 0;
-      final postCountField = pick(entry, 'post_count').asStringOrNull();
-      if (postCountField != null) {
-        postCount = int.tryParse(postCountField) ?? 0;
-      } else {
-        // Fallback: post count is in label at the end of the string "<tag> (post count)"
+      // A count the site sent as its own field wins; the PHP endpoint this
+      // parser was written for has none and puts it in the label instead.
+      var postCount = pick(entry, 'post_count').asCountOrNull() ?? 0;
+      if (postCount == 0) {
         postCount =
             int.tryParse(
               label.split(' ').last.replaceAll('(', '').replaceAll(')', ''),

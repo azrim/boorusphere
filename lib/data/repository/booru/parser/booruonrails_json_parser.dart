@@ -18,8 +18,14 @@ class BooruOnRailsJsonParser extends BooruParser {
   final searchQuery =
       'api/v1/json/search/images?q={tags}&per_page={post-limit}&page={page-num}';
 
+  /// This endpoint has no autocomplete of its own: a bare term must match a
+  /// tag name exactly, so the wildcards are what makes it type-ahead. They go
+  /// on both sides — a fragment typed in the middle of a name (`book` for
+  /// `spellbook`) finds nothing with a leading-only match, which is why the
+  /// engines that rank the candidates themselves (Danbooru, Gelbooru) are the
+  /// only ones that get away with a bare term.
   @override
-  final suggestionQuery = 'api/v1/json/search/tags?q={tag-part}*';
+  final suggestionQuery = 'api/v1/json/search/tags?q=*{tag-part}*';
 
   @override
   final postUrl = '{post-id}';
