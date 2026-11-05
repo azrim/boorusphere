@@ -1,3 +1,10 @@
+## 3.1.4
+
+* **Engines**: a Shimmie board is read in both XML shapes it answers, a server that wants an API key names the credential that is missing instead of calling the reply unparsable, each host is asked for the tag list it actually serves, every engine now carries the page where its key is handed out, a szurubooru account travels as a token header rather than a query parameter, and a Gelbooru entry says which of its two dialects it is asking
+* **Add server**: a scan only claims a post page after reading the head of what it fetched, so the challenge a board puts in front of this client — its own title or first heading — is no longer saved as the address of a post, and the boards running Philomena are offered under the name their software uses
+* **Presets**: e621, Derpibooru, Ponybooru and rule34.paheal join the boards a fresh install offers, each endpoint having been asked live with this app's own user agent before being written down, and a preset is now held to the same guard as the manual engine list, because it is the third copy of those same templates
+* **Post pages**: the pass that repairs a Philomena image link leaves a board whose post page is the bare id alone, which is how Ponybooru serves it, so a working address no longer gets healed into a flood gate
+
 ## 3.1.3
 
 * **Viewer chrome**: the app bar band, the toolbox, the gesture feedback and the pause wash take their light and dark tones from the theme palette instead of fixed white and black, so a curated palette tints its own artwork overlays and a disabled download button stays legible on a dark scrim
