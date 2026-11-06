@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/routes/route_visibility.dart';
@@ -109,6 +110,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
       appRouteObserver,
     );
 
+    // The lock cover is a shell sibling, not a route: the observer above
+    // never hears about it. While it is up, nothing here may answer hardware
+    // keys, hold the display awake, or keep the slideshow advancing.
+    final locked = ref.watch(appLockProvider.select((it) => it.isLocked));
+
     final slideshowInterval = ref.watch(
       contentSettingStateProvider.select((it) => it.slideshowInterval),
     );
@@ -154,7 +160,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
     }
 
     Future<void> advanceSlideshow() async {
-      if (!slideshowPlaying.value) return;
+      if (!slideshowPlaying.value || ref.read(appLockProvider).isLocked) return;
 
       final next = nextSlideshowPage(
         current: controller.page,
@@ -287,8 +293,16 @@ class EnhancedPostViewer extends HookConsumerWidget {
       return null;
     }, [slideshowInterval]);
 
+    // The cover does not mute tickers, so a running show would keep advancing
+    // behind the gate. Stop for good, like the details sheet does: playing
+    // again is a deliberate tap, not something that happens on unlock.
+    useEffect(() {
+      if (locked) stopSlideshow();
+      return null;
+    }, [locked]);
+
     final volumeKeysActive =
-        volumeKeyNavigation && !sheetExpanded.value && routeVisible;
+        volumeKeyNavigation && !sheetExpanded.value && routeVisible && !locked;
     // Capture follows the viewer, not the process. A covered page must not
     // keep answering: a related post can push a timeline above it, where the
     // buttons belong to media volume again. Stacked viewers hand the keys back
@@ -305,7 +319,11 @@ class EnhancedPostViewer extends HookConsumerWidget {
         VolumeKeys.acquire(controller, (direction) {
           // A zoomed image owns the volume keys' neighbour gestures; stepping
           // the page while the user is panning would lose their place.
-          if (sheetExpanded.value || zoomed.value) return;
+          if (sheetExpanded.value ||
+              zoomed.value ||
+              ref.read(appLockProvider).isLocked) {
+            return;
+          }
           if (direction == VolumeKeyDirection.up) {
             unawaited(controller.nextPage());
           } else {
@@ -321,17 +339,17 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
     // The screen-on request belongs to the visible viewer as well: a covered
     // page must not keep the display awake above it, and a stacked viewer must
-    // not turn the request off for this one when it closes. The manager counts
-    // holders, so the covered page letting go first cannot cancel the viewer
-    // that was just pushed on top.
+    // not turn the request off for this one when it closes. The lock cover
+    // counts as covered. The manager counts holders, so the covered page
+    // letting go first cannot cancel the viewer that was just pushed on top.
     useEffect(() {
-      if (routeVisible) {
+      if (routeVisible && !locked) {
         wakelockManager.acquire(controller);
       } else {
         wakelockManager.release(controller);
       }
       return null;
-    }, [routeVisible, controller]);
+    }, [routeVisible, locked, controller]);
     useEffect(() {
       return () => wakelockManager.release(controller);
     }, [controller]);
@@ -342,11 +360,14 @@ class EnhancedPostViewer extends HookConsumerWidget {
     // outlives the viewer that set it. Let go as soon as this route is no
     // longer on top; entering fullscreen again is a deliberate action.
     useEffect(() {
-      if (!routeVisible) {
-        ref.read(fullscreenStateProvider.notifier).reset();
+      if (!routeVisible || locked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!context.mounted) return;
+          ref.read(fullscreenStateProvider.notifier).reset();
+        });
       }
       return null;
-    }, [routeVisible]);
+    }, [routeVisible, locked]);
 
     void expandSheet() {
       if (sheetController.isAttached) {

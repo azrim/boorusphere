@@ -13,7 +13,12 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/domain/repository/version_repo.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
+import 'package:boorusphere/presentation/provider/app_lock/entity/app_lock_data.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
+import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
+import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
 import 'package:boorusphere/presentation/screens/post/post_media.dart';
 // The cache manager exposes its own `DownloadProgress`; this test wants the
 // downloads entity of the same name.
@@ -21,13 +26,41 @@ import 'package:cached_network_image/cached_network_image.dart'
     hide DownloadProgress;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart' as cache;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
+// ignore: depend_on_referenced_packages
+import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+// ignore: depend_on_referenced_packages
+import 'package:wakelock_plus_platform_interface/wakelock_plus_platform_interface.dart';
 
 import '../../../utils/hive.dart';
+import '../../../utils/video_player.dart';
+
+class _FakeAppLock extends AppLock {
+  @override
+  AppLockData build() => const AppLockData(enabled: true, hasPin: true);
+
+  void setLocked(bool value) => state = state.copyWith(locked: value);
+}
+
+class _FakeContentSettings extends ContentSettingState {
+  @override
+  ContentSetting build() => const ContentSetting(volumeKeyNavigation: true);
+}
+
+class _FakeWakelock extends WakelockPlusPlatformInterface {
+  final changes = <bool>[];
+
+  @override
+  Future<void> toggle({required bool enable}) async => changes.add(enable);
+}
+
+class _MockImageCache extends Mock implements cache.DefaultCacheManager {}
 
 class MockEnvRepo extends Mock implements EnvRepo {}
 
@@ -124,6 +157,21 @@ void main() {
     // fake clock clean.
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
 
+    final imageCache = _MockImageCache();
+    when(
+      () => imageCache.getImageFile(
+        any(),
+        key: any(named: 'key'),
+        headers: any(named: 'headers'),
+        withProgress: any(named: 'withProgress'),
+        maxHeight: any(named: 'maxHeight'),
+        maxWidth: any(named: 'maxWidth'),
+      ),
+    ).thenAnswer((_) => const Stream.empty());
+    // Assign without reading the lazy default: constructing it starts disk
+    // and path-provider work. Each test in this isolate installs a fresh fake.
+    CachedNetworkImageProvider.defaultCacheManager = imageCache;
+
     envRepo = MockEnvRepo();
     versionRepo = MockVersionRepo();
 
@@ -142,9 +190,13 @@ void main() {
     Post post, {
     ValueChanged<bool>? onZoomChanged,
     Listenable? zoomResetSignal,
+    bool viewer = false,
   }) {
     return ProviderScope(
       overrides: [
+        appLockProvider.overrideWith(_FakeAppLock.new),
+        settingsRepoProvider.overrideWithValue(UserSettingsRepo(null)),
+        contentSettingStateProvider.overrideWith(_FakeContentSettings.new),
         envRepoProvider.overrideWithValue(envRepo),
         versionRepoProvider.overrideWithValue(versionRepo),
         fullscreenStateProvider.overrideWith(_FakeFullscreenState.new),
@@ -157,17 +209,105 @@ void main() {
           home: HeroMode(
             enabled: true,
             child: Scaffold(
-              body: PostMedia(
-                post: post,
-                onZoomChanged: onZoomChanged,
-                zoomResetSignal: zoomResetSignal,
-              ),
+              body: viewer
+                  ? EnhancedPostViewer(initial: 0, posts: [post, unknownPost])
+                  : PostMedia(
+                      post: post,
+                      onZoomChanged: onZoomChanged,
+                      zoomResetSignal: zoomResetSignal,
+                    ),
             ),
           ),
         ),
       ),
     );
   }
+
+  testWidgets('locking releases the video player without a route change', (
+    tester,
+  ) async {
+    final platform = FakeVideoPlayerPlatform();
+    final previous = VideoPlayerPlatform.instance;
+    VideoPlayerPlatform.instance = platform;
+    addTearDown(() => VideoPlayerPlatform.instance = previous);
+
+    await tester.pumpWidget(harness(videoPost));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump();
+    }
+    expect(platform.played, isNotEmpty);
+    final player = platform.created.single;
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PostMedia)),
+    );
+    final lock = container.read(appLockProvider.notifier) as _FakeAppLock;
+    lock.setLocked(true);
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    expect(platform.paused, contains(player));
+    expect(platform.disposed, contains(player));
+    final creations = platform.created.length;
+    await tester.pump(const Duration(seconds: 3));
+    expect(platform.created, hasLength(creations));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('lock cover releases viewer keys and stops the slideshow', (
+    tester,
+  ) async {
+    const channel = MethodChannel('io.chaldeaprjkt.boorusphere/volume_keys');
+    const codec = StandardMethodCodec();
+    final messenger = tester.binding.defaultBinaryMessenger;
+    final capture = <bool>[];
+    final wakelock = _FakeWakelock();
+    final previousWakelock = WakelockPlusPlatformInterface.instance;
+    WakelockPlusPlatformInterface.instance = wakelock;
+    addTearDown(() {
+      WakelockPlusPlatformInterface.instance = previousWakelock;
+    });
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      capture.add(call.arguments['enabled'] as bool);
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    await tester.pumpWidget(harness(imagePost, viewer: true));
+    await tester.pump();
+    expect(capture.last, isTrue);
+    final page = tester.widget<PageView>(find.byType(PageView)).controller!;
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(EnhancedPostViewer)),
+    );
+    final lock = container.read(appLockProvider.notifier) as _FakeAppLock;
+    await tester.tap(find.byTooltip(t.viewer.startSlideshow));
+    await tester.pump();
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    lock.setLocked(true);
+    // Dispatch before the viewer rebuilds: the old handler must refuse too.
+    await messenger.handlePlatformMessage(
+      channel.name,
+      codec.encodeMethodCall(const MethodCall('onVolumeKey', 'up')),
+      (_) {},
+    );
+    await tester.pump();
+    expect(capture.last, isFalse);
+    expect(wakelock.changes, [true, false]);
+    await tester.pump(const Duration(seconds: 10));
+    expect(page.page, 0);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+
+    lock.setLocked(false);
+    await tester.pump();
+    expect(capture.last, isTrue);
+    expect(wakelock.changes, [true, false, true]);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(capture.last, isFalse);
+  });
 
   testWidgets('dispatches photo posts to the image renderer', (tester) async {
     await tester.pumpWidget(harness(imagePost));

@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
@@ -850,7 +851,11 @@ class _PostVideoContent extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final heroMode = context.findAncestorWidgetOfExactType<HeroMode>();
-    final isActive = (heroMode?.enabled ?? false) && isVisible;
+    // The lock cover is a shell sibling, not a route, so isRouteVisible stays
+    // true beneath it. A video under the gate has to release its player —
+    // audio and decoder both — which is what active gates, not merely pause.
+    final locked = ref.watch(appLockProvider.select((it) => it.isLocked));
+    final isActive = (heroMode?.enabled ?? false) && isVisible && !locked;
     final headers = ref.watch(postHeadersFactoryProvider(post));
     final contentSettings = ref.watch(contentSettingStateProvider);
     final fullscreen = ref.watch(fullscreenStateProvider);
