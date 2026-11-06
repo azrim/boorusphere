@@ -65,11 +65,21 @@ class AppLock extends _$AppLock {
     // first state exists instead of delaying the frame.
     unawaited(Future.microtask(refreshBiometrics));
 
+    // The failure count lives in the record next to the verifier, so a run
+    // of guesses costs the same after a restart. Arm the live countdown for
+    // a wait that was carried over one.
+    final retryAt = config.retryAt;
+    if (retryAt != null) {
+      _armRetryTimer(retryAt, retryAt.difference(_now()));
+    }
+
     return AppLockData(
       enabled: config.enabled,
       hasPin: config.hasPin,
       timeout: config.timeout,
       pinLength: config.pinLength,
+      failedAttempts: config.failedAttempts,
+      retryAt: retryAt,
       // A cold start begins behind the lock: unlike a resume, there is no
       // session here to keep open.
       locked: config.isActive,
@@ -119,15 +129,19 @@ class AppLock extends _$AppLock {
 
     _busy = true;
     try {
-      final ok = await ref.read(appLockRepoProvider).verify(pin);
+      final repo = ref.read(appLockRepoProvider);
+      final ok = await repo.verify(pin);
       if (!ref.mounted) return UnlockResult.unavailable;
 
       if (ok) {
-        _clearFailures();
+        await repo.clearFailures();
+        _syncFailures();
         return UnlockResult.success;
       }
 
-      _recordFailure(_now());
+      final retryAt = await repo.recordFailure(_now());
+      _syncFailures();
+      _armRetryAfterFailure(retryAt);
       return UnlockResult.wrongPin;
     } on AppLockUnavailableException catch (e, stack) {
       mainLog.e('App lock: the PIN could not be checked', e, stack);
@@ -258,12 +272,13 @@ class AppLock extends _$AppLock {
       await ref.read(appLockRepoProvider).enable(pin);
       if (!ref.mounted) return;
 
-      _clearFailures();
       state = state.copyWith(
         enabled: true,
         hasPin: true,
         locked: false,
         pinLength: pin.length,
+        failedAttempts: 0,
+        retryAt: null,
       );
     });
   }
@@ -273,8 +288,12 @@ class AppLock extends _$AppLock {
       await ref.read(appLockRepoProvider).changePin(pin);
       if (!ref.mounted) return;
 
-      _clearFailures();
-      state = state.copyWith(hasPin: true, pinLength: pin.length);
+      state = state.copyWith(
+        hasPin: true,
+        pinLength: pin.length,
+        failedAttempts: 0,
+        retryAt: null,
+      );
     });
   }
 
@@ -283,10 +302,15 @@ class AppLock extends _$AppLock {
       await ref.read(appLockRepoProvider).disable();
       if (!ref.mounted) return;
 
-      _clearFailures();
       _pausedAt = null;
       _pausedDuringExternalFlow = false;
-      state = state.copyWith(enabled: false, hasPin: false, locked: false);
+      state = state.copyWith(
+        enabled: false,
+        hasPin: false,
+        locked: false,
+        failedAttempts: 0,
+        retryAt: null,
+      );
     });
   }
 
@@ -302,9 +326,9 @@ class AppLock extends _$AppLock {
 
   void _unlock() {
     _pausedAt = null;
-    state = state.copyWith(locked: false, failedAttempts: 0, retryAt: null);
     _retryTimer?.cancel();
     _retryTimer = null;
+    state = state.copyWith(locked: false, failedAttempts: 0, retryAt: null);
   }
 
   void _lock() {
@@ -312,29 +336,29 @@ class AppLock extends _$AppLock {
     state = state.copyWith(locked: true);
   }
 
-  void _recordFailure(DateTime now) {
-    final attempts = state.failedAttempts + 1;
-    final retryAt = pinRetryAt(attempts, now);
-    state = state.copyWith(failedAttempts: attempts, retryAt: retryAt);
+  /// Mirrors the repo's failure fields into the state, after a write.
+  void _syncFailures() {
+    final config = ref.read(appLockRepoProvider).config;
+    state = state.copyWith(
+      failedAttempts: config.failedAttempts,
+      retryAt: config.retryAt,
+    );
+  }
 
+  /// Schedules the moment the throttle clears; the repo owns the record, this
+  /// only moves the countdown on screen.
+  void _armRetryAfterFailure(DateTime? retryAt) {
     _retryTimer?.cancel();
-    if (retryAt == null) {
-      _retryTimer = null;
-      return;
-    }
+    _retryTimer = null;
+    if (retryAt == null) return;
+    _armRetryTimer(retryAt, retryAt.difference(_now()));
+  }
 
-    final wait = retryAt.difference(now);
+  void _armRetryTimer(DateTime retryAt, Duration wait) {
     _retryTimer = Timer(wait.isNegative ? Duration.zero : wait, () {
       _retryTimer = null;
       if (!ref.mounted) return;
       state = state.copyWith(retryAt: null);
     });
-  }
-
-  void _clearFailures() {
-    _retryTimer?.cancel();
-    _retryTimer = null;
-    if (state.failedAttempts == 0 && state.retryAt == null) return;
-    state = state.copyWith(failedAttempts: 0, retryAt: null);
   }
 }

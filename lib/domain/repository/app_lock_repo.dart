@@ -41,6 +41,8 @@ class AppLockConfig {
     this.hasPin = false,
     this.timeout = LockTimeout.immediate,
     this.pinLength = maxPinLength,
+    this.failedAttempts = 0,
+    this.retryAt,
   });
 
   final bool enabled;
@@ -52,6 +54,13 @@ class AppLockConfig {
   /// longest value the entry ever accepted.
   final int pinLength;
 
+  /// Wrong PINs on record. Carried across restarts, so killing the app does
+  /// not reset the cost of a run of guesses.
+  final int failedAttempts;
+
+  /// When the next PIN may be tried, or null while attempts are still free.
+  final DateTime? retryAt;
+
   bool get isActive => enabled && hasPin;
 
   AppLockConfig copyWith({
@@ -59,12 +68,16 @@ class AppLockConfig {
     bool? hasPin,
     LockTimeout? timeout,
     int? pinLength,
+    int? failedAttempts,
+    DateTime? retryAt,
   }) {
     return AppLockConfig(
       enabled: enabled ?? this.enabled,
       hasPin: hasPin ?? this.hasPin,
       timeout: timeout ?? this.timeout,
       pinLength: pinLength ?? this.pinLength,
+      failedAttempts: failedAttempts ?? this.failedAttempts,
+      retryAt: retryAt ?? this.retryAt,
     );
   }
 }
@@ -97,4 +110,12 @@ abstract interface class AppLockRepo {
   Future<bool> verify(String pin);
 
   Future<void> setTimeout(LockTimeout timeout);
+
+  /// Records a wrong guess and reads back the wait it earned, or null while
+  /// attempts are still free. Kept on the repo so the count survives a
+  /// restart next to the verifier it protects.
+  Future<DateTime?> recordFailure(DateTime now);
+
+  /// Clears the failure count and any wait, after a correct entry.
+  Future<void> clearFailures();
 }

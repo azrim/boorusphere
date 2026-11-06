@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'package:boorusphere/data/repository/app_lock/pin_hash.dart';
 import 'package:boorusphere/data/repository/app_lock/secret_store.dart';
 import 'package:boorusphere/domain/repository/app_lock_repo.dart';
+import 'package:boorusphere/presentation/provider/app_lock/lockout.dart';
 import 'package:boorusphere/utils/logger.dart';
 
 /// The lock configuration and its verifier, stored as one encrypted record.
@@ -87,6 +88,9 @@ class SecureAppLockRepo implements AppLockRepo {
     // The entry never wrote a length before this field existed; such a
     // record reads as the longest PIN the old field accepted.
     final length = decoded['pinLength'];
+    // Failures recorded before the field existed read as a fresh counter.
+    final attempts = decoded['failedAttempts'];
+    final retryAt = decoded['retryAt'];
     final pin = PinHash.tryParse(decoded['pin']);
     // A missing verifier cannot lock anything, so the record is reported as
     // unlocked even if it was written as enabled.
@@ -101,6 +105,8 @@ class SecureAppLockRepo implements AppLockRepo {
             length is int && length >= minPinLength && length <= maxPinLength
             ? length
             : maxPinLength,
+        failedAttempts: attempts is int && attempts > 0 ? attempts : 0,
+        retryAt: retryAt is String ? DateTime.tryParse(retryAt) : null,
       ),
       pin,
       iterations,
@@ -110,19 +116,27 @@ class SecureAppLockRepo implements AppLockRepo {
   @override
   Future<void> enable(String pin) async {
     final hashed = await _hash(pin);
-    await _persist(
-      config.copyWith(enabled: true, hasPin: true, pinLength: pin.length),
-      hashed,
+    // A new PIN starts with a clean failure record, so an old run of guesses
+    // does not outlive the entry it was aimed at.
+    final next = AppLockConfig(
+      enabled: true,
+      hasPin: true,
+      timeout: _config.timeout,
+      pinLength: pin.length,
     );
+    await _persist(next, hashed);
   }
 
   @override
   Future<void> changePin(String pin) async {
     final hashed = await _hash(pin);
-    await _persist(
-      config.copyWith(hasPin: true, pinLength: pin.length),
-      hashed,
+    final next = AppLockConfig(
+      enabled: _config.enabled,
+      hasPin: true,
+      timeout: _config.timeout,
+      pinLength: pin.length,
     );
+    await _persist(next, hashed);
   }
 
   @override
@@ -156,6 +170,34 @@ class SecureAppLockRepo implements AppLockRepo {
     await _persist(config.copyWith(timeout: timeout), _pin);
   }
 
+  @override
+  Future<DateTime?> recordFailure(DateTime now) async {
+    final attempts = _config.failedAttempts + 1;
+    final retryAt = pinRetryAt(attempts, now);
+    final next = AppLockConfig(
+      enabled: _config.enabled,
+      hasPin: _config.hasPin,
+      timeout: _config.timeout,
+      pinLength: _config.pinLength,
+      failedAttempts: attempts,
+      retryAt: retryAt,
+    );
+    await _persist(next, _pin);
+    return retryAt;
+  }
+
+  @override
+  Future<void> clearFailures() async {
+    if (_config.failedAttempts == 0 && _config.retryAt == null) return;
+    final next = AppLockConfig(
+      enabled: _config.enabled,
+      hasPin: _config.hasPin,
+      timeout: _config.timeout,
+      pinLength: _config.pinLength,
+    );
+    await _persist(next, _pin);
+  }
+
   /// Derives the verifier off the main isolate: a PBKDF2 pass here is long
   /// enough to drop frames if it runs while the UI is on screen.
   Future<PinHash> _hash(String pin) async {
@@ -178,6 +220,8 @@ class SecureAppLockRepo implements AppLockRepo {
       'enabled': next.enabled,
       'timeout': next.timeout.name,
       'pinLength': next.pinLength,
+      'failedAttempts': next.failedAttempts,
+      if (next.retryAt case final at?) 'retryAt': at.toIso8601String(),
       'pin': pin?.toJson(),
     });
 
@@ -221,4 +265,10 @@ class DisabledAppLockRepo implements AppLockRepo {
 
   @override
   Future<void> setTimeout(LockTimeout timeout) async {}
+
+  @override
+  Future<DateTime?> recordFailure(DateTime now) async => null;
+
+  @override
+  Future<void> clearFailures() async {}
 }
