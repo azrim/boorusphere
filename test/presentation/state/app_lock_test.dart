@@ -25,6 +25,7 @@ class _FakeAppLockRepo implements AppLockRepo {
 
   bool throwOnVerify = false;
   bool throwOnWrite = false;
+  bool throwOnClear = false;
   Completer<bool>? verifyCompleter;
 
   /// The writes that reached storage, in the order they entered.
@@ -98,6 +99,7 @@ class _FakeAppLockRepo implements AppLockRepo {
 
   @override
   Future<DateTime?> recordFailure(DateTime now) async {
+    await _entered('recordFailure');
     failedAttempts += 1;
     retryAt = pinRetryAt(failedAttempts, now);
     return retryAt;
@@ -105,6 +107,8 @@ class _FakeAppLockRepo implements AppLockRepo {
 
   @override
   Future<void> clearFailures() async {
+    if (throwOnClear) throw const AppLockUnavailableException();
+    await _entered('clearFailures');
     failedAttempts = 0;
     retryAt = null;
   }
@@ -227,6 +231,58 @@ void main() {
 
       repo.verifyCompleter!.complete(true);
       expect(await first, UnlockResult.success);
+    });
+
+    test('the verdict does not wait for the failure record to clear', () async {
+      await create();
+      await notifier().unlockWithPin('0000');
+      expect(repo.failedAttempts, 1);
+
+      final held = repo.holdNextWrite();
+      expect(await notifier().unlockWithPin('1234'), UnlockResult.success);
+      expect(data().isLocked, isFalse);
+      // The cleanup enters on a later turn — the unlock did not wait for
+      // it — and is still held mid-flight, so the count has not landed.
+      await Future<void>.delayed(Duration.zero);
+      expect(repo.writes.last, 'clearFailures');
+      expect(repo.failedAttempts, 1);
+
+      held.complete();
+      await pumpEventQueue();
+      expect(repo.failedAttempts, 0);
+      expect(data().failedAttempts, 0);
+    });
+
+    test('a failed cleanup still leaves the unlock standing', () async {
+      await create();
+      await notifier().unlockWithPin('0000');
+      repo.throwOnClear = true;
+
+      expect(await notifier().unlockWithPin('1234'), UnlockResult.success);
+      expect(data().isLocked, isFalse);
+      await pumpEventQueue();
+    });
+
+    test('a newer wrong guess is not wiped by the cleanup before it', () async {
+      await create();
+      final held = repo.holdNextWrite();
+
+      // A correct entry queues its cleanup; the write is held mid-flight.
+      expect(await notifier().checkPin('1234'), UnlockResult.success);
+      await Future<void>.delayed(Duration.zero);
+      expect(repo.writes, ['clearFailures']);
+
+      // A wrong guess lands while the cleanup is still held. It has to
+      // queue behind it: a clear that completed last would wipe the
+      // failure the newer guess just earned.
+      final wrong = notifier().unlockWithPin('0000');
+      await Future<void>.delayed(Duration.zero);
+      expect(repo.failedAttempts, 0);
+
+      held.complete();
+      expect(await wrong, UnlockResult.wrongPin);
+      expect(repo.failedAttempts, 1);
+      expect(repo.writes, ['clearFailures', 'recordFailure']);
     });
   });
 
@@ -434,6 +490,22 @@ void main() {
         UnlockResult.success,
       );
       expect(data().isLocked, isFalse);
+    });
+
+    test('a biometric unlock clears the failure record too', () async {
+      await create();
+      await notifier().unlockWithPin('0000');
+      expect(repo.failedAttempts, 1);
+
+      expect(
+        await notifier().unlockWithBiometrics('reason'),
+        UnlockResult.success,
+      );
+      await pumpEventQueue();
+      // The sensor answered for the PIN: the throttle it satisfied must
+      // not outlive the unlock and greet the next cold start.
+      expect(repo.failedAttempts, 0);
+      expect(data().failedAttempts, 0);
     });
 
     test('a canceled prompt leaves the lock up', () async {

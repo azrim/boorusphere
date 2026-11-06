@@ -304,6 +304,42 @@ void main() {
     expect(await repo.verify('5678'), isTrue);
   });
 
+  test('a guess is counted even when the write fails', () async {
+    final repo = await open();
+    await repo.enable('1234');
+    store.writeThrows = true;
+
+    final now = DateTime(2026, 1, 1, 12);
+    for (var i = 0; i <= freePinAttempts; i++) {
+      await repo.recordFailure(now);
+    }
+    // A refused write must not make the guess free: the count is adopted
+    // in memory and the throttle still applies to this run.
+    expect(repo.config.failedAttempts, freePinAttempts + 1);
+    expect(repo.config.retryAt, isNotNull);
+
+    // The next write that lands carries the whole count with it.
+    store.writeThrows = false;
+    await repo.recordFailure(now);
+    final reopened = await open();
+    expect(reopened.config.failedAttempts, freePinAttempts + 2);
+  });
+
+  test('clearing failures degrades to memory when the write fails', () async {
+    final repo = await open();
+    await repo.enable('1234');
+    final now = DateTime(2026, 1, 1, 12);
+    for (var i = 0; i <= freePinAttempts; i++) {
+      await repo.recordFailure(now);
+    }
+    expect(repo.config.retryAt, isNotNull);
+
+    store.writeThrows = true;
+    await repo.clearFailures();
+    expect(repo.config.failedAttempts, 0);
+    expect(repo.config.retryAt, isNull);
+  });
+
   test('a disabled fallback refuses to pretend it saved a PIN', () async {
     const repo = DisabledAppLockRepo();
 

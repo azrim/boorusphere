@@ -199,7 +199,7 @@ class SecureAppLockRepo implements AppLockRepo {
       failedAttempts: attempts,
       retryAt: retryAt,
     );
-    await _persist(next, _pin);
+    await _adopt(next, _pin);
     return retryAt;
   }
 
@@ -212,21 +212,45 @@ class SecureAppLockRepo implements AppLockRepo {
       timeout: _config.timeout,
       pinLength: _config.pinLength,
     );
-    await _persist(next, _pin);
+    await _adopt(next, _pin);
   }
 
   /// Derives the verifier off the main isolate: a PBKDF2 pass here is long
   /// enough to drop frames if it runs while the UI is on screen.
   Future<PinHash> _hash(String pin) async {
     final iterations = _iterations;
-    final value = await Isolate.run(() {
-      return PinHash.create(pin, iterations: iterations).toJson();
-    });
+    final Map<String, Object> value;
+    try {
+      value = await Isolate.run(() {
+        return PinHash.create(pin, iterations: iterations).toJson();
+      });
+    } catch (e, stack) {
+      // The isolate itself failed — a refused spawn, memory pressure. The
+      // setup sheet only knows AppLockUnavailableException; an escaping
+      // error would leave it spinning with no way out.
+      mainLog.e('App lock: the PIN could not be hashed', e, stack);
+      throw const AppLockUnavailableException();
+    }
     final hashed = PinHash.tryParse(value);
     if (hashed == null) {
       throw const AppLockUnavailableException();
     }
     return hashed;
+  }
+
+  /// Like [_persist], but a failed write still adopts the record in memory.
+  ///
+  /// The attempt ledger uses it: a guess must cost the same whether or not
+  /// storage answers, and the next successful write carries the count along.
+  /// The PIN-changing writes keep [_persist]'s all-or-nothing rule instead —
+  /// a half-saved PIN would lock the user out of their own app.
+  Future<void> _adopt(AppLockConfig next, PinHash? pin) async {
+    try {
+      await _persist(next, pin);
+    } on AppLockUnavailableException {
+      _pin = pin;
+      _config = next;
+    }
   }
 
   /// Writes the record first and only then adopts it, so a failed write leaves

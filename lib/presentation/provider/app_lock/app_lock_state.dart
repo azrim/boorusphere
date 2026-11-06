@@ -134,12 +134,20 @@ class AppLock extends _$AppLock {
       if (!ref.mounted) return UnlockResult.unavailable;
 
       if (ok) {
-        await repo.clearFailures();
-        _syncFailures();
+        // The verdict is earned the moment the comparison answers. Clearing
+        // the failure record is housekeeping: it must not keep the user
+        // waiting on a storage round-trip, and a failed cleanup must not
+        // turn a correct PIN into an error.
+        _settle(() => ref.read(appLockRepoProvider).clearFailures());
         return UnlockResult.success;
       }
 
-      final retryAt = await repo.recordFailure(_now());
+      // The guess is counted even when storage refuses the write (the repo
+      // adopts it in memory then). Queuing the record behind any cleanup
+      // still in flight keeps a backgrounded clear from wiping a newer
+      // failure: whoever asked first writes first.
+      final retryAt = await _config(() => repo.recordFailure(_now()));
+      if (!ref.mounted) return UnlockResult.wrongPin;
       _syncFailures();
       _armRetryAfterFailure(retryAt);
       return UnlockResult.wrongPin;
@@ -171,6 +179,10 @@ class AppLock extends _$AppLock {
       if (!ref.mounted) return UnlockResult.unavailable;
 
       if (result.success) {
+        // The sensor answered for the PIN, so the same failure record has
+        // to clear: a throttle the user already satisfied must not outlive
+        // the unlock and greet the next cold start.
+        _settle(() => ref.read(appLockRepoProvider).clearFailures());
         _unlock();
         return UnlockResult.success;
       }
@@ -263,8 +275,32 @@ class AppLock extends _$AppLock {
   /// second PIN entry. Whichever write reaches secure storage last owns the
   /// lock, and someone who typed the earlier PIN is then locked out of a lock
   /// they believe they set once.
-  Future<void> _config(Future<void> Function() write) {
+  ///
+  /// The attempt ledger joins the same queue so a cleanup and a newer guess
+  /// cannot overtake each other on the way to the record.
+  Future<T> _config<T>(Future<T> Function() write) {
     return _configWrites.run(write);
+  }
+
+  /// Queues post-unlock housekeeping and mirrors the ledger once it lands.
+  ///
+  /// Best-effort by design: the unlock already happened, so a write that
+  /// fails here is logged, not reported. The repo keeps the cleared count in
+  /// memory regardless, and the next successful write carries it along.
+  void _settle(Future<void> Function() write) {
+    unawaited(
+      _config(write)
+          .then((_) {
+            if (ref.mounted) _syncFailures();
+          })
+          .catchError((Object e, StackTrace stack) {
+            mainLog.w(
+              'App lock: the unlock ledger could not be settled',
+              e,
+              stack,
+            );
+          }),
+    );
   }
 
   Future<void> enable(String pin) {
