@@ -1,5 +1,6 @@
 ## 3.1.4
 
+* **Viewer**: volume keys no longer step between posts by default; the setting stays under Viewer preferences for those who want it back
 * **Engines**: a Shimmie board is read in both XML shapes it answers, a server that wants an API key names the credential that is missing instead of calling the reply unparsable, each host is asked for the tag list it actually serves, every engine now carries the page where its key is handed out, a szurubooru account travels as a token header rather than a query parameter, and a Gelbooru entry says which of its two dialects it is asking
 * **Add server**: a scan only claims a post page after reading the head of what it fetched, so the challenge a board puts in front of this client — its own title or first heading — is no longer saved as the address of a post, and the boards running Philomena are offered under the name their software uses
 * **Presets**: e621, Derpibooru, Ponybooru and rule34.paheal join the boards a fresh install offers, each endpoint having been asked live with this app's own user agent before being written down, and a preset is now held to the same guard as the manual engine list, because it is the third copy of those same templates

@@ -16,7 +16,7 @@ abstract class ContentSetting with _$ContentSetting {
     @Default(SlideshowDirection.forward) SlideshowDirection slideshowDirection,
     @Default(6) int slideshowInterval,
     @Default(5) int videoSeekSeconds,
-    @Default(true) bool volumeKeyNavigation,
+    @Default(false) bool volumeKeyNavigation,
     @Default(false) bool hideFavorited,
     @Default(false) bool hideDownloaded,
     @Default(VideoCache.defaultMaxBytes) int videoCacheMaxBytes,

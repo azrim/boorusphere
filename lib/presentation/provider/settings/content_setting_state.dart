@@ -45,7 +45,7 @@ class ContentSettingState extends _$ContentSettingState {
           .toInt(),
       volumeKeyNavigation: repo.get(
         Setting.viewerVolumeKeyNavigation,
-        or: true,
+        or: false,
       ),
       hideFavorited: repo.get(Setting.timelineHideFavorited, or: false),
       hideDownloaded: repo.get(Setting.timelineHideDownloaded, or: false),

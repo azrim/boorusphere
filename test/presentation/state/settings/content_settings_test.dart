@@ -77,12 +77,14 @@ void main() async {
       expect(state().videoSeekSeconds, 15);
     });
 
-    test('volume key navigation can be turned off', () async {
-      await notifier().setVolumeKeyNavigation(false);
+    test('volume key navigation defaults off and can be turned on', () async {
       expect(state().volumeKeyNavigation, false);
 
       await notifier().setVolumeKeyNavigation(true);
       expect(state().volumeKeyNavigation, true);
+
+      await notifier().setVolumeKeyNavigation(false);
+      expect(state().volumeKeyNavigation, false);
     });
 
     test('local feed filters start off and can be turned on', () async {
