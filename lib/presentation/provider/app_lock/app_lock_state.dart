@@ -135,10 +135,10 @@ class AppLock extends _$AppLock {
 
       if (ok) {
         // The verdict is earned the moment the comparison answers. Clearing
-        // the failure record is housekeeping: it must not keep the user
-        // waiting on a storage round-trip, and a failed cleanup must not
-        // turn a correct PIN into an error.
-        _settle(() => ref.read(appLockRepoProvider).clearFailures());
+        // the failure record and healing a legacy length are housekeeping:
+        // they must not keep the user waiting on a storage round-trip, and
+        // a failed cleanup must not turn a correct PIN into an error.
+        _settle(() => ref.read(appLockRepoProvider).settleAfterUnlock(pin));
         return UnlockResult.success;
       }
 
@@ -148,7 +148,7 @@ class AppLock extends _$AppLock {
       // failure: whoever asked first writes first.
       final retryAt = await _config(() => repo.recordFailure(_now()));
       if (!ref.mounted) return UnlockResult.wrongPin;
-      _syncFailures();
+      _syncRecord();
       _armRetryAfterFailure(retryAt);
       return UnlockResult.wrongPin;
     } on AppLockUnavailableException catch (e, stack) {
@@ -291,7 +291,7 @@ class AppLock extends _$AppLock {
     unawaited(
       _config(write)
           .then((_) {
-            if (ref.mounted) _syncFailures();
+            if (ref.mounted) _syncRecord();
           })
           .catchError((Object e, StackTrace stack) {
             mainLog.w(
@@ -372,12 +372,14 @@ class AppLock extends _$AppLock {
     state = state.copyWith(locked: true);
   }
 
-  /// Mirrors the repo's failure fields into the state, after a write.
-  void _syncFailures() {
+  /// Mirrors the repo's ledger fields into the state, after a write: the
+  /// failure count, the wait it earned, and a length the settle healed.
+  void _syncRecord() {
     final config = ref.read(appLockRepoProvider).config;
     state = state.copyWith(
       failedAttempts: config.failedAttempts,
       retryAt: config.retryAt,
+      pinLength: config.pinLength,
     );
   }
 

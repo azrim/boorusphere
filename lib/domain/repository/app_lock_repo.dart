@@ -40,7 +40,7 @@ class AppLockConfig {
     this.enabled = false,
     this.hasPin = false,
     this.timeout = LockTimeout.immediate,
-    this.pinLength = maxPinLength,
+    this.pinLength,
     this.failedAttempts = 0,
     this.retryAt,
   });
@@ -50,9 +50,10 @@ class AppLockConfig {
   final LockTimeout timeout;
 
   /// How many digits the registered PIN runs; the gate sizes its dots row and
-  /// its auto-submit by it. Records written before the field exists keep the
-  /// longest value the entry ever accepted.
-  final int pinLength;
+  /// its auto-submit by it. Null when the record predates the field or carries
+  /// an impossible value: the true length is unknown, so the gate takes up to
+  /// [maxPinLength] digits and submits by hand until a correct entry heals it.
+  final int? pinLength;
 
   /// Wrong PINs on record. Carried across restarts, so killing the app does
   /// not reset the cost of a run of guesses.
@@ -118,4 +119,9 @@ abstract interface class AppLockRepo {
 
   /// Clears the failure count and any wait, after a correct entry.
   Future<void> clearFailures();
+
+  /// Housekeeping after a correct PIN entry: clears the failure record and
+  /// heals a length the record never knew. Best-effort — the verdict already
+  /// stands, so a refused write degrades to memory instead of surfacing.
+  Future<void> settleAfterUnlock(String pin);
 }

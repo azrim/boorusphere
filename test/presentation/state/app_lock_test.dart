@@ -17,11 +17,16 @@ class _FakeAppLockRepo implements AppLockRepo {
     this.enabled = true,
     this.pin = '1234',
     this.timeout = LockTimeout.immediate,
-  });
+  }) {
+    pinLength = pin?.length;
+  }
 
   bool enabled;
   String? pin;
   LockTimeout timeout;
+
+  /// Null stands in for a legacy record whose length is unknown.
+  int? pinLength;
 
   bool throwOnVerify = false;
   bool throwOnWrite = false;
@@ -55,6 +60,7 @@ class _FakeAppLockRepo implements AppLockRepo {
     enabled: enabled,
     hasPin: pin != null,
     timeout: timeout,
+    pinLength: pinLength,
     failedAttempts: failedAttempts,
     retryAt: retryAt,
   );
@@ -64,6 +70,7 @@ class _FakeAppLockRepo implements AppLockRepo {
     if (throwOnWrite) throw const AppLockUnavailableException();
     await _entered('enable:$pin');
     this.pin = pin;
+    pinLength = pin.length;
     enabled = true;
   }
 
@@ -72,6 +79,7 @@ class _FakeAppLockRepo implements AppLockRepo {
     if (throwOnWrite) throw const AppLockUnavailableException();
     await _entered('changePin:$pin');
     this.pin = pin;
+    pinLength = pin.length;
   }
 
   @override
@@ -79,6 +87,7 @@ class _FakeAppLockRepo implements AppLockRepo {
     if (throwOnWrite) throw const AppLockUnavailableException();
     await _entered('disable');
     pin = null;
+    pinLength = null;
     enabled = false;
   }
 
@@ -111,6 +120,15 @@ class _FakeAppLockRepo implements AppLockRepo {
     await _entered('clearFailures');
     failedAttempts = 0;
     retryAt = null;
+  }
+
+  @override
+  Future<void> settleAfterUnlock(String pin) async {
+    if (throwOnClear) throw const AppLockUnavailableException();
+    await _entered('settle:$pin');
+    failedAttempts = 0;
+    retryAt = null;
+    pinLength ??= pin.length;
   }
 }
 
@@ -244,7 +262,7 @@ void main() {
       // The cleanup enters on a later turn — the unlock did not wait for
       // it — and is still held mid-flight, so the count has not landed.
       await Future<void>.delayed(Duration.zero);
-      expect(repo.writes.last, 'clearFailures');
+      expect(repo.writes.last, 'settle:1234');
       expect(repo.failedAttempts, 1);
 
       held.complete();
@@ -270,7 +288,7 @@ void main() {
       // A correct entry queues its cleanup; the write is held mid-flight.
       expect(await notifier().checkPin('1234'), UnlockResult.success);
       await Future<void>.delayed(Duration.zero);
-      expect(repo.writes, ['clearFailures']);
+      expect(repo.writes, ['settle:1234']);
 
       // A wrong guess lands while the cleanup is still held. It has to
       // queue behind it: a clear that completed last would wipe the
@@ -282,7 +300,22 @@ void main() {
       held.complete();
       expect(await wrong, UnlockResult.wrongPin);
       expect(repo.failedAttempts, 1);
-      expect(repo.writes, ['clearFailures', 'recordFailure']);
+      expect(repo.writes, ['settle:1234', 'recordFailure']);
+    });
+
+    test('the right PIN heals a legacy length', () async {
+      await create();
+      repo.pinLength = null;
+      container.invalidate(appLockProvider);
+      await Future<void>.delayed(Duration.zero);
+      expect(data().pinLength, isNull);
+
+      expect(await notifier().unlockWithPin('1234'), UnlockResult.success);
+      await pumpEventQueue();
+      // The settle learned the true length from the PIN that opened it,
+      // and the state mirrors it so the next gate auto-submits again.
+      expect(repo.pinLength, 4);
+      expect(data().pinLength, 4);
     });
   });
 

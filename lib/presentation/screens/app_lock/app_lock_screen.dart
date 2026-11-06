@@ -36,7 +36,17 @@ class AppLockScreen extends HookConsumerWidget {
     final pin = useState('');
     final error = useState<String?>(null);
     final busy = useState(false);
-    final pinLength = lock.pinLength.clamp(minPinLength, maxPinLength);
+    final knownLength = lock.pinLength;
+    // A record that predates the length field cannot say when the PIN is
+    // complete. Guessing the longest length would auto-submit a short PIN
+    // as a wrong one and burn a free attempt on every try, so such a record
+    // takes up to the longest and submits by hand; the first correct entry
+    // heals the length and the next gate auto-submits again.
+    final legacyLength = knownLength == null;
+    final pinLength = (knownLength ?? maxPinLength).clamp(
+      minPinLength,
+      maxPinLength,
+    );
 
     Future<void> useBiometrics({bool auto = false}) async {
       if (busy.value) return;
@@ -115,7 +125,7 @@ class AppLockScreen extends HookConsumerWidget {
       if (pin.value.length >= pinLength) return;
       error.value = null;
       pin.value = pin.value + digit;
-      if (pin.value.length == pinLength) submit();
+      if (!legacyLength && pin.value.length == pinLength) submit();
     }
 
     void backspace() {
@@ -223,6 +233,8 @@ class AppLockScreen extends HookConsumerWidget {
                       onDigit: appendDigit,
                       onBackspace: backspace,
                       enabled: !busy.value && !throttled,
+                      onSubmit: legacyLength ? submit : null,
+                      submitEnabled: pin.value.length >= minPinLength,
                     ),
                     if (lock.biometricsAvailable) ...[
                       const SizedBox(height: DesignTokens.spacingLg),

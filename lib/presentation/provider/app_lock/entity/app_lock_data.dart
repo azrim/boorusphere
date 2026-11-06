@@ -10,7 +10,10 @@ abstract class AppLockData with _$AppLockData {
     @Default(false) bool enabled,
     @Default(false) bool hasPin,
     @Default(LockTimeout.immediate) LockTimeout timeout,
-    @Default(maxPinLength) int pinLength,
+
+    /// Null while the record's PIN length is unknown (a legacy entry); the
+    /// gate then takes up to [maxPinLength] digits and submits by hand.
+    int? pinLength,
     @Default(false) bool locked,
 
     /// Wrong PINs in this session, used to space out the retries.

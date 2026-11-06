@@ -167,7 +167,7 @@ void main() {
     expect(await repo.verify('1234'), isFalse);
   });
 
-  test('a record without a length reads as the longest PIN', () async {
+  test('a record without a length reads as unknown', () async {
     store.values[SecureAppLockRepo.storageKey] = jsonEncode({
       'schema': 1,
       'enabled': true,
@@ -180,7 +180,56 @@ void main() {
     });
 
     final repo = await open();
-    expect(repo.config.pinLength, maxPinLength);
+    // Guessing the longest length would auto-submit a shorter PIN as a
+    // wrong one; unknown lets the gate submit by hand instead.
+    expect(repo.config.pinLength, isNull);
+  });
+
+  test('an impossible length reads as unknown too', () async {
+    final repo = await open();
+    await repo.enable('1234');
+
+    final record =
+        jsonDecode(store.values[SecureAppLockRepo.storageKey]!)
+            as Map<String, dynamic>;
+    record['pinLength'] = 99;
+    store.values[SecureAppLockRepo.storageKey] = jsonEncode(record);
+
+    final reopened = await open();
+    expect(reopened.config.pinLength, isNull);
+  });
+
+  test('settling after unlock heals a missing length', () async {
+    final repo = await open();
+    await repo.enable('1234');
+    await repo.recordFailure(DateTime(2026, 1, 1));
+
+    // Rewrite the record the way an old build left it: no length.
+    final record =
+        jsonDecode(store.values[SecureAppLockRepo.storageKey]!)
+            as Map<String, dynamic>;
+    record.remove('pinLength');
+    store.values[SecureAppLockRepo.storageKey] = jsonEncode(record);
+
+    final legacy = await open();
+    expect(legacy.config.pinLength, isNull);
+    expect(legacy.config.failedAttempts, 1);
+
+    await legacy.settleAfterUnlock('1234');
+    expect(legacy.config.pinLength, 4);
+    expect(legacy.config.failedAttempts, 0);
+
+    final healed = await open();
+    expect(healed.config.pinLength, 4);
+  });
+
+  test('a settle with nothing to heal leaves the record alone', () async {
+    final repo = await open();
+    await repo.enable('1234');
+    final raw = store.values[SecureAppLockRepo.storageKey];
+
+    await repo.settleAfterUnlock('1234');
+    expect(store.values[SecureAppLockRepo.storageKey], raw);
   });
 
   test('unreadable storage falls back to a disabled repo', () async {

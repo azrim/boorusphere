@@ -15,8 +15,9 @@ const double _kKeyGap = DesignTokens.spacingMd;
 const double _kDotSize = 12.0;
 const double _kDotGap = DesignTokens.spacingMd;
 
-/// The keys of the pad, in reading order; the empty string is the blank cell
-/// beside the zero and `back` is the backspace key.
+/// The keys of the pad, in reading order; the empty string is the cell
+/// beside the zero — blank, or a submit key when the caller wires one — and
+/// `back` is the backspace key.
 const _kRows = [
   ['1', '2', '3'],
   ['4', '5', '6'],
@@ -37,6 +38,8 @@ class PinKeypad extends StatelessWidget {
     required this.onDigit,
     required this.onBackspace,
     this.enabled = true,
+    this.onSubmit,
+    this.submitEnabled = false,
   });
 
   /// Called with the digit on a number key.
@@ -46,6 +49,15 @@ class PinKeypad extends StatelessWidget {
   final VoidCallback onBackspace;
 
   final bool enabled;
+
+  /// When set, the blank cell beside the zero becomes a submit key. A gate
+  /// that cannot auto-submit — the registered PIN's length is unknown —
+  /// wires this so any length can be entered and confirmed by hand.
+  final VoidCallback? onSubmit;
+
+  /// Whether the submit key answers: the entry has to be long enough to be
+  /// a PIN before confirming it is worth a comparison.
+  final bool submitEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +99,20 @@ class PinKeypad extends StatelessWidget {
               for (final (i, value) in row.indexed) ...[
                 if (i > 0) const SizedBox(width: _kKeyGap),
                 switch (value) {
-                  '' => const SizedBox(width: _kKeySize, height: _kKeySize),
+                  '' =>
+                    onSubmit == null
+                        ? const SizedBox(width: _kKeySize, height: _kKeySize)
+                        : key(
+                            Icon(
+                              Icons.check_rounded,
+                              size: DesignTokens.iconAction + 4,
+                              color: submitEnabled
+                                  ? scheme.primary
+                                  : scheme.outlineVariant,
+                            ),
+                            onTap: submitEnabled ? onSubmit : null,
+                            semanticLabel: t.appLock.confirmAction,
+                          ),
                   'back' => key(
                     Icon(
                       Icons.backspace_outlined,

@@ -102,8 +102,10 @@ class SecureAppLockRepo implements AppLockRepo {
       );
     }
 
-    // The entry never wrote a length before this field existed; such a
-    // record reads as the longest PIN the old field accepted.
+    // The entry never wrote a length before this field existed, and a
+    // damaged one cannot be trusted: both read as unknown rather than a
+    // guess. The gate falls back to a manual submit for such a record, and
+    // the next correct entry heals the field from the PIN that opened it.
     final length = decoded['pinLength'];
     // Failures recorded before the field existed read as a fresh counter.
     final attempts = decoded['failedAttempts'];
@@ -121,7 +123,7 @@ class SecureAppLockRepo implements AppLockRepo {
         pinLength:
             length is int && length >= minPinLength && length <= maxPinLength
             ? length
-            : maxPinLength,
+            : null,
         failedAttempts: attempts is int && attempts > 0 ? attempts : 0,
         retryAt: retryAt is String ? DateTime.tryParse(retryAt) : null,
       ),
@@ -211,6 +213,26 @@ class SecureAppLockRepo implements AppLockRepo {
       hasPin: _config.hasPin,
       timeout: _config.timeout,
       pinLength: _config.pinLength,
+    );
+    await _adopt(next, _pin);
+  }
+
+  @override
+  Future<void> settleAfterUnlock(String pin) async {
+    // The PIN that just opened the lock is the ground truth for a length
+    // the record never knew; a known length is already right.
+    final length = _config.pinLength ?? pin.length;
+    final dirty =
+        _config.failedAttempts != 0 ||
+        _config.retryAt != null ||
+        _config.pinLength != length;
+    if (!dirty) return;
+
+    final next = AppLockConfig(
+      enabled: _config.enabled,
+      hasPin: _config.hasPin,
+      timeout: _config.timeout,
+      pinLength: length,
     );
     await _adopt(next, _pin);
   }
@@ -312,4 +334,7 @@ class DisabledAppLockRepo implements AppLockRepo {
 
   @override
   Future<void> clearFailures() async {}
+
+  @override
+  Future<void> settleAfterUnlock(String pin) async {}
 }
