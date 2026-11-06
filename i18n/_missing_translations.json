@@ -14,6 +14,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "meta": "Meta",
     "artist": "Artist",
@@ -196,7 +199,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -266,7 +270,8 @@
       "backup": {
         "title": "Backup data",
         "desc": "Backup app data into a file",
-        "success": "Backup created at :\n${dest}",
+        "success": "Backup created at:\n${dest}",
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device.",
         "loading": "Creating backup..."
       },
       "restore": {
@@ -335,7 +340,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -351,7 +356,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -388,6 +394,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -436,7 +443,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -467,6 +475,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -629,7 +640,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -684,6 +696,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -745,7 +760,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -761,7 +776,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -798,6 +814,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -846,7 +863,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -877,6 +895,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -1019,7 +1040,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -1070,6 +1092,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -1131,7 +1156,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -1147,7 +1172,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -1184,6 +1210,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -1232,7 +1259,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -1263,6 +1291,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -1405,7 +1436,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -1456,6 +1488,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -1517,7 +1552,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -1533,7 +1568,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -1570,6 +1606,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -1618,7 +1655,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -1649,6 +1687,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -1791,7 +1832,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -1842,6 +1884,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -1903,7 +1948,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -1919,7 +1964,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -1956,6 +2002,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -2004,7 +2051,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -2031,6 +2079,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "load_video_failed": "Failed to load video",
     "loading_media": "Loading media",
@@ -2124,7 +2175,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -2133,6 +2185,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -2192,7 +2247,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -2208,7 +2263,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -2245,10 +2301,14 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
       "vertical_desc": "Swipe up/down to navigate between posts"
+    },
+    "app_lock": {
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -2277,6 +2337,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -2419,7 +2482,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -2470,6 +2534,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -2531,7 +2598,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -2547,7 +2614,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -2584,6 +2652,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -2632,7 +2701,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -2663,6 +2733,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -2805,7 +2878,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -2856,6 +2930,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -2917,7 +2994,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -2933,7 +3010,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -2970,6 +3048,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -3018,7 +3097,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -3049,6 +3129,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -3201,7 +3284,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -3252,6 +3336,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -3313,7 +3400,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -3329,7 +3416,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -3366,6 +3454,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -3414,7 +3503,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -3445,6 +3535,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -3587,7 +3680,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -3638,6 +3732,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -3699,7 +3796,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -3715,7 +3812,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -3752,6 +3850,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -3800,7 +3899,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
@@ -3831,6 +3931,9 @@
     "unit_kb": "${value} KB",
     "unit_mb": "${value} MB",
     "unit_gb": "${value} GB",
+    "unit_px": "${value} px",
+    "unit_sec": "${value} s",
+    "unit_posts": "${value} posts",
     "links": "Links",
     "project_section": "Project",
     "show_password": "Show password",
@@ -3973,7 +4076,8 @@
         "title": "API Credentials",
         "desc": "Some servers like Gelbooru and Rule34 require user ID and API key to browse. You can find these in your account settings on the server's website.",
         "login": "User ID",
-        "apiKey": "API Key"
+        "apiKey": "API Key",
+        "getKey": "Get an API key"
       }
     },
     "settings": {
@@ -4024,6 +4128,9 @@
       }
     },
     "data_backup": {
+      "backup": {
+        "failed": "The backup could not be created. Check the backups folder and the free space on this device."
+      },
       "restore": {
         "completed": "Restore complete: ${file}",
         "completedDesc": "Restart the app so the restored data is loaded.",
@@ -4085,7 +4192,7 @@
         "chatIdValue": "Chat ID ${value}",
         "botToken": "Bot token",
         "botTokenHint": "e.g. 123456789:ABCdefGHI...",
-        "botTokenSaved": "Saved, ends with ${value}",
+        "botTokenSaved": "Saved",
         "notSet": "Not set",
         "openBot": "Create a Telegram bot",
         "openBotDesc": "Open BotFather to create your backup bot",
@@ -4101,7 +4208,8 @@
         "backupNowDesc": "Create and send backup to Telegram immediately",
         "needsChatAndToken": "Set the chat ID and the bot token first",
         "backupSent": "Backup sent to Telegram",
-        "backupFailed": "Failed to send backup"
+        "backupFailed": "Failed to send backup",
+        "backupNeedsPassphrase": "Set a passphrase first, or turn encryption off"
       }
     },
     "onboarding": {
@@ -4138,6 +4246,7 @@
       "swipe_down_threshold_desc": "Distance required to trigger dismiss: ${threshold}px",
       "reset": "Reset",
       "reset_success": "Gesture settings reset to defaults",
+      "reset_not_saved": "The defaults work until the app closes: this run cannot store settings",
       "horizontal": "Horizontal",
       "horizontal_desc": "Swipe left/right to navigate between posts",
       "vertical": "Vertical",
@@ -4186,7 +4295,8 @@
       "screenshot_desc": "Hide the app in recent apps and block screenshots",
       "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
       "forgot_title": "Forgot your PIN?",
-      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+      "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+      "backspace": "Delete last digit"
     },
     "error": {
       "unknown": "Something went wrong and we don't know why",
