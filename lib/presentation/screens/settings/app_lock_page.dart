@@ -231,7 +231,7 @@ class _PinSetupSheet extends HookWidget {
 
     void save() {
       final pin = pinController.text;
-      if (pin.length < 4) {
+      if (pin.length < minPinLength) {
         pinError.value = t.appLock.pinTooShort;
         confirmError.value = null;
         return;

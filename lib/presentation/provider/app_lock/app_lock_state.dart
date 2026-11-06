@@ -69,6 +69,7 @@ class AppLock extends _$AppLock {
       enabled: config.enabled,
       hasPin: config.hasPin,
       timeout: config.timeout,
+      pinLength: config.pinLength,
       // A cold start begins behind the lock: unlike a resume, there is no
       // session here to keep open.
       locked: config.isActive,
@@ -258,7 +259,12 @@ class AppLock extends _$AppLock {
       if (!ref.mounted) return;
 
       _clearFailures();
-      state = state.copyWith(enabled: true, hasPin: true, locked: false);
+      state = state.copyWith(
+        enabled: true,
+        hasPin: true,
+        locked: false,
+        pinLength: pin.length,
+      );
     });
   }
 
@@ -268,7 +274,7 @@ class AppLock extends _$AppLock {
       if (!ref.mounted) return;
 
       _clearFailures();
-      state = state.copyWith(hasPin: true);
+      state = state.copyWith(hasPin: true, pinLength: pin.length);
     });
   }
 

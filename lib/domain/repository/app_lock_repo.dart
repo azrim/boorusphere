@@ -1,3 +1,10 @@
+/// How many digits a PIN may hold. The setup field takes up to this many and
+/// the gate's pad submits at whatever length was registered.
+const int maxPinLength = 8;
+
+/// The smallest PIN the setup accepts.
+const int minPinLength = 4;
+
 /// How long the app may stay in the background before it is locked again.
 ///
 /// [never] still locks on a cold start: the cold start lock is what keeps the
@@ -33,19 +40,31 @@ class AppLockConfig {
     this.enabled = false,
     this.hasPin = false,
     this.timeout = LockTimeout.immediate,
+    this.pinLength = maxPinLength,
   });
 
   final bool enabled;
   final bool hasPin;
   final LockTimeout timeout;
 
+  /// How many digits the registered PIN runs; the gate sizes its dots row and
+  /// its auto-submit by it. Records written before the field exists keep the
+  /// longest value the entry ever accepted.
+  final int pinLength;
+
   bool get isActive => enabled && hasPin;
 
-  AppLockConfig copyWith({bool? enabled, bool? hasPin, LockTimeout? timeout}) {
+  AppLockConfig copyWith({
+    bool? enabled,
+    bool? hasPin,
+    LockTimeout? timeout,
+    int? pinLength,
+  }) {
     return AppLockConfig(
       enabled: enabled ?? this.enabled,
       hasPin: hasPin ?? this.hasPin,
       timeout: timeout ?? this.timeout,
+      pinLength: pinLength ?? this.pinLength,
     );
   }
 }

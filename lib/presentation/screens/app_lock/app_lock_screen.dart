@@ -1,3 +1,4 @@
+import 'package:boorusphere/domain/repository/app_lock_repo.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/app_lock/clock.dart';
@@ -19,9 +20,6 @@ const double _kGateMaxWidth = 360.0;
 const double _kGateMarkSize = 56.0;
 const double _kGateMarkGlyph = 28.0;
 
-/// Digits a PIN may run long; the dots row shows this many slots.
-const int _kPinLength = 8;
-
 /// The opaque cover shown over the app while the lock is on.
 ///
 /// It sits above the whole navigator instead of being a route, so unlocking
@@ -38,6 +36,7 @@ class AppLockScreen extends HookConsumerWidget {
     final pin = useState('');
     final error = useState<String?>(null);
     final busy = useState(false);
+    final pinLength = lock.pinLength.clamp(minPinLength, maxPinLength);
 
     Future<void> useBiometrics({bool auto = false}) async {
       if (busy.value) return;
@@ -113,10 +112,10 @@ class AppLockScreen extends HookConsumerWidget {
 
     void appendDigit(String digit) {
       if (busy.value || throttled) return;
-      if (pin.value.length >= _kPinLength) return;
+      if (pin.value.length >= pinLength) return;
       error.value = null;
       pin.value = pin.value + digit;
-      if (pin.value.length == _kPinLength) submit();
+      if (pin.value.length == pinLength) submit();
     }
 
     void backspace() {
@@ -187,7 +186,7 @@ class AppLockScreen extends HookConsumerWidget {
                     const SizedBox(height: DesignTokens.spacingXl),
                     PinDots(
                       length: pin.value.length,
-                      maxLength: _kPinLength,
+                      maxLength: pinLength,
                       error: error.value != null,
                     ),
                     if (throttled && retryAt != null) ...[

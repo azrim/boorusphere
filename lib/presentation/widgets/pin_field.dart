@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:boorusphere/domain/repository/app_lock_repo.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
@@ -20,7 +21,7 @@ class PinField extends StatelessWidget {
     this.autofocus = false,
     this.enabled = true,
     this.errorText,
-    this.maxLength = 8,
+    this.maxLength = maxPinLength,
     this.onSubmitted,
   });
 

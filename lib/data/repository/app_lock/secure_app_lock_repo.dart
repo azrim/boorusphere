@@ -84,6 +84,9 @@ class SecureAppLockRepo implements AppLockRepo {
       );
     }
 
+    // The entry never wrote a length before this field existed; such a
+    // record reads as the longest PIN the old field accepted.
+    final length = decoded['pinLength'];
     final pin = PinHash.tryParse(decoded['pin']);
     // A missing verifier cannot lock anything, so the record is reported as
     // unlocked even if it was written as enabled.
@@ -94,6 +97,10 @@ class SecureAppLockRepo implements AppLockRepo {
         enabled: enabled,
         hasPin: pin != null,
         timeout: LockTimeout.fromName(decoded['timeout']),
+        pinLength:
+            length is int && length >= minPinLength && length <= maxPinLength
+            ? length
+            : maxPinLength,
       ),
       pin,
       iterations,
@@ -103,13 +110,19 @@ class SecureAppLockRepo implements AppLockRepo {
   @override
   Future<void> enable(String pin) async {
     final hashed = await _hash(pin);
-    await _persist(config.copyWith(enabled: true, hasPin: true), hashed);
+    await _persist(
+      config.copyWith(enabled: true, hasPin: true, pinLength: pin.length),
+      hashed,
+    );
   }
 
   @override
   Future<void> changePin(String pin) async {
     final hashed = await _hash(pin);
-    await _persist(config.copyWith(hasPin: true), hashed);
+    await _persist(
+      config.copyWith(hasPin: true, pinLength: pin.length),
+      hashed,
+    );
   }
 
   @override
@@ -164,6 +177,7 @@ class SecureAppLockRepo implements AppLockRepo {
       'schema': schema,
       'enabled': next.enabled,
       'timeout': next.timeout.name,
+      'pinLength': next.pinLength,
       'pin': pin?.toJson(),
     });
 
