@@ -30,6 +30,10 @@ class _FakeAppLockRepo implements AppLockRepo {
   /// The writes that reached storage, in the order they entered.
   final List<String> writes = [];
 
+  /// Failure state the repo carries, like the real record does.
+  int failedAttempts = 0;
+  DateTime? retryAt;
+
   final List<Completer<void>> _holds = [];
 
   /// The next config write stops here until the test completes the answer.
@@ -46,8 +50,13 @@ class _FakeAppLockRepo implements AppLockRepo {
   }
 
   @override
-  AppLockConfig get config =>
-      AppLockConfig(enabled: enabled, hasPin: pin != null, timeout: timeout);
+  AppLockConfig get config => AppLockConfig(
+    enabled: enabled,
+    hasPin: pin != null,
+    timeout: timeout,
+    failedAttempts: failedAttempts,
+    retryAt: retryAt,
+  );
 
   @override
   Future<void> enable(String pin) async {
@@ -85,6 +94,19 @@ class _FakeAppLockRepo implements AppLockRepo {
     if (throwOnWrite) throw const AppLockUnavailableException();
     await _entered('setTimeout:$timeout');
     this.timeout = timeout;
+  }
+
+  @override
+  Future<DateTime?> recordFailure(DateTime now) async {
+    failedAttempts += 1;
+    retryAt = pinRetryAt(failedAttempts, now);
+    return retryAt;
+  }
+
+  @override
+  Future<void> clearFailures() async {
+    failedAttempts = 0;
+    retryAt = null;
   }
 }
 
@@ -239,6 +261,30 @@ void main() {
       expect(await notifier().unlockWithPin('1234'), UnlockResult.success);
       expect(data().isLocked, isFalse);
       expect(data().retryAt, isNull);
+    });
+
+    test('the counter lives in the repo, so a restart keeps it', () async {
+      await create();
+      for (var i = 0; i <= freePinAttempts; i++) {
+        await notifier().unlockWithPin('0000');
+      }
+      expect(repo.failedAttempts, freePinAttempts + 1);
+      expect(repo.retryAt, isNotNull);
+
+      // A new container over the same repo: what a process restart reads.
+      final restarted = ProviderContainer(
+        overrides: [
+          appLockRepoProvider.overrideWithValue(repo),
+          biometricAuthProvider.overrideWithValue(biometrics),
+          clockProvider.overrideWithValue(clock),
+        ],
+      );
+      addTearDown(restarted.dispose);
+
+      final carried = restarted.read(appLockProvider);
+      expect(carried.failedAttempts, freePinAttempts + 1);
+      expect(carried.retryAt, isNotNull);
+      expect(carried.isThrottledAt(clock.now()), isTrue);
     });
 
     test('the waits grow with the run of wrong PINs', () {

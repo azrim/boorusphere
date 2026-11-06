@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:boorusphere/data/repository/app_lock/secret_store.dart';
 import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
 import 'package:boorusphere/domain/repository/app_lock_repo.dart';
+import 'package:boorusphere/presentation/provider/app_lock/lockout.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeSecretStore implements SecretStore {
@@ -219,6 +220,48 @@ void main() {
     final reopened = await open();
     expect(reopened.config.timeout, LockTimeout.seconds30);
     expect(await reopened.verify('1234'), isTrue);
+  });
+
+  test('failures persist and clear across a restart', () async {
+    final repo = await open();
+    await repo.enable('1234');
+
+    final now = DateTime(2026, 1, 1, 12);
+    for (var i = 0; i < freePinAttempts; i++) {
+      expect(await repo.recordFailure(now), isNull);
+    }
+    expect(repo.config.failedAttempts, freePinAttempts);
+
+    final reopened = await open();
+    expect(reopened.config.failedAttempts, freePinAttempts);
+    expect(reopened.config.retryAt, isNull);
+
+    // One past the free attempts, the wait appears and survives a restart.
+    await reopened.recordFailure(now.add(const Duration(seconds: 2)));
+    expect(reopened.config.retryAt, isNotNull);
+
+    final carried = await open();
+    expect(carried.config.failedAttempts, freePinAttempts + 1);
+    expect(carried.config.retryAt, isNotNull);
+
+    await carried.clearFailures();
+    expect(carried.config.failedAttempts, 0);
+    expect(carried.config.retryAt, isNull);
+
+    final cleared = await open();
+    expect(cleared.config.failedAttempts, 0);
+    expect(cleared.config.retryAt, isNull);
+  });
+
+  test('enable replaces the failure record', () async {
+    final repo = await open();
+    await repo.enable('1234');
+    await repo.recordFailure(DateTime(2026, 1, 1));
+
+    await repo.enable('5678');
+    expect(repo.config.failedAttempts, 0);
+    expect(repo.config.retryAt, isNull);
+    expect(await repo.verify('5678'), isTrue);
   });
 
   test('a disabled fallback refuses to pretend it saved a PIN', () async {
