@@ -9,7 +9,13 @@ import 'package:pointycastle/macs/hmac.dart';
 
 /// Iterations used for a new PIN. The count travels with the record, so a
 /// future build can raise it without breaking an existing PIN.
-const int defaultPinIterations = 120000;
+///
+/// The verifier guards a four to eight digit code, so the guess space is a
+/// few thousand at most: the KDF is a pace-setter against a brute force of
+/// that space, not a stand-in for a password's entropy. 32k runs in a few
+/// hundred milliseconds on a low-end phone, long enough to make a million
+/// guesses take a month while a typed entry still opens at a tap.
+const int defaultPinIterations = 32000;
 
 const int _saltLength = 16;
 const int _keyLength = 32;
