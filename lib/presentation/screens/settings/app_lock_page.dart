@@ -29,36 +29,18 @@ class AppLockPage extends ConsumerWidget {
     bool enabled,
   ) async {
     final t = context.t;
-    try {
-      if (enabled) {
-        final pin = await showPinSetupSheet(
-          context,
-          title: t.appLock.setupTitle,
-          description: t.appLock.setupDesc,
-        );
-        if (pin == null || !context.mounted) return;
-
-        await ref.read(appLockProvider.notifier).enable(pin);
-        if (context.mounted) showToast(context, t.appLock.saved);
-      } else {
-        final verified = await showPinVerifySheet(
-          context,
-          title: t.appLock.verifyTitle,
-          description: t.appLock.verifyDesc,
-        );
-        if (verified != true || !context.mounted) return;
-
-        await ref.read(appLockProvider.notifier).disable();
-        if (context.mounted) showToast(context, t.appLock.removed);
-      }
-    } on AppLockUnavailableException {
-      if (context.mounted) showToast(context, t.appLock.unavailable);
-    }
-  }
-
-  Future<void> _changePin(BuildContext context, WidgetRef ref) async {
-    final t = context.t;
-    try {
+    if (enabled) {
+      // The sheet owns the write and stays up while the PIN is hashed, so the
+      // page never shows a saved toast before the record exists.
+      final pin = await showPinSetupSheet(
+        context,
+        title: t.appLock.setupTitle,
+        description: t.appLock.setupDesc,
+        write: ref.read(appLockProvider.notifier).enable,
+      );
+      if (pin == null || !context.mounted) return;
+      showToast(context, t.appLock.saved);
+    } else {
       final verified = await showPinVerifySheet(
         context,
         title: t.appLock.verifyTitle,
@@ -66,18 +48,32 @@ class AppLockPage extends ConsumerWidget {
       );
       if (verified != true || !context.mounted) return;
 
-      final pin = await showPinSetupSheet(
-        context,
-        title: t.appLock.changePin,
-        description: t.appLock.setupDesc,
-      );
-      if (pin == null || !context.mounted) return;
-
-      await ref.read(appLockProvider.notifier).changePin(pin);
-      if (context.mounted) showToast(context, t.appLock.changed);
-    } on AppLockUnavailableException {
-      if (context.mounted) showToast(context, t.appLock.unavailable);
+      try {
+        await ref.read(appLockProvider.notifier).disable();
+        if (context.mounted) showToast(context, t.appLock.removed);
+      } on AppLockUnavailableException {
+        if (context.mounted) showToast(context, t.appLock.unavailable);
+      }
     }
+  }
+
+  Future<void> _changePin(BuildContext context, WidgetRef ref) async {
+    final t = context.t;
+    final verified = await showPinVerifySheet(
+      context,
+      title: t.appLock.verifyTitle,
+      description: t.appLock.verifyDesc,
+    );
+    if (verified != true || !context.mounted) return;
+
+    final pin = await showPinSetupSheet(
+      context,
+      title: t.appLock.changePin,
+      description: t.appLock.setupDesc,
+      write: ref.read(appLockProvider.notifier).changePin,
+    );
+    if (pin == null || !context.mounted) return;
+    showToast(context, t.appLock.changed);
   }
 
   Future<void> _pickTimeout(
@@ -202,24 +198,31 @@ String _timeoutLabel(BuildContext context, LockTimeout timeout) {
   };
 }
 
-/// Asks for a new PIN twice, so a typo does not become the only way in.
+/// Asks for a new PIN twice, then runs [write] with it before the sheet
+/// closes: hashing a PIN takes seconds, and the sheet is where the wait is
+/// shown. It answers the PIN, or null when the sheet was dismissed or the
+/// write failed.
 Future<String?> showPinSetupSheet(
   BuildContext context, {
   required String title,
   String? description,
+  Future<void> Function(String pin)? write,
 }) {
   return showSheet<String>(
     context: context,
     builder: (context) =>
-        _PinSetupSheet(title: title, description: description),
+        _PinSetupSheet(title: title, description: description, write: write),
   );
 }
 
 class _PinSetupSheet extends HookWidget {
-  const _PinSetupSheet({required this.title, this.description});
+  const _PinSetupSheet({required this.title, this.description, this.write});
 
   final String title;
   final String? description;
+
+  /// The config write to run before the sheet closes, if any.
+  final Future<void> Function(String pin)? write;
 
   @override
   Widget build(BuildContext context) {
@@ -228,8 +231,10 @@ class _PinSetupSheet extends HookWidget {
     final confirmController = useTextEditingController();
     final pinError = useState<String?>(null);
     final confirmError = useState<String?>(null);
+    final busy = useState(false);
 
-    void save() {
+    Future<void> save() async {
+      if (busy.value) return;
       final pin = pinController.text;
       if (pin.length < minPinLength) {
         pinError.value = t.appLock.pinTooShort;
@@ -241,7 +246,25 @@ class _PinSetupSheet extends HookWidget {
         confirmError.value = t.appLock.pinMismatch;
         return;
       }
-      Navigator.pop(context, pin);
+
+      final store = write;
+      if (store == null) {
+        Navigator.pop(context, pin);
+        return;
+      }
+
+      pinError.value = null;
+      confirmError.value = null;
+      busy.value = true;
+      try {
+        await store(pin);
+        if (!context.mounted) return;
+        Navigator.pop(context, pin);
+      } on AppLockUnavailableException {
+        if (!context.mounted) return;
+        busy.value = false;
+        pinError.value = t.appLock.unavailable;
+      }
     }
 
     final description = this.description;
@@ -251,7 +274,16 @@ class _PinSetupSheet extends HookWidget {
       maxHeightFactor: 0.62,
       footer: SizedBox(
         width: double.infinity,
-        child: FilledButton(onPressed: save, child: Text(t.save)),
+        child: FilledButton(
+          onPressed: busy.value ? null : save,
+          child: busy.value
+              ? const SizedBox(
+                  width: DesignTokens.iconAction,
+                  height: DesignTokens.iconAction,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(t.save),
+        ),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
@@ -385,9 +417,13 @@ class _PinVerifySheet extends HookConsumerWidget {
         width: double.infinity,
         child: FilledButton(
           onPressed: busy.value || throttled ? null : submit,
-          child: Text(
-            busy.value ? t.appLock.unlocking : t.appLock.confirmAction,
-          ),
+          child: busy.value
+              ? const SizedBox(
+                  width: DesignTokens.iconAction,
+                  height: DesignTokens.iconAction,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(t.appLock.confirmAction),
         ),
       ),
       child: SingleChildScrollView(
