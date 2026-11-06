@@ -590,7 +590,8 @@
     "screenshot_desc": "Hide the app in recent apps and block screenshots",
     "screenshot_off_warning": "The app can appear in screenshots and in the recent-apps preview again.",
     "forgot_title": "Forgot your PIN?",
-    "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data."
+    "forgot_desc": "Clearing the app's data or reinstalling removes the lock together with the saved data.",
+    "backspace": "Delete last digit"
   },
   "error": {
     "unknown": "Something went wrong and we don't know why",

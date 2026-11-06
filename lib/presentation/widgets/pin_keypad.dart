@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -94,7 +95,7 @@ class PinKeypad extends StatelessWidget {
                       color: scheme.onSurfaceVariant,
                     ),
                     onTap: onBackspace,
-                    semanticLabel: 'Backspace',
+                    semanticLabel: t.appLock.backspace,
                   ),
                   _ => key(
                     Text(
