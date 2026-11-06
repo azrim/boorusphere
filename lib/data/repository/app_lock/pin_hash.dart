@@ -12,10 +12,11 @@ import 'package:pointycastle/macs/hmac.dart';
 ///
 /// The verifier guards a four to eight digit code, so the guess space is a
 /// few thousand at most: the KDF is a pace-setter against a brute force of
-/// that space, not a stand-in for a password's entropy. 32k runs in a few
-/// hundred milliseconds on a low-end phone, long enough to make a million
-/// guesses take a month while a typed entry still opens at a tap.
-const int defaultPinIterations = 32000;
+/// that space, not a stand-in for a password's entropy. At 8k a single check
+/// runs in about a quarter second on a phone, and draining the space offline
+/// costs the better part of a month per device, while the online path is
+/// capped by the attempt throttle, which survives a restart.
+const int defaultPinIterations = 8000;
 
 const int _saltLength = 16;
 const int _keyLength = 32;
