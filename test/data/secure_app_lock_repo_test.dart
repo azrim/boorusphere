@@ -59,6 +59,7 @@ void main() {
     expect(repo.config.enabled, isTrue);
     expect(repo.config.hasPin, isTrue);
     expect(repo.config.isActive, isTrue);
+    expect(repo.config.pinLength, 4);
     expect(await repo.verify('1234'), isTrue);
     expect(await repo.verify('1235'), isFalse);
 
@@ -67,6 +68,7 @@ void main() {
     expect(record['schema'], 1);
     expect(record['enabled'], isTrue);
     expect(record['timeout'], 'immediate');
+    expect(record['pinLength'], 4);
     expect(record['pin'], isA<Map>());
     expect(raw, isNot(contains('1234')));
   });
@@ -80,6 +82,7 @@ void main() {
     expect(reopened.config.enabled, isTrue);
     expect(reopened.config.hasPin, isTrue);
     expect(reopened.config.timeout, LockTimeout.minutes1);
+    expect(reopened.config.pinLength, 4);
     expect(await reopened.verify('4321'), isTrue);
   });
 
@@ -88,11 +91,12 @@ void main() {
     () async {
       final repo = await open();
       await repo.enable('1111');
-      await repo.changePin('2222');
+      await repo.changePin('22222');
 
       expect(repo.config.enabled, isTrue);
+      expect(repo.config.pinLength, 5);
       expect(await repo.verify('1111'), isFalse);
-      expect(await repo.verify('2222'), isTrue);
+      expect(await repo.verify('22222'), isTrue);
     },
   );
 
@@ -123,6 +127,7 @@ void main() {
       'schema': 99,
       'enabled': true,
       'timeout': 'minutes5',
+      'pinLength': 4,
       'pin': {
         'iterations': 10,
         'salt': base64Encode(const [1, 2, 3]),
@@ -139,6 +144,7 @@ void main() {
       'schema': 1,
       'enabled': true,
       'timeout': 'immediate',
+      'pinLength': 4,
       'pin': null,
     });
 
@@ -146,6 +152,22 @@ void main() {
     expect(repo.config.enabled, isFalse);
     expect(repo.config.hasPin, isFalse);
     expect(await repo.verify('1234'), isFalse);
+  });
+
+  test('a record without a length reads as the longest PIN', () async {
+    store.values[SecureAppLockRepo.storageKey] = jsonEncode({
+      'schema': 1,
+      'enabled': true,
+      'timeout': 'immediate',
+      'pin': {
+        'iterations': 10,
+        'salt': base64Encode(const [1, 2, 3]),
+        'hash': base64Encode(const [4, 5, 6]),
+      },
+    });
+
+    final repo = await open();
+    expect(repo.config.pinLength, maxPinLength);
   });
 
   test('unreadable storage falls back to a disabled repo', () async {
