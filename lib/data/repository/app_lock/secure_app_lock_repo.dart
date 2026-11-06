@@ -33,18 +33,35 @@ class SecureAppLockRepo implements AppLockRepo {
   /// start: the fallback fits a lock, since the content behind it is only
   /// reachable while the lock is on. A record that cannot be parsed is treated
   /// as no lock as well, but writes still work so a new PIN can replace it.
+  ///
+  /// The read is retried before that fallback is accepted. The system
+  /// keystore can refuse a read in the first moments after a cold boot and
+  /// answer again a beat later, and failing open on the first refusal would
+  /// hand an unlocked session to whoever picked the phone up.
   static Future<AppLockRepo> open({
     SecretStore store = const FlutterSecretStore(),
     int iterations = defaultPinIterations,
+    List<Duration> readBackoff = _readBackoff,
   }) async {
-    try {
-      final raw = await store.read(storageKey);
-      return _parse(store, raw, iterations);
-    } catch (e, stack) {
-      mainLog.e('App lock: secure storage is unavailable', e, stack);
-      return const DisabledAppLockRepo();
+    for (var attempt = 0; ; attempt++) {
+      try {
+        final raw = await store.read(storageKey);
+        return _parse(store, raw, iterations);
+      } catch (e, stack) {
+        if (attempt >= readBackoff.length) {
+          mainLog.e('App lock: secure storage is unavailable', e, stack);
+          return const DisabledAppLockRepo();
+        }
+        mainLog.w('App lock: the secure storage read failed, retrying', e);
+        await Future<void>.delayed(readBackoff[attempt]);
+      }
     }
   }
+
+  static const List<Duration> _readBackoff = [
+    Duration(milliseconds: 250),
+    Duration(milliseconds: 500),
+  ];
 
   static AppLockRepo _parse(SecretStore store, String? raw, int iterations) {
     if (raw == null || raw.isEmpty) {

@@ -603,6 +603,7 @@
     "server_list_unavailable": "The server list could not be opened",
     "settings_unavailable": "Settings could not be opened, so this session runs on defaults",
     "storage_unavailable": "Some saved data could not be opened; this session starts empty and changes made now are not kept",
+    "lock_unavailable": "The app lock could not be opened, so this session runs without it. Restart the app to try again",
     "stacktrace": "Stacktrace"
   },
   "favorites_hint": "Long-press any post on the timeline, then pick Favorite from the menu to save it.",

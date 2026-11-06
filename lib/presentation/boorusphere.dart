@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
 import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
@@ -46,6 +47,10 @@ enum BootProblem {
   /// A storage box only opened as an empty stand-in, so this run starts
   /// without that data and cannot keep changes made to it.
   storage,
+
+  /// The lock record could not be read even after retries, so this run has
+  /// no lock at all. Only a restart can try the store again.
+  lock,
 }
 
 class Boorusphere extends HookConsumerWidget {
@@ -79,6 +84,12 @@ class Boorusphere extends HookConsumerWidget {
     // same card instead of resetting the user's preferences without a word.
     if (degradedBoxNames.isNotEmpty) {
       problem = BootProblem.storage;
+    } else if (ref.read(appLockRepoProvider) is DisabledAppLockRepo) {
+      // The lock failed open: this run is unprotected, which the user has to
+      // hear about even when everything else started fine. It outranks the
+      // settings fallback but not lost data, and a retry from the snackbar
+      // cannot reopen a store that was already retried at boot.
+      problem = BootProblem.lock;
     } else if (!ref.read(settingsRepoProvider).isPersistent) {
       problem = BootProblem.settings;
     }
@@ -120,6 +131,7 @@ class Boorusphere extends HookConsumerWidget {
       BootProblem.servers => t.error.serverListUnavailable,
       BootProblem.settings => t.error.settingsUnavailable,
       BootProblem.storage => t.error.storageUnavailable,
+      BootProblem.lock => t.error.lockUnavailable,
     };
     final retryable = problem == BootProblem.servers;
 

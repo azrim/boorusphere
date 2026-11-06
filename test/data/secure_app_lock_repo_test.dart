@@ -12,9 +12,17 @@ class _FakeSecretStore implements SecretStore {
   bool writeThrows = false;
   bool deleteThrows = false;
 
+  /// How many reads fail before the store answers again, like a keystore
+  /// that is not ready in the first moments after a cold boot.
+  int readFailures = 0;
+
   @override
   Future<String?> read(String key) async {
     if (readThrows) throw Exception('read failed');
+    if (readFailures > 0) {
+      readFailures--;
+      throw Exception('read failed');
+    }
     return values[key];
   }
 
@@ -38,8 +46,12 @@ void main() {
     store = _FakeSecretStore();
   });
 
-  Future<AppLockRepo> open() {
-    return SecureAppLockRepo.open(store: store, iterations: 10);
+  Future<AppLockRepo> open({List<Duration>? readBackoff}) {
+    return SecureAppLockRepo.open(
+      store: store,
+      iterations: 10,
+      readBackoff: readBackoff ?? const [Duration.zero, Duration.zero],
+    );
   }
 
   test('starts off when nothing was stored', () async {
@@ -181,6 +193,34 @@ void main() {
       throwsA(isA<AppLockUnavailableException>()),
     );
   });
+
+  test('a read that recovers on retry keeps the lock', () async {
+    final first = await open();
+    await first.enable('1234');
+
+    // The keystore refuses the first two reads and answers on the third,
+    // like a cold boot where the store is not ready yet. Failing open on
+    // the first refusal would run this session without the lock.
+    store.readFailures = 2;
+    final reopened = await open();
+    expect(reopened.config.isActive, isTrue);
+    expect(await reopened.verify('1234'), isTrue);
+    expect(store.readFailures, 0);
+  });
+
+  test(
+    'a read that never recovers still falls back after the retries',
+    () async {
+      final first = await open();
+      await first.enable('1234');
+
+      store.readFailures = 99;
+      final reopened = await open();
+      expect(reopened.config.isActive, isFalse);
+      // Three attempts: the first read plus one per backoff entry.
+      expect(store.readFailures, 96);
+    },
+  );
 
   test('a failed write changes neither the record nor the state', () async {
     final repo = await open();
