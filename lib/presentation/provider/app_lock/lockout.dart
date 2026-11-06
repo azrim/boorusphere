@@ -15,6 +15,17 @@ const Duration longPinLockout = Duration(minutes: 5);
 /// longer one locks on return like any other departure.
 const Duration externalFlowCeiling = Duration(seconds: 60);
 
+/// How long the app may stay in the background with the biometric prompt
+/// open before the trip counts as leaving it.
+///
+/// The prompt pauses the app like any other activity, and the plugin keeps
+/// the sheet across that pause instead of canceling it. A quick switch away
+/// and back is still the unlock the user started; a longer absence means
+/// they walked away from an open prompt, so the session locks on return
+/// like any other departure. Shorter than the picker ceiling on purpose:
+/// an abandoned security gate is not a flow the app opened for the user.
+const Duration authFlowCeiling = Duration(seconds: 10);
+
 /// When the next PIN may be tried, or null while attempts are still free.
 ///
 /// The wait grows with the number of wrong attempts, so a mistyped PIN costs a

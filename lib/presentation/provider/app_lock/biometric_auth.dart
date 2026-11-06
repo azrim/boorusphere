@@ -36,6 +36,12 @@ abstract interface class BiometricAuth {
   Future<bool> isAvailable();
 
   Future<BiometricResult> authenticate(String reason);
+
+  /// Takes a pending prompt down. The plugin keeps the sheet across a pause
+  /// and re-shows it on resume, so a session that locks while the prompt is
+  /// open has to cancel it explicitly or the sheet comes back above the
+  /// lock cover. Best-effort: a prompt already gone answers anyway.
+  Future<void> cancel();
 }
 
 class LocalBiometricAuth implements BiometricAuth {
@@ -52,6 +58,19 @@ class LocalBiometricAuth implements BiometricAuth {
     } catch (e, stack) {
       mainLog.w('App lock: biometric availability is unknown', e, stack);
       return false;
+    }
+  }
+
+  @override
+  Future<void> cancel() async {
+    try {
+      await _auth.stopAuthentication();
+    } catch (e, stack) {
+      mainLog.w(
+        'App lock: the biometric prompt could not be canceled',
+        e,
+        stack,
+      );
     }
   }
 

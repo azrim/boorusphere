@@ -74,19 +74,46 @@ class AppLockScreen extends HookConsumerWidget {
     // The biometric prompt answers once per appearance of the gate: a cancel
     // or a miss leaves the choice to the user, and the button below still
     // opens the prompt by hand.
+    //
+    // The offer also waits for a resumed activity: the gate can be built
+    // while the screen is off, and a prompt asked for then is a sheet the
+    // platform cannot host yet. A resume while the gate is up offers it
+    // instead, through the same once-per-appearance latch.
     final biometricsOffered = useState(false);
-    useEffect(() {
-      if (!biometricsOffered.value &&
-          lock.biometricsAvailable &&
-          !throttled &&
-          !busy.value) {
-        biometricsOffered.value = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          useBiometrics(auto: true);
-        });
+    final offerBiometrics = useCallback(() {
+      if (biometricsOffered.value ||
+          !lock.biometricsAvailable ||
+          throttled ||
+          busy.value) {
+        return;
       }
-      return null;
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+        return;
+      }
+      biometricsOffered.value = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        if (WidgetsBinding.instance.lifecycleState !=
+            AppLifecycleState.resumed) {
+          // The frame landed while paused after all; give the latch back so
+          // the resume listener offers instead of burning it on a prompt
+          // that cannot show.
+          biometricsOffered.value = false;
+          return;
+        }
+        useBiometrics(auto: true);
+      });
     }, [lock.biometricsAvailable, throttled]);
+
+    useEffect(() {
+      offerBiometrics();
+      return null;
+    }, [offerBiometrics]);
+
+    useEffect(() {
+      final listener = AppLifecycleListener(onResume: offerBiometrics);
+      return listener.dispose;
+    }, [offerBiometrics]);
 
     Future<void> submit() async {
       if (busy.value || throttled) return;

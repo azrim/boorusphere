@@ -43,6 +43,16 @@ class AppLock extends _$AppLock {
   /// Android, and that pause must not be read as the user leaving it.
   bool _authenticating = false;
 
+  /// Whether the pause being handled belongs to the biometric prompt. The
+  /// plugin keeps the sheet across a pause, so an absence with it open is
+  /// bounded by [authFlowCeiling] instead of ignored outright.
+  bool _pausedDuringAuth = false;
+
+  /// Bumped when a long absence locks the app out from under a pending
+  /// prompt. A match that landed in the same instant carries the old epoch
+  /// and must not open a lock the absence just earned.
+  int _authEpoch = 0;
+
   /// When the app went to the background, while a timed lock is armed.
   DateTime? _pausedAt;
 
@@ -172,11 +182,13 @@ class AppLock extends _$AppLock {
 
     // No PIN throttle here: the system sensor has its own lockout, and the
     // PIN stays available while the sensor recovers.
+    final epoch = _authEpoch;
     _busy = true;
     _authenticating = true;
     try {
       final result = await ref.read(biometricAuthProvider).authenticate(reason);
       if (!ref.mounted) return UnlockResult.unavailable;
+      if (epoch != _authEpoch) return UnlockResult.canceled;
 
       if (result.success) {
         // The sensor answered for the PIN, so the same failure record has
@@ -219,8 +231,14 @@ class AppLock extends _$AppLock {
 
   void onAppPaused() {
     if (!state.isActive || state.locked) return;
-    // The biometric sheet is part of the app, not a departure from it.
-    if (_authenticating) return;
+    // The biometric sheet is part of the app, not a departure from it — but
+    // the plugin keeps the sheet across the pause, so an absence with it
+    // open is bounded on resume instead of ignored outright.
+    if (_authenticating) {
+      _pausedDuringAuth = true;
+      _pausedAt = _now();
+      return;
+    }
 
     // The pause belongs to a surface the app opened itself. Remember the
     // moment so a round-trip that runs past [externalFlowCeiling] still locks
@@ -231,6 +249,7 @@ class AppLock extends _$AppLock {
       return;
     }
     _pausedDuringExternalFlow = false;
+    _pausedDuringAuth = false;
 
     switch (state.timeout) {
       case LockTimeout.immediate:
@@ -247,8 +266,10 @@ class AppLock extends _$AppLock {
   void onAppResumed() {
     final pausedAt = _pausedAt;
     final pausedDuringExternalFlow = _pausedDuringExternalFlow;
+    final pausedDuringAuth = _pausedDuringAuth;
     _pausedAt = null;
     _pausedDuringExternalFlow = false;
+    _pausedDuringAuth = false;
     unawaited(refreshBiometrics());
 
     if (pausedAt == null || !state.isActive || state.locked) return;
@@ -262,10 +283,29 @@ class AppLock extends _$AppLock {
         away <= externalFlowCeiling) {
       return;
     }
+    // The prompt's own pause is quick by nature. A long absence with the
+    // sheet still open means the user walked away from an open gate, which
+    // is a departure under any policy that locks on resume at all.
+    if (pausedDuringAuth &&
+        state.timeout == LockTimeout.immediate &&
+        !away.isNegative &&
+        away <= authFlowCeiling) {
+      return;
+    }
 
     final grace = state.timeout.duration;
     if (grace == null) return;
-    if (!away.isNegative && away >= grace) _lock();
+    if (!away.isNegative && away >= grace) {
+      if (_authenticating) {
+        // The plugin re-shows the kept-alive sheet on resume, so it has to
+        // be taken down explicitly or it comes back above the lock cover.
+        // Retire the epoch too: a match that landed in the same instant as
+        // the resume must not open a lock the absence just earned.
+        _authEpoch++;
+        unawaited(ref.read(biometricAuthProvider).cancel());
+      }
+      _lock();
+    }
   }
 
   /// Runs one [enable], [changePin], [disable] or [setTimeout] after another.
@@ -340,6 +380,7 @@ class AppLock extends _$AppLock {
 
       _pausedAt = null;
       _pausedDuringExternalFlow = false;
+      _pausedDuringAuth = false;
       state = state.copyWith(
         enabled: false,
         hasPin: false,
@@ -362,6 +403,7 @@ class AppLock extends _$AppLock {
 
   void _unlock() {
     _pausedAt = null;
+    _pausedDuringAuth = false;
     _retryTimer?.cancel();
     _retryTimer = null;
     state = state.copyWith(locked: false, failedAttempts: 0, retryAt: null);

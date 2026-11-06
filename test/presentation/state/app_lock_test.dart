@@ -136,6 +136,7 @@ class _FakeBiometrics implements BiometricAuth {
   bool available = true;
   BiometricResult result = const BiometricResult.success();
   Future<BiometricResult> Function()? onAuthenticate;
+  int cancels = 0;
 
   @override
   Future<bool> isAvailable() async => available;
@@ -143,6 +144,11 @@ class _FakeBiometrics implements BiometricAuth {
   @override
   Future<BiometricResult> authenticate(String reason) {
     return onAuthenticate?.call() ?? Future.value(result);
+  }
+
+  @override
+  Future<void> cancel() async {
+    cancels++;
   }
 }
 
@@ -440,6 +446,75 @@ void main() {
       prompt.complete(const BiometricResult.success());
       expect(await pending, UnlockResult.success);
       expect(data().isLocked, isFalse);
+    });
+
+    test('a long absence with the prompt open locks on return', () async {
+      await create();
+      await notifier().unlockWithPin('1234');
+
+      final prompt = Completer<BiometricResult>();
+      biometrics.onAuthenticate = () => prompt.future;
+      final pending = notifier().unlockWithBiometrics('reason');
+      await Future<void>.delayed(Duration.zero);
+
+      notifier().onAppPaused();
+      expect(data().isLocked, isFalse);
+      clock.advance(authFlowCeiling + const Duration(seconds: 1));
+      notifier().onAppResumed();
+
+      expect(data().isLocked, isTrue);
+      expect(biometrics.cancels, 1);
+
+      // A match that landed in the same instant as the resume must not open
+      // a lock the absence just earned.
+      prompt.complete(const BiometricResult.success());
+      expect(await pending, UnlockResult.canceled);
+      expect(data().isLocked, isTrue);
+    });
+
+    test('a quick trip with the prompt open keeps the session', () async {
+      await create();
+      await notifier().unlockWithPin('1234');
+
+      final prompt = Completer<BiometricResult>();
+      biometrics.onAuthenticate = () => prompt.future;
+      final pending = notifier().unlockWithBiometrics('reason');
+      await Future<void>.delayed(Duration.zero);
+
+      notifier().onAppPaused();
+      clock.advance(const Duration(seconds: 2));
+      notifier().onAppResumed();
+      expect(data().isLocked, isFalse);
+      expect(biometrics.cancels, 0);
+
+      prompt.complete(const BiometricResult.success());
+      expect(await pending, UnlockResult.success);
+      expect(data().isLocked, isFalse);
+    });
+
+    test('a timed policy applies its grace to a prompt absence', () async {
+      await create(timeout: LockTimeout.minutes1);
+      await notifier().unlockWithPin('1234');
+
+      final prompt = Completer<BiometricResult>();
+      biometrics.onAuthenticate = () => prompt.future;
+      final pending = notifier().unlockWithBiometrics('reason');
+      await Future<void>.delayed(Duration.zero);
+
+      notifier().onAppPaused();
+      clock.advance(const Duration(seconds: 30));
+      notifier().onAppResumed();
+      expect(data().isLocked, isFalse);
+      expect(biometrics.cancels, 0);
+
+      notifier().onAppPaused();
+      clock.advance(const Duration(seconds: 61));
+      notifier().onAppResumed();
+      expect(data().isLocked, isTrue);
+      expect(biometrics.cancels, 1);
+
+      prompt.complete(const BiometricResult.success());
+      expect(await pending, UnlockResult.canceled);
     });
 
     test(
