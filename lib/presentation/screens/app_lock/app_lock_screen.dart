@@ -189,7 +189,19 @@ class AppLockScreen extends HookConsumerWidget {
                       maxLength: pinLength,
                       error: error.value != null,
                     ),
-                    if (throttled && retryAt != null) ...[
+                    // Checking a PIN is a PBKDF2 pass that takes seconds; the
+                    // spinner stands where a message would, so the wait reads
+                    // as work in progress rather than a dead screen.
+                    if (busy.value) ...[
+                      pinMessageGap,
+                      const Center(
+                        child: SizedBox(
+                          width: DesignTokens.iconAction,
+                          height: DesignTokens.iconAction,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ] else if (throttled && retryAt != null) ...[
                       pinMessageGap,
                       PinRetryCountdown(
                         retryAt: retryAt,
