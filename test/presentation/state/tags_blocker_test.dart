@@ -39,6 +39,15 @@ void main() async {
       expect(state().values.any((it) => it.name == 'bar'), true);
     });
 
+    test('removeall', () async {
+      await notifier().pushAll(serverId: serverId, tags: ['alpha', 'beta']);
+
+      await notifier().removeAll(serverId: serverId, tags: ['alpha']);
+
+      expect(state().values.any((it) => it.name == 'alpha'), false);
+      expect(state().values.any((it) => it.name == 'beta'), true);
+    });
+
     test('delete', () async {
       for (var key in state().keys) {
         await notifier().delete(key);

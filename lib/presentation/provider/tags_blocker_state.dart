@@ -34,4 +34,32 @@ class TagsBlockerState extends _$TagsBlockerState {
     }
     state = repo.get();
   }
+
+  /// Removes the entries that [pushAll] would have written for [tags]. Keys
+  /// are read from the current state first because the repository addresses
+  /// entries by their box key, not by the tag itself.
+  Future<void> removeAll({
+    String serverId = '',
+    required Iterable<String> tags,
+  }) async {
+    final names = tags
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toSet();
+    if (names.isEmpty) return;
+
+    final repo = ref.read(tagsBlockerRepoProvider);
+    final keys = state.entries
+        .where(
+          (entry) =>
+              entry.value.serverId == serverId &&
+              names.contains(entry.value.name),
+        )
+        .map((entry) => entry.key)
+        .toList();
+    for (final key in keys) {
+      await repo.delete(key);
+    }
+    state = repo.get();
+  }
 }
