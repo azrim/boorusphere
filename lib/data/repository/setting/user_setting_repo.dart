@@ -230,6 +230,10 @@ class UserSettingsRepo implements SettingsRepo {
     final restored = await _openForRestore(cipher);
     await restored.putAll(data);
     await restored.flush();
+    // Closed so the cipher is still applied when the box is plain: Hive
+    // returns an already-open box as-is, and the open below would then hand
+    // this session a plaintext handle for an encrypted store.
+    await restored.close();
 
     await Hive.deleteBoxFromDisk(_backupKey);
   }
