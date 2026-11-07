@@ -185,7 +185,8 @@ The one primitive shared by the drawer, the settings pages, and the server pages
 - **Type**: the title is the only primary line (`rowTitle`), the body explains the state in `rowSupporting`, and there is never a third line
 - **Action**: a state that has a way forward offers it as one filled button under the body. A state that only says no is a dead end, and the reader has to guess which screen would fix it. A server behind a browser check replaces the retry with *Verify*, which opens the [browser check](#browser-check); retrying would hit the same wall
 - **Layout**: centred, one block wide, and scrollable, so a large font scale or a short window never cuts the action off
-- **Where**: timeline errors and empty results, Favorites, Downloads, the changelog, licenses, and the first run
+- **Local filters**: a page that arrived full but has no visible post is its own state. The notice names what hid it (the local filters or the tags blocker) and offers the one control that undoes it (*Show all posts*, or the Tags Blocker screen), so a blank grid is never a dead end
+- **Where**: timeline errors and empty results, a page emptied by local filters or the tags blocker, Favorites, Downloads, the changelog, licenses, and the first run
 
 ### Browser Check
 The screen a challenged server sends the reader to. Opened from the timeline's error card, never from the drawer.
@@ -203,7 +204,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 - **Why**: onboarding in the app's own vocabulary teaches the drawer before the drawer is ever opened, and it costs no extra screen
 
 ### Timeline Grid
-- **Layout**: Staggered grid (flutter_staggered_grid_view), 2-column default, user-adjustable
+- **Layout**: Staggered grid (flutter_staggered_grid_view): a device-dependent default (≈2–3 columns depending on width), user-adjustable from the bar. The column count and the thumbnail decode size both come from the extent the grid is actually laid out in, so the page insets are counted once
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders
 - **Overlays**: Compact labels sit directly on the image, kept legible by a neutral top/bottom scrim plus a drop shadow on the tag, both read from `AppMediaChrome` (see the Adaptive Rule). The tag-category accents are the one non-scheme color left, since those hues are a booru convention rather than a palette decision:
   - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Replaced by the selection checkbox while the post is selected.
@@ -215,7 +216,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 - **Quick actions**: not on the card; a long-press opens the [Context Menu](#context-menu-post-actions)
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
 - **Accessibility**: each card is one screen-reader node: the overlays are folded into a single label (tag, rating, score, file type, dimensions), with the tap and long-press actions on that node and the selected state announced rather than drawn as an unlabelled check. A post with none of those falls back to its id so the node is never nameless
-- **Loading**: Shimmer placeholders with desaturated surface color
+- **Loading**: Shimmer placeholders with desaturated surface color, drawn at the grid's own inset and column count, so the first page does not change shape when it lands
 - **States**: A spinner while a page is loading; an [empty state](#empty-states) for empty or failed results
 - **Pagination**: Page navigation (previous/next plus a page indicator) floats in a bottom pill above the grid, clearing the bottom search bar. While the list is moving the pill drops to 30% opacity, so it reads as a hint instead of asking for a decision mid-scroll
 - **Back to top**: a circular button appears at the trailing edge of the same band once the grid is 600 dp down, and leaves again at the top. It is the only control that changes with scroll position
@@ -259,7 +260,7 @@ One container for every bottom sheet in the app: post details, settings pickers,
 - **Layout**: directly under the header at 48 dp, inside thumb reach; labels at `labelLarge`, the active one `onSurface` w600 over a 2 dp `primary` underline, and the strip closes with the panel hairline. The tabs share the strip's width instead of scrolling, so the strip never claims the sheet's horizontal swipe
 - **Swipe**: the panels follow the finger, and the gesture belongs to the whole sheet rather than to the rows: with a short panel most of the sheet is empty space, and a swipe that only works on the rows is a swipe nobody finds. It commits at half a page or a 250 dp/s flick, leans against a rubber band at either end, and the underline follows, so the strip is a shortcut rather than the only way in
 - **Count**: a tab may carry a muted count in tabular figures, so the size of what is behind it is known before the tap
-- **Motion**: underline and label weight animate at 150 ms; the panel slides and the sheet resizes to the panel's own height on the same 300 ms, so the edge and the content land together instead of the edge arriving first
+- **Motion**: underline and label weight animate at 150 ms; only the panel travels on the 300 ms slide. The sheet keeps its height across a tab change: a sheet whose edge grew or shrank with the swipe moved diagonally under the finger and read as a jump, so the reader resizes it with a vertical drag instead
 
 ### Sheet Rows
 - **Fact row**: small-caps label on the leading edge, value on the trailing edge in `bodyMedium` with tabular figures, so scores and dimensions line up down the panel
@@ -268,7 +269,7 @@ One container for every bottom sheet in the app: post details, settings pickers,
 - **Targets**: every row is at least 48 dp tall
 
 ### Bottom Sheet (Post Details)
-- **Shape**: rounded top corners. Each panel opens at its own height: Details around its fact rows, Links up to 520 dp, Tags up to 75% of the viewer. The sheet snaps between closed, the current panel's height and the full 75%, so a drag down from the panel's height dismisses it instead of walking through intermediate stops
+- **Shape**: rounded top corners. The sheet opens at the height of the panel it is showing: Details around its fact rows, Links up to 520 dp, Tags up to 75% of the viewer. That height is fixed for as long as the sheet stays open — a tab switch slides the panel without moving the edge — and a vertical drag is the reader's own resize. The sheet snaps between closed, the height it opened at and the full 75%, so a drag down from the opening height dismisses it instead of walking through intermediate stops
 - **Surface**: opaque `surfaceContainer` (the page tone in Midnight) with the sheet hairline and 16 dp top radius. The artwork behind stays outside the sheet; the rows never depend on what is behind them
 - **No header**: the sheet opens straight onto the tab strip: the handle, then the panels. The artwork behind it already says which post is open, so a title line and a close button were a second, redundant answer to the same question
 - **Panels**: Details (rating, score, dimensions, format), Tags (grouped by category, each with its count; a long group offers the rest behind one `+N` chip; tap to select), Links (post page, source, sample and original file, each with copy)
@@ -294,14 +295,26 @@ One container for every bottom sheet in the app: post details, settings pickers,
 
 ### Bottom Bar (Search)
 
-The one piece of chrome every timeline screen carries. It is a surface, not glass: the bar paints `scaffoldBackgroundColor` at full opacity (black in midnight) with a hairline `outlineVariant` top border, and the query field sits on `surfaceContainerHighest` at `radiusLg`.
+The one piece of chrome every timeline screen carries. It follows the Interface → Blur setting: with blur on it is a glass surface (`surface` at 72% over a 20 px backdrop blur) because the grid scrolls beneath it; with blur off it paints `scaffoldBackgroundColor` at full opacity (black in midnight), the cheaper path on slow devices. Either way a hairline `outlineVariant` closes its top edge, and the query field sits on `surfaceContainerHighest` at `radiusLg`.
 
-- **Collapsed**: leading drawer chip (server favicon), the query as centered text, and a trailing control that toggles grid columns, or becomes *back to top* once the timeline is scrolled. An active non-default rating joins the field as a one-letter filter chip, so a filtered feed is a state the reader can see rather than decode
+- **Collapsed**: leading drawer chip (server favicon), the query as centered text, and a trailing control that only toggles grid columns, so a control never changes meaning mid-scroll; back to top is the grid's own floating button. An active non-default rating joins the field as a one-letter filter chip, so a filtered feed is a state the reader can see rather than decode
 - **Expanded** (tap the field): a rating chip row appears above the field, the field goes left-aligned and editable, and a reset control joins the trailing close button; the suggestion panel (`BlurBackdrop`) rises behind it
 - **Rating chip**: one letter (S / Q / E / SN) beside a filter icon, tinted with the scheme role (safe → primary, questionable → tertiary, sensitive → secondary, explicit → error) inside the same 48 dp control as every other button, so it stays a badge under font scaling; the rating is announced through semantics, not the glyph
 - **Touch targets**: every control in the bar is at least 48 dp, including the rating chip and the icon buttons
 - **Height**: measured at runtime (`HomeSearchBar.height`), never assumed; the pagination pill's offset and the grid's bottom padding both read it so they track font scaling
-- **Selection mode**: while posts are selected the bar is removed and the [selection action bar](#selection-action-bar) takes the bottom of the screen
+- **Selection mode**: while posts are selected the bar is handed over to the [selection action bar](#selection-action-bar), which takes the bottom of the screen: the bar fades and dips 8 dp out while the action bar arrives the same way, so the swap reads as one control replacing another
+- **Failure feedback**: a step or refresh that fails while posts are on screen answers with a toast where the action was taken, because the error card appended after the grid is below the fold
+
+### Search Panel (History & Suggestions)
+The full-screen pane the bar opens into. It rises from the bottom edge behind the bar on the standard 300 ms slide, and is one surface, not a menu.
+
+- **Surface**: `BlurBackdrop` when Interface → Blur is on (sigma 20 over the page colour at 85%), an opaque `scaffoldBackgroundColor` when it is off. The rows sit on their own transparent `Material`, because the pane paints above the scaffold's ink surface
+- **History**: newest first, one row per stored query showing the server and how many times it was searched. Fifteen rows are shown; the box itself keeps the 200 newest searches and ages the rest out. A swipe removes one row and the standard 8 s undo puts it back with its count; clearing the whole list asks first
+- **Suggestions**: appear once the query is at least two characters long and does not end in a space. Ten entries at most; tapping one searches it, the trailing plus appends it to the current query
+- **Multi-select**: long-pressing a suggestion starts a selection. The header states the count, then wraps *Clear selection* and *Add selected* under it, so the committing action stays reachable at any font scale
+- **Clearance**: the list ends with the bar's measured height (bottom inset included) and the pane adds no inset of its own; one clearance, counted once
+- **Dismissal**: a downward drag past 30% of the screen, Back, or submitting the query. Once closed and settled the pane is unmounted, so a blur and twenty-five rows are not laid out under the grid; the list scroll position is kept so reopening returns to it
+- **Semantics**: while the pane is open the grid behind it is excluded from the semantics tree; while it is closed it is gone from the tree entirely
 
 ### Selection Action Bar
 - **Trigger**: choosing *Select* in the [Context Menu](#context-menu-post-actions)
