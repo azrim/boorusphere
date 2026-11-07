@@ -14,6 +14,7 @@ class MainActivity : FlutterFragmentActivity() {
         StorageUtil.setUp(flutterEngine.dartExecutor.binaryMessenger, AndroidStorageUtil(this))
         SecureScreen.setUp(flutterEngine.dartExecutor.binaryMessenger, this)
         VolumeKeys.setUp(flutterEngine.dartExecutor.binaryMessenger)
+        PinKdf.setUp(flutterEngine.dartExecutor.binaryMessenger)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

@@ -7,15 +7,10 @@ import 'package:pointycastle/key_derivators/api.dart';
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
 
-/// Iterations used for a new PIN. The count travels with the record, so a
-/// future build can raise it without breaking an existing PIN.
-///
-/// The verifier guards a four to eight digit code, so the guess space is a
-/// few thousand at most: the KDF is a pace-setter against a brute force of
-/// that space, not a stand-in for a password's entropy. At 8k a single check
-/// runs in about a quarter second on a phone, and draining the space offline
-/// costs the better part of a month per device, while the online path is
-/// capped by the attempt throttle, which survives a restart.
+/// Fallback work factor for hosts without the native KDF. New Android
+/// verifiers use the higher native work factor when supported. The record
+/// stores its own count; neither path lowers it when checking an existing PIN.
+/// A numeric PIN has limited entropy even with a KDF and encrypted storage.
 const int defaultPinIterations = 8000;
 
 const int _saltLength = 16;
@@ -37,17 +32,21 @@ class PinHash {
   final Uint8List hash;
   final int iterations;
 
-  static PinHash create(
-    String pin, {
-    int iterations = defaultPinIterations,
-    Random? random,
-  }) {
+  static Uint8List randomSalt({Random? random}) {
     final salt = Uint8List(_saltLength);
     final source = random ?? Random.secure();
     for (var i = 0; i < salt.length; i++) {
       salt[i] = source.nextInt(256);
     }
+    return salt;
+  }
 
+  static PinHash create(
+    String pin, {
+    int iterations = defaultPinIterations,
+    Random? random,
+  }) {
+    final salt = randomSalt(random: random);
     return PinHash(
       salt: salt,
       hash: derivePinHash(pin, salt, iterations),

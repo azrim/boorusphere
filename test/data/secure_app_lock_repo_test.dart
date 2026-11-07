@@ -1,9 +1,13 @@
 import 'dart:convert';
 
+import 'package:boorusphere/data/repository/app_lock/native_pin_kdf.dart';
+import 'package:boorusphere/data/repository/app_lock/pin_hash.dart';
+
 import 'package:boorusphere/data/repository/app_lock/secret_store.dart';
 import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
 import 'package:boorusphere/domain/repository/app_lock_repo.dart';
 import 'package:boorusphere/presentation/provider/app_lock/lockout.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeSecretStore implements SecretStore {
@@ -40,7 +44,14 @@ class _FakeSecretStore implements SecretStore {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late _FakeSecretStore store;
+
+  tearDown(
+    () => messenger.setMockMethodCallHandler(NativePinKdf.channel, null),
+  );
 
   setUp(() {
     store = _FakeSecretStore();
@@ -215,6 +226,7 @@ void main() {
     expect(legacy.config.pinLength, isNull);
     expect(legacy.config.failedAttempts, 1);
 
+    expect(await legacy.verify('1234'), isTrue);
     await legacy.settleAfterUnlock('1234');
     expect(legacy.config.pinLength, 4);
     expect(legacy.config.failedAttempts, 0);
@@ -228,8 +240,146 @@ void main() {
     await repo.enable('1234');
     final raw = store.values[SecureAppLockRepo.storageKey];
 
+    expect(await repo.verify('1234'), isTrue);
     await repo.settleAfterUnlock('1234');
     expect(store.values[SecureAppLockRepo.storageKey], raw);
+  });
+
+  test('a settle queued behind a PIN change leaves the new PIN', () async {
+    final repo = await open();
+    await repo.enable('1234');
+    await repo.recordFailure(DateTime(2026, 1, 1));
+
+    expect(await repo.verify('1234'), isTrue);
+    await repo.changePin('5678');
+    await repo.settleAfterUnlock('1234');
+
+    expect(await repo.verify('5678'), isTrue);
+    expect(await repo.verify('1234'), isFalse);
+  });
+
+  group('the native KDF', () {
+    late List<Map<Object?, Object?>> calls;
+
+    /// Answers the channel the way the Android side does, so the test can
+    /// tell a native derivation apart from the portable fallback.
+    void answerNative() {
+      calls = [];
+      messenger.setMockMethodCallHandler(NativePinKdf.channel, (call) async {
+        expect(call.method, 'derive');
+        final args = call.arguments as Map<Object?, Object?>;
+        calls.add(args);
+        return derivePinHash(
+          args['pin'] as String,
+          args['salt'] as Uint8List,
+          args['iterations'] as int,
+        );
+      });
+    }
+
+    test('takes the hashing and the check when the device answers', () async {
+      answerNative();
+      final repo = await open();
+      await repo.enable('1234');
+      expect(calls, hasLength(1));
+      expect(calls.single['iterations'], 10);
+
+      expect(await repo.verify('1234'), isTrue);
+      expect(await repo.verify('1235'), isFalse);
+      expect(calls, hasLength(3));
+    });
+
+    test('a refused channel keeps the portable derivation working', () async {
+      messenger.setMockMethodCallHandler(NativePinKdf.channel, (call) async {
+        throw PlatformException(code: 'kdf_failed');
+      });
+
+      final repo = await open();
+      await repo.enable('1234');
+      expect(await repo.verify('1234'), isTrue);
+    });
+
+    test('a non-ASCII PIN stays on its UTF-8 derivation', () async {
+      answerNative();
+      final repo = await open();
+      await repo.enable('päss123');
+
+      // Older gates accepted these, and the stored hash is UTF-8 PBKDF2.
+      expect(calls, isEmpty);
+      expect(await repo.verify('päss123'), isTrue);
+      expect(calls, isEmpty);
+    });
+
+    test('settling rewrites a legacy verifier at the native factor', () async {
+      answerNative();
+      final legacy = PinHash.create('1234', iterations: 10);
+      store.values[SecureAppLockRepo.storageKey] = jsonEncode({
+        'schema': 1,
+        'enabled': true,
+        'timeout': 'immediate',
+        'pinLength': 4,
+        'pin': legacy.toJson(),
+      });
+
+      // No iteration override: this is the production choice of factors.
+      final repo = await SecureAppLockRepo.open(
+        store: store,
+        readBackoff: const [Duration.zero],
+      );
+      expect(await repo.verify('1234'), isTrue);
+      expect(calls.single['iterations'], 10);
+
+      await repo.settleAfterUnlock('1234');
+      // Verify, the re-check that binds the PIN to the verifier, the rehash.
+      expect(calls, hasLength(3));
+      expect(calls.last['iterations'], nativePinIterations);
+      expect(
+        calls.last['salt'] as Uint8List,
+        isNot(orderedEquals(legacy.salt)),
+      );
+
+      final record =
+          jsonDecode(store.values[SecureAppLockRepo.storageKey]!)
+              as Map<String, dynamic>;
+      final pin = record['pin'] as Map<String, dynamic>;
+      expect(pin['iterations'], nativePinIterations);
+      expect(
+        base64Decode(pin['salt'] as String),
+        orderedEquals(calls.last['salt'] as Uint8List),
+      );
+
+      // The rewritten verifier still opens the same PIN.
+      expect(await repo.verify('1234'), isTrue);
+    });
+
+    test('a settle with another PIN never rewrites the verifier', () async {
+      answerNative();
+      final legacy = PinHash.create('1234', iterations: 10);
+      store.values[SecureAppLockRepo.storageKey] = jsonEncode({
+        'schema': 1,
+        'enabled': true,
+        'timeout': 'immediate',
+        'pinLength': 4,
+        'pin': legacy.toJson(),
+      });
+
+      final repo = await SecureAppLockRepo.open(
+        store: store,
+        readBackoff: const [Duration.zero],
+      );
+      expect(await repo.verify('1234'), isTrue);
+
+      // The marker proves *a* PIN matched, not that this is that PIN. The
+      // rehash would otherwise store a hash of the wrong PIN.
+      await repo.settleAfterUnlock('9999');
+
+      final record =
+          jsonDecode(store.values[SecureAppLockRepo.storageKey]!)
+              as Map<String, dynamic>;
+      expect((record['pin'] as Map)['iterations'], 10);
+      expect(await repo.verify('1234'), isTrue);
+      expect(await repo.verify('9999'), isFalse);
+    });
   });
 
   test('unreadable storage falls back to a disabled repo', () async {

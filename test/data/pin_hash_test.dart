@@ -21,6 +21,14 @@ void main() {
       expect(first.iterations, 10);
     });
 
+    test('a fresh salt is long enough and never repeats', () {
+      final first = PinHash.randomSalt();
+      final second = PinHash.randomSalt();
+
+      expect(first, hasLength(16));
+      expect(first, isNot(second));
+    });
+
     test('round-trips through its stored form', () {
       final original = PinHash.create('987654', iterations: 10);
       final parsed = PinHash.tryParse(original.toJson());

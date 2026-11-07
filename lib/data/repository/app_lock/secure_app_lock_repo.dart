@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:isolate';
 
+import 'package:boorusphere/data/repository/app_lock/native_pin_kdf.dart';
 import 'package:boorusphere/data/repository/app_lock/pin_hash.dart';
 import 'package:boorusphere/data/repository/app_lock/secret_store.dart';
 import 'package:boorusphere/domain/repository/app_lock_repo.dart';
@@ -19,10 +20,12 @@ class SecureAppLockRepo implements AppLockRepo {
   static const int schema = 1;
 
   final SecretStore _store;
-  final int _iterations;
+  // An explicit count is a test seam; production chooses by KDF availability.
+  final int? _iterations;
 
   AppLockConfig _config;
   PinHash? _pin;
+  PinHash? _verifiedForSettlement;
 
   @override
   AppLockConfig get config => _config;
@@ -40,7 +43,7 @@ class SecureAppLockRepo implements AppLockRepo {
   /// hand an unlocked session to whoever picked the phone up.
   static Future<AppLockRepo> open({
     SecretStore store = const FlutterSecretStore(),
-    int iterations = defaultPinIterations,
+    int? iterations,
     List<Duration> readBackoff = _readBackoff,
   }) async {
     for (var attempt = 0; ; attempt++) {
@@ -63,7 +66,7 @@ class SecureAppLockRepo implements AppLockRepo {
     Duration(milliseconds: 500),
   ];
 
-  static AppLockRepo _parse(SecretStore store, String? raw, int iterations) {
+  static AppLockRepo _parse(SecretStore store, String? raw, int? iterations) {
     if (raw == null || raw.isEmpty) {
       return SecureAppLockRepo._(
         store,
@@ -176,11 +179,25 @@ class SecureAppLockRepo implements AppLockRepo {
     final stored = _pin;
     if (stored == null) return false;
 
-    final value = stored.toJson();
-    return Isolate.run(() {
-      final parsed = PinHash.tryParse(value);
-      return parsed != null && parsed.matches(pin);
-    });
+    final ok = await _matches(stored, pin);
+    // A queued change-PIN may finish while verification runs. Its verifier
+    // must not be replaced later by housekeeping for the previous PIN.
+    if (ok && identical(_pin, stored)) _verifiedForSettlement = stored;
+    return ok;
+  }
+
+  /// Checks [pin] against [stored] without touching the live record.
+  ///
+  /// The native provider keeps the derivation off the UI isolate; a device
+  /// without it, or a PIN it cannot take, falls back to the portable path.
+  Future<bool> _matches(PinHash stored, String pin) async {
+    final native = await NativePinKdf.derive(
+      pin,
+      stored.salt,
+      stored.iterations,
+    );
+    if (native != null) return constantTimeEquals(stored.hash, native);
+    return Isolate.run(() => stored.matches(pin));
   }
 
   @override
@@ -219,10 +236,30 @@ class SecureAppLockRepo implements AppLockRepo {
 
   @override
   Future<void> settleAfterUnlock(String pin) async {
-    // The PIN that just opened the lock is the ground truth for a length
-    // the record never knew; a known length is already right.
+    final stored = _verifiedForSettlement;
+    _verifiedForSettlement = null;
+    if (stored == null || !identical(_pin, stored)) return;
+
+    // Housekeeping rewrites the verifier, so the PIN it derives must be the
+    // one that opened it. A stale marker or a wrong argument must never turn
+    // the stored verifier into a hash of another PIN.
+    if (!await _matches(stored, pin)) return;
+    if (!identical(_pin, stored)) return;
+
+    PinHash? upgraded;
+    final target = _iterations ?? nativePinIterations;
+    if (stored.iterations < target) {
+      final salt = PinHash.randomSalt();
+      final bytes = await NativePinKdf.derive(pin, salt, target);
+      if (bytes != null) {
+        upgraded = PinHash(salt: salt, hash: bytes, iterations: target);
+      }
+    }
+    if (!identical(_pin, stored)) return;
+
     final length = _config.pinLength ?? pin.length;
     final dirty =
+        upgraded != null ||
         _config.failedAttempts != 0 ||
         _config.retryAt != null ||
         _config.pinLength != length;
@@ -234,18 +271,25 @@ class SecureAppLockRepo implements AppLockRepo {
       timeout: _config.timeout,
       pinLength: length,
     );
-    await _adopt(next, _pin);
+    // The upgrade keeps the same PIN. A failed write can therefore retain it
+    // in memory without making the stored PIN and the live PIN disagree.
+    await _adopt(next, upgraded ?? stored);
   }
 
-  /// Derives the verifier off the main isolate: a PBKDF2 pass here is long
-  /// enough to drop frames if it runs while the UI is on screen.
+  /// Native work runs on Android's task queue; the portable fallback runs in
+  /// an isolate. Neither path computes PBKDF2 on the Flutter UI isolate.
   Future<PinHash> _hash(String pin) async {
-    final iterations = _iterations;
-    final Map<String, Object> value;
     try {
-      value = await Isolate.run(() {
-        return PinHash.create(pin, iterations: iterations).toJson();
-      });
+      final salt = PinHash.randomSalt();
+      final nativeIterations = _iterations ?? nativePinIterations;
+      final bytes = await NativePinKdf.derive(pin, salt, nativeIterations);
+      if (bytes != null) {
+        return PinHash(salt: salt, hash: bytes, iterations: nativeIterations);
+      }
+      final iterations = _iterations ?? defaultPinIterations;
+      return await Isolate.run(
+        () => PinHash.create(pin, iterations: iterations),
+      );
     } catch (e, stack) {
       // The isolate itself failed — a refused spawn, memory pressure. The
       // setup sheet only knows AppLockUnavailableException; an escaping
@@ -253,11 +297,6 @@ class SecureAppLockRepo implements AppLockRepo {
       mainLog.e('App lock: the PIN could not be hashed', e, stack);
       throw const AppLockUnavailableException();
     }
-    final hashed = PinHash.tryParse(value);
-    if (hashed == null) {
-      throw const AppLockUnavailableException();
-    }
-    return hashed;
   }
 
   /// Like [_persist], but a failed write still adopts the record in memory.
