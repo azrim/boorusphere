@@ -426,27 +426,61 @@ void main() {
     },
   );
 
-  test('a partly filtered page keeps its visible posts', () async {
-    final repo = _FakeRepo({
-      0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
-    });
-    final container = _container(
-      repo,
-      window: _Window(limit: 2),
-      hidden: {(serverId: 'S', id: 1)},
-    );
-    addTearDown(container.dispose);
-    final notifier = container.read(pageStateProvider.notifier);
+  test(
+    'a partly filtered page keeps every post for the view to hide',
+    () async {
+      // The favorite/download filters are applied while rendering, so a post
+      // they hide stays in the page data and comes back the moment the filter
+      // is lifted. Only the tags blocker is applied when the page is fetched.
+      final repo = _FakeRepo({
+        0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      });
+      final container = _container(
+        repo,
+        window: _Window(limit: 2),
+        hidden: {(serverId: 'S', id: 1)},
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(pageStateProvider.notifier);
 
-    await notifier.load();
+      await notifier.load();
 
-    final data = container.read(pageStateProvider).data;
-    expect(data.posts.map((it) => it.id), [2]);
-    expect(data.pageIndex, 1);
-    // The server still returned a full page, so more results may follow even
-    // though only one post survived the filter.
-    expect(data.hasNext, isTrue);
-  });
+      final data = container.read(pageStateProvider).data;
+      expect(data.posts.map((it) => it.id), [1, 2]);
+      expect(data.pageIndex, 1);
+      // The server still returned a full page, so more results may follow even
+      // though only one post survived the filter.
+      expect(data.hasNext, isTrue);
+    },
+  );
+
+  test(
+    'a first page emptied by local filters reports a filtered result',
+    () async {
+      // The query has results; every one of them is hidden by a local filter.
+      // Reporting an empty query would send the reader to change the tags.
+      final repo = _FakeRepo({
+        0: ParsedPage(posts: [_post(1), _post(2)], rawCount: 2),
+      });
+      final container = _container(
+        repo,
+        window: _Window(limit: 2),
+        hidden: {(serverId: 'S', id: 1), (serverId: 'S', id: 2)},
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(pageStateProvider.notifier);
+
+      await notifier.load();
+
+      final result = container.read(pageStateProvider);
+      expect(result, isA<ErrorFetchResult>());
+      expect(switch (result) {
+        ErrorFetchResult(:final error) => error,
+        _ => null,
+      }, BooruError.filtered);
+      expect(result.data.posts, isEmpty);
+    },
+  );
 
   test('suggestions hide tags blocked by a single positive entry', () async {
     final repo = _FakeRepo({})
@@ -632,6 +666,31 @@ void main() {
     expect(container.read(pageStateProvider).data.pageIndex, 1);
   });
 
+  test('a failed restart leaves the viewport untouched', () async {
+    // The counter moves the feed back to the top. A restart that never landed
+    // must not move the reader: nothing on screen changed.
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+    });
+    final container = _container(repo);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    final serial = container.read(pageStateProvider).data.restartSerial;
+
+    repo.failing.add(0);
+    await notifier.update(
+      (option) => option.copyWith(query: 'cat', clear: true),
+    );
+    expect(container.read(pageStateProvider), isA<ErrorFetchResult>());
+    expect(container.read(pageStateProvider).data.restartSerial, serial);
+
+    repo.failing.clear();
+    await notifier.load();
+    expect(container.read(pageStateProvider).data.restartSerial, serial + 1);
+  });
+
   test(
     'a rating picked during a fetch reaches the feed once it settles',
     () async {
@@ -690,7 +749,35 @@ void main() {
     expect(container.read(pageStateProvider).data.hasPrev, isFalse);
   });
 
-  test('a failed window reset steps through the new window', () async {
+  test('a deep page emptied by a filter asks the first page first', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+      1: ParsedPage(posts: [_post(2)], rawCount: 1),
+      2: ParsedPage(posts: [_post(3, tag: 'later')], rawCount: 1),
+    });
+    final blocker = _FakeTagsBlocker(const []);
+    final container = _container(repo, blocker: blocker);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.load();
+    await notifier.nextPage();
+    await notifier.nextPage();
+    expect(container.read(pageStateProvider).data.pageIndex, 3);
+
+    // A filter emptied the landed page, which proves nothing about the first
+    // one: the reload asks for page zero before reporting an empty query.
+    blocker.block(['later']);
+    repo.requested.clear();
+    await notifier.load();
+
+    expect(repo.requested, [2, 3, 0]);
+    final data = container.read(pageStateProvider).data;
+    expect(data.posts.map((it) => it.id), [1]);
+    expect(data.pageIndex, 1);
+  });
+
+  test('a failed window reset drops the posts of the old window', () async {
     final repo = _FakeRepo({
       for (var i = 0; i < 4; i++) i: ParsedPage(posts: [_post(i)], rawCount: 1),
     });
@@ -703,22 +790,35 @@ void main() {
     await notifier.nextPage();
     await notifier.nextPage();
     expect(container.read(pageStateProvider).data.pageIndex, 3);
+    final before = container.read(pageStateProvider).data;
 
     // The page size doubles, so the next step restarts from the first page of
-    // the new window. That reset now fails, but it already moved the landed
-    // page back: the step after it must ask for the page behind the first one,
-    // not for the old index in the new window.
+    // the new window. That reset fails, but the posts on screen still belong
+    // to the old window and must not be presented as page one of the new one.
     await container.read(serverSettingStateProvider.notifier).setPostLimit(8);
     repo.failing.add(0);
     await notifier.nextPage();
-    expect(repo.requested, [0, 1, 2, 0]);
 
+    final failed = container.read(pageStateProvider);
+    expect(failed, isA<ErrorFetchResult>());
+    expect(failed.data.posts, isEmpty);
+    expect(failed.data.pageIndex, 1);
+    expect(failed.data.hasPrev, isFalse);
+    expect(failed.data.hasNext, isFalse);
+    // The viewport stays where the reader left it: only a restart that landed
+    // may move it.
+    expect(failed.data.restartSerial, before.restartSerial);
+
+    // The card offers Retry, which starts the new window over.
     repo.failing.clear();
     repo.requested.clear();
-    await notifier.nextPage();
+    await notifier.load();
 
-    expect(repo.requested, [1]);
-    expect(container.read(pageStateProvider).data.pageIndex, 2);
+    expect(repo.requested, [0]);
+    final data = container.read(pageStateProvider).data;
+    expect(data.posts.map((it) => it.id), [0]);
+    expect(data.pageIndex, 1);
+    expect(data.option.limit, 8);
   });
 
   test('a failed window reset names the first page of the new window', () async {
@@ -748,15 +848,18 @@ void main() {
     expect(failed, isA<ErrorFetchResult>());
     expect(failed.data.pageIndex, 1);
     expect(failed.data.hasPrev, isFalse);
+    expect(failed.data.posts, isEmpty);
 
     repo.requested.clear();
     await notifier.prevPage();
     expect(repo.requested, isEmpty);
 
+    // With no posts under the new window the arrows have nothing to act on;
+    // the card's Retry is what starts it.
     repo.failing.clear();
-    await notifier.nextPage();
-    expect(repo.requested, [1]);
-    expect(container.read(pageStateProvider).data.pageIndex, 2);
+    await notifier.load();
+    expect(repo.requested, [0]);
+    expect(container.read(pageStateProvider).data.pageIndex, 1);
   });
 
   test('a server lost mid-fetch keeps its blockers', () async {

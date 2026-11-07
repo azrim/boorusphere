@@ -167,6 +167,21 @@ class PageState extends _$PageState {
     return data.copyWith(pageIndex: 1, hasPrev: false);
   }
 
+  /// [data] with the posts of the previous result window dropped.
+  ///
+  /// A restart that failed could not replace them, and the new window does not
+  /// own them: leaving them on screen would present them as its first page,
+  /// with arrows aimed at indexes that address other posts.
+  PageData _emptyWindow(PageData data) {
+    return data.copyWith(
+      posts: const [],
+      pageIndex: 1,
+      hasPrev: false,
+      hasNext: false,
+      limitReached: false,
+    );
+  }
+
   /// Reports a query that contains a tag blocked on [server], and whether it
   /// did.
   ///
@@ -243,58 +258,54 @@ class PageState extends _$PageState {
       _recordedSearch = (query: query, serverId: server.id);
       unawaited(_recordHistory(query, server));
     }
+    final settings = ref.read(serverSettingStateProvider);
+    final shown = state.data.option;
+    final option = shown.copyWith(
+      limit: settings.postLimit,
+      searchRating: settings.searchRating,
+    );
+
+    // A new query restarts the result set, and a window that moved under the
+    // posts on screen re-indexes it: either way the landed page must go back
+    // to the first one, or the reader is pointed at other posts.
+    //
+    // Infinite mode has no page to stay on: a reload (pull-to-refresh, a
+    // filter change) starts the accumulated list over from its first page.
+    final windowChanged = _windowChanged(option, shown);
+    final restart =
+        option.clear || windowChanged || _feedMode == FeedMode.infinite;
+
     _fetching = true;
     try {
-      final settings = ref.read(serverSettingStateProvider);
-      final shown = state.data.option;
-      final option = shown.copyWith(
-        limit: settings.postLimit,
-        searchRating: settings.searchRating,
-      );
-
-      // A new query restarts the result set, and a window that moved under the
-      // posts on screen re-indexes it: either way the landed page must go back
-      // to the first one, or the reader is pointed at other posts.
-      //
-      // Infinite mode has no page to stay on: a reload (pull-to-refresh, a
-      // filter change) starts the accumulated list over from its first page.
-      final restart =
-          option.clear ||
-          _windowChanged(option, shown) ||
-          _feedMode == FeedMode.infinite;
       if (restart) _page = 0;
 
-      state = FetchResult.loading(
-        state.data.copyWith(
-          option: option,
-          // A reload that starts over can keep the same page index (or land on
-          // the first page again), so an append and a restart are told apart by
-          // this counter rather than by the index. The feed resets its viewport
-          // when it changes.
-          restartSerial: restart
-              ? state.data.restartSerial + 1
-              : state.data.restartSerial,
-        ),
-      );
+      state = FetchResult.loading(state.data.copyWith(option: option));
 
       var result = await _fetchPage(option, server, _page);
       // The page can be popped while the request is on the wire; the element
       // is gone then and every further write would throw.
       if (!ref.mounted) return;
-      if (result == null && _page > 0) {
+      if ((result == null || result.posts.isEmpty) && _page > 0) {
         // An empty answer for a deep page only proves that page is past the
-        // end. The window can have shifted under a stale index, so ask for the
-        // first page before telling the reader the query has no results.
+        // end (or that every one of its entries is filtered). The window can
+        // have shifted under a stale index, so ask for the first page before
+        // telling the reader there is nothing to show.
         _page = 0;
         result = await _fetchPage(option, server, 0);
         if (!ref.mounted) return;
       }
-      if (result == null) {
-        // No displayable posts on the first page: keep the existing
-        // empty-result error behavior.
+      if (result == null || result.posts.isEmpty) {
+        // Nothing displayable on the first page. A literal empty response is
+        // an empty query; entries the filters removed are a different answer,
+        // and the status card names the filter that can bring them back.
         state = FetchResult.error(
-          _alignPageLabel(state.data),
-          error: BooruError.empty,
+          // Posts fetched with the previous window do not belong to the
+          // window the reader is in now: keeping them would present them as
+          // its first page.
+          windowChanged
+              ? _emptyWindow(state.data)
+              : _alignPageLabel(state.data),
+          error: result == null ? BooruError.empty : BooruError.filtered,
         );
         return;
       }
@@ -315,12 +326,20 @@ class PageState extends _$PageState {
           // is what used to keep the footer asking for a refresh while the
           // refresh itself kept refusing to grow the list.
           limitReached: false,
+          // A reload that starts over can keep the same page index (or land on
+          // the first page again), so an append and a restart are told apart by
+          // this counter rather than by the index. The feed resets its viewport
+          // when it changes; only a restart that landed bumps it, so a failed
+          // one leaves the reader where they were.
+          restartSerial: restart
+              ? state.data.restartSerial + 1
+              : state.data.restartSerial,
         ),
       );
     } catch (err, stack) {
       if (!ref.mounted) return;
       state = FetchResult.error(
-        _alignPageLabel(state.data),
+        windowChanged ? _emptyWindow(state.data) : _alignPageLabel(state.data),
         error: err,
         stackTrace: stack,
       );
@@ -437,7 +456,19 @@ class PageState extends _$PageState {
         direction: direction,
       );
       if (!ref.mounted) return;
-      if (result == null) {
+      if (result == null || result.posts.isEmpty) {
+        if (windowChanged) {
+          // The displayed posts were fetched from the window the reader just
+          // left; the reset that would have replaced them did not land. Keep
+          // them out of the new window and let the card offer the retry.
+          state = FetchResult.error(
+            _emptyWindow(
+              current.copyWith(option: option.copyWith(clear: false)),
+            ),
+            error: result == null ? BooruError.empty : BooruError.filtered,
+          );
+          return;
+        }
         // The navigation target has no displayable posts: keep the displayed
         // posts and stay on the current page. Only a failed step to the page
         // right next door proves the end of the results; a jump further ahead
@@ -446,6 +477,7 @@ class PageState extends _$PageState {
         state = FetchResult.data(
           _alignPageLabel(
             current.copyWith(
+              option: option.copyWith(clear: false),
               hasNext: target == _page + 1 ? false : current.hasNext,
               // A window reset already moved the landed page to the first one,
               // so there is nothing before it either.
@@ -475,7 +507,9 @@ class PageState extends _$PageState {
       if (!ref.mounted) return;
       _retryTarget = target;
       state = FetchResult.error(
-        _alignPageLabel(current.copyWith(option: option)),
+        windowChanged
+            ? _emptyWindow(current.copyWith(option: option))
+            : _alignPageLabel(current.copyWith(option: option)),
         error: err,
         stackTrace: stack,
       );
@@ -519,9 +553,10 @@ class PageState extends _$PageState {
 
       final result = await _fetchPage(option, server, _page + 1);
       if (!ref.mounted) return;
-      if (result == null) {
-        // The next page had no entries: the server reached the end. Keep what
-        // is already displayed and stop offering more.
+      if (result == null || result.posts.isEmpty) {
+        // The next page had no entries (or nothing displayable that the scan
+        // could reach): the server reached the end of what this feed can show.
+        // Keep what is already displayed and stop offering more.
         state = FetchResult.data(
           current.copyWith(
             option: option.copyWith(clear: false),
@@ -597,11 +632,18 @@ class PageState extends _$PageState {
   }
 
   /// Fetches [startIndex] (0-based) from [server], skipping pages that yield
-  /// no displayable posts (up to [_maxSkippedPages]) in [direction].
+  /// no visible posts (up to [_maxSkippedPages]) in [direction].
   ///
-  /// Returns `null` when the response is empty (a literal empty response is
-  /// terminal; it means the end of the results) or when every skipped page
-  /// was fully blocked.
+  /// Returns `null` when nothing was there to examine: a literal empty
+  /// response is terminal and means the end of the results. When entries
+  /// existed but every one of them was filtered, the returned record carries
+  /// an empty post list instead, so the caller can name the filter rather than
+  /// an empty query.
+  ///
+  /// The posts are filtered by the tags blocker only. Favorite and download
+  /// hiding is applied by the feed as it renders, so a post stays in the page
+  /// data and comes back the moment its filter is lifted; the hidden set is
+  /// read here only to decide whether the page has anything left to show.
   Future<_PageFetch?> _fetchPage(
     PageOption option,
     Server server,
@@ -613,29 +655,38 @@ class PageState extends _$PageState {
     // first await, so a session that loses its server mid-loop cannot answer
     // with posts the blockers of the server that was actually asked exclude.
     final blocked = _blockedExpressionsFor(server);
-    // Local filters are treated like blocked tags: a page whose every entry is
-    // hidden is skipped, so turning the filter on cannot leave the reader on an
-    // empty grid while the server still has more results.
+    // Local filters are treated like blocked tags for the skip: a page whose
+    // every entry is hidden is skipped, so turning the filter on cannot leave
+    // the reader on an empty grid while the server still has more results.
     final hidden = ref.read(hiddenFeedPostKeysProvider);
     var index = startIndex;
     var skips = 0;
+    var sawEntries = false;
 
     while (true) {
       final res = await repo.getPage(option, index);
       // A literal empty response is terminal: the server has no more entries.
-      if (res.rawCount == 0) return null;
+      if (res.rawCount == 0) {
+        if (!sawEntries) return null;
+        return (index: index, posts: const <Post>[], rawCount: 0);
+      }
+      sawEntries = true;
 
       final posts = res
           .where((it) => !matchesBlockedTagExpressions(blocked, it.allTags))
-          .where((it) => hidden.isEmpty || !hidden.contains(feedPostKeyOf(it)))
           .toList();
-      if (posts.isNotEmpty) {
+      final visible = hidden.isEmpty
+          ? posts
+          : posts.where((it) => !hidden.contains(feedPostKeyOf(it)));
+      if (visible.isNotEmpty) {
         return (index: index, posts: posts, rawCount: res.rawCount);
       }
 
       // The page had entries but none of them are displayable; try the next
       // one.
-      if (skips >= _maxSkippedPages) return null;
+      if (skips >= _maxSkippedPages) {
+        return (index: index, posts: const <Post>[], rawCount: res.rawCount);
+      }
       skips++;
       index += direction;
       if (index < 0) return null;
