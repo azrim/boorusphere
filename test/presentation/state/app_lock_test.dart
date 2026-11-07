@@ -156,11 +156,22 @@ class _FakeClock extends Clock {
   _FakeClock(this.value);
 
   DateTime value;
+  Duration elapsedValue = Duration.zero;
 
   @override
   DateTime now() => value;
 
+  @override
+  Duration elapsed() => elapsedValue;
+
   void advance(Duration duration) {
+    value = value.add(duration);
+    elapsedValue += duration;
+  }
+
+  /// Moves the system clock only, like a manual change in Settings. The
+  /// monotonic count keeps running where it was.
+  void jumpWallClock(Duration duration) {
     value = value.add(duration);
   }
 }
@@ -356,6 +367,69 @@ void main() {
       expect(await notifier().unlockWithPin('1234'), UnlockResult.success);
       expect(data().isLocked, isFalse);
       expect(data().retryAt, isNull);
+    });
+
+    test('moving the system clock forward does not skip the wait', () async {
+      await create();
+      for (var i = 0; i <= freePinAttempts; i++) {
+        await notifier().unlockWithPin('0000');
+      }
+      expect(data().retryAt, isNotNull);
+
+      // The record holds a wall-clock deadline, the one input a user can
+      // move. The live wait is anchored to the monotonic count instead.
+      clock.jumpWallClock(const Duration(days: 1));
+
+      expect(await notifier().unlockWithPin('1234'), UnlockResult.throttled);
+      expect(data().isLocked, isTrue);
+      expect(data().failedAttempts, freePinAttempts + 1);
+
+      // The real wait is untouched: once it elapses, the PIN works again.
+      clock.advance(shortPinLockout);
+      expect(await notifier().unlockWithPin('1234'), UnlockResult.success);
+    });
+
+    test('moving the system clock back does not stretch the wait', () async {
+      await create();
+      for (var i = 0; i <= freePinAttempts; i++) {
+        await notifier().unlockWithPin('0000');
+      }
+
+      clock.jumpWallClock(const Duration(days: -1));
+      expect(await notifier().unlockWithPin('1234'), UnlockResult.throttled);
+
+      clock.advance(shortPinLockout);
+      expect(await notifier().unlockWithPin('1234'), UnlockResult.success);
+    });
+
+    test('a wait that already passed is not carried into a start', () async {
+      await create();
+      for (var i = 0; i <= freePinAttempts; i++) {
+        await notifier().unlockWithPin('0000');
+      }
+      expect(repo.retryAt, isNotNull);
+
+      clock.advance(shortPinLockout);
+
+      // A restart is the one case that has to trust the wall clock: the
+      // monotonic count begins again with the process.
+      final restarted = ProviderContainer(
+        overrides: [
+          appLockRepoProvider.overrideWithValue(repo),
+          biometricAuthProvider.overrideWithValue(biometrics),
+          clockProvider.overrideWithValue(clock),
+        ],
+      );
+      addTearDown(restarted.dispose);
+
+      final carried = restarted.read(appLockProvider);
+      expect(carried.failedAttempts, freePinAttempts + 1);
+      expect(carried.retryAt, isNull);
+      expect(carried.isThrottledAt(clock.now()), isFalse);
+      expect(
+        await restarted.read(appLockProvider.notifier).unlockWithPin('1234'),
+        UnlockResult.success,
+      );
     });
 
     test('the counter lives in the repo, so a restart keeps it', () async {

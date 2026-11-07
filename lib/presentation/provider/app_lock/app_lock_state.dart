@@ -66,6 +66,11 @@ class AppLock extends _$AppLock {
 
   Timer? _retryTimer;
 
+  /// End of the live wait on [Clock.elapsed]. The wall clock in the record is
+  /// only its fallback across a restart: moving the system clock must not end
+  /// a wait the process is still counting.
+  Duration? _retryUntil;
+
   @override
   AppLockData build() {
     final config = ref.watch(appLockRepoProvider).config;
@@ -76,11 +81,16 @@ class AppLock extends _$AppLock {
     unawaited(Future.microtask(refreshBiometrics));
 
     // The failure count lives in the record next to the verifier, so a run
-    // of guesses costs the same after a restart. Arm the live countdown for
-    // a wait that was carried over one.
+    // of guesses costs the same after a restart. A carried wait is the one
+    // case that has to trust the wall clock: the monotonic count starts over
+    // with the process. One whose deadline already passed is no wait at all.
+    final now = _now();
     final retryAt = config.retryAt;
-    if (retryAt != null) {
-      _armRetryTimer(retryAt, retryAt.difference(_now()));
+    final liveRetryAt = retryAt != null && retryAt.isAfter(now)
+        ? retryAt
+        : null;
+    if (liveRetryAt != null) {
+      _armRetryTimer(liveRetryAt.difference(now));
     }
 
     return AppLockData(
@@ -89,7 +99,7 @@ class AppLock extends _$AppLock {
       timeout: config.timeout,
       pinLength: config.pinLength,
       failedAttempts: config.failedAttempts,
-      retryAt: retryAt,
+      retryAt: liveRetryAt,
       // A cold start begins behind the lock: unlike a resume, there is no
       // session here to keep open.
       locked: config.isActive,
@@ -129,11 +139,11 @@ class AppLock extends _$AppLock {
     if (!state.hasPin) return UnlockResult.success;
     if (_busy) return UnlockResult.busy;
 
-    final now = _now();
-    if (state.isThrottledAt(now)) return UnlockResult.throttled;
+    if (_isThrottled()) return UnlockResult.throttled;
     if (state.retryAt != null) {
       // The wait has passed but the timer has not run yet; clear it before a
       // fresh comparison starts.
+      _clearRetry();
       state = state.copyWith(retryAt: null);
     }
 
@@ -348,6 +358,7 @@ class AppLock extends _$AppLock {
       await ref.read(appLockRepoProvider).enable(pin);
       if (!ref.mounted) return;
 
+      _clearRetry();
       state = state.copyWith(
         enabled: true,
         hasPin: true,
@@ -364,6 +375,7 @@ class AppLock extends _$AppLock {
       await ref.read(appLockRepoProvider).changePin(pin);
       if (!ref.mounted) return;
 
+      _clearRetry();
       state = state.copyWith(
         hasPin: true,
         pinLength: pin.length,
@@ -381,6 +393,7 @@ class AppLock extends _$AppLock {
       _pausedAt = null;
       _pausedDuringExternalFlow = false;
       _pausedDuringAuth = false;
+      _clearRetry();
       state = state.copyWith(
         enabled: false,
         hasPin: false,
@@ -404,8 +417,7 @@ class AppLock extends _$AppLock {
   void _unlock() {
     _pausedAt = null;
     _pausedDuringAuth = false;
-    _retryTimer?.cancel();
-    _retryTimer = null;
+    _clearRetry();
     state = state.copyWith(locked: false, failedAttempts: 0, retryAt: null);
   }
 
@@ -428,17 +440,46 @@ class AppLock extends _$AppLock {
   /// Schedules the moment the throttle clears; the repo owns the record, this
   /// only moves the countdown on screen.
   void _armRetryAfterFailure(DateTime? retryAt) {
-    _retryTimer?.cancel();
-    _retryTimer = null;
+    _clearRetry();
     if (retryAt == null) return;
-    _armRetryTimer(retryAt, retryAt.difference(_now()));
+    _armRetryTimer(retryAt.difference(_now()));
   }
 
-  void _armRetryTimer(DateTime retryAt, Duration wait) {
-    _retryTimer = Timer(wait.isNegative ? Duration.zero : wait, () {
-      _retryTimer = null;
+  /// Anchors [wait] on the monotonic clock and keeps the displayed deadline
+  /// in step with it once a second.
+  ///
+  /// The record holds an absolute wall-clock deadline, but that is also the
+  /// one input the user can move. Republishing it from the monotonic count
+  /// means a clock jump neither shortens nor stretches the wait, and the line
+  /// on screen never shows a time the lock no longer believes.
+  void _armRetryTimer(Duration wait) {
+    final bounded = wait.isNegative ? Duration.zero : wait;
+    _retryUntil = ref.read(clockProvider).elapsed() + bounded;
+    _retryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!ref.mounted) return;
-      state = state.copyWith(retryAt: null);
+      final until = _retryUntil;
+      if (until == null) return;
+      final left = until - ref.read(clockProvider).elapsed();
+      if (left <= Duration.zero) {
+        _clearRetry();
+        state = state.copyWith(retryAt: null);
+        return;
+      }
+      state = state.copyWith(retryAt: _now().add(left));
     });
+  }
+
+  void _clearRetry() {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    _retryUntil = null;
+  }
+
+  /// Whether the live wait still holds. The monotonic anchor is the verdict;
+  /// the wall-clock field is only consulted when there is no anchor.
+  bool _isThrottled() {
+    final until = _retryUntil;
+    if (until != null) return ref.read(clockProvider).elapsed() < until;
+    return state.isThrottledAt(_now());
   }
 }
