@@ -38,6 +38,16 @@ class PeriodicBackupRunner {
       return;
     }
 
+    // A backup written from a stand-in box would state that the source held
+    // nothing for that store. The notifier refuses that run; skipping here
+    // keeps the refusal out of the UI on every boot and resume.
+    if (!_ref.read(dataBackupStateProvider.notifier).storageAvailable) {
+      mainLog.w(
+        'PeriodicBackup: skipped, storage is unavailable in this session',
+      );
+      return;
+    }
+
     final passphrase = setting.backupPassphrase;
     // An encrypted backup without its passphrase would have to fall back to a
     // plain ZIP, which puts the user's data unencrypted into a shared folder.

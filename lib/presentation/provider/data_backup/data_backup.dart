@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:archive/archive_io.dart';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/downloads/user_download_repo.dart';
+import 'package:boorusphere/data/repository/fallback_box.dart';
 import 'package:boorusphere/data/repository/favorite_post/user_favorite_post_repo.dart';
 import 'package:boorusphere/data/repository/search_history/user_search_history.dart';
 import 'package:boorusphere/data/repository/server/user_server_repo.dart';
@@ -53,6 +54,35 @@ class DataBackupState extends _$DataBackupState {
   /// point), and two overlapping runs would overwrite each other's result
   /// while both read and write the same boxes and the same shared folder.
   bool _busy = false;
+
+  /// Whether a run may write right now.
+  ///
+  /// A stand-in box and the missing settings box keep their values for this
+  /// session only. A backup written from them would say "the source held
+  /// nothing" for a store that was merely unreadable, and a restore reported
+  /// from them would name stores the forced restart discards. Both are
+  /// refused instead of half-written.
+  bool get storageAvailable =>
+      degradedBoxNames.isEmpty && ref.read(settingsRepoProvider).isPersistent;
+
+  /// Whether another run owns the boxes and the backups folder. A caller that
+  /// asked for a new run reads this to say why nothing started.
+  bool get isBusy => _busy;
+
+  /// Whether [storeKey] is bound to a box that cannot persist this session.
+  bool _storeUnavailable(String storeKey) {
+    if (storeKey == UserSettingsRepo.key) {
+      return !ref.read(settingsRepoProvider).isPersistent;
+    }
+    if (storeKey == UserDownloadsRepo.entryKey) {
+      // Both download boxes are replaced together, but the progress box is
+      // what a record's status is written to, so either name means the store
+      // is degraded.
+      return isDegradedBox(UserDownloadsRepo.entryKey) ||
+          isDegradedBox(UserDownloadsRepo.progressKey);
+    }
+    return isDegradedBox(storeKey);
+  }
 
   /// The two failures the screen can report. Each names its own run, so a
   /// backup that could not be written never reads like a corrupt archive.
@@ -132,7 +162,14 @@ class DataBackupState extends _$DataBackupState {
     // downloads it has in flight, whose index write would land after a fresh
     // instance already read the file.
     await _applyRestoredCacheBudget();
-    await ref.read(serverStateProvider.notifier).populate();
+    // The list is rebuilt from the restored box. A failure here is not a
+    // failed restore: every store is already written, and turning that into
+    // an "invalid archive" report would hide the data that did land.
+    try {
+      await ref.read(serverStateProvider.notifier).populate();
+    } on Object catch (e, stack) {
+      mainLog.w('DataBackupState: failed to reload the server list', e, stack);
+    }
   }
 
   /// Gives the running video cache the budget the restored settings name.
@@ -152,11 +189,17 @@ class DataBackupState extends _$DataBackupState {
     }
   }
 
-  Future<void> restore({
+  /// Runs a restore and reports whether it was accepted.
+  ///
+  /// False means another run owns the boxes: nothing was asked, nothing was
+  /// read and nothing changed, so the caller can say so instead of leaving the
+  /// tap unanswered. A run that started and failed answers true here; its
+  /// outcome arrives through [state].
+  Future<bool> restore({
     Future<bool?> Function(String fileName)? onConfirm,
     Future<String?> Function()? onPassphrase,
   }) async {
-    if (_busy) return;
+    if (_busy) return false;
     _busy = true;
     try {
       await _restore(onConfirm: onConfirm, onPassphrase: onPassphrase);
@@ -171,6 +214,7 @@ class DataBackupState extends _$DataBackupState {
     } finally {
       _busy = false;
     }
+    return true;
   }
 
   Future<void> _restore({
@@ -224,9 +268,19 @@ class DataBackupState extends _$DataBackupState {
     // frame be drawn before the decryption and the import loop take over.
     await Future<void>.delayed(Duration.zero);
 
-    var bytes = await File(pickedPath).readAsBytes();
-    // Refused before the bytes are parsed or decrypted: nothing this app
-    // writes comes close to this size, so a bigger file is not one of ours.
+    final pickedFile = File(pickedPath);
+    // Read the size from the file system first: the cap below exists to keep
+    // the bytes out of memory, so testing it after `readAsBytes` would only
+    // describe the crash. The picker accepts any file on purpose, which puts
+    // a video or an ISO one tap away from this screen.
+    final size = await pickedFile.length();
+    if (size > _maxArchiveSize) {
+      state = restoreError;
+      return;
+    }
+    var bytes = await pickedFile.readAsBytes();
+    // The file can change between the stat and the read; the second check
+    // costs nothing and keeps the guard true.
     if (bytes.length > _maxArchiveSize) {
       state = restoreError;
       return;
@@ -312,7 +366,33 @@ class DataBackupState extends _$DataBackupState {
         ref.read(downloadsRepoProvider).import,
       ),
     };
+
+    // A store the archive carries can only be applied when its box can keep
+    // what is written. A stand-in box (or the missing settings box) holds the
+    // rows for this session only, and the restart this screen demands would
+    // throw them away: the report would name stores that never survived.
+    final carried = <String>{
+      for (final file in decoder.files)
+        if (file.isFile && path.dirname(file.name) == '.')
+          path.basenameWithoutExtension(file.name),
+    };
+    final blocked = carried
+        .where(stores.containsKey)
+        .where(_storeUnavailable)
+        .toList();
+    if (blocked.isNotEmpty) {
+      mainLog.w(
+        'DataBackupState: restore refused, unavailable stores: $blocked',
+      );
+      state = const BackupResult.error(
+        type: DataBackupType.restore,
+        failure: BackupFailure.storageUnavailable,
+      );
+      return;
+    }
+
     final imported = <BackupStore, int>{};
+    final failed = <BackupStore>[];
     try {
       for (final json in decoder.files.where((it) => it.isFile)) {
         // Only the entries the exporter wrote at the root are ours; a
@@ -323,8 +403,24 @@ class DataBackupState extends _$DataBackupState {
 
         // A store answers null for a payload it does not recognize. That
         // store is left out of the report instead of being counted as done.
-        final count = await entry.$2(utf8.decode(json.content));
-        if (count != null) imported[entry.$1] = count;
+        // A payload or a write that throws must not abort the stores after
+        // it: the ones before are already on disk, and the report has to name
+        // both outcomes instead of calling the whole file invalid.
+        try {
+          final count = await entry.$2(utf8.decode(json.content));
+          if (count == null) {
+            failed.add(entry.$1);
+          } else {
+            imported[entry.$1] = count;
+          }
+        } on Object catch (e, stack) {
+          mainLog.e(
+            'DataBackupState: store "${entry.$1.name}" failed',
+            e,
+            stack,
+          );
+          failed.add(entry.$1);
+        }
       }
     } finally {
       // The entries imported before a failure are already on disk, so the
@@ -351,15 +447,30 @@ class DataBackupState extends _$DataBackupState {
       );
     }
 
-    state = BackupResult.imported(fileName, stores: imported);
+    state = BackupResult.imported(fileName, stores: imported, failed: failed);
   }
 
-  Future<void> backup({
+  /// Runs a backup and reports whether it was accepted.
+  ///
+  /// False means another run owns the boxes or the caller asked for nothing:
+  /// no archive was attempted. A run that started answers true, and its
+  /// outcome arrives through [state].
+  Future<bool> backup({
     BackupOption option = const BackupOption(),
     String? passphrase,
   }) async {
-    if (!option.isValid()) return;
-    if (_busy) return;
+    if (!option.isValid()) return false;
+    if (_busy) return false;
+    if (!storageAvailable) {
+      // Nothing is attempted: a write into a stand-in would describe a store
+      // the next start cannot read, and pruning with default settings could
+      // delete archives the user chose to keep.
+      state = const BackupResult.error(
+        type: DataBackupType.backup,
+        failure: BackupFailure.storageUnavailable,
+      );
+      return true;
+    }
     _busy = true;
 
     state = const BackupResult.loading(DataBackupType.backup);
@@ -373,13 +484,16 @@ class DataBackupState extends _$DataBackupState {
       );
       if (backupFile == null) {
         state = backupError;
-        return;
+        return true;
       }
-      // A manual backup is a backup like any other, so it owns the same
-      // readout the periodic one updates.
-      await ref
-          .read(periodicBackupSettingStateProvider.notifier)
-          .setLastBackupTime(DateTime.now());
+      // The schedule's clock only advances on a run that carries every store
+      // it is responsible for: a settings-only archive must not postpone the
+      // next full one by up to a whole interval.
+      if (option.coversScheduledStores) {
+        await ref
+            .read(periodicBackupSettingStateProvider.notifier)
+            .setLastBackupTime(DateTime.now());
+      }
       state = BackupResult.exported(backupFile.path);
     } on Object catch (e, stack) {
       // Writing the archive or copying it into the shared folder can fail
@@ -390,6 +504,7 @@ class DataBackupState extends _$DataBackupState {
     } finally {
       _busy = false;
     }
+    return true;
   }
 
   /// Creates a backup file and returns it. Used for both local and Telegram
@@ -402,6 +517,13 @@ class DataBackupState extends _$DataBackupState {
     String? passphrase,
   }) async {
     if (!option.isValid()) return null;
+    // See `storageAvailable`: an archive built from stand-ins would report
+    // empty stores the user never chose to empty, and the prune that follows
+    // would run on defaults. The Telegram path reaches this too.
+    if (!storageAvailable) {
+      mainLog.w('DataBackupState: backup refused, storage is unavailable');
+      return null;
+    }
 
     final server = ref.read(serverRepoProvider).export();
     final blockedTags = ref.read(tagsBlockerRepoProvider).export();
@@ -475,6 +597,10 @@ class DataBackupState extends _$DataBackupState {
   /// chronologically, which is what makes "newest first" a plain string sort.
   void _pruneBackups(Directory dir, {required File keep}) {
     final settings = ref.read(settingsRepoProvider);
+    // Defaults are not a policy: with the settings box unreadable, the delete
+    // switch and the count below would be the app's fallbacks, not the user's
+    // choices, and the archives they describe are still on disk.
+    if (!settings.isPersistent) return;
     if (!settings.get(Setting.periodicBackupDeleteOld, or: true)) return;
 
     // The archive this run just wrote counts towards the limit and is never

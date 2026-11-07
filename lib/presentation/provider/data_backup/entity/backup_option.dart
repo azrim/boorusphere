@@ -25,4 +25,13 @@ extension BackupOptionX on BackupOption {
       favoritePost ||
       setting ||
       downloadRecords;
+
+  /// Whether this run carries every store the scheduled backup writes.
+  ///
+  /// Only such a run may advance the schedule's clock: a subset archive leaves
+  /// the stores it skipped without a fresh copy, so letting it postpone the
+  /// next scheduled run would keep them stale for up to a whole interval.
+  /// Download records are not part of the scheduled set, so they do not count.
+  bool get coversScheduledStores =>
+      server && blockedTags && favoritePost && setting && searchHistory;
 }
