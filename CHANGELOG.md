@@ -1,3 +1,10 @@
+## 3.1.7
+
+* **Backups**: a run is refused when a store cannot be read this session — a stand-in box, or a settings box that never opened — instead of writing an archive whose empty entries would clear that store on a later restore; the periodic runner skips the same session, and its clock advances only for a run that carries every store it is responsible for, so a settings-only manual backup no longer postpones the next full one
+* **Restore**: an archive is size-checked before it is read, a session that cannot persist the result refuses it up front, and the outcome is reported store by store: a partial restore names what was not restored instead of calling the whole archive invalid, and a failed server-list refresh no longer hides the stores that did land
+* **Settings migration**: the recovery handle is closed before the box is reopened with its cipher, so an interrupted migration cannot hand the session a plaintext handle for an encrypted store
+* **Feedback**: a second backup or restore that arrives while one runs says so instead of dropping the tap, the Telegram tile checks busy and storage before it starts, and an encryption switch without a passphrase now says scheduled backups are paused instead of promising a prompt that never comes
+
 ## 3.1.6
 
 * **Details sheet**: the sheet keeps the height it opened at — a tab swipe slides the panels without moving the edge, a vertical drag is the reader's own resize, and the sheet still opens around the panel it shows
