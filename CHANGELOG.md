@@ -1,3 +1,13 @@
+## 3.1.5
+
+* **Lock gate**: the PIN is entered on the app's own keypad with a dots row instead of the system keyboard, the biometric prompt is offered once per appearance and stays quiet on a cancel, a spinner marks the check in progress, and the pad asks for the length the PIN was registered with, so a record without one can still be submitted by hand
+* **Setup**: registering or changing a PIN keeps its sheet open with the save button spinning while the record is hashed, closes only when the store answers, and reports a failed store there so the PIN stays to retry
+* **Throttle**: the failure count and its wait travel in the record, so killing the app no longer resets a run of guesses, and the live wait is measured on a monotonic clock, so moving the system clock neither skips nor stretches it
+* **Verifier**: a new PIN is hashed with Android's own PBKDF2 provider at 200k iterations, keeping the entry at a quarter second while raising the offline cost about twenty-five times, an old 8k verifier is upgraded in place after its PIN opens the lock, and API 24/25 or a refused provider falls back to the portable path
+* **Reliability**: the unlock verdict no longer waits on the failure ledger, a failed write cannot turn a correct PIN into an error or let a wrong one go uncounted, and a Keystore read refused at boot is retried before the lock is reported off
+* **Biometrics**: an open prompt borrows at most ten seconds of absence before the lock engages on return, and a prompt kept across that pause is dismissed rather than re-shown above the cover
+* **Viewer**: with the lock cover up, the post viewer drops its wakelock, volume-key capture and fullscreen hold and destroys its video player, so audio and decoders stop behind the gate
+
 ## 3.1.4
 
 * **Viewer**: volume keys no longer step between posts by default; the setting stays under Viewer preferences for those who want it back
