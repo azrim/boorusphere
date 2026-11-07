@@ -1,3 +1,11 @@
+## 3.1.6
+
+* **Details sheet**: the sheet keeps the height it opened at — a tab swipe slides the panels without moving the edge, a vertical drag is the reader's own resize, and the sheet still opens around the panel it shows
+* **Timeline**: the loading skeleton takes the grid's inset and column count, so the first page no longer changes shape when it lands; columns and thumbnail decode size come from the extent the grid is laid out in; and a page emptied by the local filters or the tags blocker names what hid it and offers the one control that brings the posts back
+* **Search**: a history row deletes with an 8 s undo that restores it with its count, the stored history keeps its 200 newest searches, a query is counted once per search instead of once per reload, and the multi-select bar wraps so the add button survives a large font scale
+* **Feedback**: a failed page step or refresh with posts already on screen answers with a toast instead of an error card below the fold, and selection counts as a layer Back unwinds before it leaves the page
+* **Quiet work**: the search panel unmounts once closed and the grid behind it leaves the TalkBack tree; back-to-top fades instead of cutting; menu and search-panel curves are created once and disposed; header requests hash two URLs instead of every tag list on the post; and unknown post dimensions fall back to a square instead of failing the card
+
 ## 3.1.5
 
 * **Lock gate**: the PIN is entered on the app's own keypad with a dots row instead of the system keyboard, the biometric prompt is offered once per appearance and stays quiet on a cancel, a spinner marks the check in progress, and the pad asks for the length the PIN was registered with, so a record without one can still be submitted by hand
