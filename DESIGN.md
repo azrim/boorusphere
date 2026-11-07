@@ -158,7 +158,7 @@ A step up the ladder does two things at once, never one of them:
 - **Empty and error notices**: the same block vocabulary, a container tone (the page tone in midnight), a hairline, no shadow; the icon stays muted.
 - **Buttons**: flat. The fill carries the affordance, never a shadow. One primary variant (the filled primary button) carries the action a page or sheet is asking for; `OutlinedButton` and `TextButton` are the ways out beside it, and a destructive confirm is a text button in the error colour.
 - **Toasts**: a card floating over the page, inset from the edges, 16 px radius on every corner, `surfaceContainerHigh` fill with a hairline `outlineVariant` edge, floating elevation.
-- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell): `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. Backdrop blur (sigma 16) sits behind the details sheet only.
+- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell): `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. The post details sheet is opaque too: its rows are read against a known surface, and a glass sheet could not hold the muted label's contrast over artwork.
 - **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
 - **Dialogs**: `surfaceContainer`, 16px radius, modal elevation. A confirm that destroys something takes the error colour as a text button, never a filled primary one: the destructive verb is not the most attractive control in the dialog, and every screen asks with the same dialog so the answer reads the same from the drawer, a page, or a sheet.
 - **Grid items**: no shadow, no border, no elevation. Content is flat; depth comes from the staggered layout itself.
@@ -248,6 +248,7 @@ One container for every bottom sheet in the app: post details, settings pickers,
 - **Shape**: 16 dp top corners, `surfaceContainer` fill, hairline `outlineVariant` along the top edge, overlay elevation. A 40×4 handle sits 8 dp from the top
 - **Header**: the sheet's own name at `titleMedium` semibold with a 48 dp close target on the trailing edge. The name is the thing the sheet is about (the post's identifying tag, the setting being changed), never a generic "Details"
 - **Height**: capped at 78% of the screen (90% for a long changelog) and grown by its content, so a three-option picker does not open half empty. Only the panel scrolls
+- **Measure**: the content stops at 640 dp and centres while the surface stays full-bleed, so a tablet gets margins rather than a table stretched across the screen
 - **Panels**: one job at a time. Rows stack with a single hairline between them and none after the last, so a panel ends on the sheet's own edge
 - **Footer**: a hairline, then the sheet's one action, full width
 - **Insets**: the keyboard and the system navigation bar are both cleared by the shell, so a field never sits under the IME
@@ -255,10 +256,10 @@ One container for every bottom sheet in the app: post details, settings pickers,
 
 ### Sheet Tabs
 - **Use**: only when a sheet holds more than one kind of answer: the post details split into Details / Tags / Links
-- **Layout**: directly under the header at 48 dp, inside thumb reach; labels at `labelLarge`, the active one `onSurface` w600 over a 2 dp `primary` underline, and the strip closes with the panel hairline
+- **Layout**: directly under the header at 48 dp, inside thumb reach; labels at `labelLarge`, the active one `onSurface` w600 over a 2 dp `primary` underline, and the strip closes with the panel hairline. The tabs share the strip's width instead of scrolling, so the strip never claims the sheet's horizontal swipe
 - **Swipe**: the panels follow the finger, and the gesture belongs to the whole sheet rather than to the rows: with a short panel most of the sheet is empty space, and a swipe that only works on the rows is a swipe nobody finds. It commits at half a page or a 250 dp/s flick, leans against a rubber band at either end, and the underline follows, so the strip is a shortcut rather than the only way in
-- **Count**: a tab may carry a muted count, so the size of what is behind it is known before the tap
-- **Motion**: underline and label weight animate at 150 ms; the panel slides and the sheet below it resizes on the same 300 ms, so the edge and the content land together instead of the edge arriving first
+- **Count**: a tab may carry a muted count in tabular figures, so the size of what is behind it is known before the tap
+- **Motion**: underline and label weight animate at 150 ms; the panel slides and the sheet resizes to the panel's own height on the same 300 ms, so the edge and the content land together instead of the edge arriving first
 
 ### Sheet Rows
 - **Fact row**: small-caps label on the leading edge, value on the trailing edge in `bodyMedium` with tabular figures, so scores and dimensions line up down the panel
@@ -267,12 +268,12 @@ One container for every bottom sheet in the app: post details, settings pickers,
 - **Targets**: every row is at least 48 dp tall
 
 ### Bottom Sheet (Post Details)
-- **Shape**: rounded top corners, opening at 75% of the viewer. That is also the tallest it gets, so it snaps only between open and closed: one downward drag dismisses it instead of walking through intermediate stops
-- **Surface**: with the Blur setting on it is a glass sheet: `surface` at 72% over a sigma-16 backdrop blur, so the artwork still reads through it while the rows keep their contrast. With Blur off the sheet paints an opaque `surface`, the cheaper path on slow devices
+- **Shape**: rounded top corners. Each panel opens at its own height: Details around its fact rows, Links up to 520 dp, Tags up to 75% of the viewer. The sheet snaps between closed, the current panel's height and the full 75%, so a drag down from the panel's height dismisses it instead of walking through intermediate stops
+- **Surface**: opaque `surfaceContainer` (the page tone in Midnight) with the sheet hairline and 16 dp top radius. The artwork behind stays outside the sheet; the rows never depend on what is behind them
 - **No header**: the sheet opens straight onto the tab strip: the handle, then the panels. The artwork behind it already says which post is open, so a title line and a close button were a second, redundant answer to the same question
-- **Panels**: Details (rating, score, dimensions, format), Tags (grouped by category, each with its count; tap to select), Links (post page, source, sample and original file, each with copy)
-- **Selection**: tag taps accumulate across panels and survive a panel switch; the action bar then offers copy, block, append, search and clear
-- **Gesture**: swipe up or the info button opens it; one swipe down or Back dismisses it, which is why the sheet carries no dismiss control of its own
+- **Panels**: Details (rating, score, dimensions, format), Tags (grouped by category, each with its count; a long group offers the rest behind one `+N` chip; tap to select), Links (post page, source, sample and original file, each with copy)
+- **Selection**: tag taps accumulate across panels and survive a panel switch; the action bar then offers copy, block (with an undo), append, search as its one filled action, and deselect
+- **Gesture**: swipe up or the info button opens it at the current panel's height; one swipe down or Back dismisses it, which is why the sheet carries no dismiss control of its own
 
 ### Chips (Tags)
 - **Style**: Filled. An unselected tag sits on `surfaceContainerHighest` with a hairline `outlineVariant` border; selecting it fills `primaryContainer` with `onPrimaryContainer` text and drops the border, so selection reads as a state change rather than a second accent colour
@@ -289,7 +290,7 @@ One container for every bottom sheet in the app: post details, settings pickers,
 - **Position**: Above the bottom search bar (the bar's measured height is the clearance), and above the system inset on every other screen
 - **Action**: Inside the card as a text button in the primary colour with its own 48 dp target; running it also dismisses the toast
 - **Dismiss**: Swipe down
-- **Duration**: Short (2s) for info; an undo stays until it is used or dismissed
+- **Duration**: Short (2s) for info; an undo gets a longer window (8s), and a newer message replaces it so a stale undo never hides the next result
 
 ### Bottom Bar (Search)
 

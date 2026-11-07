@@ -173,7 +173,8 @@
     "block": "Block selected tag",
     "blocked": "Added to tags blocker",
     "append": "Add tag to current search",
-    "search": "Search tag"
+    "search": "Search tag",
+    "show_more": "Show ${count} more tags"
   },
   "post_action": {
     "select": "Select",

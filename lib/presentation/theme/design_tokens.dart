@@ -34,6 +34,11 @@ class DesignTokens {
   static const double drawerMaxWidth = 410.0;
   static const double drawerContentPeek = 84.0;
 
+  /// The measure a sheet's rows stop growing at. The sheet keeps its
+  /// full-bleed surface; past this width the content is centred, so a tablet
+  /// gets margins instead of a table stretched across the screen.
+  static const double sheetContentMaxWidth = 640.0;
+
   // Elevation. Four levels, each one a claim about what a surface is doing:
   // a block that groups rows, chrome that floats over the content, an overlay
   // that owns the screen, and a dialog that stops everything.
@@ -59,6 +64,11 @@ class DesignTokens {
   /// How long a message stays up: long enough to read a sentence, short
   /// enough that it does not sit on top of the next action.
   static const Duration durationSnackbar = Duration(seconds: 2);
+
+  /// The window an undo gets. It is longer than an info toast because the
+  /// action it reverses has already happened; a newer message still replaces
+  /// it, so a stale undo never hides the next result.
+  static const Duration durationUndo = Duration(seconds: 8);
 
   // Curves
   static const Curve curveStandard = Curves.easeOutCubic;

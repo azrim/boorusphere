@@ -192,6 +192,30 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
     // Sheet controller for details
     final sheetController = useMemoized(DraggableScrollableController.new);
+
+    /// Moves the sheet to [size]. A reduced-motion setting collapses every
+    /// duration to zero, which the controller refuses, so that case jumps: the
+    /// same destination without the travel.
+    Future<void> moveSheet(double size, Duration duration) async {
+      if (!sheetController.isAttached) return;
+      if (duration == Duration.zero) {
+        sheetController.jumpTo(size);
+        return;
+      }
+
+      await sheetController.animateTo(
+        size,
+        duration: duration,
+        curve: DesignTokens.curveStandard,
+      );
+    }
+
+    // The share the details sheet opens at for the panel it is showing. The
+    // sheet measures its own content and publishes the value here, so opening
+    // it never borrows another panel's height.
+    final sheetOpenSize = useMemoized(
+      () => ValueNotifier<double>(PostDetailsSheet.initialOpenSize),
+    );
     final sheetExpanded = useState(false);
     // Whether the visible image is zoomed in. Back has to undo that before
     // it leaves the viewer, so the state lives here as well as in PostMedia.
@@ -256,10 +280,8 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
           // Reset sheet when page changes
           if (sheetController.isAttached && sheetController.size > 0) {
-            sheetController.animateTo(
-              0,
-              duration: DesignTokens.durationFast,
-              curve: Curves.easeOutCubic,
+            unawaited(
+              moveSheet(0, context.motionDuration(DesignTokens.durationFast)),
             );
           }
         }
@@ -269,6 +291,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
       return () {
         controller.dispose();
         currentPostNotifier.dispose();
+        sheetOpenSize.dispose();
       };
     }, []);
 
@@ -370,21 +393,18 @@ class EnhancedPostViewer extends HookConsumerWidget {
     }, [routeVisible, locked]);
 
     void expandSheet() {
-      if (sheetController.isAttached) {
-        sheetController.animateTo(
-          PostDetailsSheet.openSize,
-          duration: DesignTokens.durationNormal,
-          curve: Curves.easeOutCubic,
-        );
-      }
+      unawaited(
+        moveSheet(
+          sheetOpenSize.value,
+          context.motionDuration(DesignTokens.durationNormal),
+        ),
+      );
     }
 
     void handlePostTap() {
       if (sheetExpanded.value) {
-        sheetController.animateTo(
-          0,
-          duration: DesignTokens.durationFast,
-          curve: Curves.easeOutCubic,
+        unawaited(
+          moveSheet(0, context.motionDuration(DesignTokens.durationFast)),
         );
         return;
       }
@@ -417,11 +437,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
         if (sheetExpanded.value) {
           // Close sheet instead of popping
-          await sheetController.animateTo(
-            0,
-            duration: DesignTokens.durationFast,
-            curve: Curves.easeOutCubic,
-          );
+          await moveSheet(0, context.motionDuration(DesignTokens.durationFast));
           return;
         }
 
@@ -666,6 +682,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
               PostDetailsSheet(
                 postNotifier: currentPostNotifier,
                 sheetController: sheetController,
+                openSize: sheetOpenSize,
                 session: session,
               ),
             ],
