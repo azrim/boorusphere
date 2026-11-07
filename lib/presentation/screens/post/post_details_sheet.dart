@@ -61,9 +61,10 @@ class PostDetailsSheet extends ConsumerStatefulWidget {
   final ValueNotifier<Post> postNotifier;
   final DraggableScrollableController sheetController;
 
-  /// How much of the viewer the current panel opens at. The viewer reads this
-  /// when it is asked to open the sheet, so the sheet grows to the panel it is
-  /// showing instead of always taking three quarters of the screen.
+  /// How much of the viewer the sheet opens at. The viewer reads this when it
+  /// is asked to open the sheet. It is measured from the panel on screen at
+  /// that moment and does not change while the sheet is open: a sheet that
+  /// resized under a tab swipe read as a jump, not as one gesture.
   final ValueNotifier<double> openSize;
 
   final SearchSession session;
@@ -72,6 +73,10 @@ class PostDetailsSheet extends ConsumerStatefulWidget {
   ConsumerState<PostDetailsSheet> createState() => _PostDetailsSheetState();
 }
 
+// The sheet opens at the height of the panel it is showing: Details around
+// its fact rows, Links up to 520 dp, Tags up to 75% of the viewer. The
+// measurement is taken while the sheet is closed and does not follow a tab
+// switch; only the strip travels.
 class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     with SingleTickerProviderStateMixin {
   /// Share of the sheet's width a drag covers before it commits; the same
@@ -277,27 +282,19 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
     }
   }
 
-  /// Runs the strip to [to] pages. The sheet resizes with it when the strip
-  /// lands on a new panel, so the edge and the content arrive together.
+  /// Runs the strip to [to] pages. Only the panels travel: the sheet keeps the
+  /// height it opened at, so a swipe is one horizontal move instead of a
+  /// diagonal one with a moving edge. The reader resizes the sheet when they
+  /// mean to, by dragging it.
   void _animateStrip({required double to, required _Panel? destination}) {
     final from = _travelled;
     if (from == to && from == 0) {
-      // Nothing left to travel. If a jump had just been asked for, its sheet
-      // resize may already be running toward the panel this call cancels, so
-      // the sheet is brought back with it instead of being left to grow for a
-      // panel that is no longer coming.
-      final wasJumping = _pending != null;
+      // Nothing left to travel; just let go of any half-finished drag.
       setState(() {
         _dragging = false;
         _dragTarget = null;
         _pending = null;
       });
-      if (wasJumping) {
-        _animateSheetTo(
-          _panel,
-          context.motionDuration(DesignTokens.durationFast),
-        );
-      }
       return;
     }
 
@@ -313,30 +310,7 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
       ..stop()
       ..duration = duration
       ..forward(from: 0);
-
-    // A home settle also returns the sheet to the current panel's size, which
-    // undoes a resize that an interrupted tab switch had started.
-    final sheetPanel = to != 0 && destination != null ? destination : _panel;
-    _animateSheetTo(sheetPanel, duration);
     _syncDisplayIndex();
-  }
-
-  void _animateSheetTo(_Panel panel, Duration duration) {
-    if (!widget.sheetController.isAttached) return;
-
-    final target = _targetFor(panel, context.mqSize.height);
-    // Reduced motion turns every duration into zero, which the controller
-    // refuses; go straight to the height instead.
-    if (duration == Duration.zero) {
-      widget.sheetController.jumpTo(target);
-      return;
-    }
-
-    widget.sheetController.animateTo(
-      target,
-      duration: duration,
-      curve: DesignTokens.curveStandard,
-    );
   }
 
   void _goToPanel(int index) {
@@ -568,10 +542,15 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
         ? scheme.surface
         : scheme.surfaceContainer;
 
-    final viewport = context.mqSize.height;
-    final target = _targetFor(_panel, viewport);
-    _publishOpenSize(target);
-    _syncSnapSizes(target);
+    // Measure only while the sheet is closed. While it is open the height is
+    // the reader's: resizing the sheet to the panel that just arrived meant
+    // the edge travelled with the swipe, and every snap-list change could
+    // stop or restart that resize halfway.
+    if (!_open) {
+      final target = _targetFor(_panel, context.mqSize.height);
+      _publishOpenSize(target);
+      _syncSnapSizes(target);
+    }
 
     return DraggableScrollableSheet(
       controller: widget.sheetController,
