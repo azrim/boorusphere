@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/setting/entity/setting.dart';
+import 'package:boorusphere/data/repository/tags_blocker/entity/booru_tag.dart';
 import 'package:boorusphere/data/repository/tags_blocker/tag_expression.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -16,6 +17,7 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
@@ -113,9 +115,11 @@ class HomeContent extends HookConsumerWidget {
       return null;
     }, [visibleIds]);
 
-    // The fetched page already had the filters applied, so turning one off
-    // cannot bring those posts back from the loaded data alone. Reload when the
-    // pair changes; the page-state guards fold this into an in-flight fetch.
+    // Hiding is applied while rendering, but a page skipped because every one
+    // of its entries was hidden never arrived, and an all-hidden first page is
+    // reported as an error. Turning a filter off has to ask for the page again
+    // for those to come back; the page-state guards fold the request into an
+    // in-flight fetch.
     ref.listen(
       contentSettingStateProvider.select(
         (it) => (it.hideFavorited, it.hideDownloaded),
@@ -125,6 +129,34 @@ class HomeContent extends HookConsumerWidget {
         unawaited(ref.read(pageStateProvider.notifier).load());
       },
     );
+
+    // The page size and the rating are part of the result window: the same
+    // page index addresses other posts once either moves, and the posts on
+    // screen were fetched under the old window. Watch the pair where the feed
+    // lives instead of reloading from each writer: a rating picked from the
+    // chip and a limit picked on the settings page both have to reach every
+    // feed still open behind them.
+    ref.listen(
+      serverSettingStateProvider.select(
+        (it) => (it.searchRating, it.postLimit),
+      ),
+      (previous, next) {
+        if (previous == next) return;
+        unawaited(ref.read(pageStateProvider.notifier).load());
+      },
+    );
+
+    // The blockers are applied when a page is fetched, so a tag blocked or
+    // unblocked later cannot re-shape the posts already on screen: the pages
+    // it removed never arrived. Ask for the page again when the set that
+    // applies to this server changes; the page state folds the request into a
+    // fetch already in flight.
+    ref.listen(tagsBlockerStateProvider, (previous, next) {
+      final before = _blockedNamesFor(previous ?? const {}, session.serverId);
+      final after = _blockedNamesFor(next, session.serverId);
+      if (listEquals(before, after)) return;
+      unawaited(ref.read(pageStateProvider.notifier).load());
+    });
 
     // A mode change re-indexes what is on screen: paged lands on the last page
     // the reader left, infinite holds a list that has no page. Restart the
@@ -640,6 +672,15 @@ class HomeContent extends HookConsumerWidget {
       ],
     );
   }
+}
+
+/// Tag names blocked on [serverId], sorted so two blocker maps that differ
+/// only in order compare equal.
+List<String> _blockedNamesFor(Map<int, BooruTag> blockers, String serverId) {
+  return [
+    for (final entry in blockers.values)
+      if (entry.serverId.isEmpty || entry.serverId == serverId) entry.name,
+  ]..sort();
 }
 
 /// Fades a child while lifting it the last [DesignTokens.spacingSm] into

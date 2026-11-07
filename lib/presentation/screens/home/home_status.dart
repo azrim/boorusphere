@@ -8,6 +8,7 @@ import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart
 import 'package:boorusphere/presentation/provider/booru/entity/page_data.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/server_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
@@ -85,6 +86,10 @@ Object? buildPageStatusError(
             n: data.posts.length,
             query: data.option.query,
           );
+  } else if (e == BooruError.filtered) {
+    // The query has results; the local filters hid the page. Naming the filter
+    // beats reporting an empty result the reader would try to search around.
+    return context.t.pageStatus.filteredEmpty;
   } else if (e == BooruError.tagsBlocked) {
     return context.t.pageStatus.blocked(query: data.option.query);
   } else if (e == BooruError.unparsable) {
@@ -123,6 +128,8 @@ class _ErrorStatus extends ConsumerWidget {
       return const Icon(Icons.wifi_off);
     } else if (error == BooruError.empty) {
       return const Icon(Icons.explore_off);
+    } else if (error == BooruError.filtered) {
+      return const Icon(Icons.filter_alt_off_outlined);
     } else if (error == BooruError.tagsBlocked) {
       return const Icon(Icons.block);
     } else if (error == BooruError.unparsable) {
@@ -145,14 +152,13 @@ class _ErrorStatus extends ConsumerWidget {
     unawaited(ref.read(pageStateProvider.notifier).load());
   }
 
-  /// Drops the rating filter and asks for the page again.
-  Future<void> _disableRatingSafe(BuildContext context, WidgetRef ref) async {
+  /// Drops the rating filter. The feed watches the rating as part of its
+  /// result window and restarts the fetch itself, so the card only has to
+  /// write the choice.
+  Future<void> _disableRatingSafe(WidgetRef ref) async {
     await ref
         .read(serverSettingStateProvider.notifier)
         .setRating(BooruRating.all);
-    if (context.mounted) {
-      unawaited(ref.read(pageStateProvider.notifier).load());
-    }
   }
 
   @override
@@ -162,10 +168,30 @@ class _ErrorStatus extends ConsumerWidget {
     final safeRating = data.option.searchRating == BooruRating.safe;
     final challenged = isCloudflareChallenge(error);
     final needsAuth = isAuthRequired(error);
+    // The page had entries; a local filter hid every one of them. Neither the
+    // rating hint nor retrying can bring them back, so the card leads with the
+    // filter that owns the answer.
+    final filtered = error == BooruError.filtered;
+    final blockedQuery = error == BooruError.tagsBlocked;
+    final filterAnswer = filtered || blockedQuery;
+    final filtering = ref.watch(
+      contentSettingStateProvider.select(
+        (it) => it.hideFavorited || it.hideDownloaded,
+      ),
+    );
     // The session server is gone: the card carries no error of its own, and
     // the only way out is a different server. Retrying or changing the rating
     // cannot make this one resolve.
     final missingServer = error == null;
+
+    void showAll() {
+      final settings = ref.read(contentSettingStateProvider.notifier);
+      unawaited(settings.setHideFavorited(false));
+      unawaited(settings.setHideDownloaded(false));
+    }
+
+    void manageBlocked() =>
+        unawaited(context.router.push(const TagsBlockerRoute()));
 
     return Center(
       child: NoticeCard(
@@ -217,9 +243,24 @@ class _ErrorStatus extends ConsumerWidget {
                     onPressed: () => _verify(context, ref, server),
                     child: Text(context.t.pageStatus.verify),
                   )
+                else if (filtered && filtering)
+                  // The content filters are the ones hiding this page; lifting
+                  // them brings the posts back.
+                  FilledButton(
+                    onPressed: showAll,
+                    child: Text(context.t.pageStatus.showAll),
+                  )
+                else if (filterAnswer)
+                  // Either the content filters are off, so the blocker is the
+                  // one hiding the page, or the query itself carries a blocked
+                  // tag. Both are answered on the blocker screen.
+                  FilledButton(
+                    onPressed: manageBlocked,
+                    child: Text(context.t.tagsBlocker.title),
+                  )
                 else if (safeRating)
                   FilledButton(
-                    onPressed: () => _disableRatingSafe(context, ref),
+                    onPressed: () => _disableRatingSafe(ref),
                     child: Text(context.t.rating.disableRatingSafe),
                   )
                 else
@@ -243,13 +284,22 @@ class _ErrorStatus extends ConsumerWidget {
                   // The filter did not cause the challenge; it stays available
                   // as the way out when the check itself cannot be answered.
                   TextButton(
-                    onPressed: () => _disableRatingSafe(context, ref),
+                    onPressed: () => _disableRatingSafe(ref),
                     child: Text(context.t.rating.disableRatingSafe),
                   ),
-                if (!missingServer && safeRating)
+                if (!missingServer && safeRating && !filterAnswer)
+                  // A rating filter cannot explain a page already reported as
+                  // hidden by the local filters, so the hint stays away.
                   TextButton(
                     onPressed: ref.read(pageStateProvider.notifier).load,
                     child: Text(context.t.retry),
+                  ),
+                if (!missingServer && filtered && filtering)
+                  // The blockers hide a page just as well; with the content
+                  // filters on, they are the second suspect.
+                  TextButton(
+                    onPressed: manageBlocked,
+                    child: Text(context.t.tagsBlocker.title),
                   ),
                 if (!missingServer)
                   TextButton(

@@ -6,7 +6,9 @@ import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart
 import 'package:boorusphere/presentation/provider/booru/entity/page_data.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
+import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
+import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
 import 'package:boorusphere/presentation/screens/home/home_status.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:flutter/material.dart';
@@ -29,8 +31,24 @@ class _StubPageState extends PageState {
   FetchResult<PageData> build() => result;
 }
 
+/// The status card reads the content filters to know whether they are the ones
+/// hiding the page; the real notifier would read storage.
+class _StubContentSettings extends ContentSettingState {
+  _StubContentSettings({this.filtering = false});
+
+  final bool filtering;
+
+  @override
+  ContentSetting build() =>
+      ContentSetting(hideFavorited: filtering, hideDownloaded: false);
+}
+
 void main() {
-  Widget harness(Object error, {BooruRating rating = BooruRating.safe}) {
+  Widget harness(
+    Object error, {
+    BooruRating rating = BooruRating.safe,
+    bool filtering = false,
+  }) {
     final result = FetchResult<PageData>.error(
       PageData(option: PageOption(searchRating: rating)),
       error: error,
@@ -41,6 +59,9 @@ void main() {
           (ref) => const SearchSession(serverId: 'Safebooru'),
         ),
         serverStateProvider.overrideWith(_StubServerState.new),
+        contentSettingStateProvider.overrideWith(
+          () => _StubContentSettings(filtering: filtering),
+        ),
         pageStateProvider.overrideWith(() => _StubPageState(result)),
       ],
       child: TranslationProvider(
@@ -87,6 +108,44 @@ void main() {
     expect(
       find.widgetWithText(FilledButton, t.pageStatus.verify),
       findsNothing,
+    );
+  });
+
+  testWidgets('a filtered page leads with the filter that hid it', (
+    tester,
+  ) async {
+    // The content filters are off, so the blocker hid the page. The rating
+    // filter cannot explain it and retrying would ask for the same page back.
+    await tester.pumpWidget(harness(BooruError.filtered));
+    await tester.pump();
+
+    expect(
+      find.widgetWithText(FilledButton, t.tagsBlocker.title),
+      findsOneWidget,
+      reason: 'the blocker screen is where the page can be brought back',
+    );
+    expect(
+      find.widgetWithText(FilledButton, t.rating.disableRatingSafe),
+      findsNothing,
+    );
+    expect(find.widgetWithText(TextButton, t.retry), findsNothing);
+  });
+
+  testWidgets('a filtered page with content filters on offers Show all', (
+    tester,
+  ) async {
+    await tester.pumpWidget(harness(BooruError.filtered, filtering: true));
+    await tester.pump();
+
+    expect(
+      find.widgetWithText(FilledButton, t.pageStatus.showAll),
+      findsOneWidget,
+      reason: 'the content filters own the page here',
+    );
+    expect(
+      find.widgetWithText(TextButton, t.tagsBlocker.title),
+      findsOneWidget,
+      reason: 'the blockers stay one tap away as the second suspect',
     );
   });
 }
