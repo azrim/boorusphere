@@ -424,6 +424,7 @@
       "desc": "Backup app data into a file",
       "success": "Backup created at:\n${dest}",
       "failed": "The backup could not be created. Check the backups folder and the free space on this device.",
+      "storageUnavailable": "The backup was not created because storage is unavailable in this session.",
       "loading": "Creating backup..."
     },
     "restore": {
@@ -433,9 +434,13 @@
       "completedDesc": "Restart the app so the restored data is loaded.",
       "restartNow": "Restart now",
       "invalid": "Invalid backup file",
+      "storageUnavailable": "This session cannot save restored data, so nothing was restored.",
+      "partial": "Restore incomplete: ${file}",
+      "notRestored": "Not restored: ${stores}",
       "warningFile": "Restore \"${file}\"?\nThis overwrites any existing data.\nAre you sure you want to continue?",
       "loading": "Restoring data..."
     },
+    "busy": "Another backup or restore is still running. Try again when it finishes.",
     "downloadRecords": "Download records",
     "downloadRecordsDesc": "Keep the download list and its statuses; media files are not included",
     "encrypt": "Encrypt with passphrase",
@@ -467,7 +472,8 @@
     "maxBackups": "Max number of backups",
     "encrypt": "Encrypt backups",
     "encryptDesc": "Seal backups with your passphrase, so they cannot be opened without it",
-    "encryptNeedsPassphrase": "No passphrase is set yet, so each backup will ask for one",
+    "encryptNeedsPassphrase": "No passphrase is set yet, so a manual backup will ask for one",
+    "encryptPaused": "No passphrase is set yet, so scheduled backups are paused",
     "lastBackup": "Last successful backup",
     "never": "Never",
     "justNow": "Just now",

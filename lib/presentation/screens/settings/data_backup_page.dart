@@ -95,7 +95,11 @@ class _Content extends HookConsumerWidget {
               child: _LoadingDialog(type: type),
             ),
           );
-        case ImportedBackupResult(:final fileName, :final stores):
+        case ImportedBackupResult(
+          :final fileName,
+          :final stores,
+          :final failed,
+        ):
           // The loading dialog is closed by its own listener, and a dialog
           // cannot be pushed in the frame that pops another one. Waiting for
           // the frame keeps this prompt from being dismissed with it.
@@ -109,9 +113,11 @@ class _Content extends HookConsumerWidget {
                 child: AlertDialog(
                   icon: const Icon(Icons.restart_alt),
                   title: Text(
-                    context.t.dataBackup.restore.completed(file: fileName),
+                    failed.isEmpty
+                        ? context.t.dataBackup.restore.completed(file: fileName)
+                        : context.t.dataBackup.restore.partial(file: fileName),
                   ),
-                  content: _RestoreReport(stores: stores),
+                  content: _RestoreReport(stores: stores, failed: failed),
                   actions: [
                     // Closing the activity is the whole point: the restored
                     // boxes are only read on a cold start, so the app has to
@@ -145,16 +151,19 @@ class _Content extends HookConsumerWidget {
           });
         case ExportedBackupResult(:final path):
           showToast(context, context.t.dataBackup.backup.success(dest: path));
-        case ErrorBackupResult(:final type):
-          // The two runs fail for different reasons, so each gets its own
-          // line: a rejected file talks about the file, a failed backup talks
-          // about where the app writes.
-          showToast(
-            context,
-            type == DataBackupType.backup
-                ? context.t.dataBackup.backup.failed
-                : context.t.dataBackup.restore.invalid,
-          );
+        case ErrorBackupResult(:final type, :final failure):
+          // The runs fail for different reasons, so each gets its own line:
+          // a refused session is not a bad file or a full folder, and saying
+          // so is the only way the user can act on it.
+          final message = switch ((type, failure)) {
+            (DataBackupType.backup, BackupFailure.storageUnavailable) =>
+              context.t.dataBackup.backup.storageUnavailable,
+            (DataBackupType.restore, BackupFailure.storageUnavailable) =>
+              context.t.dataBackup.restore.storageUnavailable,
+            (DataBackupType.backup, _) => context.t.dataBackup.backup.failed,
+            _ => context.t.dataBackup.restore.invalid,
+          };
+          showToast(context, message);
         default:
       }
     });
@@ -207,11 +216,12 @@ class _Content extends HookConsumerWidget {
                   }
                 }
 
-                unawaited(
-                  ref
-                      .read(dataBackupStateProvider.notifier)
-                      .backup(option: option, passphrase: passphrase),
-                );
+                final accepted = await ref
+                    .read(dataBackupStateProvider.notifier)
+                    .backup(option: option, passphrase: passphrase);
+                if (!accepted && context.mounted) {
+                  showToast(context, context.t.dataBackup.busy);
+                }
               },
             ),
             ListTile(
@@ -223,8 +233,8 @@ class _Content extends HookConsumerWidget {
               leading: const Icon(Icons.folder_open),
               title: Text(context.t.dataBackup.restore.title),
               subtitle: RowSubtitle(Text(context.t.dataBackup.restore.desc)),
-              onTap: () {
-                ref
+              onTap: () async {
+                final accepted = await ref
                     .read(dataBackupStateProvider.notifier)
                     .restore(
                       onConfirm: (fileName) =>
@@ -240,6 +250,9 @@ class _Content extends HookConsumerWidget {
                         return result?.passphrase;
                       },
                     );
+                if (!accepted && context.mounted) {
+                  showToast(context, context.t.dataBackup.busy);
+                }
               },
             ),
           ],
@@ -284,7 +297,9 @@ class _Content extends HookConsumerWidget {
               subtitle: RowSubtitle(
                 Text(
                   periodicState.encryptBackup && !periodicNotifier.hasPassphrase
-                      ? context.t.periodicBackup.encryptNeedsPassphrase
+                      ? periodicState.enabled
+                            ? context.t.periodicBackup.encryptPaused
+                            : context.t.periodicBackup.encryptNeedsPassphrase
                       : context.t.periodicBackup.encryptDesc,
                 ),
               ),
@@ -342,9 +357,15 @@ class _Content extends HookConsumerWidget {
 /// servers could not be read both leave the list alone; only the number says
 /// which of the two happened.
 class _RestoreReport extends StatelessWidget {
-  const _RestoreReport({required this.stores});
+  const _RestoreReport({required this.stores, required this.failed});
 
   final Map<BackupStore, int> stores;
+
+  /// Stores the archive carried but this run could not apply: a payload it
+  /// could not read or a box that refused the write. They are named next to
+  /// the counts because the restart this dialog asks for does not bring them
+  /// back.
+  final List<BackupStore> failed;
 
   String _label(BuildContext context, BackupStore store) => switch (store) {
     BackupStore.servers => context.t.servers.title,
@@ -361,6 +382,8 @@ class _RestoreReport extends StatelessWidget {
     // that produced it happened to be packed.
     final ordered = stores.entries.toList()
       ..sort((a, b) => a.key.index.compareTo(b.key.index));
+    final failedOrdered = failed.toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -380,6 +403,17 @@ class _RestoreReport extends StatelessWidget {
               ],
             ),
           ),
+        if (failedOrdered.isNotEmpty) ...[
+          const SizedBox(height: DesignTokens.spacingSm),
+          Text(
+            context.t.dataBackup.restore.notRestored(
+              stores: failedOrdered.map((it) => _label(context, it)).join(', '),
+            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1135,6 +1169,18 @@ class _BackupNowTile extends HookConsumerWidget {
       onTap: !enabled || !isConfigured || cannotSeal || isLoading.value
           ? null
           : () async {
+              final backupState = ref.read(dataBackupStateProvider.notifier);
+              if (backupState.isBusy) {
+                showToast(context, context.t.dataBackup.busy);
+                return;
+              }
+              if (!backupState.storageAvailable) {
+                showToast(
+                  context,
+                  context.t.dataBackup.backup.storageUnavailable,
+                );
+                return;
+              }
               isLoading.value = true;
               String message;
               try {

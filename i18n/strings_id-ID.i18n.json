@@ -326,15 +326,20 @@
       "title": "Mencadangkan data",
       "desc": "Buat file cadangan data aplikasi",
       "success": "File cadangan telah dibuat :\n${dest}",
+      "storageUnavailable": "Cadangan tidak dibuat karena penyimpanan tidak tersedia pada sesi ini.",
       "loading": "Membuat cadangan data..."
     },
     "restore": {
       "title": "Memulihkan data",
       "desc": "Pulihkan data aplikasi dari file cadangan",
       "invalid": "File cadangan tidak valid",
+      "storageUnavailable": "Sesi ini tidak dapat menyimpan data hasil pemulihan, jadi tidak ada yang dipulihkan.",
+      "partial": "Pemulihan belum selesai: ${file}",
+      "notRestored": "Tidak dipulihkan: ${stores}",
       "warningFile": "${file}\n\nPerhatian! tindakan ini akan menimpa data yang ada.\nApakah kamu yakin ingin melanjutkan?",
       "loading": "Memulihkan data..."
     },
+    "busy": "Backup atau pemulihan lain masih berjalan. Coba lagi setelah selesai.",
     "downloadRecords": "Riwayat unduhan",
     "downloadRecordsDesc": "Simpan daftar unduhan beserta statusnya; file media tidak ikut disalin"
   },

@@ -1,56 +1,8 @@
 {
   "@@info": [
     "Here are translations that exist in secondary locales but not in <en>.",
-    "[--full enabled] Furthermore, translations not used in 'lib/' according to the 't.<path>' pattern are written into <en>."
+    "You may run 'dart run slang analyze --full' to also check translations not used in the source code."
   ],
-  "en": {
-    "language_alias": "English",
-    "sidebar": {
-      "tagline": "Multi-engine art explorer"
-    },
-    "suggestion": {
-      "history_no_match": "No matching history found",
-      "history_hint_query": "Try a different search term"
-    },
-    "viewer": {
-      "slideshow_progress": "Slideshow progress"
-    },
-    "updater": {
-      "preparing": "Preparing for update..."
-    },
-    "downloads": {
-      "detail": "Show detail",
-      "status": {
-        "empty": "Empty",
-        "pending": "Pending",
-        "canceled": "Canceled"
-      }
-    },
-    "servers": {
-      "incompatible": "Cannot find compatible parser for ${addr}",
-      "id": "ID"
-    },
-    "settings": {
-      "feed_mode": {
-        "desc": "How the timeline moves through the results"
-      }
-    },
-    "data_backup": {
-      "passphraseTileDesc": "Used for automatic backups and encrypted restores"
-    },
-    "onboarding": {
-      "welcome_title": "Welcome to Boorusphere",
-      "start_browsing": "Start browsing"
-    },
-    "app_lock": {
-      "timeout_desc": "How long the app may stay in the background before it asks again",
-      "unlock": "Unlock",
-      "unlocking": "Checking..."
-    },
-    "error": {
-      "stacktrace": "Stacktrace"
-    }
-  },
   "fil": {},
   "ru": {},
   "uk": {},
