@@ -152,7 +152,10 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
       final cookies = await cookieJar.loadForRequest(mediaUrl.toUri());
       if (!_stillCurrent(mediaUrl, generation)) return;
       headers = hook.ref.read(
-        postHeadersFactoryProvider(hook.post, cookies: cookies),
+        postHeadersFactoryProvider(
+          postHeadersKeyOf(hook.post),
+          cookies: cookies,
+        ),
       );
     } catch (e, stack) {
       // The request cannot be prepared even though the player is fine; an

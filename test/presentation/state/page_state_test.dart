@@ -175,6 +175,18 @@ class _FakeSearchHistory extends SearchHistoryState {
   Future<void> save(String value, Server server) async {}
 }
 
+/// Records every query the page counts, so a test can tell one search from a
+/// reload of it.
+class _CountingSearchHistory extends SearchHistoryState {
+  final saved = <String>[];
+
+  @override
+  Map<int, SearchHistory> build() => {};
+
+  @override
+  Future<void> save(String value, Server server) async => saved.add(value);
+}
+
 /// A history box the app cannot write, the way a closed or corrupt box
 /// behaves. Writing the history is a convenience, never a reason to fail the
 /// page.
@@ -1056,6 +1068,26 @@ void main() {
     final result = container.read(pageStateProvider);
     expect(result, isA<DataFetchResult>());
     expect(result.data.posts.map((it) => it.id), [1]);
+  });
+
+  test('a search is counted once, not once per reload', () async {
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1)], rawCount: 1),
+    });
+    final history = _CountingSearchHistory();
+    final container = _container(repo, history: history);
+    addTearDown(container.dispose);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    await notifier.update((option) => option.copyWith(query: 'cat'));
+    // A pull-to-refresh and a reload of the same query are the same search;
+    // counting them inflated the usage a suggestion row reports.
+    await notifier.load();
+    await notifier.load();
+    expect(history.saved, ['cat']);
+
+    await notifier.update((option) => option.copyWith(query: 'dog'));
+    expect(history.saved, ['cat', 'dog']);
   });
 
   test('loadMore leaves a paged feed alone', () async {

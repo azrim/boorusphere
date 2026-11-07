@@ -21,10 +21,10 @@ part 'search_history_state.g.dart';
 /// otherwise win on recency alone.
 @riverpod
 Map<int, SearchHistory> filterHistory(Ref ref, String query) {
+  // Already newest-first: the notifier sorts once per change instead of this
+  // provider copying and sorting the whole history on every keystroke.
   final history = ref.watch(searchHistoryStateProvider);
-  // Hive hands out incrementing keys, so the highest key is the newest search.
-  final entries = history.entries.toList()
-    ..sort((a, b) => b.key.compareTo(a.key));
+  final entries = history.entries.toList();
 
   final typed = query.trim();
   // A trailing space means the reader is starting the next tag.
@@ -52,29 +52,49 @@ Map<int, SearchHistory> filterHistory(Ref ref, String query) {
   return Map.fromEntries(matched);
 }
 
-@riverpod
+/// Kept alive because an undo toast lives on the root messenger: the row it
+/// restores may be long gone from the screen when the action runs, and a
+/// disposed notifier could not write it back.
+@Riverpod(keepAlive: true)
 class SearchHistoryState extends _$SearchHistoryState {
   @override
   Map<int, SearchHistory> build() {
     final repo = ref.read(searchHistoryRepoProvider);
-    return repo.all;
+    // Newest first, once per change. Hive hands out incrementing keys, and a
+    // reused query is re-added under a higher one, so key order is recency
+    // order. Every consumer (the unfiltered list and the ranked filter) gets
+    // the same base order without sorting again.
+    return _newestFirst(repo.all);
+  }
+
+  Map<int, SearchHistory> _newestFirst(Map<int, SearchHistory> entries) {
+    final keys = entries.keys.toList()..sort((a, b) => b.compareTo(a));
+    return {for (final key in keys) key: entries[key]!};
   }
 
   Future<void> save(String value, Server server) async {
     final repo = ref.read(searchHistoryRepoProvider);
     await repo.save(value.trim(), server.id);
-    state = repo.all;
+    state = _newestFirst(repo.all);
   }
 
   Future<void> delete(key) async {
     final repo = ref.read(searchHistoryRepoProvider);
     await repo.delete(key);
-    state = repo.all;
+    state = _newestFirst(repo.all);
+  }
+
+  /// Puts a dismissed entry back as it was, count and key included, so an undo
+  /// does not read as a new search in its usage count or its position.
+  Future<void> restore(int key, SearchHistory entry) async {
+    final repo = ref.read(searchHistoryRepoProvider);
+    await repo.restore(key, entry);
+    state = _newestFirst(repo.all);
   }
 
   Future<void> clear() async {
     final repo = ref.read(searchHistoryRepoProvider);
     await repo.clear();
-    state = repo.all;
+    state = _newestFirst(repo.all);
   }
 }

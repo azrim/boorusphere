@@ -9,6 +9,14 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
   UserSearchHistoryRepo(this.box);
   final Box<SearchHistory> box;
 
+  /// Ceiling for the stored history.
+  ///
+  /// Nothing is ever deleted except a duplicate, so the box used to grow for as
+  /// long as the app was used, and every keystroke in the search bar filtered
+  /// and sorted the whole thing. Two hundred entries cover what the panel can
+  /// ever show and years of ordinary use; the oldest age out first.
+  static const int maxEntries = 200;
+
   @override
   Map<int, SearchHistory> get all => Map.from(box.toMap());
 
@@ -37,10 +45,24 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
     await box.add(
       SearchHistory(query: query, server: serverId, count: count + 1),
     );
+    await _trim();
+  }
+
+  /// Drops the oldest entries once the box passes [maxEntries]. Keys grow with
+  /// recency (a reuse deletes its old key and adds a higher one), so the
+  /// lowest keys are the least recently searched.
+  Future<void> _trim() async {
+    final overflow = box.length - maxEntries;
+    if (overflow <= 0) return;
+    final keys = box.keys.cast<int>().toList()..sort();
+    await box.deleteAll(keys.take(overflow));
   }
 
   @override
   Future<void> delete(key) => box.delete(key);
+
+  @override
+  Future<void> restore(int key, SearchHistory entry) => box.put(key, entry);
 
   @override
   Future<void> clear() => box.clear();
@@ -78,6 +100,9 @@ class UserSearchHistoryRepo implements SearchHistoryRepo {
     await box.putAll(restored);
     final stale = box.keys.where((it) => !restored.containsKey(it)).toList();
     if (stale.isNotEmpty) await box.deleteAll(stale);
+    // An archive from an older build can carry more entries than this build
+    // keeps, so the same ceiling applies on the way in.
+    await _trim();
     return restored.length;
   }
 

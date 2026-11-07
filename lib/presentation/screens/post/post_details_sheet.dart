@@ -433,7 +433,9 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
   }
 
   Widget _sheetBody(Post post) {
-    final headers = ref.watch(postHeadersFactoryProvider(post));
+    final headers = ref.watch(
+      postHeadersFactoryProvider(postHeadersKeyOf(post)),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

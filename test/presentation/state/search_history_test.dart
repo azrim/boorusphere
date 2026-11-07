@@ -78,6 +78,45 @@ void main() async {
       ]);
     });
 
+    test('the stored history keeps only the newest entries', () async {
+      await notifier().clear();
+      const total = UserSearchHistoryRepo.maxEntries + 5;
+      for (var i = 0; i < total; i++) {
+        await notifier().save('tag_$i', servers.first);
+      }
+
+      expect(state().length, UserSearchHistoryRepo.maxEntries);
+      // The oldest five aged out; the newest search is still there.
+      expect(state().values.any((it) => it.query == 'tag_0'), isFalse);
+      expect(
+        state().values.any((it) => it.query == 'tag_${total - 1}'),
+        isTrue,
+      );
+    });
+
+    test(
+      'undo puts a dismissed row back with its count and position',
+      () async {
+        await notifier().clear();
+        await notifier().save('cat_ear', servers.first);
+        await notifier().save('cat_ear', servers.first);
+        await notifier().save('dog', servers.first);
+
+        final key = state().entries
+            .firstWhere((it) => it.value.query == 'cat_ear')
+            .key;
+        final entry = state()[key]!;
+        await notifier().delete(key);
+        await notifier().restore(key, entry);
+
+        expect(state()[key]?.query, 'cat_ear');
+        // Restored as it was: the undo is not a new search.
+        expect(state()[key]?.count, 2);
+        // The higher key still owns recency, so the restored row is second.
+        expect(state().values.last.query, 'cat_ear');
+      },
+    );
+
     test('cleanup', () async {
       await notifier().clear();
       expect(state().length, 0);

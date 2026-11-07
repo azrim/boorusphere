@@ -16,15 +16,28 @@ String createReferer(String url) {
   return uri.replace(path: uri.hasAbsolutePath ? path : '/').toString();
 }
 
+/// The fields [postHeadersFactory] actually reads off a post.
+///
+/// Keying the provider family by the whole [Post] made every lookup hash all
+/// five tag lists of a post (the Freezed equality compares them deeply) for a
+/// value that only depends on two URLs.
+typedef PostHeadersKey = ({String refererUrl, String mediaUrl});
+
+PostHeadersKey postHeadersKeyOf(Post post) {
+  return (
+    refererUrl: post.postUrl.isEmpty ? post.content.url : post.postUrl,
+    mediaUrl: post.content.url,
+  );
+}
+
 @riverpod
 Map<String, String> postHeadersFactory(
   Ref ref,
-  Post post, {
+  PostHeadersKey key, {
   List<Cookie> cookies = const [],
 }) {
   final versionRepo = ref.read(versionRepoProvider);
-  final url = post.postUrl.isEmpty ? post.content.url : post.postUrl;
-  final referer = createReferer(url);
+  final referer = createReferer(key.refererUrl);
 
   final headers = HeadersFactory.builder()
       .setCookies(cookies)
@@ -35,7 +48,7 @@ Map<String, String> postHeadersFactory(
   // The file request goes to the CDN, which a challenged server guards with
   // the same clearance as the API. The cookie only counts when it arrives
   // with the agent that earned it, so both are taken from the same session.
-  final media = Uri.tryParse(post.content.url);
+  final media = Uri.tryParse(key.mediaUrl);
   final clearance = media == null
       ? null
       : ref.watch(webClearanceRepoProvider).forHost(media.host);

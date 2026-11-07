@@ -77,6 +77,15 @@ class PageState extends _$PageState {
   /// the posts already on screen are still the ones the reader was scrolling.
   bool _retryAppend = false;
 
+  /// The search this page already counted in the history.
+  ///
+  /// [load] runs for a pull-to-refresh, a rating change and a filter reload as
+  /// well as for the first fetch, and counting each of those inflated the
+  /// usage a suggestion row reports. The history counts searches, so only a
+  /// query this page has not recorded yet is saved. A repeat of the same query
+  /// from the bar opens a new page (and a new notifier), so it still counts.
+  ({String query, String serverId})? _recordedSearch;
+
   @override
   FetchResult<PageData> build() {
     _page = 0;
@@ -85,6 +94,7 @@ class PageState extends _$PageState {
     _reloadPending = false;
     _retryTarget = null;
     _retryAppend = false;
+    _recordedSearch = null;
     return const FetchResult.idle(PageData());
   }
 
@@ -228,7 +238,11 @@ class PageState extends _$PageState {
     }
 
     final query = state.data.option.query;
-    if (query.isNotEmpty) unawaited(_recordHistory(query, server));
+    if (query.isNotEmpty &&
+        _recordedSearch != (query: query, serverId: server.id)) {
+      _recordedSearch = (query: query, serverId: server.id);
+      unawaited(_recordHistory(query, server));
+    }
     _fetching = true;
     try {
       final settings = ref.read(serverSettingStateProvider);

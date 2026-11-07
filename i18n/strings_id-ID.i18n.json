@@ -93,7 +93,10 @@
     "forbidden": "${server_name} menolak permintaan ini. Periksa izin akun atau tag pencarian.",
     "rate_limited": "${server_name} membatasi permintaan. Tunggu sebentar lalu coba lagi.",
     "cloudflare_challenge": "${server_name} meminta pemeriksaan browser yang tidak bisa dijalankan aplikasi ini. Verifikasi sekali di browser bawaan.",
-    "verify": "Verifikasi"
+    "verify": "Verifikasi",
+    "filtered_empty": "Semua pos di halaman ini disembunyikan oleh filter lokal Anda.",
+    "blocked_empty": "Semua pos di halaman ini disembunyikan oleh Tags Blocker.",
+    "show_all": "Tampilkan semua pos"
   },
   "web_challenge": {
     "title": "Pemeriksaan browser",
@@ -112,7 +115,8 @@
     "selected": "${count} dipilih",
     "add_selected": "Tambahkan",
     "clear_selection": "Bersihkan pilihan",
-    "usage_count": "dicari ${count}×"
+    "usage_count": "dicari ${count}×",
+    "history_removed": "'${query}' dihapus dari riwayat"
   },
   "action_tag": {
     "copy": "Salin tag",

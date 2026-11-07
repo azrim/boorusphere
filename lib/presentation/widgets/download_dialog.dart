@@ -60,7 +60,9 @@ class DownloaderDialog extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final headers = ref.watch(postHeadersFactoryProvider(post));
+    final headers = ref.watch(
+      postHeadersFactoryProvider(postHeadersKeyOf(post)),
+    );
     // A sample without its pixel size is probed once and kept: rebuilding the
     // future per build would restart the read and blank the row.
     final sampleSize = useMemoized<Future<PixelSize>>(() {

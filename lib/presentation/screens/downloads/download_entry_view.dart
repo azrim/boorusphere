@@ -101,7 +101,9 @@ class DownloadEntryView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final servers = ref.watch(serverStateProvider);
-    final headers = ref.watch(postHeadersFactoryProvider(entry.post));
+    final headers = ref.watch(
+      postHeadersFactoryProvider(postHeadersKeyOf(entry.post)),
+    );
     // Scoped to this entry: watching the whole list rebuilt every row for each
     // percent tick of any running download.
     final progress = ref.watch(

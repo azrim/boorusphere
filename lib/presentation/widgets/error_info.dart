@@ -12,6 +12,62 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 /// reading pane, not the page: past this the message it belongs to scrolls away.
 const double _kStackTraceMaxHeight = 128.0;
 
+/// The one-line reading of a failed request, shared by the surfaces that
+/// report it: the error card and the toast that answers a failed page step.
+String describeError(BuildContext context, Object? error) {
+  final t = TranslationProvider.of(context).translations;
+  dynamic e = error;
+  String? host;
+  if (e == null) {
+    return t.error.unknown;
+  }
+
+  while (true) {
+    if (e == null) {
+      // A [DioException] can end the chain without an inner error, so the
+      // loop reports what it has instead of reading a message off null.
+      return host != null
+          ? t.error.connectionFailedHost(host: host)
+          : t.error.unknown;
+    } else if (e is HandshakeException) {
+      return host != null
+          ? t.error.insecureConnectionHost(host: host)
+          : t.error.insecureConnection;
+    } else if (e is HttpException || e is SocketException) {
+      if (host == null && e is SocketException) {
+        host = e.address?.host;
+      }
+      return host != null
+          ? t.error.connectionFailedHost(host: host)
+          : t.error.connectionFailed;
+    } else if (e is TimeoutException) {
+      return t.error.connectionTimeout;
+    } else if (e is DioException && _isTimeout(e)) {
+      // A timeout carries no inner error, so unwrapping it would land on
+      // null and print "null" as the message.
+      return t.error.connectionTimeout;
+    } else if (e is! DioException) {
+      try {
+        // let's try to obtain exception message
+        return e.message;
+      } catch (_) {
+        return '$e';
+      }
+    }
+    host = e.requestOptions.uri.host;
+    e = e.error;
+  }
+}
+
+bool _isTimeout(DioException error) {
+  return switch (error.type) {
+    DioExceptionType.receiveTimeout ||
+    DioExceptionType.connectionTimeout ||
+    DioExceptionType.sendTimeout => true,
+    _ => false,
+  };
+}
+
 class ErrorInfo extends HookWidget {
   const ErrorInfo({
     super.key,
@@ -29,60 +85,6 @@ class ErrorInfo extends HookWidget {
   final CrossAxisAlignment crossAxisAlignment;
   final TextStyle? style;
   final EdgeInsets padding;
-
-  String describeError(BuildContext context) {
-    final t = TranslationProvider.of(context).translations;
-    dynamic e = error;
-    String? host;
-    if (e == null) {
-      return t.error.unknown;
-    }
-
-    while (true) {
-      if (e == null) {
-        // A [DioException] can end the chain without an inner error, so the
-        // loop reports what it has instead of reading a message off null.
-        return host != null
-            ? t.error.connectionFailedHost(host: host)
-            : t.error.unknown;
-      } else if (e is HandshakeException) {
-        return host != null
-            ? t.error.insecureConnectionHost(host: host)
-            : t.error.insecureConnection;
-      } else if (e is HttpException || e is SocketException) {
-        if (host == null && e is SocketException) {
-          host = e.address?.host;
-        }
-        return host != null
-            ? t.error.connectionFailedHost(host: host)
-            : t.error.connectionFailed;
-      } else if (e is TimeoutException) {
-        return t.error.connectionTimeout;
-      } else if (e is DioException && _isTimeout(e)) {
-        // A timeout carries no inner error, so unwrapping it would land on
-        // null and print "null" as the message.
-        return t.error.connectionTimeout;
-      } else if (e is! DioException) {
-        try {
-          // let's try to obtain exception message
-          return e.message;
-        } catch (_) {
-          return '$e';
-        }
-      }
-      host = e.requestOptions.uri.host;
-      e = e.error;
-    }
-  }
-
-  static bool _isTimeout(DioException error) {
-    return switch (error.type) {
-      DioExceptionType.receiveTimeout ||
-      DioExceptionType.connectionTimeout ||
-      DioExceptionType.sendTimeout => true,
-      _ => false,
-    };
-  }
 
   bool get traceable =>
       stackTrace != null && error is! TimeoutException && error is! BooruError;
@@ -106,7 +108,10 @@ class ErrorInfo extends HookWidget {
             children: [
               DefaultTextStyle(
                 style: style ?? DefaultTextStyle.of(context).style,
-                child: Text(describeError(context), textAlign: textAlign),
+                child: Text(
+                  describeError(context, error),
+                  textAlign: textAlign,
+                ),
               ),
               if (showTrace.value && stackTrace != null)
                 Column(

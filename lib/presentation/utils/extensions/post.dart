@@ -24,13 +24,17 @@ extension PostExt on Post {
   String get describeTags => allTags.join(' ');
 
   double get aspectRatio {
-    if (prescreensize.hasPixels) {
-      return prescreensize.aspectRatio;
-    } else if (sampleSize.hasPixels) {
-      return sampleSize.aspectRatio;
-    } else {
-      return originalSize.aspectRatio;
-    }
+    final ratio = prescreensize.hasPixels
+        ? prescreensize.aspectRatio
+        : sampleSize.hasPixels
+        ? sampleSize.aspectRatio
+        : originalSize.aspectRatio;
+    // Unknown dimensions are a normal state in a booru client: a parser may
+    // report 0/0 (e621 fills a missing file block with zeros) or a partial
+    // size. NaN, Infinity or a negative ratio would throw in the card's
+    // decode math and trip AspectRatio's positivity assert, so the card reads
+    // it as a square instead of failing to build.
+    return ratio.isFinite && ratio > 0 ? ratio : 1.0;
   }
 
   PixelSize get originalSize => PixelSize(width: width, height: height);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/tag_category.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
@@ -14,6 +16,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/theme/tag_category_accents.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/strings.dart';
+import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/presentation/widgets/blur_backdrop.dart';
 import 'package:boorusphere/presentation/widgets/confirm_destructive.dart';
 import 'package:boorusphere/presentation/widgets/drag_handle.dart';
@@ -38,10 +41,15 @@ class SearchSuggestion extends HookConsumerWidget {
     super.key,
     required this.animator,
     required this.searchBar,
+    required this.scrollController,
   });
 
   final AnimationController animator;
   final SearchBarController searchBar;
+
+  /// Owned by the search screen, not this panel: the panel is unmounted while
+  /// closed, and the list should come back where the reader left it.
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,7 +57,6 @@ class SearchSuggestion extends HookConsumerWidget {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final isDragging = useRef(false);
     final dragStartY = useRef(0.0);
-    final scrollController = useScrollController();
     final enableBlur = ref.watch(uiSettingStateProvider.select((s) => s.blur));
     final backgroundColor = context.theme.scaffoldBackgroundColor;
 
@@ -66,6 +73,10 @@ class SearchSuggestion extends HookConsumerWidget {
             ? backgroundColor.withValues(alpha: 0.85)
             : backgroundColor,
         child: SafeArea(
+          // The spacer at the end of the list clears the measured bar, and that
+          // height already includes the bottom inset. Reserving the inset here
+          // as well left a dead band above the bar on gesture-nav phones.
+          bottom: false,
           // The panel paints an opaque pane above the scaffold's Material, so
           // the rows need their own transparent Material to draw ink on.
           child: Material(
@@ -318,7 +329,19 @@ class _SearchHistory extends HookConsumerWidget {
             key: Key(entry.key.toString()),
             direction: DismissDirection.endToStart,
             onDismissed: (direction) {
-              ref.read(searchHistoryStateProvider.notifier).delete(entry.key);
+              // The swipe is destructive like removing a server: the row leaves
+              // at once, and the toast carries the one window to put it back
+              // with its count instead of asking before a deliberate gesture.
+              final history = ref.read(searchHistoryStateProvider.notifier);
+              unawaited(history.delete(entry.key));
+              showToast(
+                context,
+                context.t.suggestion.historyRemoved(query: entry.value.query),
+                actionLabel: context.t.undo,
+                duration: DesignTokens.durationUndo,
+                onAction: () =>
+                    unawaited(history.restore(entry.key, entry.value)),
+              );
             },
             background: Container(
               color: context.colorScheme.error,
@@ -474,11 +497,10 @@ class _Suggestion extends HookConsumerWidget {
       ),
       LoadingFetchResult() => const SliverToBoxAdapter(
         child: SizedBox(
-          height: 48,
+          height: DesignTokens.controlHeightMin,
           child: Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
+            child: SizedBox.square(
+              dimension: DesignTokens.iconAction,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
@@ -580,9 +602,16 @@ class _SelectionBar extends StatelessWidget {
         DesignTokens.spacingSm,
         0,
       ),
-      child: Row(
+      // The count owns its line and the actions wrap under it: at a large font
+      // scale, or with a longer translation, a single row used to clip the
+      // button that commits the selection.
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spacingSm,
+            ),
             child: Text(
               context.t.suggestion.selected(count: count),
               style: AppTextRoles.of(context).rowSupporting.copyWith(
@@ -591,14 +620,22 @@ class _SelectionBar extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(
-            onPressed: onClear,
-            child: Text(context.t.suggestion.clearSelection),
-          ),
-          const SizedBox(width: DesignTokens.spacingXs),
-          FilledButton(
-            onPressed: onAdd,
-            child: Text(context.t.suggestion.addSelected),
+          const SizedBox(height: DesignTokens.spacingXs),
+          Wrap(
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: DesignTokens.spacingXs,
+            runSpacing: DesignTokens.spacingXs,
+            children: [
+              TextButton(
+                onPressed: onClear,
+                child: Text(context.t.suggestion.clearSelection),
+              ),
+              FilledButton(
+                onPressed: onAdd,
+                child: Text(context.t.suggestion.addSelected),
+              ),
+            ],
           ),
         ],
       ),

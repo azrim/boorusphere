@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/setting/entity/setting.dart';
 import 'package:boorusphere/data/repository/tags_blocker/tag_expression.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/batch_download_provider.dart';
 import 'package:boorusphere/presentation/provider/booru/entity/fetch_result.dart';
+import 'package:boorusphere/presentation/provider/booru/entity/page_data.dart';
 import 'package:boorusphere/presentation/provider/booru/feed_filter_state.dart';
 import 'package:boorusphere/presentation/provider/booru/page_state.dart';
 import 'package:boorusphere/presentation/provider/favorite_post_state.dart';
@@ -17,6 +19,7 @@ import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dar
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/provider/tags_blocker_state.dart';
+import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/first_run_view.dart';
 import 'package:boorusphere/presentation/screens/home/home_status.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
@@ -28,6 +31,7 @@ import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/utils/extensions/post.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
+import 'package:boorusphere/presentation/widgets/notice_card.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline.dart';
 import 'package:boorusphere/presentation/widgets/timeline/timeline_controller.dart';
 import 'package:flutter/foundation.dart';
@@ -53,6 +57,13 @@ class HomeContent extends HookConsumerWidget {
     final servers = ref.watch(serverStateProvider);
     final feedMode = ref.watch(
       uiSettingStateProvider.select((it) => it.feedMode),
+    );
+    // Only the filters themselves, not the whole setting: the notice below and
+    // its way out depend on whether a local filter is the one hiding the page.
+    final filtering = ref.watch(
+      contentSettingStateProvider.select(
+        (it) => it.hideFavorited || it.hideDownloaded,
+      ),
     );
 
     // The blocked set is derived, not selected: a fresh list per read never
@@ -130,6 +141,26 @@ class HomeContent extends HookConsumerWidget {
       );
     });
 
+    // A failed step or refresh keeps the posts already on screen, so the status
+    // card that explains it is appended below the whole page and never seen.
+    // Answer the action where it was taken instead; the retry path is the one
+    // the reader already knows.
+    ref.listen(pageStateProvider, (previous, next) {
+      if (next is! ErrorFetchResult<PageData>) return;
+      if (next.data.posts.isEmpty) return;
+      // A retry that fails the same way is a new answer, not a repeat of the
+      // one already on screen; only an unchanged error is skipped.
+      if (previous is ErrorFetchResult<PageData> &&
+          previous.error == next.error) {
+        return;
+      }
+      final server = servers.getById(session.serverId);
+      showToast(
+        context,
+        describePageStatus(context, next.data, next.error, server),
+      );
+    });
+
     useEffect(() {
       if (servers.isNotEmpty) {
         Future(() {
@@ -142,6 +173,11 @@ class HomeContent extends HookConsumerWidget {
       }
       return null;
     }, [servers.isNotEmpty]);
+
+    // What the grid actually shows: a page can arrive full and be emptied by
+    // the local filters or the tags blocker, and every piece of chrome below
+    // has to describe the grid's state rather than the response's.
+    final hasVisiblePosts = filteredPosts.isNotEmpty;
 
     final timelineController = ref.watch(timelineControllerProvider);
     final scrollController = timelineController.scrollController;
@@ -273,7 +309,7 @@ class HomeContent extends HookConsumerWidget {
         !hintSeen.value &&
         !hasSelection &&
         !searchBar.isOpen &&
-        data.posts.isNotEmpty;
+        hasVisiblePosts;
 
     useEffect(() {
       if (!hasSelection || hintSeen.value) return null;
@@ -287,62 +323,96 @@ class HomeContent extends HookConsumerWidget {
     final showPagination =
         feedMode == FeedMode.paged &&
         !isNewSearch &&
-        data.posts.isNotEmpty &&
+        hasVisiblePosts &&
         !hasSelection &&
         !searchBar.isOpen &&
         !showHint;
+
+    // The response had posts but none survived the local filters or the tags
+    // blocker. Loaded data is not the same as visible data, so this state gets
+    // its own notice with the control that undoes it, instead of a blank grid
+    // under chrome that claims there is something to page through.
+    final allHidden = data.posts.isNotEmpty && !hasVisiblePosts;
 
     if (servers.isEmpty) return const FirstRunView();
 
     return Stack(
       alignment: Alignment.center,
       children: [
-        RefreshIndicator(
-          onRefresh: ref.read(pageStateProvider.notifier).load,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            controller: scrollController,
-            slivers: [
-              if (!isNewSearch)
-                SliverSafeArea(
-                  sliver: SliverPadding(
-                    padding: const EdgeInsets.all(DesignTokens.spacingMd),
-                    sliver: Timeline(posts: filteredPosts),
-                  ),
-                ),
-              if (!isNewSearch && feedMode == FeedMode.infinite)
-                SliverToBoxAdapter(
-                  child: _InfiniteFooter(
-                    loading: isLoading,
-                    hasPosts: data.posts.isNotEmpty,
-                    hasNext: data.hasNext,
-                    limitReached: data.limitReached,
-                  ),
-                ),
-              if (!isNewSearch)
-                SliverPadding(
-                  padding: EdgeInsets.only(
-                    bottom: barHeight + DesignTokens.spacingLg,
-                  ),
-                  // The footer already carries the inline spinner; a full page
-                  // of shimmer tiles would double it on every append.
-                  sliver: SliverToBoxAdapter(
-                    child: HomeStatus(
-                      skeletonWhenLoading:
-                          !(feedMode == FeedMode.infinite &&
-                              data.posts.isNotEmpty),
+        // Under the open search panel the grid is not visible, so it must not
+        // be reachable either: TalkBack would read and activate cards the
+        // reader cannot see.
+        ExcludeSemantics(
+          excluding: searchBar.isOpen,
+          child: RefreshIndicator(
+            onRefresh: ref.read(pageStateProvider.notifier).load,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              controller: scrollController,
+              slivers: [
+                if (!isNewSearch)
+                  SliverSafeArea(
+                    sliver: SliverPadding(
+                      padding: const EdgeInsets.all(DesignTokens.spacingMd),
+                      sliver: Timeline(posts: filteredPosts),
                     ),
                   ),
-                )
-              else
-                const SliverFillRemaining(child: HomeStatus()),
-            ],
+                if (!isNewSearch && feedMode == FeedMode.infinite)
+                  SliverToBoxAdapter(
+                    child: _InfiniteFooter(
+                      loading: isLoading,
+                      hasPosts: hasVisiblePosts,
+                      hasNext: data.hasNext,
+                      limitReached: data.limitReached,
+                    ),
+                  ),
+                if (!isNewSearch)
+                  SliverPadding(
+                    padding: EdgeInsets.only(
+                      bottom: barHeight + DesignTokens.spacingLg,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: allHidden
+                          ? _NothingVisible(
+                              filtering: filtering,
+                              onShowAll: () {
+                                final settings = ref.read(
+                                  contentSettingStateProvider.notifier,
+                                );
+                                unawaited(settings.setHideFavorited(false));
+                                unawaited(settings.setHideDownloaded(false));
+                              },
+                              onManageBlocked: () => unawaited(
+                                context.router.push(const TagsBlockerRoute()),
+                              ),
+                            )
+                          // One operation, one progress signal: a step with the
+                          // grid on screen is already reported by the paging
+                          // pill, so only a load with nothing to show gets the
+                          // placeholder grid.
+                          : HomeStatus(skeletonWhenLoading: data.posts.isEmpty),
+                    ),
+                  )
+                else
+                  const SliverFillRemaining(child: HomeStatus()),
+              ],
+            ),
           ),
         ),
         const _EdgeShadow(),
-        // Selection mode owns the bottom of the screen; the bar would only be
-        // covered by the action bar while staying reachable for TalkBack.
-        if (!hasSelection) const SearchScreen(),
+        // Selection mode owns the bottom of the screen: the bar would only be
+        // covered by the action bar while staying reachable for TalkBack. The
+        // swap is a handover, not a cut, because the action bar takes exactly
+        // the place the bar held.
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: context.motionDuration(DesignTokens.durationFast),
+            transitionBuilder: _handoverTransition,
+            child: hasSelection
+                ? const SizedBox.shrink(key: ValueKey('search-hidden'))
+                : const SearchScreen(key: ValueKey('search')),
+          ),
+        ),
         // Pagination control
         if (showHint)
           Positioned(
@@ -368,24 +438,43 @@ class HomeContent extends HookConsumerWidget {
         if (!hasSelection && !searchBar.isOpen && !showHint)
           ValueListenableBuilder<bool>(
             valueListenable: canBackToTop,
-            builder: (context, canBack, _) {
-              if (!canBack) return const SizedBox.shrink();
+            builder: (context, canBack, child) {
+              final duration = context.motionDuration(
+                DesignTokens.durationFast,
+              );
+              // Kept mounted while hidden so leaving the deep end of the grid
+              // fades the button out instead of cutting it. The animation is
+              // the only thing that changes; the button itself is `child`.
               return Positioned(
                 right: DesignTokens.spacingMd,
                 bottom: barHeight + DesignTokens.spacingSm,
-                child: _BackToTopButton(
-                  onTap: () => unawaited(
-                    scrollController.animateTo(
-                      0,
-                      duration: context.motionDuration(
-                        const Duration(milliseconds: 500),
+                child: ExcludeSemantics(
+                  excluding: !canBack,
+                  child: IgnorePointer(
+                    ignoring: !canBack,
+                    child: AnimatedOpacity(
+                      opacity: canBack ? 1 : 0,
+                      duration: duration,
+                      child: AnimatedSlide(
+                        offset: canBack ? Offset.zero : const Offset(0, 0.15),
+                        duration: duration,
+                        curve: DesignTokens.curveStandard,
+                        child: child,
                       ),
-                      curve: DesignTokens.curveStandard,
                     ),
                   ),
                 ),
               );
             },
+            child: _BackToTopButton(
+              onTap: () => unawaited(
+                scrollController.animateTo(
+                  0,
+                  duration: context.motionDuration(DesignTokens.durationSlow),
+                  curve: DesignTokens.curveStandard,
+                ),
+              ),
+            ),
           ),
         if (showPagination)
           Positioned(
@@ -418,122 +507,201 @@ class HomeContent extends HookConsumerWidget {
             ),
           ),
         // Selection action bar
-        if (hasSelection)
-          Positioned(
-            bottom:
-                MediaQuery.viewPaddingOf(context).bottom +
-                DesignTokens.spacingMd,
-            left: DesignTokens.spacingMd,
-            right: DesignTokens.spacingMd,
-            child: _SelectionActionBar(
-              selectedCount: selectedCount,
-              progress: downloadProgress,
-              onDownload: () async {
-                final selection = ref.read(postSelectionProvider);
-                final selectedPosts = filteredPosts
-                    .where((post) => selection.contains(post.id))
-                    .toList();
+        Positioned(
+          bottom:
+              MediaQuery.viewPaddingOf(context).bottom + DesignTokens.spacingMd,
+          left: DesignTokens.spacingMd,
+          right: DesignTokens.spacingMd,
+          child: AnimatedSwitcher(
+            duration: context.motionDuration(DesignTokens.durationFast),
+            transitionBuilder: _handoverTransition,
+            child: hasSelection
+                ? _SelectionActionBar(
+                    key: const ValueKey('selection'),
+                    selectedCount: selectedCount,
+                    progress: downloadProgress,
+                    onDownload: () async {
+                      final selection = ref.read(postSelectionProvider);
+                      final selectedPosts = filteredPosts
+                          .where((post) => selection.contains(post.id))
+                          .toList();
 
-                if (selectedPosts.isEmpty) return;
+                      if (selectedPosts.isEmpty) return;
 
-                // The batch saves what the quality setting asks for, the same
-                // way the single-file picker does.
-                final quality = ref.read(downloadSettingStateProvider).quality;
-                final imageUrls = selectedPosts
-                    .map((post) => batchSourceUrlOf(post, quality))
-                    .where((url) => url.isNotEmpty)
-                    .toList();
+                      // The batch saves what the quality setting asks for, the same
+                      // way the single-file picker does.
+                      final quality = ref
+                          .read(downloadSettingStateProvider)
+                          .quality;
+                      final imageUrls = selectedPosts
+                          .map((post) => batchSourceUrlOf(post, quality))
+                          .where((url) => url.isNotEmpty)
+                          .toList();
 
-                // The bar carries the status: it counts the settled files and
-                // moves its own progress line while the batch runs.
-                if (imageUrls.isNotEmpty) {
-                  downloadProgress.value = (
-                    done: 0,
-                    total: imageUrls.length,
-                    fraction: 0,
-                  );
-                }
+                      // The bar carries the status: it counts the settled files and
+                      // moves its own progress line while the batch runs.
+                      if (imageUrls.isNotEmpty) {
+                        downloadProgress.value = (
+                          done: 0,
+                          total: imageUrls.length,
+                          fraction: 0,
+                        );
+                      }
 
-                final BatchDownloadResult result;
-                try {
-                  result = await BatchDownloadProvider.download(
-                    imageUrls,
-                    storage: ref.read(sharedStorageHandleProvider),
-                    ref: ref,
-                    posts: selectedPosts,
-                    // The batch outlives this page when the reader leaves, so
-                    // both writes check that the notifier still has an owner
-                    // before touching it.
-                    onProgress: (progress) {
-                      if (context.mounted) downloadProgress.value = progress;
-                    },
-                  );
-                } finally {
-                  if (context.mounted) downloadProgress.value = null;
-                }
-
-                if (context.mounted) {
-                  if (result.success) {
-                    // The count comes from the batch, not from the request:
-                    // a URL that answered with something other than media was
-                    // dropped, and the message reports what reached the disk.
-                    showToast(
-                      context,
-                      context.t.batch.downloadedFiles(n: result.savedCount),
-                    );
-                  } else {
-                    showToast(context, context.t.batch.failed);
-                  }
-                }
-              },
-              onFavorite: () async {
-                // Batch favorite: add selected posts to favorites. Only the
-                // ones that were not already saved are undoable, so Undo
-                // never removes something the user saved earlier.
-                final selection = ref.read(postSelectionProvider);
-                final favorites = ref.read(favoritePostStateProvider.notifier);
-                final selectedPosts = filteredPosts
-                    .where((post) => selection.contains(post.id))
-                    .toList();
-                final added = selectedPosts
-                    .where((post) => !favorites.isFavorite(post))
-                    .toList();
-                for (final post in added) {
-                  await favorites.save(post);
-                }
-                if (context.mounted) {
-                  showToast(
-                    context,
-                    context.t.batch.favorited(n: added.length),
-                    // An undo stays until it is used; the timer only applies
-                    // to the message when there is nothing to undo.
-                    duration: added.isEmpty
-                        ? DesignTokens.durationSnackbar
-                        : const Duration(days: 1),
-                    actionLabel: added.isEmpty ? null : context.t.undo,
-                    // The toast lives in the root messenger, so it survives
-                    // this page being popped. Undo therefore has to use the
-                    // keepAlive notifier captured above instead of this
-                    // widget's ref, which is disposed with the page.
-                    onAction: added.isEmpty
-                        ? null
-                        : () {
-                            for (final post in added) {
-                              favorites.remove(post);
+                      final BatchDownloadResult result;
+                      try {
+                        result = await BatchDownloadProvider.download(
+                          imageUrls,
+                          storage: ref.read(sharedStorageHandleProvider),
+                          ref: ref,
+                          posts: selectedPosts,
+                          // The batch outlives this page when the reader leaves, so
+                          // both writes check that the notifier still has an owner
+                          // before touching it.
+                          onProgress: (progress) {
+                            if (context.mounted) {
+                              downloadProgress.value = progress;
                             }
                           },
-                  );
-                }
-                if (context.mounted) {
-                  ref.read(postSelectionProvider.notifier).clear();
-                }
-              },
-              onClear: () {
-                ref.read(postSelectionProvider.notifier).clear();
-              },
-            ),
+                        );
+                      } finally {
+                        if (context.mounted) downloadProgress.value = null;
+                      }
+
+                      if (context.mounted) {
+                        if (result.success) {
+                          // The count comes from the batch, not from the request:
+                          // a URL that answered with something other than media was
+                          // dropped, and the message reports what reached the disk.
+                          showToast(
+                            context,
+                            context.t.batch.downloadedFiles(
+                              n: result.savedCount,
+                            ),
+                          );
+                        } else {
+                          showToast(context, context.t.batch.failed);
+                        }
+                      }
+                    },
+                    onFavorite: () async {
+                      // Batch favorite: add selected posts to favorites. Only the
+                      // ones that were not already saved are undoable, so Undo
+                      // never removes something the user saved earlier.
+                      final selection = ref.read(postSelectionProvider);
+                      final favorites = ref.read(
+                        favoritePostStateProvider.notifier,
+                      );
+                      final selectedPosts = filteredPosts
+                          .where((post) => selection.contains(post.id))
+                          .toList();
+                      final added = selectedPosts
+                          .where((post) => !favorites.isFavorite(post))
+                          .toList();
+                      for (final post in added) {
+                        await favorites.save(post);
+                      }
+                      if (context.mounted) {
+                        showToast(
+                          context,
+                          context.t.batch.favorited(n: added.length),
+                          // The batch is one action, so its undo gets the same
+                          // bounded window as every other destructive result. The
+                          // toast outlives this page, but not the moment it
+                          // belongs to.
+                          duration: added.isEmpty
+                              ? DesignTokens.durationSnackbar
+                              : DesignTokens.durationUndo,
+                          actionLabel: added.isEmpty ? null : context.t.undo,
+                          // The toast lives in the root messenger, so it survives
+                          // this page being popped. Undo therefore has to use the
+                          // keepAlive notifier captured above instead of this
+                          // widget's ref, which is disposed with the page.
+                          onAction: added.isEmpty
+                              ? null
+                              : () {
+                                  for (final post in added) {
+                                    favorites.remove(post);
+                                  }
+                                },
+                        );
+                      }
+                      if (context.mounted) {
+                        ref.read(postSelectionProvider.notifier).clear();
+                      }
+                    },
+                    onClear: () {
+                      ref.read(postSelectionProvider.notifier).clear();
+                    },
+                  )
+                : const SizedBox.shrink(key: ValueKey('selection-hidden')),
           ),
+        ),
       ],
+    );
+  }
+}
+
+/// Fades a child while lifting it the last [DesignTokens.spacingSm] into
+/// place, for chrome that replaces other chrome at the same edge. Under
+/// reduced motion the duration is zero, so the swap is a cut.
+Widget _handoverTransition(Widget child, Animation<double> animation) {
+  return FadeTransition(
+    opacity: animation,
+    child: AnimatedBuilder(
+      animation: animation,
+      builder: (context, inner) => Transform.translate(
+        offset: Offset(0, (1 - animation.value) * DesignTokens.spacingSm),
+        child: inner,
+      ),
+      child: child,
+    ),
+  );
+}
+
+/// The page arrived full and every post on it is hidden by the local filters or
+/// by the tags blocker. Names the state and offers the one control that can
+/// bring the posts back, instead of an empty grid under paging chrome.
+class _NothingVisible extends StatelessWidget {
+  const _NothingVisible({
+    required this.filtering,
+    required this.onShowAll,
+    required this.onManageBlocked,
+  });
+
+  /// Whether a local content filter is hiding posts. When it is not, the tags
+  /// blocker is the one that is, and the way out is its own screen.
+  final bool filtering;
+
+  final VoidCallback onShowAll;
+  final VoidCallback onManageBlocked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: NoticeCard(
+        icon: const Icon(Icons.filter_alt_off_outlined),
+        margin: const EdgeInsets.all(DesignTokens.spacingMd),
+        children: Column(
+          children: [
+            Text(
+              filtering
+                  ? context.t.pageStatus.filteredEmpty
+                  : context.t.pageStatus.blockedEmpty,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: DesignTokens.spacingMd),
+            FilledButton(
+              onPressed: filtering ? onShowAll : onManageBlocked,
+              child: Text(
+                filtering
+                    ? context.t.pageStatus.showAll
+                    : context.t.tagsBlocker.title,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -677,6 +845,7 @@ class _BackToTopButton extends StatelessWidget {
 /// would silently carry from one tap to the next.
 class _SelectionActionBar extends StatelessWidget {
   const _SelectionActionBar({
+    super.key,
     required this.selectedCount,
     required this.progress,
     required this.onDownload,

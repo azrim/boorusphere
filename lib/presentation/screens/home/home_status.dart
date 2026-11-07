@@ -48,51 +48,71 @@ class HomeStatus extends HookConsumerWidget {
   }
 }
 
+/// The page-aware reading of a failed request: a status code, a challenge or
+/// a blocked query names what the reader can do about it.
+Object? buildPageStatusError(
+  BuildContext context,
+  PageData data,
+  Object? error,
+  Server server,
+) {
+  final e = error;
+  if (isCloudflareChallenge(e)) {
+    // Not a rejection of the query: the server never read it. The status
+    // code would read as the server's answer, so the line says what the
+    // check is and the card offers the browser that can answer it.
+    return context.t.pageStatus.cloudflareChallenge(serverName: server.name);
+  } else if (isAuthRequired(e)) {
+    // The server would answer a signed request. Naming the missing
+    // credentials beats reporting a status code the reader cannot act on.
+    return context.t.pageStatus.unauthorized(serverName: server.name);
+  } else if (e is DioException && e.response?.statusCode != null) {
+    // A bare status code leaves the reader guessing whether the account, the
+    // query or the rate limit is at fault; each of these names the fix.
+    return switch (e.response!.statusCode) {
+      401 => context.t.pageStatus.unauthorized(serverName: server.name),
+      403 => context.t.pageStatus.forbidden(serverName: server.name),
+      429 => context.t.pageStatus.rateLimited(serverName: server.name),
+      _ =>
+        context.t.pageStatus
+            .httpError(serverName: server.name)
+            .withDioExceptionCode(e),
+    };
+  } else if (e == BooruError.empty) {
+    return data.option.query.isEmpty
+        ? context.t.pageStatus.noResult(n: data.posts.length)
+        : context.t.pageStatus.noResultForQuery(
+            n: data.posts.length,
+            query: data.option.query,
+          );
+  } else if (e == BooruError.tagsBlocked) {
+    return context.t.pageStatus.blocked(query: data.option.query);
+  } else if (e == BooruError.unparsable) {
+    return context.t.pageStatus.unparsable(serverName: server.name);
+  } else {
+    return e;
+  }
+}
+
+/// The same reading as one line, for the surfaces that cannot show the card:
+/// a failed page step while the grid is already showing posts has no room for
+/// a notice below the fold.
+String describePageStatus(
+  BuildContext context,
+  PageData data,
+  Object? error,
+  Server server,
+) {
+  final message = buildPageStatusError(context, data, error, server);
+  return message is String ? message : describeError(context, message);
+}
+
 class _ErrorStatus extends ConsumerWidget {
   const _ErrorStatus({required this.data, this.error, this.stackTrace});
 
   final PageData data;
   final Object? error;
   final StackTrace? stackTrace;
-
-  Object? buildError(BuildContext context, Server server) {
-    final e = error;
-    if (isCloudflareChallenge(e)) {
-      // Not a rejection of the query: the server never read it. The status
-      // code would read as the server's answer, so the line says what the
-      // check is and the card offers the browser that can answer it.
-      return context.t.pageStatus.cloudflareChallenge(serverName: server.name);
-    } else if (isAuthRequired(e)) {
-      // The server would answer a signed request. Naming the missing
-      // credentials beats reporting a status code the reader cannot act on.
-      return context.t.pageStatus.unauthorized(serverName: server.name);
-    } else if (e is DioException && e.response?.statusCode != null) {
-      // A bare status code leaves the reader guessing whether the account, the
-      // query or the rate limit is at fault; each of these names the fix.
-      return switch (e.response!.statusCode) {
-        401 => context.t.pageStatus.unauthorized(serverName: server.name),
-        403 => context.t.pageStatus.forbidden(serverName: server.name),
-        429 => context.t.pageStatus.rateLimited(serverName: server.name),
-        _ =>
-          context.t.pageStatus
-              .httpError(serverName: server.name)
-              .withDioExceptionCode(e),
-      };
-    } else if (e == BooruError.empty) {
-      return data.option.query.isEmpty
-          ? context.t.pageStatus.noResult(n: data.posts.length)
-          : context.t.pageStatus.noResultForQuery(
-              n: data.posts.length,
-              query: data.option.query,
-            );
-    } else if (e == BooruError.tagsBlocked) {
-      return context.t.pageStatus.blocked(query: data.option.query);
-    } else if (e == BooruError.unparsable) {
-      return context.t.pageStatus.unparsable(serverName: server.name);
-    } else {
-      return e;
-    }
-  }
 
   Icon _getIconForError(Object? error) {
     if (isCloudflareChallenge(error)) {
@@ -154,7 +174,7 @@ class _ErrorStatus extends ConsumerWidget {
         children: Column(
           children: [
             ErrorInfo(
-              error: buildError(context, server),
+              error: buildPageStatusError(context, data, error, server),
               stackTrace: stackTrace,
             ),
             if (error == BooruError.empty)

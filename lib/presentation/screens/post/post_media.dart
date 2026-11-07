@@ -169,7 +169,9 @@ class _PostImage extends HookConsumerWidget {
     final contentSetting = ref.watch(contentSettingStateProvider);
     final shouldBlurExplicit =
         contentSetting.blurExplicit && !contentSetting.blurTimelineOnly;
-    final headers = ref.watch(postHeadersFactoryProvider(post));
+    final headers = ref.watch(
+      postHeadersFactoryProvider(postHeadersKeyOf(post)),
+    );
     final isBlur = useState(post.rating.isExplicit && shouldBlurExplicit);
     final transformController = useTransformationController();
     final zoomAnimator = useAnimationController(
@@ -856,7 +858,9 @@ class _PostVideoContent extends HookConsumerWidget {
     // audio and decoder both — which is what active gates, not merely pause.
     final locked = ref.watch(appLockProvider.select((it) => it.isLocked));
     final isActive = (heroMode?.enabled ?? false) && isVisible && !locked;
-    final headers = ref.watch(postHeadersFactoryProvider(post));
+    final headers = ref.watch(
+      postHeadersFactoryProvider(postHeadersKeyOf(post)),
+    );
     final contentSettings = ref.watch(contentSettingStateProvider);
     final fullscreen = ref.watch(fullscreenStateProvider);
     final shouldBlurExplicit =
@@ -1572,7 +1576,9 @@ class _PostUnknown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final headers = ref.watch(postHeadersFactoryProvider(post));
+    final headers = ref.watch(
+      postHeadersFactoryProvider(postHeadersKeyOf(post)),
+    );
     final contentSettings = ref.watch(contentSettingStateProvider);
     final shouldBlurExplicit =
         contentSettings.blurExplicit && !contentSettings.blurTimelineOnly;

@@ -17,32 +17,58 @@ class SearchScreen extends HookConsumerWidget {
     final searchBar = ref.watch(searchBarControllerProvider(session));
     final isOpen = searchBar.isOpen;
     final animator = useAnimationController(
-      duration: context.motionDuration(const Duration(milliseconds: 300)),
+      duration: context.motionDuration(DesignTokens.durationNormal),
     );
-    final animation = CurvedAnimation(
-      parent: animator,
-      curve: DesignTokens.curveStandard,
+    // The controller outlives every build, so its curve wrapper has to as well:
+    // one created here attached a status listener per rebuild and never
+    // removed it.
+    final animation = useMemoized(
+      () =>
+          CurvedAnimation(parent: animator, curve: DesignTokens.curveStandard),
+      [animator],
     );
+    useEffect(() => animation.dispose, [animation]);
 
     useEffect(() {
       isOpen ? animator.forward() : animator.reverse();
     }, [isOpen]);
 
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      children: [
-        FadeTransition(
-          opacity: Tween<double>(begin: 0.5, end: 1).animate(animation),
-          child: SlideTransition(
-            position: Tween(
-              begin: const Offset(0, 1),
-              end: const Offset(0, 0),
-            ).animate(animation),
-            child: SearchSuggestion(animator: animator, searchBar: searchBar),
-          ),
-        ),
-        const HomeSearchBar(),
-      ],
+    // The panel is a full screen of blur, a scroll view and up to twenty-five
+    // rows; once closed it is only off-screen, so it is taken out of the tree.
+    // Mounted on open, unmounted after the reverse settles. The scroll
+    // controller is owned here so the list comes back where it was.
+    final dismissed = useListenableSelector(
+      animator,
+      () => animator.isDismissed,
+    );
+    final scrollController = useScrollController();
+
+    // The slot is full-screen and the bar is aligned to its bottom edge, so
+    // the screen has to claim that height itself: with the panel unmounted
+    // while closed, a loose stack shrank to the bar and the shell centred it
+    // in the middle of the page.
+    return SizedBox.expand(
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          if (isOpen || !dismissed)
+            FadeTransition(
+              opacity: Tween<double>(begin: 0.5, end: 1).animate(animation),
+              child: SlideTransition(
+                position: Tween(
+                  begin: const Offset(0, 1),
+                  end: const Offset(0, 0),
+                ).animate(animation),
+                child: SearchSuggestion(
+                  animator: animator,
+                  searchBar: searchBar,
+                  scrollController: scrollController,
+                ),
+              ),
+            ),
+          const HomeSearchBar(),
+        ],
+      ),
     );
   }
 }

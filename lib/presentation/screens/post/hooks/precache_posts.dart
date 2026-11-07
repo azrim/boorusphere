@@ -44,7 +44,9 @@ class _PrecachePostsState extends HookState<_Precacher, _PrecachePostsHook> {
     final dpr = MediaQuery.devicePixelRatioOf(context);
     final image = CachedNetworkImageProvider(
       og ? post.originalFile : post.content.url,
-      headers: hook.ref.read(postHeadersFactoryProvider(post)),
+      headers: hook.ref.read(
+        postHeadersFactoryProvider(postHeadersKeyOf(post)),
+      ),
       maxWidth: (size.width * dpr).round(),
       maxHeight: (size.height * dpr).round(),
     );

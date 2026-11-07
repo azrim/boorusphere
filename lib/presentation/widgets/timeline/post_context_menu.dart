@@ -30,7 +30,6 @@ class PostContextMenuEntry {
 /// A context menu is a list of verbs, not a panel: it stays narrow enough to
 /// sit beside the finger and short enough that the grid behind it is still the
 /// thing being looked at.
-const double _kRowHeight = 48;
 const double _kCardRadius = DesignTokens.radiusXl;
 const double _kCardMaxWidth = 232;
 const double _kChipSize = 24;
@@ -73,7 +72,7 @@ Future<PostContextMenuAction?> showPostContextMenu(
 
 double _clamp01(double value) => value < 0 ? 0 : (value > 1 ? 1 : value);
 
-class _ContextMenuView extends StatelessWidget {
+class _ContextMenuView extends StatefulWidget {
   const _ContextMenuView({
     required this.animation,
     required this.groups,
@@ -89,13 +88,27 @@ class _ContextMenuView extends StatelessWidget {
   final Offset? position;
 
   @override
-  Widget build(BuildContext context) {
-    final card = CurvedAnimation(
-      parent: animation,
-      curve: DesignTokens.curveStandard,
-      reverseCurve: DesignTokens.curveAccelerate,
-    );
+  State<_ContextMenuView> createState() => _ContextMenuViewState();
+}
 
+class _ContextMenuViewState extends State<_ContextMenuView> {
+  /// Created once for the route's animation and disposed with it, never in
+  /// `build`: a curve wrapper attaches a status listener that only `dispose`
+  /// removes.
+  late final CurvedAnimation _card = CurvedAnimation(
+    parent: widget.animation,
+    curve: DesignTokens.curveStandard,
+    reverseCurve: DesignTokens.curveAccelerate,
+  );
+
+  @override
+  void dispose() {
+    _card.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Stack(
       children: [
         Positioned.fill(
@@ -104,13 +117,13 @@ class _ContextMenuView extends StatelessWidget {
         Positioned.fill(
           child: CustomSingleChildLayout(
             delegate: _MenuLayout(
-              anchor: position,
+              anchor: widget.position,
               margin: DesignTokens.spacingMd,
             ),
             child: AnimatedBuilder(
-              animation: card,
+              animation: _card,
               builder: (context, child) {
-                final t = _clamp01(card.value);
+                final t = _clamp01(_card.value);
                 // Only the travel is animated here. The fade belongs to the
                 // route, which fades the backdrop and the card together, so
                 // the blur cannot arrive after the menu it belongs to.
@@ -119,7 +132,10 @@ class _ContextMenuView extends StatelessWidget {
                   child: child,
                 );
               },
-              child: _MenuCard(animation: animation, groups: groups),
+              child: _MenuCard(
+                animation: widget.animation,
+                groups: widget.groups,
+              ),
             ),
           ),
         ),
@@ -202,11 +218,34 @@ class _MenuLayout extends SingleChildLayoutDelegate {
 }
 
 /// The floating card holding the grouped menu rows.
-class _MenuCard extends StatelessWidget {
+class _MenuCard extends StatefulWidget {
   const _MenuCard({required this.animation, required this.groups});
 
   final Animation<double> animation;
   final List<List<PostContextMenuEntry>> groups;
+
+  @override
+  State<_MenuCard> createState() => _MenuCardState();
+}
+
+class _MenuCardState extends State<_MenuCard> {
+  /// One stagger wrapper per row, built once and disposed with the card. A
+  /// wrapper per build re-registered its intervals on the route animation on
+  /// every rebuild of the card.
+  late final List<CurvedAnimation> _rowAnimations = _buildRowAnimations();
+
+  List<CurvedAnimation> _buildRowAnimations() {
+    final count = widget.groups.fold<int>(0, (sum, it) => sum + it.length);
+    return [for (var index = 0; index < count; index++) _rowAnimation(index)];
+  }
+
+  @override
+  void dispose() {
+    for (final animation in _rowAnimations) {
+      animation.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +292,7 @@ class _MenuCard extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (var g = 0; g < groups.length; g++) ...[
+                    for (var g = 0; g < widget.groups.length; g++) ...[
                       if (g > 0)
                         Divider(
                           height: 1,
@@ -262,10 +301,10 @@ class _MenuCard extends StatelessWidget {
                           endIndent: DesignTokens.spacingSm,
                           color: scheme.outlineVariant.withValues(alpha: 0.4),
                         ),
-                      for (final entry in groups[g])
+                      for (final entry in widget.groups[g])
                         _MenuRowTile(
                           entry: entry,
-                          animation: _rowAnimation(rowIndex++),
+                          animation: _rowAnimations[rowIndex++],
                           onTap: () => Navigator.of(context).pop(entry.action),
                         ),
                     ],
@@ -280,11 +319,11 @@ class _MenuCard extends StatelessWidget {
   }
 
   /// Staggered entrance for the row at [index].
-  Animation<double> _rowAnimation(int index) {
+  CurvedAnimation _rowAnimation(int index) {
     final start = 0.08 + index * 0.075;
     final end = math.min(start + 0.5, 1.0);
     return CurvedAnimation(
-      parent: animation,
+      parent: widget.animation,
       curve: Interval(start, end, curve: Curves.easeOutCubic),
     );
   }
@@ -337,7 +376,9 @@ class _MenuRowTile extends StatelessWidget {
           // A minimum instead of a fixed height, so a large font scale grows
           // the row instead of clipping the label.
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: _kRowHeight),
+            constraints: const BoxConstraints(
+              minHeight: DesignTokens.controlHeightMin,
+            ),
             child: Row(
               children: [
                 const SizedBox(width: DesignTokens.spacingSm),

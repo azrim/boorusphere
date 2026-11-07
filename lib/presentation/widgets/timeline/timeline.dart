@@ -172,11 +172,9 @@ class Timeline extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
-    // Aspect-scoped subscriptions: invalidate this build only on changes to
-    // size or DPR, not on keyboard insets, brightness, etc.
-    final screenWidth = MediaQuery.sizeOf(context).width;
+    // Aspect-scoped read: invalidate this build only on a DPR change, not on
+    // keyboard insets, brightness, etc.
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final flexibleGrid = (screenWidth / 200).round() + grid;
     final scrollController = ref.watch(
       timelineControllerProvider.select((it) => it.scrollController),
     );
@@ -189,11 +187,6 @@ class Timeline extends ConsumerWidget {
         ? posts as List<Post>
         : posts.toList();
 
-    // Hoist DPR-scaled width out of the per-item closure so it isn't
-    // recomputed for every visible thumbnail. The cache height is
-    // post-specific (uses aspect ratio) and stays in `_ThumbnailImage`.
-    final cacheBaseWidth = (screenWidth * dpr / flexibleGrid).round();
-
     // The base constructor is used instead of `SliverMasonryGrid.count` so
     // the child delegate can turn off the automatic keep-alive and repaint
     // boundary wrappers: the masonry render object ignores keep-alives and
@@ -202,20 +195,26 @@ class Timeline extends ConsumerWidget {
     // 0.7.0 exposes neither flag.)
     return SliverLayoutBuilder(
       builder: (context, constraints) {
+        // Columns, tile width and decode size all come from the extent this
+        // sliver is actually handed, which already excludes the caller's grid
+        // padding. Counting columns from the screen width instead made the
+        // thumbnails decode wider than they render on every device.
+        final columns = (constraints.crossAxisExtent / 200).round() + grid;
         // The overlays are sized from the width the grid actually hands each
         // tile, so a dense grid shrinks them instead of clipping the labels.
         final tileWidth =
             (constraints.crossAxisExtent -
-                DesignTokens.spacingSm * (flexibleGrid - 1)) /
-            flexibleGrid;
+                DesignTokens.spacingSm * (columns - 1)) /
+            columns;
         final overlayScale = _overlayScale(tileWidth);
+        final cacheBaseWidth = (tileWidth * dpr).round();
 
         return SliverMasonryGrid(
           // No `key: ObjectKey(flexibleGrid)` here; the previous incarnation
           // disposed every thumbnail when the grid count changed (e.g. on
           // rotation), forcing a full re-decode of every visible image.
           gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: flexibleGrid,
+            crossAxisCount: columns,
           ),
           mainAxisSpacing: DesignTokens.spacingSm,
           crossAxisSpacing: DesignTokens.spacingSm,
@@ -223,7 +222,6 @@ class Timeline extends ConsumerWidget {
             (context, index) {
               return RepaintBoundary(
                 child: _ThumbnailCard(
-                  gridSize: flexibleGrid,
                   overlayScale: overlayScale,
                   cacheBaseWidth: cacheBaseWidth,
                   postdata: (index, postsList[index]),
@@ -269,7 +267,6 @@ class _ThumbnailCard extends HookConsumerWidget {
     required this.blurExplicit,
     required this.enableSelection,
     this.onTap,
-    required this.gridSize,
     required this.overlayScale,
     required this.cacheBaseWidth,
   });
@@ -279,7 +276,6 @@ class _ThumbnailCard extends HookConsumerWidget {
   final bool blurExplicit;
   final bool enableSelection;
   final void Function()? onTap;
-  final int gridSize;
   final double overlayScale;
   final int cacheBaseWidth;
 
@@ -358,7 +354,6 @@ class _ThumbnailCard extends HookConsumerWidget {
                     child: _ThumbnailImage(
                       post: post,
                       blurExplicit: blurExplicit,
-                      gridSize: gridSize,
                       cacheBaseWidth: cacheBaseWidth,
                     ),
                   ),
@@ -792,18 +787,18 @@ class _ThumbnailImage extends ConsumerWidget {
   const _ThumbnailImage({
     required this.post,
     this.blurExplicit = false,
-    required this.gridSize,
     required this.cacheBaseWidth,
   });
 
   final Post post;
   final bool blurExplicit;
-  final int gridSize;
   final int cacheBaseWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final headers = ref.watch(postHeadersFactoryProvider(post));
+    final headers = ref.watch(
+      postHeadersFactoryProvider(postHeadersKeyOf(post)),
+    );
     // limit timeline thumbnail to 18:9
     final isLong = post.aspectRatio < 0.5;
     final cacheWidth = cacheBaseWidth;
@@ -866,7 +861,6 @@ class TimelineSkeleton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final grid = ref.watch(uiSettingStateProvider.select((ui) => ui.grid));
-    final columns = (MediaQuery.sizeOf(context).width / 200).round() + grid;
     final scheme = context.colorScheme;
     final base = context.isLightThemed
         ? scheme.surfaceContainerHighest
@@ -875,31 +869,43 @@ class TimelineSkeleton extends ConsumerWidget {
         ? scheme.surfaceContainerLow
         : scheme.surfaceContainer;
     const ratios = [0.72, 1.0, 1.35, 0.85, 1.15, 0.95];
+    const inset = DesignTokens.spacingMd;
 
-    return MasonryGridView.count(
-      crossAxisCount: columns,
-      mainAxisSpacing: DesignTokens.spacingSm,
-      crossAxisSpacing: DesignTokens.spacingSm,
-      padding: const EdgeInsets.all(DesignTokens.spacingSm),
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: columns * rows,
-      itemBuilder: (context, index) => AspectRatio(
-        aspectRatio: ratios[index % ratios.length],
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
-          child: Shimmer.fromColors(
-            baseColor: base,
-            highlightColor: highlight,
-            enabled: !context.reducedMotion,
-            // The child is only the surface the gradient is painted onto, so it
-            // takes the shimmer's own base tone. A black here would show
-            // through as solid slabs whenever reduced motion switches the
-            // shimmer off.
-            child: ColoredBox(color: base),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // The same width the real grid is given (the page insets are applied
+        // here, on the inside), so the placeholder columns, gutters and tile
+        // widths line up with the posts that replace them instead of shifting
+        // the whole first screen on load.
+        final width = constraints.maxWidth - inset * 2;
+        final columns = (width / 200).round() + grid;
+
+        return MasonryGridView.count(
+          crossAxisCount: columns,
+          mainAxisSpacing: DesignTokens.spacingSm,
+          crossAxisSpacing: DesignTokens.spacingSm,
+          padding: const EdgeInsets.all(inset),
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: columns * rows,
+          itemBuilder: (context, index) => AspectRatio(
+            aspectRatio: ratios[index % ratios.length],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
+              child: Shimmer.fromColors(
+                baseColor: base,
+                highlightColor: highlight,
+                enabled: !context.reducedMotion,
+                // The child is only the surface the gradient is painted onto,
+                // so it takes the shimmer's own base tone. A black here would
+                // show through as solid slabs whenever reduced motion switches
+                // the shimmer off.
+                child: ColoredBox(color: base),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -100,6 +100,11 @@ class _Home extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
     final searchBar = ref.watch(searchBarControllerProvider(session));
+    // Selection is a layer of state like the open search bar: Back unwinds it
+    // before it leaves the screen.
+    final hasSelection = ref.watch(
+      postSelectionProvider.select((it) => it.isNotEmpty),
+    );
     final scaffoldKey = useMemoized(GlobalKey<ScaffoldState>.new, const []);
     final drawerWidth =
         MediaQuery.sizeOf(
@@ -128,8 +133,17 @@ class _Home extends HookConsumerWidget {
       body: StyledOverlayRegion(
         child: PopScope(
           canPop:
-              (allowPop.value || context.router.canPop()) && !searchBar.isOpen,
+              (allowPop.value || context.router.canPop()) &&
+              !searchBar.isOpen &&
+              !hasSelection,
           onPopInvokedWithResult: (didPop, _) async {
+            if (hasSelection) {
+              maybePopTimer.cancel();
+              context.scaffoldMessenger.hideCurrentSnackBar();
+              ref.read(postSelectionProvider.notifier).clear();
+              return;
+            }
+
             if (searchBar.isOpen) {
               maybePopTimer.cancel();
               context.scaffoldMessenger.hideCurrentSnackBar();
