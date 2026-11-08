@@ -242,14 +242,13 @@ class PostDownloadButton extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entry = ref.watch(
-      downloadEntryStateProvider.select((entries) => entries.getByPost(post)),
-    );
-    final progress = ref.watch(
-      downloadProgressStateProvider.select(
-        (progresses) => progresses.getById(entry.id),
-      ),
-    );
+    // Both lists are watched: the entry a control acts on is chosen from the
+    // progress timestamps, so a row that gains a newer timestamp has to
+    // reselect even when the entry list itself did not change.
+    final entries = ref.watch(downloadEntryStateProvider);
+    final progresses = ref.watch(downloadProgressStateProvider);
+    final entry = entries.getByPost(post, progressOf: progresses.getById);
+    final progress = progresses.getById(entry.id);
     final pending = useState(false);
     // The record outlives the file: a download whose file was removed outside
     // the app must still be startable from here.

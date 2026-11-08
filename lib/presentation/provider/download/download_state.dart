@@ -135,18 +135,40 @@ extension DownloadEntriesExt on Iterable<DownloadEntry> {
     return whereNot((x) => x.post.isReserved);
   }
 
-  /// Newest entry for [post].
+  /// Entry for [post] a control should act on: a running one if any, the
+  /// newest otherwise.
   ///
   /// Retrying or switching quality appends a new entry instead of reusing the
-  /// old one, so the first match would keep reporting a state the running
-  /// download has already left behind.
-  DownloadEntry getByPost(Post post) {
-    var found = DownloadEntry.empty;
+  /// old one, and after a restart the list is rebuilt from a box that iterates
+  /// by id, not by age. The progress rows carry the timestamp, so the newest
+  /// one wins; a running row beats a settled one because it is the entry the
+  /// viewer still has to be able to cancel.
+  DownloadEntry getByPost(
+    Post post, {
+    required DownloadProgress Function(String id) progressOf,
+  }) {
+    DownloadEntry newest = DownloadEntry.empty;
+    DownloadEntry newestInFlight = DownloadEntry.empty;
+    var newestAt = 0;
+    var newestInFlightAt = 0;
+
     for (final entry in this) {
-      if (entry.post.id == post.id && entry.post.serverId == post.serverId) {
-        found = entry;
+      if (entry.post.id != post.id || entry.post.serverId != post.serverId) {
+        continue;
+      }
+      final progress = progressOf(entry.id);
+      if (newest.id.isEmpty || progress.timestamp >= newestAt) {
+        newest = entry;
+        newestAt = progress.timestamp;
+      }
+      if (!progress.status.isDownloading && !progress.status.isPending) {
+        continue;
+      }
+      if (newestInFlight.id.isEmpty || progress.timestamp >= newestInFlightAt) {
+        newestInFlight = entry;
+        newestInFlightAt = progress.timestamp;
       }
     }
-    return found;
+    return newestInFlight.id.isEmpty ? newest : newestInFlight;
   }
 }

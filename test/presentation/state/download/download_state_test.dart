@@ -1,3 +1,4 @@
+import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
@@ -191,6 +192,63 @@ void main() {
       expect(repo.writes, ['add:old']);
       expect(repo.hasEntry('old'), isTrue);
       expect(container.read(downloadEntryStateProvider).single.dest, 'b.jpg');
+    });
+  });
+
+  group('DownloadEntriesExt.getByPost', () {
+    const post = Post(id: 7, serverId: 'alpha');
+    const entries = [
+      DownloadEntry(id: 'a', dest: 'a.jpg', post: post),
+      DownloadEntry(id: 'b', dest: 'b.jpg', post: post),
+    ];
+
+    DownloadEntry pick(Map<String, DownloadProgress> progresses) =>
+        entries.getByPost(
+          post,
+          progressOf: (id) => progresses[id] ?? DownloadProgress.none,
+        );
+
+    test('picks the newest row whatever the list order', () {
+      final picked = pick({
+        'a': const DownloadProgress(
+          id: 'a',
+          status: DownloadStatus.downloaded,
+          timestamp: 30,
+        ),
+        'b': const DownloadProgress(
+          id: 'b',
+          status: DownloadStatus.failed,
+          timestamp: 10,
+        ),
+      });
+
+      expect(picked.id, 'a');
+    });
+
+    test('picks a running row over a newer settled one', () {
+      final picked = pick({
+        'a': const DownloadProgress(
+          id: 'a',
+          status: DownloadStatus.downloaded,
+          timestamp: 30,
+        ),
+        'b': const DownloadProgress(
+          id: 'b',
+          status: DownloadStatus.downloading,
+          timestamp: 10,
+        ),
+      });
+
+      expect(picked.id, 'b');
+    });
+
+    test('ignores rows of another server with the same post id', () {
+      final picked = entries.getByPost(
+        const Post(id: 7, serverId: 'beta'),
+        progressOf: (_) => DownloadProgress.none,
+      );
+
+      expect(picked.id, isEmpty);
     });
   });
 }
