@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -250,5 +252,167 @@ void main() {
     expect((await cache.stats()).count, 0);
     expect(cachedFile(first).existsSync(), isFalse);
     expect(cachedFile(second).existsSync(), isFalse);
+  });
+
+  test('rejects a body that stops before its declared length', () async {
+    final bytes = _mp4();
+    final adapter = _FakeAdapter(
+      // The head alone would pass as media; the length it was promised is
+      // what marks the transfer as short.
+      (_) => ResponseBody(
+        Stream.value(Uint8List.sublistView(bytes, 0, 12)),
+        200,
+        headers: {
+          Headers.contentTypeHeader: ['video/mp4'],
+          Headers.contentLengthHeader: ['${bytes.length}'],
+        },
+      ),
+    );
+    final cache = buildCache(_dio(adapter));
+
+    final file = await cache.cache('https://cdn.test/file/1.mp4', {});
+
+    expect(file, isNull);
+    expect((await cache.stats()).count, 0);
+    expect(dir.listSync().whereType<File>().map((it) => p.basename(it.path)), [
+      'index.json',
+    ]);
+  });
+
+  test(
+    'remove drops the stored copy so the next call downloads again',
+    () async {
+      const url = 'https://cdn.test/file/1.mp4';
+      final adapter = _FakeAdapter((_) => _video(_mp4()));
+      final cache = buildCache(_dio(adapter));
+
+      final file = await cache.cache(url, {});
+      expect(file, isNotNull);
+
+      await cache.remove(url);
+
+      expect(file!.existsSync(), isFalse);
+      expect(await cache.lookup(url), isNull);
+      expect((await cache.stats()).count, 0);
+
+      final again = await cache.cache(url, {});
+      expect(again, isNotNull);
+      expect(adapter.requests, hasLength(2));
+    },
+  );
+
+  test('cancel stops a transfer that has not finished', () async {
+    const url = 'https://cdn.test/file/1.mp4';
+    final body = StreamController<Uint8List>();
+    final requestStarted = Completer<void>();
+    final adapter = _FakeAdapter((_) {
+      requestStarted.complete();
+      return ResponseBody(
+        body.stream,
+        200,
+        headers: {
+          Headers.contentTypeHeader: ['video/mp4'],
+          Headers.contentLengthHeader: ['1024'],
+        },
+      );
+    });
+    final cache = buildCache(_dio(adapter));
+
+    final pending = cache.cache(url, {});
+    await requestStarted.future;
+    body.add(Uint8List.sublistView(_mp4(), 0, 512));
+    await Future<void>.delayed(Duration.zero);
+
+    cache.cancel(url);
+    body.add(Uint8List.sublistView(_mp4(), 512, 1024));
+    await body.close();
+
+    expect(await pending, isNull);
+    expect(dir.listSync().whereType<File>().map((it) => p.basename(it.path)), [
+      'index.json',
+    ]);
+    expect((await cache.stats()).count, 0);
+  });
+
+  test('clear stops a transfer that is still running', () async {
+    const url = 'https://cdn.test/file/1.mp4';
+    final body = StreamController<Uint8List>();
+    final requestStarted = Completer<void>();
+    final adapter = _FakeAdapter((_) {
+      requestStarted.complete();
+      return ResponseBody(
+        body.stream,
+        200,
+        headers: {
+          Headers.contentTypeHeader: ['video/mp4'],
+          Headers.contentLengthHeader: ['1024'],
+        },
+      );
+    });
+    final cache = buildCache(_dio(adapter));
+
+    final pending = cache.cache(url, {});
+    await requestStarted.future;
+    body.add(Uint8List.sublistView(_mp4(), 0, 512));
+    await Future<void>.delayed(Duration.zero);
+
+    await cache.clear();
+    body.add(Uint8List.sublistView(_mp4(), 512, 1024));
+    await body.close();
+
+    expect(await pending, isNull);
+    expect(dir.listSync().whereType<File>(), isEmpty);
+    expect((await cache.stats()).count, 0);
+  });
+
+  test('a ghost row in the index cannot evict the live videos', () async {
+    const a = 'https://cdn.test/file/a.mp4';
+    const b = 'https://cdn.test/file/b.mp4';
+    var clock = DateTime(2026);
+    final adapter = _FakeAdapter((_) => _video(_mp4()));
+    final first = buildCache(_dio(adapter), maxBytes: 2500, now: () => clock);
+
+    await first.cache(a, {});
+    clock = clock.add(const Duration(minutes: 1));
+    await first.cache(b, {});
+
+    // A crash can leave a row whose file never landed. It must not weigh on
+    // the budget when the index is read back, or it pushes a live video out.
+    final index = File(p.join(dir.path, 'index.json'));
+    final raw = jsonDecode(index.readAsStringSync()) as Map<String, dynamic>;
+    final entries = raw['entries'] as Map<String, dynamic>;
+    entries['deadbeef'] = {
+      'url': 'https://cdn.test/file/gone.mp4',
+      'file': 'deadbeef.mp4',
+      'size': 5000,
+      'used': clock.millisecondsSinceEpoch,
+    };
+    index.writeAsStringSync(jsonEncode(raw));
+
+    final second = buildCache(_dio(adapter), maxBytes: 2500, now: () => clock);
+    final stats = await second.stats();
+
+    expect(stats.count, 2);
+    expect(stats.bytes, 2048);
+    expect(await second.lookup(a), isNotNull);
+    expect(await second.lookup(b), isNotNull);
+    expect(cachedFile(a).existsSync(), isTrue);
+    expect(cachedFile(b).existsSync(), isTrue);
+  });
+
+  test('stats drops a short file and deletes it', () async {
+    const url = 'https://cdn.test/file/1.mp4';
+    final adapter = _FakeAdapter((_) => _video(_mp4()));
+    final cache = buildCache(_dio(adapter));
+
+    final file = await cache.cache(url, {});
+    expect(file, isNotNull);
+    file!.writeAsBytesSync(const [1, 2, 3]);
+
+    final stats = await cache.stats();
+
+    expect(stats.bytes, 0);
+    expect(stats.count, 0);
+    expect(file.existsSync(), isFalse);
   });
 }

@@ -65,6 +65,11 @@ class VideoCache {
   final _entries = <String, _CacheEntry>{};
   final _inflight = <String, Future<File?>>{};
 
+  /// Cancellation handle of every download still running, keyed like
+  /// [_entries]. A clear or a repair stops transfers through these, so a
+  /// transfer cannot land bytes in a directory that is being emptied.
+  final _cancelTokens = <String, CancelToken>{};
+
   Directory? _dir;
   bool _loaded = false;
 
@@ -155,17 +160,57 @@ class VideoCache {
     if (pending != null) return pending;
     if (_inflight.length >= maxConcurrentDownloads) return null;
 
-    final future = _download(key, url, headers);
+    final token = CancelToken();
+    _cancelTokens[key] = token;
+    final future = _download(key, url, headers, token);
     _inflight[key] = future;
     try {
       return await future;
     } finally {
       _inflight.remove(key)?.ignore();
+      if (identical(_cancelTokens[key], token)) _cancelTokens.remove(key);
     }
+  }
+
+  /// Drops the cached copy of [url] and stops a download of it still running.
+  ///
+  /// The viewer repairs a video by fetching it again: replaying the file that
+  /// failed would fail the same way, so the stored bytes have to go first.
+  Future<void> remove(String url) async {
+    final key = keyFor(url);
+    _cancelTokens[key]?.cancel();
+    await _exclusive(() async {
+      await _ensureLoaded();
+      final entry = _entries.remove(key);
+      if (entry == null) return;
+
+      final dir = await _ensureDir();
+      try {
+        final file = File(p.join(dir.path, entry.file));
+        if (file.existsSync()) await file.delete();
+      } catch (e) {
+        mainLog.w('VideoCache: failed to remove ${entry.file}', e);
+      }
+      await _writeIndex();
+    });
+  }
+
+  /// Stops a download of [url] that has not finished yet.
+  ///
+  /// Bytes that are already stored stay: this only keeps the cache from
+  /// pulling more for a page the viewer has left.
+  void cancel(String url) {
+    _cancelTokens[keyFor(url)]?.cancel();
   }
 
   /// Removes every cached video, keeping the directory for the next one.
   Future<void> clear() {
+    // Transfers already running would repopulate the directory this sweep is
+    // emptying once they finish, possibly after the user has been told the
+    // cache is empty. They are stopped before the files go.
+    for (final token in _cancelTokens.values) {
+      token.cancel();
+    }
     return _exclusive(() async {
       await _ensureLoaded();
       final dir = await _ensureDir();
@@ -192,12 +237,26 @@ class VideoCache {
       await _ensureLoaded();
       final dir = await _ensureDir();
       var changed = false;
+      final dropped = <String>[];
       _entries.removeWhere((_, entry) {
         final file = File(p.join(dir.path, entry.file));
         final intact = file.existsSync() && file.lengthSync() == entry.size;
-        if (!intact) changed = true;
+        if (!intact) {
+          changed = true;
+          dropped.add(entry.file);
+        }
         return !intact;
       });
+      // The row is gone, so the short file it pointed at is an orphan; only
+      // the next load would sweep it otherwise, while it keeps taking space.
+      for (final name in dropped) {
+        try {
+          final file = File(p.join(dir.path, name));
+          if (file.existsSync()) await file.delete();
+        } catch (e) {
+          mainLog.w('VideoCache: failed to drop $name', e);
+        }
+      }
       if (changed) await _writeIndex();
       return VideoCacheStats(
         bytes: _entries.values.fold<int>(0, (sum, entry) => sum + entry.size),
@@ -210,6 +269,7 @@ class VideoCache {
     String key,
     String url,
     Map<String, String> headers,
+    CancelToken token,
   ) async {
     File? temp;
     try {
@@ -231,6 +291,7 @@ class VideoCache {
           validateStatus: (status) => status == 200,
           receiveTimeout: const Duration(seconds: 30),
         ),
+        cancelToken: token,
       );
       final body = res.data;
       if (body == null) return null;
@@ -240,6 +301,7 @@ class VideoCache {
       // large enough to look like a video by size alone; the header and the
       // head bytes are what rule it out.
       if (_isMarkupContentType(contentType)) return null;
+      // `-1` means the server did not announce a length at all.
       final declared = body.contentLength;
       if (declared > maxBytes) return null;
 
@@ -251,6 +313,10 @@ class VideoCache {
       var received = 0;
       try {
         await for (final chunk in body.stream) {
+          // The adapter aborts the request on cancellation, but a response
+          // that never sends another byte would only notice at its timeout;
+          // checking beside each chunk stops the transfer at the first one.
+          if (token.isCancelled) return null;
           received += chunk.length;
           // An answer without a length can only be stopped once it is over
           // the cap; keeping the partial file would fill the cache with a
@@ -263,10 +329,22 @@ class VideoCache {
         await sink.close();
       }
 
+      // The head check below reads a dozen bytes, so a body that ended before
+      // the announced length would still pass as a video and then stop
+      // midway. A short transfer is rejected here and fetched again.
+      if (declared >= 0 && received != declared) {
+        mainLog.w('VideoCache: body for $url ended at $received of $declared');
+        return null;
+      }
+
       if (!isMediaFile(temp)) {
         mainLog.w('VideoCache: response for $url is not media');
         return null;
       }
+
+      // The viewer may have left while the last bytes were arriving; a
+      // transfer stopped before it is stored must not keep its file.
+      if (token.isCancelled) return null;
 
       final name = '$key$extension';
       final dest = File(p.join(dir.path, name));
@@ -274,8 +352,12 @@ class VideoCache {
       await temp.rename(dest.path);
       temp = null;
 
-      return await _exclusive(() async {
+      final stored = await _exclusive(() async {
+        if (token.isCancelled) return false;
         await _ensureLoaded();
+        // A load that swept this directory could have removed the file the
+        // transfer just wrote; there is nothing left to record then.
+        if (!dest.existsSync()) return false;
         _entries[key] = _CacheEntry(
           url: url,
           file: name,
@@ -286,10 +368,21 @@ class VideoCache {
         await _writeIndex();
         // The freshly stored entry can be the one the cap evicts when it is
         // the largest thing in the cache; the caller then keeps streaming.
-        return _entries.containsKey(key) ? dest : null;
+        return _entries.containsKey(key);
       });
+      if (!stored) {
+        try {
+          if (dest.existsSync()) await dest.delete();
+        } catch (e) {
+          mainLog.w('VideoCache: failed to drop ${dest.path}', e);
+        }
+        return null;
+      }
+      return dest;
     } on DioException catch (e) {
-      mainLog.w('VideoCache: failed to fetch $url', e);
+      if (!CancelToken.isCancel(e)) {
+        mainLog.w('VideoCache: failed to fetch $url', e);
+      }
       return null;
     } on FileSystemException catch (e) {
       mainLog.w('VideoCache: failed to write the cache for $url', e);
@@ -332,9 +425,10 @@ class VideoCache {
 
   Future<void> _ensureLoaded() async {
     if (_loaded) return;
-    // Marked before the first await: a second caller entering behind the
-    // serial queue would otherwise start a parallel index read.
-    _loaded = true;
+    // Every reader reaches this behind the serial queue, so one pass is
+    // enough; the flag turns true only after the index is in memory, which
+    // lets the next reader retry a load that failed instead of serving an
+    // empty cache for the rest of the session.
 
     final dir = await _ensureDir();
     final index = File(p.join(dir.path, _indexName));
@@ -350,6 +444,13 @@ class VideoCache {
             size: (value['size'] as num).toInt(),
             used: (value['used'] as num).toInt(),
           );
+          // A file the system trimmed, or a crash between the rename and the
+          // index write, leaves a row whose bytes do not match. Counting it
+          // would charge the budget for a video that cannot be replayed and
+          // could evict a live one to make room. The file itself is pruned
+          // as an orphan below.
+          final file = File(p.join(dir.path, entry.file));
+          if (!file.existsSync() || file.lengthSync() != entry.size) continue;
           _entries[row.key as String] = entry;
         }
       } catch (e) {
@@ -363,6 +464,7 @@ class VideoCache {
     await _pruneOrphans();
     await _evictToFit();
     await _writeIndex();
+    _loaded = true;
   }
 
   /// Deletes files the index does not point at, including the partial files a

@@ -83,6 +83,16 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   /// replaced) or after the widget is gone.
   int _generation = 0;
 
+  /// When this page started its background cache download, and how to stop
+  /// it. A viewer that leaves right after opening a clip should not keep the
+  /// transfer running for a video nobody is watching.
+  DateTime? _cacheStartedAt;
+  void Function()? _stopCache;
+
+  /// Downloads still running after this long are a video the user actually
+  /// watched, and finishing one makes the next visit instant.
+  static const _cacheCancelWindow = Duration(seconds: 2);
+
   /// Flags the source as failed so the viewer shows its retry banner.
   ///
   /// Idempotent: the player keeps reporting the same error on every later
@@ -187,6 +197,8 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
     // Cache the same bytes while they stream, so the next visit can start
     // instantly. This never blocks playback; a failure only leaves this visit
     // streaming from the server.
+    _cacheStartedAt = DateTime.now();
+    _stopCache = () => cache.cancel(mediaUrl);
     unawaited(cache.cache(mediaUrl, headers));
   }
 
@@ -204,6 +216,23 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
   /// `useEffect([controller])`, so no extra nonce is required.
   Future<void> retry() async {
     destroyController();
+    final generation = _generation;
+    final mediaUrl = hook.post.content.url;
+
+    // The copy on disk is the one that failed to play, so a retry has to
+    // fetch the video again instead of being handed the same bytes back.
+    try {
+      await hook.ref.read(videoCacheProvider).remove(mediaUrl);
+    } catch (e, stack) {
+      mainLog.w(
+        'VideoPost: failed to drop the cached video for $mediaUrl',
+        e,
+        stack,
+      );
+    }
+    // A page change or a disposal during the removal owns the slot now.
+    if (generation != _generation || !context.mounted) return;
+
     // Force a rebuild so the disposed controller is dropped from the tree
     // before the replacement is created.
     setState(() {});
@@ -212,6 +241,13 @@ class _VideoPostState extends HookState<VideoPostHandle, _VideoPostHook> {
 
   void destroyController() {
     _generation++;
+    final startedAt = _cacheStartedAt;
+    if (startedAt != null &&
+        DateTime.now().difference(startedAt) < _cacheCancelWindow) {
+      _stopCache?.call();
+    }
+    _cacheStartedAt = null;
+    _stopCache = null;
     unawaited(source.controller?.pause());
     source.controller?.dispose();
     source = VideoPostSource();
