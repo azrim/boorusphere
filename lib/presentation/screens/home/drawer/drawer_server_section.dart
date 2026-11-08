@@ -7,6 +7,7 @@ import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_section_header.dart';
 import 'package:boorusphere/presentation/screens/home/drawer/widgets/drawer_tile.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
@@ -153,6 +154,7 @@ class _ServerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final flat = AppSurfacePolicy.of(context).flat;
     final foreground = active ? scheme.onSecondaryContainer : scheme.onSurface;
 
     // The row tap and the per-server menu are two separate actions, so the
@@ -193,11 +195,19 @@ class _ServerRow extends StatelessWidget {
                               borderRadius: BorderRadius.circular(
                                 DesignTokens.radiusMd,
                               ),
-                              border: Border.all(
-                                color: active
-                                    ? scheme.primary.withValues(alpha: 0.4)
-                                    : scheme.outlineVariant,
-                              ),
+                              // The active chip keeps its accent ring in every
+                              // theme: it marks a state, not a box. A resting
+                              // chip on a black page keeps a hairline because
+                              // its fill is the page tone itself.
+                              border: active
+                                  ? Border.all(
+                                      color: scheme.primary.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                    )
+                                  : flat
+                                  ? Border.all(color: scheme.outlineVariant)
+                                  : null,
                             ),
                             child: Favicon(
                               url: server.homepage,

@@ -1,5 +1,6 @@
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/wordmark.dart';
@@ -36,6 +37,7 @@ class HomeDrawerHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = context.colorScheme;
+    final flat = AppSurfacePolicy.of(context).flat;
     final themeMode = ref.watch(
       uiSettingStateProvider.select((ui) => ui.themeMode),
     );
@@ -61,7 +63,9 @@ class HomeDrawerHeader extends ConsumerWidget {
             style: IconButton.styleFrom(
               foregroundColor: scheme.primary,
               iconSize: DesignTokens.iconInline,
-              side: BorderSide(color: scheme.outlineVariant),
+              side: flat
+                  ? BorderSide(color: scheme.outlineVariant)
+                  : BorderSide.none,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
               ),

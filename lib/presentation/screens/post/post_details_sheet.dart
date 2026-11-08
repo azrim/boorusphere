@@ -995,7 +995,7 @@ class _ShowMoreChip extends StatelessWidget {
           color: scheme.onSurfaceVariant,
         ),
         shape: const StadiumBorder(),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: flat ? BorderSide(color: scheme.outlineVariant) : BorderSide.none,
       ),
     );
   }
@@ -1037,9 +1037,9 @@ class _TagChip extends StatelessWidget {
           color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
         ),
         shape: const StadiumBorder(),
-        side: selected
-            ? BorderSide.none
-            : BorderSide(color: scheme.outlineVariant),
+        side: !selected && flat
+            ? BorderSide(color: scheme.outlineVariant)
+            : BorderSide.none,
       ),
     );
   }

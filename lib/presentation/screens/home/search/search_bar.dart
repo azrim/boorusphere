@@ -55,14 +55,11 @@ class HomeSearchBar extends HookConsumerWidget {
           sigmaX: _kBarBlur,
           sigmaY: _kBarBlur,
           child: Container(
-            decoration: BoxDecoration(
-              color: enableBlur
-                  ? context.colorScheme.surface.withValues(alpha: 0.72)
-                  : context.theme.scaffoldBackgroundColor,
-              border: Border(
-                top: BorderSide(color: context.colorScheme.outlineVariant),
-              ),
-            ),
+            // The bar closes on its own tone and blur; a line along the top
+            // edge drew a seam across the artwork for no structural gain.
+            color: enableBlur
+                ? context.colorScheme.surface.withValues(alpha: 0.72)
+                : context.theme.scaffoldBackgroundColor,
             // No maintained bottom padding: when the IME is up the bar should
             // sit on the keyboard instead of keeping the nav-bar gap above it.
             // The transparent Material is what controls painted straight on the

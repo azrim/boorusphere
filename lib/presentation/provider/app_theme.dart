@@ -190,13 +190,15 @@ ThemeData _createThemeData(
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
       ),
     ),
+    // Menus, sheets and toasts separate by tone and shadow in day and night;
+    // an outline box around them was a second edge for the same job. Midnight
+    // puts the hairline back below, where black on black needs it.
     popupMenuTheme: PopupMenuThemeData(
       color: colorScheme.surfaceContainer,
       elevation: DesignTokens.elevationOverlay,
       shadowColor: shadowColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
-        side: BorderSide(color: colorScheme.outlineVariant),
       ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
@@ -206,11 +208,10 @@ ThemeData _createThemeData(
       modalElevation: DesignTokens.elevationOverlay,
       shadowColor: shadowColor,
       dragHandleColor: colorScheme.onSurfaceVariant,
-      shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.vertical(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
           top: Radius.circular(DesignTokens.radiusXl),
         ),
-        side: BorderSide(color: colorScheme.outlineVariant),
       ),
     ),
     // The drawer sits on the page tone: a block inside it needs a step to
@@ -220,8 +221,8 @@ ThemeData _createThemeData(
       backgroundColor: colorScheme.surface,
     ),
     // A toast is a card floating over the page, not a strip docked to the
-    // bottom edge: it takes the raised block tone and a hairline, and only the
-    // action keeps the scheme's accent.
+    // bottom edge: it takes the raised block tone and floating elevation, and
+    // only the action keeps the scheme's accent.
     snackBarTheme: origin.snackBarTheme.copyWith(
       behavior: SnackBarBehavior.floating,
       elevation: DesignTokens.elevationFloating,
@@ -236,7 +237,6 @@ ThemeData _createThemeData(
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
-        side: BorderSide(color: colorScheme.outlineVariant),
       ),
     ),
     // One type scale for every row: a 16 sp title over a 12 sp muted
@@ -280,19 +280,35 @@ ThemeData _createThemeDataMidnight(
       // viewer paints is the black of the stage rather than the night tint.
       AppMediaChrome.from(colorScheme),
     ],
+    // Every day/night overlay dropped its outline in favour of tone and
+    // shadow; on black there is neither, so midnight keeps the hairline.
     popupMenuTheme: origin.popupMenuTheme.copyWith(
       color: Colors.black,
       elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
     ),
     dialogTheme: origin.dialogTheme.copyWith(
       backgroundColor: Colors.black,
       elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
     ),
     bottomSheetTheme: origin.bottomSheetTheme.copyWith(
       backgroundColor: Colors.black,
       modalBackgroundColor: Colors.black,
       elevation: 0,
       modalElevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(DesignTokens.radiusXl),
+        ),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
     ),
     cardTheme: origin.cardTheme.copyWith(
       color: Colors.black,
@@ -302,6 +318,10 @@ ThemeData _createThemeDataMidnight(
     snackBarTheme: origin.snackBarTheme.copyWith(
       backgroundColor: Colors.black,
       elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
     ),
     // The midnight rule is pure black with no tinting, so the app bar must not
     // pick up the surface tint when content scrolls under it.

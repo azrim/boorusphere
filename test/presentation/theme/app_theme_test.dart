@@ -25,6 +25,11 @@ double _contrast(Color a, Color b) {
   return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
 
+BorderSide _sideOf(ShapeBorder? shape) {
+  if (shape is OutlinedBorder) return shape.side;
+  fail('expected an outlined border, got $shape');
+}
+
 void main() {
   group('AppThemeData', () {
     test('two identical builds produce equal themes', () {
@@ -93,6 +98,55 @@ void main() {
       expect(themes.day.extension<AppSurfacePolicy>()!.flat, isFalse);
       expect(themes.night.extension<AppSurfacePolicy>()!.flat, isFalse);
       expect(themes.midnight.extension<AppSurfacePolicy>()!.flat, isTrue);
+    });
+
+    test('day and night drop the box outlines, midnight keeps them', () {
+      for (final palette in ColorPalette.values) {
+        final themes = AppThemeData.from(colorPalette: palette);
+        final where = palette.name;
+
+        // Flat-first: a raised tone and a shadow are the separation. A box
+        // outline around the same surface was a second edge for one job, and
+        // on a curated palette it was often the brightest line on screen.
+        for (final (mode, theme) in [
+          ('day', themes.day),
+          ('night', themes.night),
+        ]) {
+          expect(
+            _sideOf(theme.popupMenuTheme.shape),
+            BorderSide.none,
+            reason: 'menu outline, $where/$mode',
+          );
+          expect(
+            _sideOf(theme.bottomSheetTheme.shape),
+            BorderSide.none,
+            reason: 'sheet outline, $where/$mode',
+          );
+          expect(
+            _sideOf(theme.snackBarTheme.shape),
+            BorderSide.none,
+            reason: 'toast outline, $where/$mode',
+          );
+          expect(
+            _sideOf(theme.dialogTheme.shape),
+            BorderSide.none,
+            reason: 'dialog outline, $where/$mode',
+          );
+        }
+
+        // On black there is no tone step and no shadow, so the hairline is
+        // the only thing that keeps an overlay from dissolving into the page.
+        final midnight = themes.midnight;
+        for (final (name, side) in [
+          ('menu', _sideOf(midnight.popupMenuTheme.shape)),
+          ('sheet', _sideOf(midnight.bottomSheetTheme.shape)),
+          ('toast', _sideOf(midnight.snackBarTheme.shape)),
+          ('dialog', _sideOf(midnight.dialogTheme.shape)),
+        ]) {
+          expect(side, isNot(BorderSide.none), reason: 'no $name line, $where');
+          expect(side.color, midnight.colorScheme.outlineVariant);
+        }
+      }
     });
   });
 }

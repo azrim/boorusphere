@@ -130,7 +130,9 @@ class _ToastCard extends StatelessWidget {
           shadowColor: DesignTokens.shadowColor(scheme),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
-            side: BorderSide(color: scheme.outlineVariant),
+            side: flat
+                ? BorderSide(color: scheme.outlineVariant)
+                : BorderSide.none,
           ),
           clipBehavior: Clip.antiAlias,
           child: ConstrainedBox(

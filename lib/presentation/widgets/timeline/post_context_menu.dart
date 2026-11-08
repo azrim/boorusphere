@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/material.dart';
@@ -250,6 +251,7 @@ class _MenuCardState extends State<_MenuCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final flat = AppSurfacePolicy.of(context).flat;
     final width = math.min(
       context.mqSize.width - DesignTokens.spacingXl,
       _kCardMaxWidth,
@@ -281,9 +283,13 @@ class _MenuCardState extends State<_MenuCard> {
               // nearly solid costs raster time with nothing left to show for it.
               color: scheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(_kCardRadius),
-              border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: 0.4),
-              ),
+              // The card floats on its own shadow; only midnight needs an
+              // edge, where the tone and the shadow draw nothing on black.
+              border: flat
+                  ? Border.all(
+                      color: scheme.outlineVariant.withValues(alpha: 0.4),
+                    )
+                  : null,
             ),
             child: Material(
               type: MaterialType.transparency,

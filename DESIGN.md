@@ -63,7 +63,7 @@ An editor theme ships a surface ramp: a page, the panels that float on it, the t
 
 - **Page** (`background`): the surface every screen paints behind its content.
 - **Steps** (`containerLow` → `containerHighest`): the theme's own background-light, floating, background-lighter and selection tones, mapped straight onto `surfaceContainerLow` through `surfaceContainerHighest`. A chip is the theme's selection colour, not a wash of its text colour.
-- **Lines** (`border`, `line`): the soft hairline (`outlineVariant`) is the theme's border lifted until it reads as a line against the block, chip and page it separates; the theme's emphasis rule (`outline`) is shown as written. Collapsing them into one is what made every edge read as a drawn line, and a hairline equal to the block's fill drew nothing at all.
+- **Lines** (`border`, `line`): the soft hairline (`outlineVariant`) is the theme's border lifted until it reads as a rule on the page it divides, in a field underline, and around a midnight block; the theme's emphasis rule (`outline`) is shown as written. Collapsing them into one is what made every edge read as a drawn line, and a hairline equal to the block's fill drew nothing at all.
 - **Text / Muted**: the theme's foreground and comment tones.
 - **Primary / Secondary / Tertiary**: the theme's own syntax accents.
 
@@ -90,7 +90,9 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 
 **The Palette Rule.** A curated palette is never harmonized and its surfaces are never re-shaded; the theme is shown as designed, down to its own page color.
 
-**The Midnight Rule.** Midnight mode is the one theme that stays flat: the page is pure black (#000), a block keeps the page tone and a hairline separates it, and menus, sheets, cards and dialogs are black with no elevation. Curated accents survive. `AppSurfacePolicy.flat` carries this so a widget asks the theme instead of guessing from brightness.
+**The Flat-First Rule.** Day and night separate boxes by tone and shadow: blocks, cards, menus, sheets, toasts and chips carry no outline. A hairline is kept for rules (dividers, field underlines) and for state marks, not as a box. An outline around a surface that already had a raised tone was a second edge doing the same job, and on a curated palette it was often the brightest line on screen.
+
+**The Midnight Rule.** Midnight mode is the one theme that stays flat: the page is pure black (#000), a block keeps the page tone and a hairline separates it, and menus, sheets, toasts, cards and dialogs are black with no elevation, so they keep the `outlineVariant` hairline every other theme drops. Curated accents survive. `AppSurfacePolicy.flat` carries this so a widget asks the theme instead of guessing from brightness.
 
 ## 3. Typography
 
@@ -154,19 +156,19 @@ A step up the ladder does two things at once, never one of them:
 - **Shadow.** A shadow is drawn with `DesignTokens.shadowColor` (the scheme's own shadow, pulled 18% towards the page), so it reads as a darker part of the surface instead of a grey smudge. Dark themes carry a heavier alpha because a light shadow cannot be faked by a tone step alone.
 
 ### Shadow Vocabulary
-- **Section blocks**: `surfaceContainerHigh`, hairline `outlineVariant`, no shadow. A block groups rows; it does not float. In Midnight the block stays on the page tone and only the hairline separates it.
-- **Empty and error notices**: the same block vocabulary, a container tone (the page tone in midnight), a hairline, no shadow; the icon stays muted.
+- **Section blocks**: `surfaceContainerHigh`, no border, no shadow. A block groups rows; it does not float. In Midnight the block stays on the page tone and a hairline `outlineVariant` separates it, because a tone step has nothing to lift from on black.
+- **Empty and error notices**: the same block vocabulary, a container tone (the page tone in midnight, with a hairline), no shadow; the icon stays muted.
 - **Buttons**: flat. The fill carries the affordance, never a shadow. One primary variant (the filled primary button) carries the action a page or sheet is asking for; `OutlinedButton` and `TextButton` are the ways out beside it, and a destructive confirm is a text button in the error colour.
-- **Toasts**: a card floating over the page, inset from the edges, 16 px radius on every corner, `surfaceContainerHigh` fill with a hairline `outlineVariant` edge, floating elevation.
-- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell): `surfaceContainer` with a hairline top edge and 16px top radius, at overlay elevation. The post details sheet is opaque too: its rows are read against a known surface, and a glass sheet could not hold the muted label's contrast over artwork.
-- **Popup menus and dropdowns**: `surfaceContainer` fill, hairline `outlineVariant` outline, 16px radius, overlay elevation. A menu is a card that floats; it is not a shadow with no edge.
-- **Dialogs**: `surfaceContainer`, 16px radius, modal elevation. A confirm that destroys something takes the error colour as a text button, never a filled primary one: the destructive verb is not the most attractive control in the dialog, and every screen asks with the same dialog so the answer reads the same from the drawer, a page, or a sheet.
+- **Toasts**: a card floating over the page, inset from the edges, 16 px radius on every corner, `surfaceContainerHigh` fill and floating elevation. Midnight keeps it black with the hairline and no shadow.
+- **Bottom sheets**: every sheet uses the [Sheet Shell](#sheet-shell): `surfaceContainer` with a 16px top radius, at overlay elevation. Midnight adds the `outlineVariant` hairline along the top edge. The post details sheet is opaque too: its rows are read against a known surface, and a glass sheet could not hold the muted label's contrast over artwork.
+- **Popup menus and dropdowns**: `surfaceContainer` fill, 16px radius, overlay elevation. A menu is a card that floats on its shadow; in Midnight a hairline `outlineVariant` keeps its edge.
+- **Dialogs**: `surfaceContainer`, 16px radius, modal elevation; in Midnight it is black, flat, and a hairline `outlineVariant` keeps its edge. A confirm that destroys something takes the error colour as a text button, never a filled primary one: the destructive verb is not the most attractive control in the dialog, and every screen asks with the same dialog so the answer reads the same from the drawer, a page, or a sheet.
 - **Grid items**: no shadow, no border, no elevation. Content is flat; depth comes from the staggered layout itself.
-- **Bottom search bar**: a glass surface rather than an elevated one (`surface` at 72% over a 20 px backdrop blur, with a hairline `outlineVariant` on the top edge and no shadow). It is the one place blur is structural: the bar floats over moving art and has to stay legible without hiding it.
+- **Bottom search bar**: a glass surface rather than an elevated one (`surface` at 72% over a 20 px backdrop blur, no shadow and no edge line). It is the one place blur is structural: the bar floats over moving art and has to stay legible without hiding it.
 
 ### Named Rules
 
-**The Four Rungs Rule.** A surface takes one of the four levels above. A shadow, a tone step and a hairline are not interchangeable: a block gets tone and a hairline, a floating control gets a shadow, and nothing gets two rungs at once.
+**The Four Rungs Rule.** A surface takes one of the four levels above. A shadow, a tone step and a hairline are not interchangeable: a block gets tone (plus the midnight hairline), a floating control gets a shadow, and nothing gets two rungs at once.
 
 **The Flat Content Rule.** Image thumbnails never have shadows, borders, or elevation. They are the content. Everything with depth is chrome.
 
@@ -175,13 +177,13 @@ A step up the ladder does two things at once, never one of them:
 ### Section Block
 The one primitive shared by the drawer, the settings pages, and the server pages.
 
-- **Surface**: `SectionSurface`, a rounded (`radiusXl`) block painting `surfaceContainerHigh` with a hairline `outlineVariant` border and 4 dp inner padding. In midnight it keeps the page tone, so the block stays pure black and the hairline alone separates it
+- **Surface**: `SectionSurface`, a rounded (`radiusXl`) block painting `surfaceContainerHigh` with 4 dp inner padding. Day and night draw no border: the tone step is the separation. In midnight it keeps the page tone and gains a hairline `outlineVariant`, so the block stays pure black and the line alone separates it
 - **Label**: `SectionLabel`, small caps, hairline underline hugging the text; `SectionHeading` adds the 24 dp space above, the 8 dp below, and an optional trailing action
 - **Rows**: `TileGroup` wraps `ListTile`s in the shared `ListTileTheme` (12 dp inset, rounded ink) and lets the theme's 12 dp tile padding stand; a block that overrode it became a shorter version of a row that looks identical outside it. Custom rows (`DrawerTile`) match the same inset, the same 16 dp gap to the label, the `rowTitle` role and the 8 dp above the supporting line — one block never holds two row scales
-- **Why**: the container carries the only border, so a section reads as one block instead of a stack of separate cards
+- **Why**: the container carries the block's tone, and in midnight the only border, so a section reads as one block instead of a stack of separate cards
 
 ### Empty States
-- **Shape**: the [Section Block](#section-block) vocabulary: `surfaceContainerHigh` (the page tone in midnight), a hairline, no shadow, and a muted icon. A notice is a block, not a floating card
+- **Shape**: the [Section Block](#section-block) vocabulary: `surfaceContainerHigh` (the page tone in midnight, with a hairline), no shadow, and a muted icon. A notice is a block, not a floating card
 - **Type**: the title is the only primary line (`rowTitle`), the body explains the state in `rowSupporting`, and there is never a third line
 - **Action**: a state that has a way forward offers it as one filled button under the body. A state that only says no is a dead end, and the reader has to guess which screen would fix it. A server behind a browser check replaces the retry with *Verify*, which opens the [browser check](#browser-check); retrying would hit the same wall
 - **Layout**: centred, one block wide, and scrollable, so a large font scale or a short window never cuts the action off
@@ -226,7 +228,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 - **Trigger**: long-press a timeline card (medium haptic), never a plain tap
 - **Placement**: the card opens beside the point the finger went down, the way a desktop menu opens at the cursor, not centred on the screen. It prefers the lower right of that point and flips above or to the left when the preferred corner would push it past the margin. A screen-reader long-press carries no point, so that path centres it
 - **Size**: 232 dp at most, 48 dp rows, 14 sp semibold labels and 24 dp icon chips. A context menu is a list of verbs, not a panel: it stays narrow enough to sit beside the finger and short enough that the grid behind it is still the thing being looked at
-- **Presentation**: a floating glass card, translucent scheme surface over a backdrop filter, 16 px radius, hairline outline, tinted shadow
+- **Presentation**: a floating card over a blurred backdrop, `surfaceContainerHigh` fill, 16 px radius, tinted shadow; the `outlineVariant` hairline edge returns only in Midnight
 - **Backdrop**: the whole screen is blurred, thinly (sigma 11) under a 16% veil, so the menu reads as a layer above the app while the grid stays recognisable. Both are painted at full strength from the first frame; the route fades the page, and animating the blur as well multiplied two fades into one late blur. Tap anywhere or press back to dismiss
 - **Rows**: each a tinted icon chip (`secondaryContainer` / `onSecondaryContainer`) plus a label; grouped by intent (select / favorite · download / share / open source) with hairline dividers; disabled rows dim to 38%
 - **Motion**: the card fades in and travels the last 8 dp on the standard curve; a menu that appears where the finger already is has no room for a long entrance. Rows fade and slide in with a short stagger; the reverse plays on dismiss
@@ -234,9 +236,9 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 ### Navigation (Home Drawer)
 - **Style**: Navigation drawer, opened by the leading server chip in the search bar or by a swipe anywhere on the grid (a narrow edge zone loses the gesture race to the system back gesture on gesture-nav phones, so the drag zone is the full width while the search bar is closed); rounded right edge, width capped to the viewport
 - **Search bar**: the leading chip opens the drawer (and cancels the search while it is open); the trailing button only cycles grid density, so a control never changes meaning mid-scroll. An active non-default rating shows as a tinted chip with a filter icon beside the field, so a filtered feed is a visible state. The bar is a glass surface (`surface` at 72% over a 20 px backdrop blur) because the grid scrolls beneath it; the Interface → Blur setting switches it back to an opaque surface, which is also the cheaper path on slow devices
-- **Header**: the wordmark, closed by a `primary` exclamation mark: the name is a shout, not a full stop; the theme switcher (light / dark / system) sits on the trailing edge inside a hairline-bordered square
-- **Sections**: each section is one grouped surface (a rounded `surfaceContainerHigh` block with a hairline `outlineVariant` border), and the rows inside stay flat and transparent, so the container carries the only border. In midnight the block keeps the page tone so it never lifts off the black drawer. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
-- **Servers**: one compact row per server: favicon chip with a hairline border and the server name. The active server fills `secondaryContainer` with a `primary` hairline, and is exposed to TalkBack as `selected`. Removing a server asks for confirmation first; the add-server row closes the group with a `primary` plus
+- **Header**: the wordmark, closed by a `primary` exclamation mark: the name is a shout, not a full stop; the theme switcher (light / dark / system) sits on the trailing edge inside a rounded square, hairline-bordered only in Midnight
+- **Sections**: each section is one grouped surface (a rounded `surfaceContainerHigh` block, borderless in day and night), and the rows inside stay flat and transparent, so the container carries the grouping. In midnight the block keeps the page tone and gains a hairline `outlineVariant`, so it never lifts off the black drawer. A small-caps label with a hairline underline hugging the text, plus the item count, opens each section; the servers section closes with a "Manage" action
+- **Servers**: one compact row per server: favicon chip (its hairline returns only in Midnight) and the server name. The active server fills `secondaryContainer` with a `primary` hairline, and is exposed to TalkBack as `selected`. Removing a server asks for confirmation first; the add-server row closes the group with a `primary` plus
 - **Library**: Downloads, Favorites, and Tags Blocker, each with a live count badge (hidden at 0)
 - **Preferences**: Settings, Gestures & tags (a reference sheet for the gestures and the rating letters), and Reset to default
 - **Footer**: Exit (tinted with the error color), the update status when a newer version exists (spinner while downloading), and a version readout that opens About
@@ -246,7 +248,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 ### Sheet Shell
 One container for every bottom sheet in the app: post details, settings pickers, text entry, gesture reference, What's New.
 
-- **Shape**: 16 dp top corners, `surfaceContainer` fill, hairline `outlineVariant` along the top edge, overlay elevation. A 40×4 handle sits 8 dp from the top
+- **Shape**: 16 dp top corners, `surfaceContainer` fill, overlay elevation; Midnight adds the `outlineVariant` hairline along the top edge. A 40×4 handle sits 8 dp from the top
 - **Header**: the sheet's own name at `titleMedium` semibold with a 48 dp close target on the trailing edge. The name is the thing the sheet is about (the post's identifying tag, the setting being changed), never a generic "Details"
 - **Height**: capped at 78% of the screen (90% for a long changelog) and grown by its content, so a three-option picker does not open half empty. Only the panel scrolls
 - **Measure**: the content stops at 640 dp and centres while the surface stays full-bleed, so a tablet gets margins rather than a table stretched across the screen
@@ -270,14 +272,14 @@ One container for every bottom sheet in the app: post details, settings pickers,
 
 ### Bottom Sheet (Post Details)
 - **Shape**: rounded top corners. The sheet opens at the height of the panel it is showing: Details around its fact rows, Links up to 520 dp, Tags up to 75% of the viewer. That height is fixed for as long as the sheet stays open — a tab switch slides the panel without moving the edge — and a vertical drag is the reader's own resize. The sheet snaps between closed, the height it opened at and the full 75%, so a drag down from the opening height dismisses it instead of walking through intermediate stops
-- **Surface**: opaque `surfaceContainer` (the page tone in Midnight) with the sheet hairline and 16 dp top radius. The artwork behind stays outside the sheet; the rows never depend on what is behind them
+- **Surface**: opaque `surfaceContainer` with a 16 dp top radius (in Midnight, the page tone with the hairline). The artwork behind stays outside the sheet; the rows never depend on what is behind them
 - **No header**: the sheet opens straight onto the tab strip: the handle, then the panels. The artwork behind it already says which post is open, so a title line and a close button were a second, redundant answer to the same question
 - **Panels**: Details (rating, score, dimensions, format), Tags (grouped by category, each with its count; a long group offers the rest behind one `+N` chip; tap to select), Links (post page, source, sample and original file, each with copy)
 - **Selection**: tag taps accumulate across panels and survive a panel switch; the action bar then offers copy, block (with an undo), append, search as its one filled action, and deselect
 - **Gesture**: swipe up or the info button opens it at the current panel's height; one swipe down or Back dismisses it, which is why the sheet carries no dismiss control of its own
 
 ### Chips (Tags)
-- **Style**: Filled. An unselected tag sits on `surfaceContainerHighest` with a hairline `outlineVariant` border; selecting it fills `primaryContainer` with `onPrimaryContainer` text and drops the border, so selection reads as a state change rather than a second accent colour
+- **Style**: Filled. An unselected tag sits on `surfaceContainerHighest`, borderless in day and night; selecting it fills `primaryContainer` with `onPrimaryContainer` text, so selection reads as a state change rather than a second accent colour. In Midnight the unselected chip keeps the page tone with a hairline `outlineVariant`
 - **Shape**: Rounded full (999px)
 - **States**: Tappable for tag navigation
 
@@ -287,7 +289,7 @@ One container for every bottom sheet in the app: post details, settings pickers,
 - **Position**: Bottom-right, above the system inset
 
 ### Toasts
-- **Shape**: A floating card inset `spacingMd` from the sides and bottom, 16px on every corner, `surfaceContainerHigh` fill with an `outlineVariant` hairline and floating elevation. Midnight keeps it black with the hairline and no shadow
+- **Shape**: A floating card inset `spacingMd` from the sides and bottom, 16px on every corner, `surfaceContainerHigh` fill and floating elevation. Midnight keeps it black with the hairline and no shadow
 - **Position**: Above the bottom search bar (the bar's measured height is the clearance), and above the system inset on every other screen
 - **Action**: Inside the card as a text button in the primary colour with its own 48 dp target; running it also dismisses the toast
 - **Dismiss**: Swipe down
@@ -295,7 +297,7 @@ One container for every bottom sheet in the app: post details, settings pickers,
 
 ### Bottom Bar (Search)
 
-The one piece of chrome every timeline screen carries. It follows the Interface → Blur setting: with blur on it is a glass surface (`surface` at 72% over a 20 px backdrop blur) because the grid scrolls beneath it; with blur off it paints `scaffoldBackgroundColor` at full opacity (black in midnight), the cheaper path on slow devices. Either way a hairline `outlineVariant` closes its top edge, and the query field sits on `surfaceContainerHighest` at `radiusLg`.
+The one piece of chrome every timeline screen carries. It follows the Interface → Blur setting: with blur on it is a glass surface (`surface` at 72% over a 20 px backdrop blur) because the grid scrolls beneath it; with blur off it paints `scaffoldBackgroundColor` at full opacity (black in midnight), the cheaper path on slow devices. Either way the bar draws no edge line and no shadow, and the query field sits on `surfaceContainerHighest` at `radiusLg` (the page tone with its own hairline in Midnight).
 
 - **Collapsed**: leading drawer chip (server favicon), the query as centered text, and a trailing control that only toggles grid columns, so a control never changes meaning mid-scroll; back to top is the grid's own floating button. An active non-default rating joins the field as a one-letter filter chip, so a filtered feed is a state the reader can see rather than decode
 - **Expanded** (tap the field): a rating chip row appears above the field, the field goes left-aligned and editable, and a reset control joins the trailing close button; the suggestion panel (`BlurBackdrop`) rises behind it
@@ -330,7 +332,7 @@ Every settings screen (Settings, Gesture Settings, Data Backup) uses one row sys
 - **Value rows**: a row whose value comes from a short list states that value in the title slot — `Post limit` shows the number, `Swipe navigation` shows the direction — and the row opens the picker on tap, anywhere in its own surface. A `DropdownButton` in the trailing slot was the other shape of this and it failed twice: the row around it swallowed the tap, and a menu that had to fit ten options needed a height invented in code
 
 - **Section label**: small caps, `onSurfaceVariant`, `labelSmall` bold with 1.4 letter spacing and a hairline underline that hugs the text, exposed to screen readers as a heading. The label owns its own line; it never merges into the row below it
-- **Section surface**: rows of one section sit inside a rounded `surfaceContainerHigh` block with a hairline `outlineVariant` border; in midnight it keeps the page tone, so it stays pure black. The page keeps 16 dp side padding and each block owns the only border
+- **Section surface**: rows of one section sit inside a rounded `surfaceContainerHigh` block, borderless in day and night; in midnight it keeps the page tone with a hairline `outlineVariant`, so it stays pure black. The page keeps 16 dp side padding and each block owns the grouping
 - **Page rhythm**: one scrolling list serves every settings page: a 16 dp side gutter, no top inset — a section heading brings its own 24 dp — and 24 dp of run-out at the bottom, so the last block clears the edge of the window. A block with no heading of its own (backup and restore, the blocked-tag field) opens with a leading 24 dp gap instead, so it starts where a labelled block starts. A `NoticeCard` in that list carries `margin: EdgeInsets.zero`: the list owns the gaps and a card margin never adds a second one on top of them
 - **Rows**: flat rows inside the block, 12 dp inset, no dividers, no shadows; title plus optional subtitle, 8 dp between them; switches and sliders sit on the trailing edge and carry their own state
 - **Note inside a block**: a supporting line that is not some row's subtitle — the line naming the switch a greyed group answers to, a block's own description — is one `InBlockNote`: the row's 12 dp inset inside the block's own 4 dp, so it starts where a row title starts, and the row's 8 dp title-to-subtitle gap above and below. Padding such a line by hand per page is what puts one block's text 8 dp off the edge of another's
@@ -376,6 +378,6 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions); deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens; the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations; motion serves feedback (loading, transitions), not delight for its own sake
-- **Don't** nest a filled, elevated, or bordered card inside a section block; the block owns the only surface and border, and rows stay flat inside it
+- **Don't** nest a filled, elevated, or bordered card inside a section block; the block owns the only surface, and rows stay flat inside it
 - **Don't** invent a second label or row style per screen; the section label, row title, and supporting text come from the shared scale
 - **Don't** give a block a shadow or a shadowed surface a second tone step; one rung per surface

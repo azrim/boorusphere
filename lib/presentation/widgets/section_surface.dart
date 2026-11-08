@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 
 /// Rounded surface that groups related rows into one block.
 ///
-/// The container owns the only border and paints `surfaceContainerHigh`, the
-/// tone two steps off the page, so a block reads as raised instead of drawn
-/// on; rows inside stay flat and transparent.
+/// The container paints `surfaceContainerHigh`, the tone two steps off the
+/// page, so a block reads as raised by its tone alone; rows inside stay flat
+/// and transparent. Midnight keeps a hairline: its blocks sit on the page's
+/// black, where a tone step has nothing to lift from.
 class SectionSurface extends StatelessWidget {
   const SectionSurface({super.key, required this.children});
 
@@ -26,7 +27,7 @@ class SectionSurface extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: flat ? BorderSide(color: scheme.outlineVariant) : BorderSide.none,
       ),
       child: Padding(
         padding: const EdgeInsets.all(DesignTokens.spacingXs),

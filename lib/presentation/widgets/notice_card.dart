@@ -19,8 +19,9 @@ class NoticeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
     // A notice is a block, not a floating card: it takes the section block
-    // treatment: the container tone (the page tone in midnight), a hairline,
-    // no shadow, and its icon stays muted so the message leads.
+    // treatment: the container tone (the page tone in midnight), a hairline
+    // only where the page is black, no shadow, and its icon stays muted so
+    // the message leads.
     final flat = AppSurfacePolicy.of(context).flat;
 
     return Card(
@@ -31,7 +32,7 @@ class NoticeCard extends StatelessWidget {
         borderRadius: const BorderRadius.all(
           Radius.circular(DesignTokens.radiusXl),
         ),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: flat ? BorderSide(color: scheme.outlineVariant) : BorderSide.none,
       ),
       child: Padding(
         padding: const EdgeInsets.all(DesignTokens.spacingLg),

@@ -28,6 +28,7 @@ import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_screen.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -758,6 +759,7 @@ class _LongPressHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final flat = AppSurfacePolicy.of(context).flat;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 320),
@@ -765,7 +767,9 @@ class _LongPressHint extends StatelessWidget {
         color: scheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
-          side: BorderSide(color: scheme.outlineVariant),
+          side: flat
+              ? BorderSide(color: scheme.outlineVariant)
+              : BorderSide.none,
         ),
         clipBehavior: Clip.antiAlias,
         child: Padding(
