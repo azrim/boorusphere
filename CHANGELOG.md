@@ -1,3 +1,9 @@
+## 3.1.8
+
+* **Downloads**: a pause that lands after the last body byte settles as downloaded when the server's length matches the file, so Resume can no longer ask for bytes past the end; a body the completion guard rejects is deleted before the row turns failed, so Retry starts clean instead of appending onto it; Clear is refused while a download is queued or running; the post viewer picks a post's entry by recency and prefers an in-flight one; and a terminal progress row whose entry is gone is dropped at boot
+* **Video cache**: Retry drops the cached copy before fetching again; a body shorter than its announced length is rejected; index rows whose files vanished no longer weigh on the budget or evict live videos, and the settings readout deletes the short files it drops; Clear cancels running transfers before it sweeps; a clip left within two seconds stops its background download while a longer watch finishes; and a load that fails on storage is retried by the next read
+* **Image cache**: the tuned 500-object/7-day store is the one the app actually uses now, the old default cache is swept once at boot, the downloader and Settings read the same store, and a Clear that hits a failure says some files could not be removed instead of claiming a clean sweep
+
 ## 3.1.7
 
 * **Backups**: a run is refused when a store cannot be read this session — a stand-in box, or a settings box that never opened — instead of writing an archive whose empty entries would clear that store on a later restore; the periodic runner skips the same session, and its clock advances only for a run that carries every store it is responsible for, so a settings-only manual backup no longer postpones the next full one
