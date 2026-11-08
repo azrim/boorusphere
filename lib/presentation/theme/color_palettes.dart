@@ -1,6 +1,5 @@
-import 'dart:math' as math;
-
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/theme/contrast.dart';
 import 'package:flutter/material.dart';
 
 /// The colours a preset palette owns, for one brightness.
@@ -12,7 +11,10 @@ import 'package:flutter/material.dart';
 ///
 /// Accents keep the theme's hue; only their lightness moves, and only as far
 /// as the 4.5:1 floor requires, because an editor paints syntax on a page and
-/// a light theme's pink or yellow is often too pale to carry a control.
+/// a light theme's pink or yellow is often too pale to carry a control. Text,
+/// muted text and the labels on container tints are lifted against every tone
+/// they can land on, and the hairline is lifted until it reads as a line
+/// instead of dissolving into the block it outlines.
 @immutable
 class PaletteColors {
   const PaletteColors({
@@ -53,7 +55,7 @@ class PaletteColors {
   final Color line;
 
   /// The theme's foreground, as written. A theme is often tuned for one
-  /// surface, so [toScheme] lifts it to 4.5:1 on both the page and the panel.
+  /// surface, so [toScheme] lifts it to 4.5:1 on every tone it can land on.
   final Color text;
 
   /// Secondary text and icons, as the theme writes them. A comment tone is
@@ -67,50 +69,62 @@ class PaletteColors {
 
   /// Builds the full Material scheme from the palette's own colours.
   ColorScheme toScheme(Brightness brightness) {
-    final accent = _readableAccent(primary, background);
-    final accentSecondary = _readableAccent(secondary, background);
-    final accentTertiary = _readableAccent(tertiary, background);
-    final accentError = _readableAccent(error, background);
-    // Text and supporting text have to hold on the page and on the panel,
-    // whichever of the two the theme wrote them against.
-    final textBase = _contrast(text, container) < _contrast(text, background)
-        ? container
-        : background;
-    final mutedBase = _contrast(muted, container) < _contrast(muted, background)
-        ? container
-        : background;
+    final accent = readableOnSurfaces(primary, [background]);
+    final accentSecondary = readableOnSurfaces(secondary, [background]);
+    final accentTertiary = readableOnSurfaces(tertiary, [background]);
+    final accentError = readableOnSurfaces(error, [background]);
+    final primaryContainer = _tint(accent, background);
+    final secondaryContainer = _tint(accentSecondary, background);
+    final tertiaryContainer = _tint(accentTertiary, background);
+    final errorContainer = _tint(accentError, background);
+    // A foreground is painted on four tones, not one: the page, the panel, a
+    // block and the selection fill. Lifting against all of them is what keeps
+    // a supporting line readable inside a section and on a chip; a page-only
+    // floor left the raised tones under 4.5:1.
+    final surfaces = [
+      background,
+      containerLow,
+      container,
+      containerHigh,
+      containerHighest,
+    ];
 
     return ColorScheme(
       brightness: brightness,
       primary: accent,
-      onPrimary: _readableOn(accent),
-      primaryContainer: _tint(accent, background),
-      onPrimaryContainer: text,
+      onPrimary: readableOn(accent),
+      primaryContainer: primaryContainer,
+      // The tint moves the base colour, so its label is derived from the tint
+      // rather than reusing the page's text tone.
+      onPrimaryContainer: readableOnSurfaces(text, [primaryContainer]),
       secondary: accentSecondary,
-      onSecondary: _readableOn(accentSecondary),
-      secondaryContainer: _tint(accentSecondary, background),
-      onSecondaryContainer: text,
+      onSecondary: readableOn(accentSecondary),
+      secondaryContainer: secondaryContainer,
+      onSecondaryContainer: readableOnSurfaces(text, [secondaryContainer]),
       tertiary: accentTertiary,
-      onTertiary: _readableOn(accentTertiary),
-      tertiaryContainer: _tint(accentTertiary, background),
-      onTertiaryContainer: text,
+      onTertiary: readableOn(accentTertiary),
+      tertiaryContainer: tertiaryContainer,
+      onTertiaryContainer: readableOnSurfaces(text, [tertiaryContainer]),
       error: accentError,
-      onError: _readableOn(accentError),
-      errorContainer: _tint(accentError, background),
-      onErrorContainer: text,
+      onError: readableOn(accentError),
+      errorContainer: errorContainer,
+      onErrorContainer: readableOnSurfaces(text, [errorContainer]),
       surface: background,
-      onSurface: _readableAccent(text, textBase),
-      onSurfaceVariant: _readableAccent(muted, mutedBase),
+      onSurface: readableOnSurfaces(text, surfaces),
+      onSurfaceVariant: readableOnSurfaces(muted, surfaces),
       // Both of these stay inside the theme's own ramp.
       surfaceDim: containerLow,
-      surfaceBright: containerHigh,
+      // Bright is the page's own end of the ramp: the lightest tone in a light
+      // theme, the raised end in a dark one. Mapping it to the block tone put
+      // it on the wrong side in every light palette.
+      surfaceBright: brightness == Brightness.dark ? containerHigh : background,
       surfaceContainerLowest: background,
       surfaceContainerLow: containerLow,
       surfaceContainer: container,
       surfaceContainerHigh: containerHigh,
       surfaceContainerHighest: containerHighest,
       outline: line,
-      outlineVariant: border,
+      outlineVariant: _hairline(border, line, surfaces),
       shadow: const Color(0xFF000000),
       scrim: const Color(0xFF000000),
       inverseSurface: text,
@@ -129,34 +143,26 @@ PaletteColors? paletteColorsFor(ColorPalette palette, Brightness brightness) {
   return brightness == Brightness.dark ? pair.$1 : pair.$2;
 }
 
-/// Black or white, whichever stays readable on [color].
-Color _readableOn(Color color) {
-  return ThemeData.estimateBrightnessForColor(color) == Brightness.dark
-      ? Colors.white
-      : Colors.black;
-}
-
 /// A low-emphasis fill of [accent] over [base], used for the container roles.
 Color _tint(Color accent, Color base) {
   return Color.alphaBlend(accent.withValues(alpha: 0.20), base);
 }
 
-double _contrast(Color a, Color b) {
-  final la = a.computeLuminance();
-  final lb = b.computeLuminance();
-  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
-}
+/// The soft hairline, lifted off every tone it can outline.
+///
+/// A border that equals the block's own fill draws nothing, and in Midnight
+/// the hairline is the only boundary a block has. It is also kept a different
+/// tone from the emphasis rule so the two line grades never collapse.
+Color _hairline(Color border, Color line, List<Color> surfaces) {
+  final hairline = readableOnSurfaces(border, surfaces, floor: 1.5, step: 0.08);
+  if (hairline.toARGB32() != line.toARGB32()) return hairline;
 
-/// Walks [color] towards the page's opposite until it clears 4.5:1 on [base].
-/// The hue is the theme's; the steps are the smallest that pass.
-Color _readableAccent(Color color, Color base) {
-  final away = _readableOn(base);
-  var result = color;
-  for (var step = 0; step < 24 && _contrast(result, base) < 4.5; step++) {
-    result = Color.lerp(result, away, 0.06)!;
-  }
-
-  return result;
+  return readableOnSurfaces(
+    Color.lerp(hairline, readableOn(surfaces.last), 0.15)!,
+    surfaces,
+    floor: 1.5,
+    step: 0.08,
+  );
 }
 
 const _palettes = <ColorPalette, (PaletteColors, PaletteColors?)>{
@@ -252,7 +258,7 @@ const _palettes = <ColorPalette, (PaletteColors, PaletteColors?)>{
   // Solarized defines base03 as the page, base02 as the raised surface and
   // base01 as the comment tone; the two chip steps are taken between them.
   // Its light variant is warm paper, so it stays dark only and day is
-  // generated from the blue.
+  // generated from the accent this palette is picked by.
   ColorPalette.solarized: (
     PaletteColors(
       background: Color(0xFF002B36),

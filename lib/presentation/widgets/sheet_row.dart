@@ -1,4 +1,5 @@
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -251,7 +252,6 @@ class SheetLinkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = context.colorScheme;
     final textTheme = context.theme.textTheme;
 
     final body = Container(
@@ -279,7 +279,9 @@ class SheetLinkRow extends StatelessWidget {
                   url,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodySmall?.copyWith(color: scheme.primary),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppActionRoles.of(context).primary,
+                  ),
                 ),
               ],
             ),

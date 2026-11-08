@@ -5,6 +5,7 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/booru_rating.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -43,6 +44,8 @@ class HomeSearchBar extends HookConsumerWidget {
     final enableBlur = ref.watch(
       uiSettingStateProvider.select((ui) => ui.blur),
     );
+    final scheme = context.colorScheme;
+    final flat = AppSurfacePolicy.of(context).flat;
 
     return RepaintBoundary(
       child: _MeasureSize(
@@ -84,9 +87,18 @@ class HomeSearchBar extends HookConsumerWidget {
                         DesignTokens.spacingMd - DesignTokens.spacingXs,
                       ),
                       child: Material(
-                        color: context.colorScheme.surfaceContainerHighest,
-                        borderRadius: const BorderRadius.all(
-                          Radius.circular(DesignTokens.radiusLg),
+                        // Midnight keeps the bar on the page tone; a hairline
+                        // is the boundary instead of a grey slab.
+                        color: flat
+                            ? scheme.surface
+                            : scheme.surfaceContainerHighest,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            DesignTokens.radiusLg,
+                          ),
+                          side: flat
+                              ? BorderSide(color: scheme.outlineVariant)
+                              : BorderSide.none,
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Row(
@@ -355,23 +367,36 @@ class _CollapsedRatingChip extends ConsumerWidget {
               await serverSetting.setRating(selected);
             },
             child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.filter_alt_outlined,
-                    size: DesignTokens.iconInline,
-                    color: badge.color,
-                  ),
-                  const SizedBox(width: DesignTokens.spacingXs),
-                  Text(
-                    badge.label,
-                    style: context.theme.textTheme.labelMedium?.copyWith(
-                      color: badge.color,
-                      fontWeight: FontWeight.w700,
+              // A filled pill, not accent text on the bar: the label sits on
+              // the accent, so its role is the one chosen against that fill
+              // and the badge keeps a boundary on every palette.
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DesignTokens.spacingSm,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: badge.color,
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusFull),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.filter_alt_outlined,
+                      size: DesignTokens.iconInline,
+                      color: badge.onColor,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: DesignTokens.spacingXs),
+                    Text(
+                      badge.label,
+                      style: context.theme.textTheme.labelMedium?.copyWith(
+                        color: badge.onColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

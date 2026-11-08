@@ -394,5 +394,9 @@
     "start_slideshow": "Mulai slideshow",
     "stop_slideshow": "Hentikan slideshow",
     "slideshow_progress": "Progres slideshow"
+  },
+  "settings_page": {
+    "palette_system": "Sistem",
+    "palette_material_you": "Material You"
   }
 }

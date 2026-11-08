@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 /// and the search bar indicator so both use the same S / Q / E / SN
 /// vocabulary and the same mapping from rating to color role.
 ///
-/// [color] is the tint; [onColor] is the foreground that sits on a solid
-/// [color] fill. Unrated ([BooruRating.all]) returns `null`.
+/// [color] is the accent a filled badge takes; [onColor] is the label chosen
+/// against that accent. Unrated ([BooruRating.all]) returns `null`.
 ({String label, Color color, Color onColor})? ratingBadgeOf(
   BooruRating rating,
   ColorScheme scheme,

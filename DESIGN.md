@@ -2,7 +2,7 @@
 name: Boorusphere
 description: Playful booru image browser with dynamic color theming
 colors:
-  primary: "#9516E5"
+  primary: "#951EE5"
   surface: "#FFFBFE"
   surface-dark: "#1C1B1F"
   on-surface: "#1C1B1F"
@@ -12,7 +12,7 @@ colors:
   accent-dracula: "#BD93F9"
   accent-catpuccin: "#C6A0F6"
   accent-nord: "#88C0D0"
-  accent-solarized: "#D3618A"
+  accent-solarized: "#D23682"
   accent-gruvbox: "#CC9975"
   accent-one-dark: "#61AFEF"
   accent-monokai: "#F92672"
@@ -43,11 +43,11 @@ spacing:
 
 **Creative North Star: "The Curated Vault"**
 
-Boorusphere is a content-first mobile image browser. The design philosophy is radical minimalism in chrome, maximum expression in content. Every screen should feel like opening a window onto a well-organized collection: the UI recedes so images can breathe. Three theme modes (day, night, midnight AMOLED) give users control over their viewing environment, with dynamic Material You color adapting to the device wallpaper, or one of eight curated editor palettes that recolour every surface.
+Boorusphere is a content-first mobile image browser. The design philosophy is radical minimalism in chrome, maximum expression in content. Every screen should feel like opening a window onto a well-organized collection: the UI recedes so images can breathe. Three theme modes (day, night, midnight AMOLED) give users control over their viewing environment, with dynamic Material You color adapting to the device wallpaper, or one of ten curated editor palettes that recolour every surface.
 
 **Key Characteristics:**
 - Content-first: images dominate every screen; chrome is minimal and purposeful
-- Adaptive: wallpaper-driven dynamic color, or eight curated editor palettes that recolour every surface
+- Adaptive: wallpaper-driven dynamic color, or ten curated editor palettes that recolour every surface
 - Three-mode darkness: night (Material dark) and midnight (true AMOLED black) for image viewing
 - Gesture-driven: swipe navigation, drag-to-zoom, bottom-sheet details
 - Tactile micro-interactions: shimmer loading, staggered grid, parallax transitions
@@ -63,11 +63,11 @@ An editor theme ships a surface ramp: a page, the panels that float on it, the t
 
 - **Page** (`background`): the surface every screen paints behind its content.
 - **Steps** (`containerLow` → `containerHighest`): the theme's own background-light, floating, background-lighter and selection tones, mapped straight onto `surfaceContainerLow` through `surfaceContainerHighest`. A chip is the theme's selection colour, not a wash of its text colour.
-- **Lines** (`border`, `line`): the soft hairline (`outlineVariant`) and the theme's emphasis rule (`outline`) stay two different tones. Collapsing them into one is what made every edge read as a drawn line.
+- **Lines** (`border`, `line`): the soft hairline (`outlineVariant`) is the theme's border lifted until it reads as a line against the block, chip and page it separates; the theme's emphasis rule (`outline`) is shown as written. Collapsing them into one is what made every edge read as a drawn line, and a hairline equal to the block's fill drew nothing at all.
 - **Text / Muted**: the theme's foreground and comment tones.
 - **Primary / Secondary / Tertiary**: the theme's own syntax accents.
 
-A comment tone is written for syntax, not for UI, and a light theme's pink or yellow often lands under 4.5:1. `toScheme` therefore lifts the muted role and each accent towards the page's opposite, one small step at a time, and stops the moment the floor is met. The hue is always the theme's; only lightness moves, and only where it has to.
+A comment tone is written for syntax, not for UI, and a light theme's pink or yellow often lands under 4.5:1. `toScheme` therefore lifts the muted role and each accent towards the page's opposite, one small step at a time, and stops the moment the floor is met. Text, muted text and the labels on container tints are lifted against every tone they can land on, not only the page, because a section, a chip and a selection fill are all surfaces the app writes on. The hue is always the theme's; only lightness moves, and only where it has to.
 
 Four themes ship one polarity only: **Nord** and **Monokai** never had a light variant, and **Solarized** and **Gruvbox** do have one but it is warm paper, which would tint the artwork it sits behind. Their day scheme is generated from their accent, because inventing a light variant is exactly what this system stopped doing, and a viewer's surround has to stay neutral.
 
@@ -77,16 +77,16 @@ Four themes ship one polarity only: **Nord** and **Monokai** never had a light v
 
 ### Generated palettes
 
-- **Dynamic Accent** (#9516E5 default / adapts to wallpaper): Primary action color, FABs, active indicators, progress bars.
+- **Dynamic Accent** (#951EE5 default / adapts to wallpaper): Primary action color, FABs, active indicators, progress bars.
 - **Day Surface** (#FFFBFE): Light mode background, tinted via `shade(3)`.
 - **Night Surface** (#1C1B1F): Dark mode background, tinted via `shade(30)`.
 - **Midnight Surface** (#000000): True AMOLED black. Pure black for OLED power savings.
-- **Outline Variant** (45% opacity): the hairline for generated schemes.
+- **Outline Variant**: the hairline for generated schemes, lifted from the seed's line until it clears 1.5:1 against the page and the raised blocks it separates.
 - **Primary Container** (#F0DBFF light / #4A0080 dark): Chip fills and badges.
 
 ### Named Rules
 
-**The Adaptive Rule.** No widget hard-codes a color. Widgets read `ColorScheme`; hex values live only in `lib/presentation/theme/color_palettes.dart` and the theme builder. Chrome painted *on* the artwork, where what sits behind it changes with every post, reads `AppMediaChrome` instead: a role set the theme builds once from the palette's own neutral pair, so its foreground is the lightest neutral it owns and its stage, scrim, plates, tracks and label shadows are the darkest, each at a named alpha. A widget asks for a role and never for `Colors.white` or `Colors.black`, which is what lets a curated palette or the Midnight rule change how the viewer reads in one place. The scrim is still what makes the glyph legible, not the scheme; the theme only decides which black and which white that scrim is made of.
+**The Adaptive Rule.** No widget hard-codes a color. Widgets read `ColorScheme`; hex values live only in `lib/presentation/theme/color_palettes.dart` and the theme builder. An accent used as a *label* on a block, a dialog, a sheet or a selected chip reads `AppActionRoles` instead: the theme's primary and error lifted once against the highest surface tone, so the same role clears the page and every block between while fills keep the palette's own accent. Chrome painted *on* the artwork, where what sits behind it changes with every post, reads `AppMediaChrome` instead: a role set the theme builds once from the palette's own neutral pair, so its foreground is the lightest neutral it owns and its stage, scrim, plates, tracks and label shadows are the darkest, each at a named alpha. A widget asks for a role and never for `Colors.white` or `Colors.black`, which is what lets a curated palette or the Midnight rule change how the viewer reads in one place. The scrim is still what makes the glyph legible, not the scheme; the theme only decides which black and which white that scrim is made of.
 
 **The Palette Rule.** A curated palette is never harmonized and its surfaces are never re-shaded; the theme is shown as designed, down to its own page color.
 

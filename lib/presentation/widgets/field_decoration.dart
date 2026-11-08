@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -30,7 +31,9 @@ InputDecoration flatFieldDecoration(
     floatingLabelBehavior: FloatingLabelBehavior.always,
     hintText: hint,
     hintStyle: textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
-    errorStyle: textTheme.bodySmall?.copyWith(color: scheme.error),
+    errorStyle: textTheme.bodySmall?.copyWith(
+      color: AppActionRoles.of(context).error,
+    ),
     isDense: true,
     contentPadding: const EdgeInsets.only(
       top: DesignTokens.spacingCardInset,

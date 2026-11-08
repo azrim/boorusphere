@@ -133,31 +133,97 @@ void main() {
       }
     });
 
-    test('body and secondary text stay readable on both surfaces', () {
+    test('body and secondary text stay readable on every surface tone', () {
       for (final (palette, brightness) in _variants) {
         final colors = paletteColorsFor(palette, brightness)!;
         final where = '${palette.name}/${brightness.name}';
-
         final scheme = colors.toScheme(brightness);
+        final tones = {
+          'page': scheme.surface,
+          'low step': scheme.surfaceContainerLow,
+          'panel': scheme.surfaceContainer,
+          'block': scheme.surfaceContainerHigh,
+          'selection': scheme.surfaceContainerHighest,
+        };
+
+        for (final MapEntry(key: name, value: tone) in tones.entries) {
+          expect(
+            _contrast(scheme.onSurface, tone),
+            greaterThanOrEqualTo(4.5),
+            reason: 'shipped text on the $name, $where',
+          );
+          expect(
+            _contrast(scheme.onSurfaceVariant, tone),
+            greaterThanOrEqualTo(4.5),
+            reason: 'shipped muted on the $name, $where',
+          );
+        }
+      }
+    });
+
+    test('every label reads on its accent and its container', () {
+      for (final (palette, brightness) in _variants) {
+        final scheme = paletteColorsFor(
+          palette,
+          brightness,
+        )!.toScheme(brightness);
+        final where = '${palette.name}/${brightness.name}';
+        final pairs = [
+          ('onPrimary', scheme.onPrimary, scheme.primary),
+          ('onSecondary', scheme.onSecondary, scheme.secondary),
+          ('onTertiary', scheme.onTertiary, scheme.tertiary),
+          ('onError', scheme.onError, scheme.error),
+          (
+            'onPrimaryContainer',
+            scheme.onPrimaryContainer,
+            scheme.primaryContainer,
+          ),
+          (
+            'onSecondaryContainer',
+            scheme.onSecondaryContainer,
+            scheme.secondaryContainer,
+          ),
+          (
+            'onTertiaryContainer',
+            scheme.onTertiaryContainer,
+            scheme.tertiaryContainer,
+          ),
+          ('onErrorContainer', scheme.onErrorContainer, scheme.errorContainer),
+        ];
+
+        for (final (role, ink, fill) in pairs) {
+          expect(
+            _contrast(ink, fill),
+            greaterThanOrEqualTo(4.5),
+            reason: '$role on its fill, $where',
+          );
+        }
+      }
+    });
+
+    test('the hairline reads as a line on every tone it outlines', () {
+      for (final (palette, brightness) in _variants) {
+        final colors = paletteColorsFor(palette, brightness)!;
+        final scheme = colors.toScheme(brightness);
+        final where = '${palette.name}/${brightness.name}';
+        final tones = [
+          scheme.surface,
+          scheme.surfaceContainer,
+          scheme.surfaceContainerHigh,
+          scheme.surfaceContainerHighest,
+        ];
+
+        for (final tone in tones) {
+          expect(
+            _contrast(scheme.outlineVariant, tone),
+            greaterThanOrEqualTo(1.5),
+            reason: 'hairline over $tone, $where',
+          );
+        }
         expect(
-          _contrast(scheme.onSurface, scheme.surface),
-          greaterThanOrEqualTo(4.5),
-          reason: 'shipped text on background, $where',
-        );
-        expect(
-          _contrast(scheme.onSurface, scheme.surfaceContainer),
-          greaterThanOrEqualTo(4.5),
-          reason: 'shipped text on panel, $where',
-        );
-        expect(
-          _contrast(scheme.onSurfaceVariant, scheme.surface),
-          greaterThanOrEqualTo(4.5),
-          reason: 'shipped muted on background, $where',
-        );
-        expect(
-          _contrast(scheme.onSurfaceVariant, scheme.surfaceContainer),
-          greaterThanOrEqualTo(4.5),
-          reason: 'shipped muted on panel, $where',
+          scheme.outline,
+          isNot(scheme.outlineVariant),
+          reason: 'one line tone for both roles, $where',
         );
       }
     });
@@ -196,15 +262,12 @@ void main() {
         expect(scheme.surfaceContainerHigh, colors.containerHigh);
         expect(scheme.surfaceContainerHighest, colors.containerHighest);
         expect(scheme.outline, colors.line, reason: 'strong line, $where');
+        // Bright is the page's own end of the ramp, not the block tone: in a
+        // light theme it must not darken below the page it belongs to.
         expect(
-          scheme.outlineVariant,
-          colors.border,
-          reason: 'soft hairline, $where',
-        );
-        expect(
-          scheme.outline,
-          isNot(scheme.outlineVariant),
-          reason: 'one line tone for both roles, $where',
+          _luminance(scheme.surfaceBright),
+          greaterThanOrEqualTo(_luminance(scheme.surface)),
+          reason: 'bright sits below the page it brightens, $where',
         );
       }
     });

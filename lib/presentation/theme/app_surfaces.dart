@@ -29,4 +29,14 @@ class AppSurfacePolicy extends ThemeExtension<AppSurfacePolicy> {
     if (other is! AppSurfacePolicy) return this;
     return t < 0.5 ? this : other;
   }
+
+  // Value equality keeps two identical theme builds comparable, so an
+  // unrelated root rebuild does not restart the theme cross-fade.
+  @override
+  bool operator ==(Object other) {
+    return other is AppSurfacePolicy && other.flat == flat;
+  }
+
+  @override
+  int get hashCode => flat.hashCode;
 }

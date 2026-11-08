@@ -1,5 +1,5 @@
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
-import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/field_decoration.dart';
 import 'package:boorusphere/presentation/widgets/sheet_row.dart';
 import 'package:boorusphere/presentation/widgets/sheet_shell.dart';
@@ -38,7 +38,7 @@ Future<Choice<T>?> showChoiceSheet<T>({
   return showSheet<Choice<T>>(
     context: context,
     builder: (context) {
-      final scheme = context.colorScheme;
+      final actions = AppActionRoles.of(context);
 
       return SheetShell(
         title: title,
@@ -55,7 +55,7 @@ Future<Choice<T>?> showChoiceSheet<T>({
                       ? Icon(
                           Icons.check_rounded,
                           size: DesignTokens.iconAction,
-                          color: scheme.primary,
+                          color: actions.primary,
                         )
                       : null,
                   onTap: () => Navigator.pop(context, choice),

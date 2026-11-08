@@ -176,4 +176,21 @@ class AppTextRoles extends ThemeExtension<AppTextRoles> {
       numeric: TextStyle.lerp(numeric, other.numeric, t)!,
     );
   }
+
+  // ThemeData compares its extensions by value, so two identical builds have
+  // to compare equal or MaterialApp restarts the theme cross-fade on every
+  // unrelated root rebuild.
+  @override
+  bool operator ==(Object other) {
+    return other is AppTextRoles &&
+        other.sectionLabel == sectionLabel &&
+        other.fieldLabel == fieldLabel &&
+        other.rowTitle == rowTitle &&
+        other.rowSupporting == rowSupporting &&
+        other.numeric == numeric;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(sectionLabel, fieldLabel, rowTitle, rowSupporting, numeric);
 }

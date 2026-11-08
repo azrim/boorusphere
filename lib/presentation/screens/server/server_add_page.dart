@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/provider/settings/server_setting_state.
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
@@ -498,7 +499,9 @@ class ServerAddPage extends HookConsumerWidget {
                                       ),
                                       _ScanNotice(
                                         icon: Icons.check_circle_outline,
-                                        color: context.colorScheme.primary,
+                                        color: AppActionRoles.of(
+                                          context,
+                                        ).primary,
                                         message: context.t.servers.scanResult(
                                           search: result.searchParserId.isEmpty
                                               ? context.t.auto
@@ -516,7 +519,7 @@ class ServerAddPage extends HookConsumerWidget {
                                       ),
                                       _ScanNotice(
                                         icon: Icons.error_outline,
-                                        color: context.colorScheme.error,
+                                        color: AppActionRoles.of(context).error,
                                         message: context.t.servers.scanFailed,
                                       ),
                                     ],

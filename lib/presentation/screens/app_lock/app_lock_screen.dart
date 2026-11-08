@@ -2,6 +2,7 @@ import 'package:boorusphere/domain/repository/app_lock_repo.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/app_lock/clock.dart';
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -251,7 +252,7 @@ class AppLockScreen extends HookConsumerWidget {
                         message,
                         textAlign: TextAlign.center,
                         style: textTheme.bodySmall?.copyWith(
-                          color: scheme.error,
+                          color: AppActionRoles.of(context).error,
                         ),
                       ),
                     ],

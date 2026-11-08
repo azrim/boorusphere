@@ -557,7 +557,9 @@
     "horizontal": "Horizontal",
     "horizontal_desc": "Swipe left/right to navigate between posts",
     "vertical": "Vertical",
-    "vertical_desc": "Swipe up/down to navigate between posts"
+    "vertical_desc": "Swipe up/down to navigate between posts",
+    "palette_system": "System",
+    "palette_material_you": "Material You"
   },
   "app_lock": {
     "title": "App lock",

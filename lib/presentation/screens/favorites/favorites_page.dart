@@ -124,6 +124,9 @@ class _Pager extends StatelessWidget {
             child: TabBar(
               dividerColor: Colors.transparent,
               labelStyle: context.theme.textTheme.labelMedium,
+              // The indicator is a primaryContainer fill, so the selected tab
+              // takes that fill's label role instead of the page's accent.
+              labelColor: context.colorScheme.onPrimaryContainer,
               padding: const EdgeInsets.all(DesignTokens.spacingSm),
               isScrollable: true,
               labelPadding: const EdgeInsets.symmetric(

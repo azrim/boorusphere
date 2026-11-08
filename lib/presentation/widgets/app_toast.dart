@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:flutter/material.dart';
@@ -162,7 +163,7 @@ class _ToastCard extends StatelessWidget {
                     const SizedBox(width: DesignTokens.spacingSm),
                     TextButton(
                       style: TextButton.styleFrom(
-                        foregroundColor: scheme.primary,
+                        foregroundColor: AppActionRoles.of(context).primary,
                         minimumSize: const Size(
                           DesignTokens.controlHeightMin,
                           DesignTokens.controlHeightMin,

@@ -177,11 +177,13 @@ class _ColorPalette extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentPalette = ref.watch(uiSettingStateProvider).colorPalette;
+    final currentPalette = ref.watch(
+      uiSettingStateProvider.select((ui) => ui.colorPalette),
+    );
 
     return ListTile(
       title: Text(context.t.settingsPage.colorPalette),
-      subtitle: RowSubtitle(Text(currentPalette.displayName)),
+      subtitle: RowSubtitle(Text(_paletteLabel(context, currentPalette))),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         final picked = await showChoiceSheet<ColorPalette>(
@@ -192,7 +194,7 @@ class _ColorPalette extends ConsumerWidget {
               .map(
                 (it) => Choice(
                   value: it,
-                  label: it.displayName,
+                  label: _paletteLabel(context, it),
                   leading: _PaletteSwatch(palette: it),
                 ),
               )
@@ -205,6 +207,16 @@ class _ColorPalette extends ConsumerWidget {
       },
     );
   }
+}
+
+/// A palette's own name is a brand; the two generated modes are UI words and
+/// follow the app's language instead of being hard-coded English.
+String _paletteLabel(BuildContext context, ColorPalette palette) {
+  return switch (palette) {
+    ColorPalette.system => context.t.settingsPage.paletteSystem,
+    ColorPalette.materialYou => context.t.settingsPage.paletteMaterialYou,
+    _ => palette.displayName,
+  };
 }
 
 /// Previews a palette with its own page and accent colours, so the list reads

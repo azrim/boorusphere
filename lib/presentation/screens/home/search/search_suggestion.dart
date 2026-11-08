@@ -11,6 +11,7 @@ import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart
 import 'package:boorusphere/presentation/screens/home/search/search_bar.dart';
 import 'package:boorusphere/presentation/screens/home/search/search_bar_controller.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/theme/tag_category_accents.dart';
@@ -615,7 +616,7 @@ class _SelectionBar extends StatelessWidget {
             child: Text(
               context.t.suggestion.selected(count: count),
               style: AppTextRoles.of(context).rowSupporting.copyWith(
-                color: context.colorScheme.primary,
+                color: AppActionRoles.of(context).primary,
                 fontWeight: FontWeight.w600,
               ),
             ),

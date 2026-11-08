@@ -178,4 +178,38 @@ class AppMediaChrome extends ThemeExtension<AppMediaChrome> {
       )!,
     );
   }
+
+  // ThemeData compares its extensions by value, so two identical builds have
+  // to compare equal or MaterialApp restarts the theme cross-fade on every
+  // unrelated root rebuild.
+  @override
+  bool operator ==(Object other) {
+    return other is AppMediaChrome &&
+        other.stage == stage &&
+        other.foreground == foreground &&
+        other.foregroundMuted == foregroundMuted &&
+        other.foregroundDisabled == foregroundDisabled &&
+        other.scrim == scrim &&
+        other.scrimMid == scrimMid &&
+        other.scrimSoft == scrimSoft &&
+        other.plate == plate &&
+        other.track == track &&
+        other.labelShadow == labelShadow &&
+        other.labelShadowStrong == labelShadowStrong;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    stage,
+    foreground,
+    foregroundMuted,
+    foregroundDisabled,
+    scrim,
+    scrimMid,
+    scrimSoft,
+    plate,
+    track,
+    labelShadow,
+    labelShadowStrong,
+  );
 }

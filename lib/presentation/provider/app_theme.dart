@@ -1,8 +1,10 @@
 import 'package:boorusphere/presentation/provider/settings/entity/ui_setting.dart';
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/app_media_chrome.dart';
 import 'package:boorusphere/presentation/theme/app_surfaces.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/color_palettes.dart';
+import 'package:boorusphere/presentation/theme/contrast.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
@@ -106,14 +108,26 @@ ThemeData _createThemeData(
   // A curated palette already decided its own page, panel and hairline;
   // shading or fading them would move the theme away from the colours it was
   // picked for. Generated schemes keep the tonal steps this app was built on.
+  final surface = preset
+      ? harmonized.surface
+      : _shade(harmonized.surface, isDark ? 30 : 3);
   final colorScheme = preset
       ? harmonized
       : harmonized.copyWith(
-          surface: _shade(harmonized.surface, isDark ? 30 : 3),
+          surface: surface,
           // The hairline is the only delimiter a section block has on the
-          // page, so it has to stay visible instead of dissolving into the
-          // surface.
-          outlineVariant: harmonized.outlineVariant.withValues(alpha: 0.45),
+          // page, so it is lifted until it reads as a line instead of
+          // dissolving into the surface it outlines.
+          outlineVariant: readableOnSurfaces(
+            harmonized.outlineVariant,
+            [
+              surface,
+              harmonized.surfaceContainerHigh,
+              harmonized.surfaceContainerHighest,
+            ],
+            floor: 1.5,
+            step: 0.08,
+          ),
         );
   final origin = isDark ? ThemeData.dark() : ThemeData.light();
   final textTheme = AppTypography.textTheme(
@@ -121,6 +135,7 @@ ThemeData _createThemeData(
     colorScheme.onSurface,
   );
   final roles = AppTextRoles.from(textTheme: textTheme, scheme: colorScheme);
+  final actions = AppActionRoles.from(colorScheme);
   // Depth is a ladder, not a mood: the page is flat, a block sits one step
   // above it, chrome that floats over the content casts a shadow, and an
   // overlay that owns the screen casts a longer one. Everything reads
@@ -133,8 +148,12 @@ ThemeData _createThemeData(
       roles,
       const AppSurfacePolicy(flat: false),
       AppMediaChrome.from(colorScheme),
+      actions,
     ],
     shadowColor: shadowColor,
+    // A bare icon used to fall back to the framework's pure white/black, which
+    // ignores the palette's own text tone on the light themes.
+    iconTheme: IconThemeData(color: colorScheme.onSurface),
     appBarTheme: AppBarTheme(
       backgroundColor: colorScheme.surface,
       foregroundColor: colorScheme.onSurface,
@@ -151,9 +170,17 @@ ThemeData _createThemeData(
         borderRadius: BorderRadius.circular(DesignTokens.radiusLg),
       ),
     ),
-    // Buttons stay flat: the fill carries the affordance, not a shadow.
+    // Buttons stay flat: the fill carries the affordance, not a shadow. Their
+    // labels are accents used as text, often on a dialog or a sheet, so they
+    // read the raised-surface role instead of the page-only primary.
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(elevation: 0),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: actions.primary),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(foregroundColor: actions.primary),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: colorScheme.surfaceContainer,
@@ -200,7 +227,7 @@ ThemeData _createThemeData(
       elevation: DesignTokens.elevationFloating,
       backgroundColor: colorScheme.surfaceContainerHigh,
       contentTextStyle: TextStyle(color: colorScheme.onSurface),
-      actionTextColor: colorScheme.primary,
+      actionTextColor: actions.primary,
       insetPadding: const EdgeInsets.fromLTRB(
         DesignTokens.spacingMd,
         0,

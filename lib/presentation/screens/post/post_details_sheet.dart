@@ -983,13 +983,14 @@ class _ShowMoreChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final flat = AppSurfacePolicy.of(context).flat;
 
     return Tooltip(
       message: context.t.actionTag.showMore(count: count),
       child: ActionChip(
         label: Text('+$count'),
         onPressed: onPressed,
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: flat ? scheme.surface : scheme.surfaceContainerHighest,
         labelStyle: context.theme.textTheme.bodySmall?.copyWith(
           color: scheme.onSurfaceVariant,
         ),
@@ -1016,6 +1017,7 @@ class _TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.colorScheme;
+    final flat = AppSurfacePolicy.of(context).flat;
 
     // The chip handles the tap; the long press stays on the recogniser above
     // it, so selecting and describing a tag do not fight over the gesture.
@@ -1026,7 +1028,10 @@ class _TagChip extends StatelessWidget {
         selected: selected,
         showCheckmark: false,
         onSelected: (_) => onTap(),
-        backgroundColor: scheme.surfaceContainerHighest,
+        // A selected chip keeps its accent fill in every theme; an unselected
+        // one keeps the page tone in Midnight instead of lifting as a grey
+        // slab, and its hairline is the boundary.
+        backgroundColor: flat ? scheme.surface : scheme.surfaceContainerHighest,
         selectedColor: scheme.primaryContainer,
         labelStyle: context.theme.textTheme.bodySmall?.copyWith(
           color: selected ? scheme.onPrimaryContainer : scheme.onSurface,

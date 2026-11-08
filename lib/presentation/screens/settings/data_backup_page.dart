@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/provider/data_backup/passphrase_input.d
 import 'package:boorusphere/presentation/provider/data_backup/telegram_backup_service.dart';
 import 'package:boorusphere/presentation/provider/settings/periodic_backup_state.dart';
 import 'package:boorusphere/presentation/screens/settings/widgets/settings_section.dart';
+import 'package:boorusphere/presentation/theme/app_actions.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:boorusphere/presentation/widgets/app_toast.dart';
@@ -410,7 +411,7 @@ class _RestoreReport extends StatelessWidget {
               stores: failedOrdered.map((it) => _label(context, it)).join(', '),
             ),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.error,
+              color: AppActionRoles.of(context).error,
             ),
           ),
         ],
