@@ -371,9 +371,13 @@ Future<void> _syncProgresses(
       // Terminal statuses are the app's own last word on the row, and without
       // a native task there is nothing left to compare them against: a
       // cancel, a failure and a file already on disk all stay as they are.
+      // A row no entry refers to is dropped instead: the list could never show
+      // it, and it only survives a crash between the two boxes or an event for
+      // a record that was already cleared.
       if (progress.status.isDownloaded ||
           progress.status.isCanceled ||
           progress.status.isFailed) {
+        if (!hasEntry) orphans.add(progress.id);
         continue;
       }
 
