@@ -11,14 +11,13 @@ import 'package:boorusphere/data/repository/downloads/entity/download_status.dar
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/pigeon/storage_util.pi.dart';
 import 'package:boorusphere/presentation/provider/booru/post_headers_factory.dart';
+import 'package:boorusphere/presentation/provider/cache.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:boorusphere/utils/logger.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'
-    hide DownloadProgress;
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path/path.dart' as p;
@@ -96,7 +95,7 @@ class Downloader {
   /// Try to get file from the cached_network_image disk cache
   Future<File?> _getCachedFile(String url) async {
     try {
-      final info = await DefaultCacheManager().getFileFromCache(url);
+      final info = await BooruCacheManager.instance.getFileFromCache(url);
       final file = info?.file;
       if (file != null && file.existsSync()) {
         return file;
@@ -226,7 +225,7 @@ class Downloader {
 
   Future<void> _evictCache(String url) async {
     try {
-      await DefaultCacheManager().removeFile(url);
+      await BooruCacheManager.instance.removeFile(url);
     } catch (e) {
       mainLog.e('Downloader: failed to evict the cached $url', e);
     }

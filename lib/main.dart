@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
@@ -27,6 +28,7 @@ import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/presentation/boorusphere.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
+import 'package:boorusphere/presentation/provider/cache.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/booru_rating.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/download_quality.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
@@ -45,6 +47,13 @@ import 'package:path_provider/path_provider.dart';
 void main() async {
   setupLogger();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Every network image reads and writes this store; installing it before the
+  // first frame also makes the viewer's retry evict from the cache the image
+  // actually came from. The sweep reclaims the files older builds wrote
+  // through the package default, which nothing reads any more.
+  installImageCache();
+  unawaited(discardLegacyImageCache());
 
   // The bundled typeface ships under the SIL Open Font License, which asks
   // that the licence travel with it; registering it here puts Geist in the

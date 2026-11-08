@@ -5,6 +5,7 @@ import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/video_cache/video_cache.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
+import 'package:boorusphere/presentation/provider/cache.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
@@ -29,7 +30,6 @@ import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:boorusphere/utils/serial_queue.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 @RoutePage()
@@ -766,12 +766,34 @@ class _CacheSectionState extends ConsumerState<_CacheSection> {
 
     await _actions.run(() async {
       showToast(context, t.clearing);
-      await DefaultCacheManager().emptyCache();
-      PaintingBinding.instance.imageCache.clear();
-      PaintingBinding.instance.imageCache.clearLiveImages();
-      await ref.read(videoCacheProvider).clear();
+      var failed = false;
+      // One store refusing to empty must not skip the others, and a run that
+      // could not finish has to end with something other than "cleared".
+      try {
+        await BooruCacheManager.instance.emptyCache();
+      } catch (e, stack) {
+        failed = true;
+        mainLog.w('CacheSection: failed to empty the image cache', e, stack);
+      }
+      try {
+        PaintingBinding.instance.imageCache.clear();
+        PaintingBinding.instance.imageCache.clearLiveImages();
+      } catch (e, stack) {
+        failed = true;
+        mainLog.w('CacheSection: failed to empty the memory cache', e, stack);
+      }
+      try {
+        await ref.read(videoCacheProvider).clear();
+      } catch (e, stack) {
+        failed = true;
+        mainLog.w('CacheSection: failed to empty the video cache', e, stack);
+      }
       await _readStats();
-      if (mounted) showToast(context, t.settings.cache.done);
+      if (!mounted) return;
+      showToast(
+        context,
+        failed ? t.settings.cache.clearFailed : t.settings.cache.done,
+      );
     });
   }
 

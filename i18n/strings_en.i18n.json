@@ -413,7 +413,8 @@
       "clear_desc": "Remove cached images and videos from this device",
       "clear_title": "Clear cache?",
       "clear_message": "Cached images and videos are removed from this device. They will download again when needed.",
-      "done": "Cache cleared"
+      "done": "Cache cleared",
+      "clear_failed": "Some cached files could not be removed"
     }
   },
   "data_backup": {
