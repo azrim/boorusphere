@@ -1,3 +1,9 @@
+## 3.1.10
+
+* **Flat-first chrome**: day and night separate blocks, notices, the long-press hint, toasts, the context menu and tag chips by tone and shadow alone — their box outlines are gone, and a hairline is reserved for dividers, field underlines and state marks
+* **Midnight**: the one theme that keeps a line, now on its menus, sheets, toasts and dialogs too, because black on black has no tone step or shadow to read; the drawer favicon chip and the details-sheet chips carry their hairline there and nowhere else
+* **Search bar**: the top edge line is removed; the glass bar closes on its tone and blur, and the query field keeps a hairline on Midnight only
+
 ## 3.1.9
 
 * **Palettes**: every curated theme derives its text, muted tone and container labels against all five surface steps, so a supporting line stays readable inside a section and on a selection chip; an accent keeps its hue and is lifted only as far as the 4.5:1 floor requires, a light theme's pale pink or yellow included; and the soft hairline is lifted until it reads as a line instead of dissolving into the block it outlines
