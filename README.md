@@ -1,182 +1,170 @@
 <div align="center">
-    <div><img src="assets/icons/exported/legacy-circle.png" alt="boorusphere icon" height="92"></div>
-    <div><h1 align="center">Boorusphere</h1></div>
-    <div>Simple, content-focused booru viewer for Android</div>
-    <br/>
-    <div>
+    <img src="assets/icons/exported/legacy-circle.png" alt="Boorusphere" width="112">
+    <h1>Boorusphere</h1>
+    <p><b>Your boorus. One quiet app.</b></p>
+    <p>A content-first booru viewer for Android.<br>
+    The art fills the screen; everything else waits its turn.</p>
+    <p>
         <a href="https://github.com/azrim/boorusphere/stargazers">
             <img alt="Stargazers" src="https://img.shields.io/github/stars/azrim/boorusphere?style=for-the-badge&logo=apachespark&logoColor=ebebf0&color=ff89b5&labelColor=23232F"/>
         </a>
         <a href="https://github.com/azrim/boorusphere/releases/latest">
-            <img alt="Latest release" src="https://img.shields.io/github/v/release/azrim/boorusphere?style=for-the-badge&logo=pkgsrc&logoColor=ebebf0&labelColor=23232F&color=95b6ff">
+            <img alt="Latest release" src="https://img.shields.io/github/v/release/azrim/boorusphere?style=for-the-badge&logo=pkgsrc&logoColor=ebebf0&labelColor=23232F&color=95b6ff"/>
         </a>
         <a href="https://github.com/azrim/boorusphere/actions">
-            <img alt="Workflow status" src="https://img.shields.io/github/actions/workflow/status/azrim/boorusphere/ci.yml?style=for-the-badge&logo=githubactions&logoColor=ebebf0&labelColor=23232F&label=CI">
+            <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/azrim/boorusphere/ci.yml?style=for-the-badge&logo=githubactions&logoColor=ebebf0&labelColor=23232F&label=CI"/>
         </a>
         <a href="https://github.com/azrim/boorusphere/blob/main/LICENSE.md">
             <img alt="License" src="https://img.shields.io/github/license/azrim/boorusphere?style=for-the-badge&logo=gitbook&logoColor=ebebf0&color=b0a8f7&labelColor=23232F"/>
         </a>
-    </div>
-    <br/>
-    <div>
-        <a href="https://github.com/azrim/boorusphere/releases">
-            <img src="assets/button-GHReleases.png" alt="GitHub release" width="160">
+    </p>
+    <p>
+        <a href="https://github.com/azrim/boorusphere/releases/latest">
+            <img src="assets/button-GHReleases.png" alt="Download the latest Boorusphere APK" width="200">
         </a>
-        <!--
-        <a href="https://apt.izzysoft.de/fdroid/index/apk/io.chaldeaprjkt.boorusphere">
-            <img src="assets/button-IzzyOnDroid.png" alt="IzzyOnDroid release" width="160">
-        </a>
-        -->
-    </div>
+    </p>
+    <p><sub>Android 7.0+ · arm64, armv7, x86_64 or universal</sub></p>
 </div>
 
-# Features
+## The short version
 
-### Browse & search
-- Multi-server support: Danbooru, Gelbooru, Moebooru, Konachan, Safebooru, Szurubooru, e621, Shimmie (rule34.paheal), Philomena (Derpibooru, Ponybooru), and more, all manageable from the in-app drawer.
-- Add new servers with a guided **engine selector** (no manual API parsing required): pick the booru engine, paste the base URL, done.
-- Tag-suggestion search with rolling search history. Single-word matches are surfaced before multi-word matches so common tags like `hololive` come up before `hololive_girl_tall` when you type `h`.
-- Per-server rating filter (Safe / Questionable / Explicit) directly in the search bar.
-- Block tags from search results (server-scoped or global).
+Boorusphere connects the booru boards you already browse to one quiet Android app. Pick a board, search by tag, scroll a staggered grid, open a post into a viewer that knows when to get out of the way. Zoom, pan, play, favorite, download, next.
 
-### Post viewer
-- Pinch-zoom + pan with `InteractiveViewer`. Pinch-zoom automatically disables horizontal page-swipe so panning a zoomed image won't accidentally jump to the next post.
-- Double-tap to zoom in/out at the tap point.
-- Swipe up to open the post details sheet (tags, source info, dimensions). Multi-select tags from the sheet to copy, block, or search.
-- Background blur on explicit content with a one-tap unblur.
-- Save favorites and revisit them from the drawer.
+Danbooru, Gelbooru, Konachan, e621, Derpibooru, Rule34 Paheal and the board you host yourself all open in the same grid; the engine list takes care of the API underneath. No account, no analytics, and no server of ours in the middle: favorites, blocklists, settings and backups stay on your device — or in a Telegram chat you own.
 
-### Media
-- Plays videos and animated images (.gif, .webm, .mp4) inline.
-- Sends correct `Referer` / `User-Agent` headers on video requests so hotlink-protected booru CDNs (e.g. Gelbooru) work.
-- Image cache shared between timeline thumbnails, post viewer, and downloader: open-then-download reuses the bytes you already loaded instead of re-fetching.
+## A look around
 
-### Downloads
-- One-tap download of images and videos to the device's `Downloads/Boorusphere/` folder. With **group by server** enabled, new files land in a per-server subfolder; files already on disk stay where they are.
-- Every finished file gets a small metadata file under `.metadata/` (the post it came from, when it was saved), so the record survives clearing the Downloads list.
-- Re-uses the in-memory cache when available, so a post you have already viewed downloads without a second fetch.
-- Downloads tab in the drawer with redownload + open-in-system-viewer actions.
-
-### Backup & restore
-- Export everything (settings, search history, server list, blocked tags, favorites) to a single backup file.
-- Download records can be included as an opt-in catalog: the list and its statuses are restored, but the media files are not. A restored record whose file is absent shows **No file** and can be downloaded again.
-- **Telegram backup integration**: schedule automatic backups (daily / weekly / monthly) to a Telegram chat via your own bot, with a "Backup now" button for manual snapshots. Includes a "Test connection" button to verify your bot token / chat ID before scheduling.
-
-### UI
-- Material 3 with dynamic color (Android 12+), pulling from your wallpaper palette.
-- Light, dark, and AMOLED-friendly themes.
-- High refresh rate support (90 / 120 Hz) via `flutter_displaymode`.
-- Edge-to-edge layout with translucent system bars and optional backdrop blur on overlays.
-- Customizable gestures (horizontal vs vertical post swipe, swipe-to-close-search, etc).
-
-# Preview
-
-<p align="justify">
-    <img width="24%" src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" />
-    <img width="24%" src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" />
-    <img width="24%" src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" />
-    <img width="24%" src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" />
+<p align="center">
+    <a href="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="24%" alt="Feed: a staggered grid of illustrations, each card labelled with score, rating, format and dimensions"></a>
+    <a href="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="24%" alt="Drawer: the server list, Downloads, Favorites, Tags Blocker and the version number"></a>
+    <a href="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="24%" alt="Viewer: a wide illustration on a dark backdrop, with the tag line, page position and post actions"></a>
+    <a href="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png"><img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="24%" alt="Details sheet: the Tags tab, with tag chips under a three-tab strip"></a>
 </p>
+<p align="center"><sub>The feed, the drawer, a post in the viewer, and the tags behind it — Boorusphere 3.1.10, day and dark.</sub></p>
 
-# Installing
+## The grid does the talking
 
-The simplest path is to grab the latest **GitHub Release** APK from the badge above. Pick the APK matching your phone's CPU architecture:
+Every thumbnail carries its score, rating, format and dimensions, so most decisions are made before you open anything; a video adds its own mark. Search suggestions come from the board itself, and the history keeps your recent queries with an undo for the row you just deleted. Rating filters are per server: one board can stay safe while another stays unfiltered.
 
-| File suffix | When to pick it |
+The Tags Blocker takes expressions, not just single tags: a space means AND, `~` means OR, and `-` excludes. A page emptied by a filter says which one hid it and offers the control that brings the posts back. Explicit-rated thumbnails can blur — on the timeline only or everywhere — with one tap to **Show me**.
+
+## A viewer that leaves the room
+
+Tap once and the chrome disappears, system bars included. Pinch or double-tap to zoom; page with horizontal or vertical swipes; swipe up for details; swipe down to dismiss. Paging direction and the swipe actions live in gesture settings. Videos and animated images play inline with the `Referer` and `User-Agent` headers pickier boards require, and a slideshow can walk the page forward, backward or at random on an interval you set.
+
+The details sheet has three tabs — facts, tags and links — and tags can be selected in bulk to copy, block, add to the query or search. **Find related** runs a post's own tags as a search when you want more of the same.
+
+## Keep what you came for
+
+Long-press to select posts, then favorite, download or share the batch. Downloads pause, resume and retry — one file or every failed one — with four transfers in flight. Files land in `Downloads/Boorusphere/`, optionally in per-server folders, each with a sidecar record of the post it came from. The Downloads library reopens, redownloads or clears that record later, and one switch keeps the whole collection out of your gallery.
+
+A post you have already opened downloads from the same cache the viewer filled, so saving it is not a second fetch.
+
+## Every board, without the plumbing
+
+Ten presets ship with the app: Danbooru, Gelbooru, Konachan, Yandere, Safebooru, Rule34, e621, Derpibooru, Ponybooru and Rule34 Paheal. Any other board is added by address — **Scan** reads the site and picks its engine, or you choose one yourself from Danbooru, Gelbooru 0.1.x/0.2, Moebooru, e621, Shimmie, Szurubooru and Philomena.
+
+Each server keeps its own query templates, rating filter, API key or user id, and blocked-tag list. The engines carry the quirks — Gelbooru's two API dialects, Philomena's post addresses, Shimmie's two XML shapes — and a board that wants credentials names the one that is missing.
+
+## Quietly yours
+
+Backups carry settings, servers, search history, blocked tags and favorites in one archive. Download records can ride along, a passphrase can seal it, and the scheduler can send a copy to your own Telegram bot every day, week or month — with **Backup now** for the times you would rather not wait.
+
+A PIN or biometrics can lock the app, with a guess throttle that survives restarts, and a separate switch hides the app from recents and blocks screenshots. The cache screen shows what videos cost and lets you cap them at 100 MB, 300 MB, 500 MB or 1 GB; one confirmed **Clear** wipes images and videos together.
+
+## Dress it how you like
+
+Light, dark or system; **Midnight** turns dark into true black for OLED screens. Colors can come from your wallpaper (System on Android 12+), the Material You seed, or ten curated editor palettes: Dracula, Catppuccin, Nord, Solarized, Gruvbox, One Dark, Monokai, GitHub, Tokyo Night and Ayu.
+
+The chrome is flat-first: tone and shadow separate surfaces, while hairlines are kept for rules and state marks. The viewer's overlays follow the palette instead of assuming white on black, high-refresh screens are supported, and the layout is edge-to-edge with an optional blur.
+
+## Install
+
+Boorusphere is sideloaded from this repository; there is no Play Store listing. Download the newest APK from [Releases](https://github.com/azrim/boorusphere/releases/latest) and match it to your phone:
+
+| APK | Pick it when |
 | --- | --- |
-| `arm64-v8a` | Almost every phone made after 2017. **Default choice.** |
-| `armeabi-v7a` | Older 32-bit Android phones (pre-2017). |
-| `x86_64` | Android emulators / Chromebooks running x86_64 Android. |
-| `universal` | Bigger file, runs on all of the above. Use only if unsure. |
+| `boorusphere-<version>-arm64-v8a.apk` | Almost every phone from 2017 onward. **The default choice.** |
+| `boorusphere-<version>-armeabi-v7a.apk` | Older 32-bit phones. |
+| `boorusphere-<version>-x86_64.apk` | Android emulators and x86_64 Chromebooks. |
+| `boorusphere-<version>-universal.apk` | One file for all of the above. First installs only. |
 
-The in-app updater downloads the **split** APK for your device ABI, and a manually downloaded APK can only replace it when it is the same variant (or has a higher version code). The `universal` APK is for a first install only; its version code is lower than a split install's, so Android rejects it as a downgrade.
+Android 7.0 (API 24) or newer.
 
-The app is **not** on Google Play. F-Droid via IzzyOnDroid is currently disabled but the link remains in the source for when it's re-enabled.
+Installed copies update in place through the app's updater, which fetches the split APK for your ABI. A manually downloaded APK must be the same variant (or carry a newer version code); the universal build has a lower version code than any split, so it is a first-install fallback rather than an upgrade.
 
-# Building from Source
+## Build from source
 
-You'll need the [Flutter SDK](https://flutter.dev/) and a working Android toolchain (Android Studio or just the command-line `sdkmanager`). The project is pinned to `flutter ">=3.35.5"` and `dart ">=3.0.3 <4.0.0"` (see `pubspec.yaml`).
+You need Flutter **3.44.0+** and Dart **3.12+** (both pinned in `pubspec.yaml`), JDK 17 and a working Android SDK.
 
 ```bash
 git clone https://github.com/azrim/boorusphere.git
 cd boorusphere
-
-# Install dependencies
 flutter pub get
-
-# Generate code (Riverpod providers, Hive adapters, route table, JSON parsers, ...)
-dart run build_runner build --delete-conflicting-outputs
-
-# Generate translations
-dart run slang
-
-# Run on a connected device or emulator
+dart pub global activate grinder
+grind gencode
+grind genlang
 flutter run
 ```
 
-After editing entities, providers, routes, or any `*.freezed.dart` / `*.g.dart` consumer, re-run `build_runner`. After editing translation JSON, re-run `slang`. Both ship a watch mode (`build_runner watch`, `slang watch`) that's worth using during active development.
+Generated Dart sources (`.g.dart`, `.freezed.dart` and the slang output) are not checked in: run the generators after cloning, and again whenever an entity, provider, route or translation changes. `build_runner watch` and `slang watch` are the pleasant way to keep them fresh while hacking.
 
-The repo also ships [grinder](https://pub.dev/packages/grinder) tasks under `tool/grind.dart` for common chores. Useful ones:
+The repository ships its chores as [grinder](https://pub.dev/packages/grinder) tasks:
 
-```bash
-grind chkfmt          # dart format --set-exit-if-changed (CI runs this)
-grind test            # flutter test --coverage
-grind apkrelease      # build split-per-abi release APKs (used by CI)
-grind apkarm64        # arm64 split release APK (the variant the updater installs)
-grind pigeons         # regenerate pigeon platform-channel bindings
-```
-
-# APK builds via GitHub Actions
-
-This repo ships a `Build APK` workflow (`.github/workflows/build-apk.yml`) that:
-
-1. Runs on every push to `main`, on every `v*` git tag, and on manual `workflow_dispatch`.
-2. Builds split-per-abi release APKs via `grind apkrelease`.
-3. Uploads them as a workflow artifact (downloadable from the Actions run page for ~90 days).
-4. **Optionally** posts each APK to a Telegram chat via the Bot API.
-5. On `v*` tags, also attaches the APKs to the auto-created GitHub Release.
-
-To enable Telegram delivery, add these repository secrets at `Settings → Secrets and variables → Actions`:
-
-| Secret | Value |
+| Task | Does |
 | --- | --- |
-| `TELEGRAM_BOT_TOKEN` | The bot token from `@BotFather`. |
-| `TELEGRAM_CHAT_ID` | The numeric chat ID for the target chat (use `@userinfobot` to look it up). |
+| `grind gencode` | Regenerate code with build_runner |
+| `grind genlang` | Regenerate strings with slang, plus the missing-translation report |
+| `grind pigeons` | Regenerate platform-channel bindings |
+| `grind chkfmt` | Check formatting the way CI does |
+| `grind analyze` | Run `flutter analyze` |
+| `grind test` | Run `flutter test --coverage` |
+| `grind chkall` | Format, analyze and test in one go |
+| `grind apkarm64` | Build the arm64 split release APK |
+| `grind apkrelease` | Build every split ABI plus the universal APK |
 
-If the secrets are missing, the Telegram step becomes a no-op and the APKs still land as workflow artifacts. To get the bot to deliver to a private channel, add the bot to the channel as an admin and use the channel's `-100…` ID.
+## How it ships
 
-# Translation
+Every pull request and every push to `main` runs CI: generators, `chkfmt`, `analyze` and the test suite. A change that fails formatting fails the build, so run `grind chkfmt` before pushing.
 
-### Translating untranslated strings
+The **Build APK** workflow runs on `v*` tags and on manual dispatch. It builds the split APKs and the universal APK, uploads them as a workflow artifact, and on a tag attaches them to the matching GitHub Release. When the Telegram secrets are set, it also sends the APKs to that chat — always on a tag, and on a manual run when the `send_to_telegram` toggle is on. Release builds use the keystore behind `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`; without them the workflow warns and falls back to debug signing, which cannot update an earlier install.
+
+To cut a release, bump `version:` in `pubspec.yaml`, add a `## X.Y.Z` section at the top of [`CHANGELOG.md`](CHANGELOG.md), then tag `vX.Y.Z`.
+
+## Translations
+
+The app ships with German, Filipino, Indonesian, Japanese, Russian, Thai, Turkish, Ukrainian, Simplified Chinese and Traditional Chinese — and uwu, because of course it does. Untranslated keys fall back to English, so partial locales are welcome.
 
 ```bash
-# 1. Generate the missing-translations report
+# 1. See what is missing
 dart run slang analyze --outdir=i18n
 
-# 2. Edit i18n/_missing_translations.json with translations for your locale.
+# 2. Add translations to i18n/_missing_translations.json
 
-# 3. Apply the translations and re-run analysis
+# 3. Apply them and re-check
 dart run slang apply --outdir=i18n
 dart run slang analyze --outdir=i18n
 ```
 
-It's perfectly fine to leave strings untranslated in `i18n/_missing_translations.json` rather than committing partial English fallbacks into the per-locale JSON.
+A new language is a copy of `i18n/strings_en.i18n.json` named `i18n/strings_<code>.i18n.json`, plus a pull request. Run `grind genlang` locally to try it before you send.
 
-### Adding a new language
+## Contributing
 
-Copy `i18n/strings_en.i18n.json` to `i18n/strings_<language-code>.i18n.json` and either open a PR with the new locale or build it locally:
+Bug reports and pull requests are welcome. A useful report includes the server you were on, your device and Android version, what you expected, what happened, and the steps that got you there; if the app crashed, the logcat around the crash is gold.
 
-```bash
-dart run slang
-dart run slang analyze --outdir=i18n
-flutter run
-```
+For a pull request:
 
-# Contributing & changelog
+- Keep it to one concern, and run `grind chkfmt`, `grind analyze` and `grind test` before pushing.
+- Write user-facing changes into `CHANGELOG.md` under the next version.
+- Do not edit generated files by hand; run the generator instead.
+- Read [`DESIGN.md`](DESIGN.md) before touching surfaces, palettes or viewer chrome — it is the written contract the UI follows. [`GLOSSARY.md`](GLOSSARY.md) pins down the vocabulary the code uses.
 
-User-facing changes per release are tracked in [`CHANGELOG.md`](CHANGELOG.md). The recent modernization passes (Phase B–G in the v1.9.x line) reduced boilerplate, dropped the unmaintained `extended_image` dependency in favor of `cached_network_image` + `InteractiveViewer`, modernized the drawer to `Scaffold.drawer`, and trimmed a class of silent state-management bugs.
+## Credits and license
 
-If you're submitting a PR:
-- Run `grind chkfmt` and `grind test` locally; CI runs the same and rejects unformatted code.
-- Bump `version:` in `pubspec.yaml` (`X.Y.Z+buildCode`) and add a `## X.Y.Z` entry at the top of `CHANGELOG.md`.
-- For new languages, follow the **Translation** section above.
+Boorusphere is released under the [BSD 3-Clause License](LICENSE.md), © 2021 Chaldeaprjkt.
+
+Built with [Flutter](https://flutter.dev) and a pile of good packages. The bundled Geist, Poppins and Noto Sans Thai fonts ship under the SIL Open Font License.
+
+Boorusphere is an unofficial client and hosts nothing. Every post belongs to the board it came from and the people who made it; follow their rules and licenses.
+
+<p align="center"><sub>If Boorusphere saves you a browser tab, a <a href="https://github.com/azrim/boorusphere/stargazers">star</a> is a fine thank-you.</sub></p>
