@@ -1,3 +1,10 @@
+## 3.1.9
+
+* **Palettes**: every curated theme derives its text, muted tone and container labels against all five surface steps, so a supporting line stays readable inside a section and on a selection chip; an accent keeps its hue and is lifted only as far as the 4.5:1 floor requires, a light theme's pale pink or yellow included; and the soft hairline is lifted until it reads as a line instead of dissolving into the block it outlines
+* **Actions**: text and outlined buttons, snackbar actions, field errors, destructive confirmations, sheet links and selected checks read a raised-surface accent that clears 4.5:1 on blocks and dialogs while every fill keeps the palette's own colour; the rating chip becomes a filled pill and the Favorites tabs get a label colour
+* **Midnight**: the Home search bar and the details-sheet tags paint the page tone with a hairline on the flat black theme instead of the brightest container
+* **Theme plumbing**: an unrelated root rebuild no longer restarts the theme cross-fade, bare icons follow the palette's text tone, palette subtitles read System and Material You from the translation files, and DESIGN.md's accent values, curated count and line rules match what the code does
+
 ## 3.1.8
 
 * **Downloads**: a pause that lands after the last body byte settles as downloaded when the server's length matches the file, so Resume can no longer ask for bytes past the end; a body the completion guard rejects is deleted before the row turns failed, so Retry starts clean instead of appending onto it; Clear is refused while a download is queued or running; the post viewer picks a post's entry by recency and prefers an in-flight one; and a terminal progress row whose entry is gone is dropped at boot
