@@ -4,9 +4,6 @@ import 'dart:io';
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/app_lock/secure_app_lock_repo.dart';
-import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
-import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
-import 'package:boorusphere/data/repository/downloads/entity/download_status.dart';
 import 'package:boorusphere/data/repository/fallback_box.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/helper.dart';
@@ -20,7 +17,6 @@ import 'package:boorusphere/presentation/provider/download/downloader.dart';
 import 'package:boorusphere/presentation/provider/download/flutter_downloader_handle.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
-import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/presentation/routes/app_route_observer.dart';
 import 'package:boorusphere/presentation/routes/app_router.dart';
 import 'package:boorusphere/presentation/routes/route_visibility.dart';
@@ -245,10 +241,18 @@ class Boorusphere extends HookConsumerWidget {
       // ReceivePort is torn down via `ref.onDispose(handle.dispose)` in the
       // provider, so there's nothing to clean up here.
       ref.read(downloaderHandleProvider).listen((progress) async {
-        final progressState = ref.read(downloadProgressStateProvider.notifier);
+        final downloader = ref.read(downloaderProvider);
 
         if (!progress.status.isDownloaded) {
-          await progressState.update(progress);
+          await ref
+              .read(downloadProgressStateProvider.notifier)
+              .update(progress);
+          // A pause that landed after the worker read the last byte leaves a
+          // complete file labelled paused; the row is settled the same way a
+          // completion is.
+          if (progress.status.isPaused) {
+            await downloader.settlePausedIfComplete(progress.id);
+          }
           return;
         }
 
@@ -256,79 +260,13 @@ class Boorusphere extends HookConsumerWidget {
         // page, an empty file or a truncated transfer arrives here looking
         // like a finished download. The bytes are checked before the row is
         // allowed to claim success.
-        final entry = ref.read(downloadEntryStateProvider).getById(progress.id);
-        // A task without an entry was cleared or cancelled while it was still
-        // running: a row for it would be one the Downloads list can never show.
-        if (entry.id.isEmpty) return;
-
-        // The update APK is written to the cache folder, not to the shared
-        // one, and its entry resolves against the shared folder. Validating it
-        // there would fail every update right after it arrived.
-        if (!entry.post.isReserved) {
-          final storage = ref.read(sharedStorageHandleProvider);
-
-          Future<void> markFailed() async {
-            await progressState.update(
-              DownloadProgress(
-                id: progress.id,
-                status: DownloadStatus.failed,
-                progress: progress.progress,
-                timestamp: progress.timestamp,
-              ),
-            );
-          }
-
-          if (!storage.isValidMedia(entry.dest)) {
-            mainLog.w(
-              'Boorusphere: ${entry.dest} is not media, '
-              'marking the download as failed',
-            );
-            await markFailed();
-            return;
-          }
-
-          // A body that ends before its last byte still looks complete to the
-          // worker, so a truncated transfer only shows up when its size is
-          // compared with the length the server reports. A host that reports
-          // none yields no expectation and keeps the check above as its only
-          // guard.
-          final expectedSize = await ref
-              .read(downloaderProvider)
-              .expectedSizeOf(progress.id);
-          final actualSize = storage.fileSize(entry.dest);
-          if (expectedSize != null &&
-              actualSize != null &&
-              actualSize != expectedSize) {
-            mainLog.w(
-              'Boorusphere: ${entry.dest} has $actualSize bytes, '
-              'the server reports $expectedSize, marking the download as '
-              'failed',
-            );
-            await markFailed();
-            return;
-          }
-
-          await storage.rescanFile(entry.dest);
-        }
-
-        // The row can be deleted, or the whole list cleared, while the size
-        // probe and the scan above are on the wire. Finishing then would write
-        // metadata for a file that is gone and a status no entry names, which
-        // the next start keeps as a terminal row.
-        final recorded = ref.read(downloadEntryStateProvider);
-        if (recorded.getById(progress.id).id.isEmpty) return;
-
-        // The finished file now has a record that survives the entry list:
-        // deleting the record does not delete the file, so the metadata is
-        // what still ties a file on disk to the post it came from. App-owned
-        // rows are skipped inside the helper.
-        await writeDownloadSidecar(
-          root: ref.read(sharedStorageHandleProvider).path,
-          entry: entry,
-        );
-
-        await progressState.update(progress);
+        await downloader.settleCompleted(progress);
       });
+
+      // A task can settle between the boot reconciliation and the listener
+      // above; its event then went to a port nobody listened to. The plugin's
+      // own rows are read back once to settle those downloads.
+      unawaited(ref.read(downloaderProvider).catchUp());
       return null;
     }, const []);
 

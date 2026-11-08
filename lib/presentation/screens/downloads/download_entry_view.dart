@@ -345,7 +345,11 @@ class _EntryPopupMenu extends ConsumerWidget {
               value: 'delete-file',
               child: Text(context.t.downloads.deleteFile),
             ),
-          PopupMenuItem(value: 'clear', child: Text(context.t.clear)),
+          // A running download keeps its native row until it settles: taking
+          // the record away mid-flight leaves the worker reporting into a row
+          // nothing can show. Cancel first; Clear is offered again after.
+          if (!progress.status.isDownloading && !progress.status.isPending)
+            PopupMenuItem(value: 'clear', child: Text(context.t.clear)),
         ];
       },
     );

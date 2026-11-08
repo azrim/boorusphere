@@ -161,9 +161,11 @@ class Downloader {
         mainLog.e('Downloader: failed to notify $fileName', e);
       }
 
-      // Create a fake task ID for tracking
+      // Create a fake task ID for tracking. Microseconds: two copies started in
+      // the same millisecond would share an id, and a record with an existing
+      // id is replaced instead of added.
       final taskId =
-          '$_cacheTaskPrefix${DateTime.now().millisecondsSinceEpoch}';
+          '$_cacheTaskPrefix${DateTime.now().microsecondsSinceEpoch}';
 
       entry = DownloadEntry(
         id: taskId,
@@ -575,6 +577,192 @@ class Downloader {
 
   static const _sizeProbeTimeout = Duration(seconds: 5);
 
+  /// Applies the completion checks to [progress] and records the outcome.
+  ///
+  /// The native worker reports any HTTP 200 body as complete, and a pause that
+  /// lands after the last byte of the body leaves a finished file labelled
+  /// paused, so both paths meet here: the file has to be media, its length has
+  /// to match the one the server reports when one can be read, and only then
+  /// is it indexed, given its sidecar and recorded as downloaded. A body the
+  /// checks reject is deleted first: the worker resumes whatever file it finds
+  /// at the destination, so keeping it would only feed the next attempt.
+  ///
+  /// Reports whether the row was settled as downloaded. A [knownSize] already
+  /// read from the server skips the probe.
+  Future<bool> settleCompleted(
+    DownloadProgress progress, {
+    int? knownSize,
+  }) async {
+    final progressState = ref.read(downloadProgressStateProvider.notifier);
+    final entry = ref.read(downloadEntryStateProvider).getById(progress.id);
+    // A task without an entry was cleared while it was still running: a row
+    // for it would be one the Downloads list can never show.
+    if (entry.id.isEmpty) return false;
+
+    final storage = ref.read(sharedStorageHandleProvider);
+
+    Future<void> reject(String reason) async {
+      mainLog.w('Downloader: $reason, marking the download as failed');
+      // Keeping the bytes would let the platform retry append to them: the
+      // worker resumes from whatever length the destination already has.
+      await _deleteLocalContent(entry.dest);
+      await progressState.update(
+        DownloadProgress(
+          id: progress.id,
+          status: DownloadStatus.failed,
+          progress: progress.progress,
+          timestamp: progress.timestamp,
+        ),
+      );
+    }
+
+    // The update APK is written to the cache folder, not to the shared one,
+    // and its entry resolves against the shared folder. Validating it there
+    // would fail every update right after it arrived.
+    if (!entry.post.isReserved) {
+      if (!storage.isValidMedia(entry.dest)) {
+        await reject('${entry.dest} is not media');
+        return false;
+      }
+
+      // A body that ends before its last byte still looks complete to the
+      // worker, so a truncated transfer only shows up when its size is
+      // compared with the length the server reports. A host that reports none
+      // yields no expectation and keeps the header check as the only guard.
+      final expectedSize = knownSize ?? await expectedSizeOf(progress.id);
+      final actualSize = storage.fileSize(entry.dest);
+      if (expectedSize != null &&
+          actualSize != null &&
+          actualSize != expectedSize) {
+        await reject(
+          '${entry.dest} has $actualSize bytes, the server reports $expectedSize',
+        );
+        return false;
+      }
+
+      await storage.rescanFile(entry.dest);
+    }
+
+    // The row can be deleted, or the whole list cleared, while the size probe
+    // and the scan above are on the wire. Finishing then would write metadata
+    // for a file that is gone and a status no entry names.
+    final recorded = ref.read(downloadEntryStateProvider);
+    if (recorded.getById(progress.id).id.isEmpty) return false;
+
+    // The finished file now has a record that survives the entry list:
+    // deleting the record does not delete the file, so the metadata is what
+    // still ties a file on disk to the post it came from. App-owned rows are
+    // skipped inside the helper.
+    await writeDownloadSidecar(root: storage.path, entry: entry);
+    await progressState.update(progress);
+    return true;
+  }
+
+  /// Settles a paused row whose file already reached its full length.
+  ///
+  /// Pausing after the worker read the last byte of the body leaves the row
+  /// paused while the file is complete. Every resume would then send
+  /// `Range: bytes=<length>-`, which a server answers with 416, and the
+  /// platform retry repeats the same request: the row could never finish.
+  ///
+  /// The worker's progress alone cannot separate a finished transfer from a
+  /// stopped one: a body that arrives without a declared length reports a
+  /// progress above 100 after its first chunk. Only a length read back from
+  /// the server settles the row, so a host that reports none, and a file that
+  /// stopped short of it, both keep their paused row.
+  Future<void> settlePausedIfComplete(String id) async {
+    final progress = ref.read(downloadProgressStateProvider).getById(id);
+    if (!progress.status.isPaused || progress.progress < 100) return;
+
+    final entry = ref.read(downloadEntryStateProvider).getById(id);
+    if (entry.id.isEmpty) return;
+
+    final expectedSize = await expectedSizeOf(id);
+    if (expectedSize == null) return;
+
+    final storage = ref.read(sharedStorageHandleProvider);
+    if (storage.fileSize(entry.dest) != expectedSize) return;
+
+    await settleCompleted(
+      DownloadProgress(
+        id: id,
+        status: DownloadStatus.downloaded,
+        progress: 100,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      ),
+      knownSize: expectedSize,
+    );
+  }
+
+  /// Settles rows whose terminal event was sent before the app listened.
+  ///
+  /// The plugin keeps its task rows across a restart, but an event that lands
+  /// between the boot reconciliation and the root listener is delivered to a
+  /// port nothing listens to yet, leaving the row on its last in-flight
+  /// status. Reading the rows once after the listener is attached gives those
+  /// terminal states a second chance; a row the app already settled is not
+  /// touched, so its own answer stands.
+  Future<void> catchUp() async {
+    final List<DownloadTask>? tasks;
+    try {
+      tasks = await FlutterDownloader.loadTasks();
+    } catch (e, stack) {
+      mainLog.e(
+        'Downloads: failed to read the tasks for the catch-up',
+        e,
+        stack,
+      );
+      return;
+    }
+    if (tasks == null) return;
+
+    for (final task in tasks) {
+      final progress = ref
+          .read(downloadProgressStateProvider)
+          .getById(task.taskId);
+      if (progress.id.isEmpty) continue;
+      // Only a row still in flight can have missed its event; one that already
+      // settled is the app's last word on the download.
+      final inFlight =
+          progress.status.isPending ||
+          progress.status.isDownloading ||
+          progress.status.isPaused ||
+          progress.status.isEmpty;
+      if (!inFlight) continue;
+
+      final status = downloadStatusOf(task.status);
+      if (status.isDownloaded) {
+        await settleCompleted(
+          DownloadProgress(
+            id: task.taskId,
+            status: DownloadStatus.downloaded,
+            progress: task.progress.clamp(0, 100).toInt(),
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+        continue;
+      }
+
+      // The states a worker leaves behind when it stops. A paused row keeps
+      // its file unless the file turns out to be complete, in which case the
+      // row is settled here instead of waiting for a resume that cannot
+      // advance it.
+      if (!status.isFailed && !status.isCanceled && !status.isPaused) continue;
+
+      await ref
+          .read(downloadProgressStateProvider.notifier)
+          .update(
+            DownloadProgress(
+              id: task.taskId,
+              status: status,
+              progress: task.progress.clamp(0, 100).toInt(),
+              timestamp: DateTime.now().millisecondsSinceEpoch,
+            ),
+          );
+      if (status.isPaused) await settlePausedIfComplete(task.taskId);
+    }
+  }
+
   /// Retries every failed entry that is not a reserved updater task.
   ///
   /// One at a time: a burst of retries would open as many requests at once
@@ -630,16 +818,21 @@ class Downloader {
 
     final task = await _taskById(id);
     if (task != null && task.status != DownloadTaskStatus.undefined) {
+      final status = downloadStatusOf(task.status);
       await ref
           .read(downloadProgressStateProvider.notifier)
           .update(
             DownloadProgress(
               id: id,
-              status: downloadStatusOf(task.status),
+              status: status,
               progress: task.progress.clamp(0, 100).toInt(),
               timestamp: DateTime.now().millisecondsSinceEpoch,
             ),
           );
+      // A pause that landed after the worker read the last body byte leaves a
+      // complete file labelled paused, and no resume can advance it: the
+      // resume starts at the end of the file.
+      if (status.isPaused) await settlePausedIfComplete(id);
       return;
     }
 
@@ -656,6 +849,7 @@ class Downloader {
             timestamp: DateTime.now().millisecondsSinceEpoch,
           ),
         );
+    await settlePausedIfComplete(id);
   }
 
   /// Resumes the native task behind [id].
@@ -783,6 +977,10 @@ class Downloader {
   }
 
   Future<void> cancel({required String id}) async {
+    // Only a native task can be stopped; a cache or batch row has nothing the
+    // plugin knows about, and the channel rejects the unknown id.
+    if (!_hasNativeTask(id)) return;
+
     // Cancelling a finished task would downgrade its row: the native side
     // rejects retrying a completed task, so the entry could never recover.
     if (ref
@@ -819,7 +1017,14 @@ class Downloader {
   /// downloaded, and forgetting an entry does not mean the file has to go.
   /// [deleteContent] is the action that removes the file.
   Future<void> clear({required String id}) async {
-    if (!id.startsWith(_cacheTaskPrefix)) {
+    final status = ref.read(downloadProgressStateProvider).getById(id).status;
+    // Removing the native row of a running download pulls it out from under
+    // the worker, which then fails on the missing row and reports an event no
+    // entry names. Cancel first: the row turns terminal, and this action is
+    // offered again.
+    if (status.isDownloading || status.isPending) return;
+
+    if (_hasNativeTask(id)) {
       // Also drops the native task row, which would otherwise be read back as
       // a pending download at the next boot.
       await FlutterDownloader.remove(taskId: id, shouldDeleteContent: false);
@@ -830,7 +1035,9 @@ class Downloader {
   /// Deletes the file behind [entry], keeping its record so the row can still
   /// offer a redownload.
   Future<void> deleteContent(DownloadEntry entry) async {
-    if (entry.id.startsWith(_cacheTaskPrefix)) {
+    // Cache and batch rows were never in the plugin, so only the file is left
+    // to remove.
+    if (!_hasNativeTask(entry.id)) {
       await _deleteLocalContent(entry.dest);
       return;
     }
