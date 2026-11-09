@@ -665,6 +665,11 @@ class PageState extends _$PageState {
 
     while (true) {
       final res = await repo.getPage(option, index);
+      // The page can be popped while this request is in flight, and a session
+      // that is gone has no reader left to skip pages for. Returning now keeps
+      // a dead notifier from issuing another request per hidden page, each
+      // still carrying the session's credentials, after its scope disposed.
+      if (!ref.mounted) return null;
       // A literal empty response is terminal: the server has no more entries.
       if (res.rawCount == 0) {
         if (!sawEntries) return null;

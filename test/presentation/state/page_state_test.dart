@@ -593,6 +593,36 @@ void main() {
     await loading;
   });
 
+  test('a skip loop stops asking once the page is gone', () async {
+    // Both landed pages are fully blocked, so the loop would move on to the
+    // next one. The route is popped before that answer arrives: the session
+    // has no reader left, and every further request would spend the account's
+    // rate-limit budget on posts nobody will see.
+    final repo = _FakeRepo({
+      0: ParsedPage(posts: [_post(1, tag: 'blocked')], rawCount: 1),
+      1: ParsedPage(posts: [_post(2, tag: 'blocked')], rawCount: 1),
+      2: ParsedPage(posts: [_post(3)], rawCount: 1),
+    });
+    final container = _container(repo, blocked: ['blocked']);
+    final notifier = container.read(pageStateProvider.notifier);
+
+    repo.gate = Completer<void>();
+    final loading = notifier.load();
+    await pumpEventQueue();
+    // Let the first page land; the skipped one is what stays on the wire while
+    // the route is popped.
+    repo.gate!.complete();
+    repo.gate = Completer<void>();
+    await pumpEventQueue();
+    expect(repo.requested, [0, 1]);
+
+    container.dispose();
+    repo.gate!.complete();
+    await loading;
+
+    expect(repo.requested, [0, 1]);
+  });
+
   test('an option queued behind a failed fetch is applied', () async {
     final repo = _FakeRepo({
       0: ParsedPage(posts: [_post(1)], rawCount: 1),
