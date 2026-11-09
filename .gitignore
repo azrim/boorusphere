@@ -83,5 +83,8 @@ CODEBUDDY.md
 # Qoder agent workspace (installed skills, session state)
 .qoder/
 
+# Antigravity agent workspace
+.agents/
+
 # Local build output (signed APK/AAB) — published by the release workflow
 dist/
