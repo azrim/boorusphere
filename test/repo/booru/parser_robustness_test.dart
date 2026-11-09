@@ -1,11 +1,14 @@
 import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
+import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
+import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_xml_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/moebooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/philomena_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/safebooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/shimmie_xml_parser.dart';
@@ -50,7 +53,7 @@ Map<String, dynamic> _gelbooruEntry({
 }) {
   return {
     'id': id,
-    'file_url': 'https://cdn.example.com/\$id.jpg',
+    'file_url': 'https://cdn.example.com/$id.jpg',
     'preview_url': previewUrl,
     'sample_url': sampleUrl,
     'width': width,
@@ -263,6 +266,82 @@ void main() async {
       final res = _response([1, null, <String>[]]);
       expect(DanbooruJsonParser().canParsePage(res), isFalse);
       expect(DanbooruJsonParser().canParseSuggestion(res), isFalse);
+    });
+  });
+
+  group('moebooru and autocomplete sniffers inspect structured entries', () {
+    test(
+      'scalar lists mentioning field names are rejected instead of claimed or throwing',
+      () async {
+        final moe = MoebooruJsonParser();
+        expect(moe.canParsePage(_response(['preview_url missing'])), isFalse);
+        expect(
+          moe.canParseSuggestion(_response(['name and count missing'])),
+          isFalse,
+        );
+        expect(
+          moe.parsePage(_server, _response(['preview_url'])).posts,
+          isEmpty,
+        );
+        expect(
+          moe.parseSuggestion(_server, _response(['name', 'count'])),
+          isEmpty,
+        );
+
+        final ref = ProviderContainer(
+          overrides: [envRepoProvider.overrideWithValue(FakeEnvRepo())],
+        );
+        addTearDown(ref.dispose);
+        ref.setupTestFor(dioProvider);
+        final adapter = DioAdapterMock(ref.read(dioProvider));
+        const server = Server(
+          id: 'Konachan',
+          homepage: 'https://konachan.example.com',
+          searchUrl: 'post.json?tags={tags}&page={page-num}&limit={post-limit}',
+          searchParserId: 'Moebooru.json',
+        );
+        ref.setupTestFor(imageboardRepoProvider(server));
+
+        when(() => adapter.fetch(any(), any(), any())).thenAnswer(
+          (_) async => ResponseBody.fromString(
+            '["preview_url temporarily unavailable"]',
+            200,
+            headers: {
+              Headers.contentTypeHeader: ['application/json'],
+            },
+          ),
+        );
+
+        await expectLater(
+          ref
+              .read(imageboardRepoProvider(server))
+              .getPage(const PageOption(limit: 10), 0),
+          throwsA(BooruError.unparsable),
+        );
+      },
+    );
+
+    test('mixed lists skip non-map items without throwing TypeError', () {
+      final moeSuggestions = MoebooruJsonParser().parseSuggestion(
+        _server,
+        _response([
+          'stray',
+          null,
+          {'name': 'solo', 'count': 5, 'type': 4},
+        ]),
+      );
+      expect(moeSuggestions.single.name, 'solo');
+
+      final autoParser = AutocompleteJsonParser();
+      final mixed = _response([
+        {'label': 'cat (9)', 'value': 'cat'},
+        'stray',
+        42,
+      ]);
+      expect(autoParser.canParseSuggestion(mixed), isTrue);
+      final autoSuggestions = autoParser.parseSuggestion(_server, mixed);
+      expect(autoSuggestions.single.name, 'cat');
+      expect(autoSuggestions.single.count, 9);
     });
   });
 

@@ -29,6 +29,11 @@ class E621JsonParser extends BooruParser {
     BooruParserType.suggestion,
   ];
 
+  /// e621 authenticates API accounts with HTTP Basic, keeping the API key out
+  /// of request URLs.
+  @override
+  BooruAuthStyle get authStyle => BooruAuthStyle.basic;
+
   @override
   bool canParseSuggestion(Response res) {
     final first = _firstSuggestionEntry(res.data);

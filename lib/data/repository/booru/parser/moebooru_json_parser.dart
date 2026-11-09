@@ -35,13 +35,13 @@ class MoebooruJsonParser extends BooruParser {
   @override
   bool canParsePage(Response res) {
     final data = res.data;
-    final rawString = data.toString();
-    return data is List && rawString.contains('preview_url');
+    return data is List &&
+        data.any((it) => it is Map && it.containsKey('preview_url'));
   }
 
   @override
   ParsedPage parsePage(Server server, Response res) {
-    final entries = List.from(res.data);
+    final entries = res.data is List ? res.data as List : const [];
     return buildPosts(server, entries, _mapEntry);
   }
 
@@ -86,19 +86,20 @@ class MoebooruJsonParser extends BooruParser {
   @override
   bool canParseSuggestion(Response res) {
     final data = res.data;
-    final rawString = data.toString();
     return data is List &&
-        rawString.contains('name') &&
-        rawString.contains('count');
+        data.any(
+          (it) =>
+              it is Map && it.containsKey('name') && it.containsKey('count'),
+        );
   }
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = List.from(res.data);
+    final entries = res.data is List ? res.data as List : const [];
     final result = <Suggestion>{};
-    for (final Map<String, dynamic> entry in entries) {
+    for (final entry in entries.whereType<Map>()) {
       final tag = pick(entry, 'name').asStringOrNull() ?? '';
-      final postCount = pick(entry, 'count').asIntOrNull() ?? 0;
+      final postCount = pick(entry, 'count').asCountOrNull() ?? 0;
       final category = tagCategoryFromCode(pick(entry, 'type').asIntOrNull());
       if (postCount > 0 && tag.isNotEmpty) {
         result.add(Suggestion(BooruUtil.decodeTag(tag), postCount, category));

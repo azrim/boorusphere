@@ -102,21 +102,30 @@ class DanbooruJsonParser extends BooruParser {
     );
   }
 
-  /// A named tag with a post count, in either of the two shapes the site
-  /// reports it in: the tag table keys it by `name`, the completion endpoint by
-  /// the `value` it inserts into the search box.
+  /// A named tag with a post count or a Danbooru `metatag` completion, scanned
+  /// across the whole batch.
+  ///
+  /// Queries matching built-in metatags (`rating:`, `order:`, `status:`) put
+  /// count-less `metatag` records ahead of tag records; checking every entry
+  /// keeps the batch on this parser so tag categories survive and metatags stay
+  /// filtered out.
   @override
   bool canParseSuggestion(Response res) {
-    final first = _firstEntry(res.data);
-    if (first == null) return false;
-    return _tagName(first) != null && _tagCount(first) != null;
+    final entries = res.data;
+    if (entries is! List) return false;
+    return entries.any((it) => it is Map && _isSuggestionEntry(it));
+  }
+
+  bool _isSuggestionEntry(Map entry) {
+    if (_tagName(entry) == null) return false;
+    return _tagCount(entry) != null || entry['type'] == 'metatag';
   }
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
     final entries = res.data is List ? res.data as List : const [];
     final result = <Suggestion>{};
-    for (final entry in entries.whereType<Map<String, dynamic>>()) {
+    for (final entry in entries.whereType<Map>()) {
       final rawTag = _tagName(entry);
       final postCount = _tagCount(entry);
       if (rawTag == null || postCount == null) continue;

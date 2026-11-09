@@ -5,8 +5,10 @@ import 'package:boorusphere/data/repository/booru/booru_repo.dart';
 import 'package:boorusphere/data/repository/booru/entity/booru_error.dart';
 import 'package:boorusphere/data/repository/booru/entity/page_option.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/szurubooru_json_parser.dart';
+import 'package:boorusphere/data/repository/booru/utils/booru_scanner.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:dio/dio.dart';
@@ -135,6 +137,17 @@ const _szurubooruBody =
     '{"results":[{"id":1,"contentUrl":"https://szuru.test/get/1.png",'
     '"names":["cat"],"usages":5}],"total":1}';
 
+const _e621 = Server(
+  id: 'E621',
+  homepage: 'https://e621.test',
+  searchUrl: 'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
+  tagSuggestionUrl: 'tags/autocomplete.json?search[name_matches]={tag-part}',
+  searchParserId: 'E621.json',
+  suggestionParserId: 'E621.json',
+  login: 'user',
+  apiKey: 'secret key',
+);
+
 void main() {
   test(
     'Danbooru sends its credentials as a Basic header, not in the URL',
@@ -153,6 +166,70 @@ void main() {
       }
     },
   );
+
+  group('e621', () {
+    test(
+      'sends its credentials as a Basic header across pages, suggestions, and tag info',
+      () async {
+        final adapter = _FixedAdapter(body: '{"posts":[],"name":"wolf"}');
+        final dio = Dio(BaseOptions(validateStatus: (it) => it == 200))
+          ..httpClientAdapter = adapter;
+        final repo = BooruRepo(
+          parsers: [E621JsonParser()],
+          client: dio,
+          server: _e621,
+          serverState: ServerState(),
+        );
+
+        await repo.getPage(const PageOption(limit: 1), 0);
+        await repo.getSuggestion('ca');
+        await repo.getTagInfo('wolf');
+
+        expect(adapter.requests, isNotEmpty);
+        for (final request in adapter.requests) {
+          expect(
+            request.headers['Authorization'],
+            _basic('user', 'secret key'),
+          );
+          expect(request.uri.toString(), isNot(contains('api_key')));
+          expect(request.uri.toString(), isNot(contains('user_id')));
+        }
+      },
+    );
+
+    test(
+      'scanner signs e621 suggestion probes with Basic auth rather than query params',
+      () async {
+        final adapter = _FixedAdapter(
+          body: '[{"id":1,"name":"wolf","post_count":10,"category":5}]',
+        );
+        final dio = Dio()..httpClientAdapter = adapter;
+        final scanner = BooruScanner(
+          parsers: [DanbooruJsonParser(), E621JsonParser()],
+          client: dio,
+        );
+
+        await scanner.scan(
+          const Server(
+            id: 'E621',
+            homepage: 'https://e621.test',
+            login: 'user',
+            apiKey: 'secret key',
+          ),
+        );
+
+        expect(adapter.requests, isNotEmpty);
+        for (final request in adapter.requests) {
+          expect(
+            request.headers['Authorization'],
+            _basic('user', 'secret key'),
+          );
+          expect(request.uri.toString(), isNot(contains('api_key')));
+          expect(request.uri.toString(), isNot(contains('user_id')));
+        }
+      },
+    );
+  });
 
   test(
     'an entry that names no engine is signed by the dialect its URL proves',

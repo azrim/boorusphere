@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:boorusphere/data/repository/booru/booru_repo.dart';
 import 'package:boorusphere/data/repository/booru/entity/tag_category.dart';
+import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/gelbooru_json_parser.dart';
@@ -7,6 +12,7 @@ import 'package:boorusphere/data/repository/booru/parser/moebooru_json_parser.da
 import 'package:boorusphere/data/repository/booru/parser/safebooru_xml_parser.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/provider/booru/suggestion_state.dart';
+import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -168,6 +174,62 @@ void main() {
     });
   });
 
+  test(
+    'Danbooru keeps metatag-led and metatag-only batches away from AutocompleteJsonParser',
+    () async {
+      final metatagFirst = jsonEncode([
+        {
+          'type': 'metatag',
+          'label': 'rating:general',
+          'value': 'rating:general',
+        },
+        {
+          'type': 'tag',
+          'label': 'rating_safe 2024',
+          'value': 'rating_safe_2024',
+          'category': 4,
+          'post_count': 42,
+        },
+        {
+          'type': 'tag',
+          'label': 'rating_empty',
+          'value': 'rating_empty',
+          'category': 0,
+          'post_count': 0,
+        },
+      ]);
+      final metatagOnly = jsonEncode([
+        {'type': 'metatag', 'label': 'id: 100', 'value': 'id:100'},
+      ]);
+
+      Future<Set<Suggestion>> dispatch(String payload) {
+        final dio = Dio()..httpClientAdapter = _JsonAdapter(payload);
+        final repo = BooruRepo(
+          parsers: [DanbooruJsonParser(), AutocompleteJsonParser()],
+          client: dio,
+          server: const Server(
+            id: 'Danbooru',
+            homepage: 'https://danbooru.test',
+            tagSuggestionUrl:
+                'autocomplete.json?search[query]={tag-part}&limit={post-limit}',
+            suggestionParserId: 'Danbooru.json',
+          ),
+          serverState: ServerState(),
+        );
+        return repo.getSuggestion('rat');
+      }
+
+      final firstResult = await dispatch(metatagFirst);
+      expect(_categories(firstResult), {
+        'rating_safe_2024': TagCategory.character,
+      });
+      expect(firstResult.single.count, 42);
+
+      final onlyResult = await dispatch(metatagOnly);
+      expect(onlyResult, isEmpty);
+    },
+  );
+
   test('Danbooru still reads the tag table an older entry asks for', () {
     final res = _response([
       {'name': 'book', 'post_count': 105190, 'category': 0},
@@ -215,4 +277,28 @@ void main() {
       'landon_(fellowwolf)': TagCategory.character,
     });
   });
+}
+
+class _JsonAdapter implements HttpClientAdapter {
+  _JsonAdapter(this.payload);
+
+  final String payload;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromString(
+      payload,
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

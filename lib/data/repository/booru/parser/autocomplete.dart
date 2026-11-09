@@ -23,39 +23,30 @@ class AutocompleteJsonParser extends BooruParser {
     return false;
   }
 
+  List _decodeList(Object? data) {
+    if (data is List) return data;
+    if (data is String) {
+      try {
+        final parsed = jsonDecode(data);
+        if (parsed is List) return parsed;
+      } catch (_) {}
+    }
+    return const [];
+  }
+
   @override
   bool canParseSuggestion(Response res) {
-    final data = res.data;
-
-    if (data is Map) {
-      return false;
-    } else if (data is List && data.isNotEmpty) {
-      final first = data.first;
-      return first is Map &&
-          first.containsKey('label') &&
-          first.containsKey('value');
-    }
-    try {
-      final parsed = jsonDecode(data);
-      if (parsed is List && parsed.isNotEmpty) {
-        final first = parsed.first;
-        return first is Map &&
-            first.containsKey('label') &&
-            first.containsKey('value');
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
+    final entries = _decodeList(res.data);
+    return entries.any(
+      (it) => it is Map && it.containsKey('label') && it.containsKey('value'),
+    );
   }
 
   @override
   Set<Suggestion> parseSuggestion(Server server, Response res) {
-    final entries = res.data is List
-        ? List.from(res.data)
-        : List.from(jsonDecode(res.data));
+    final entries = _decodeList(res.data);
     final result = <Suggestion>{};
-    for (final Map<String, dynamic> entry in entries) {
+    for (final entry in entries.whereType<Map>()) {
       final label = pick(entry, 'label').asStringOrNull() ?? '';
       final tag = pick(entry, 'value').asStringOrNull() ?? '';
 
