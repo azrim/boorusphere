@@ -48,6 +48,14 @@ class SzurubooruJsonParser extends BooruParser {
     BooruParserType.suggestion,
   ];
 
+  /// The collection route this server serves its posts from.
+  ///
+  /// A server carrying no parser id is matched by its search URL, so a private
+  /// instance is still signed with the header its engine reads instead of the
+  /// query pair it never looks at.
+  @override
+  bool matchesSearchUrl(String searchUrl) => searchUrl.contains('api/posts');
+
   @override
   bool canParsePage(Response res) {
     final data = res.data;

@@ -42,6 +42,26 @@ class BooruRepo implements ImageboardRepo {
   Map<String, String> _headersFor(BooruParser parser) =>
       BooruAuth.headers(parser, server);
 
+  /// The parser whose account contract signs this request.
+  ///
+  /// A configured parser names the engine the entry was set up for, and that
+  /// contract governs. An entry that names none — a preset carrying an empty
+  /// id, a board added from a bare URL, or one whose id no longer names a
+  /// registered parser — still has a post endpoint, and the engine answering
+  /// it may read the account from a header the query form never produces. The
+  /// search URL is matched against the dialect of each parser that does read a
+  /// header, the same way the tag sheet picks its endpoint; when none matches,
+  /// the request is signed the way an unknown engine always has been, in the
+  /// query.
+  BooruParser _authParser(BooruParser configured) {
+    if (configured.id.isNotEmpty) return configured;
+    for (final parser in parsers) {
+      if (parser.authStyle == BooruAuthStyle.query) continue;
+      if (parser.matchesSearchUrl(server.searchUrl)) return parser;
+    }
+    return configured;
+  }
+
   Future<Response> _request(String url, BooruParser parser) async {
     final res = await client.get<List<int>>(
       url,
@@ -93,14 +113,15 @@ class BooruRepo implements ImageboardRepo {
         orElse: NoParser.new,
       );
 
+      final auth = _authParser(parser);
       final suggestionUrl = server.suggestionUrlsOf(
         word,
-        includeCredentials: _credentialsInQuery(parser),
+        includeCredentials: _credentialsInQuery(auth),
       );
       _log.v(
         'getSuggestion(${server.name}): URL = ${suggestionUrl.split('?').first}',
       );
-      final res = await _request(suggestionUrl, parser);
+      final res = await _request(suggestionUrl, auth);
       // Interpolating the payload stringifies the whole response twice; skip it
       // unless the log will actually be written, since this runs per keystroke.
       if (_log.isLoggable(Level.INFO)) {
@@ -158,12 +179,13 @@ class BooruRepo implements ImageboardRepo {
         orElse: NoParser.new,
       );
 
+      final auth = _authParser(parser);
       final searchUrl = server.searchUrlOf(
         option,
         page: index,
-        includeCredentials: _credentialsInQuery(parser),
+        includeCredentials: _credentialsInQuery(auth),
       );
-      final res = await _request(searchUrl, parser);
+      final res = await _request(searchUrl, auth);
 
       if (parser.canParsePage(res)) {
         _log.i('getPage(${server.name}): using ${parser.id}_parser');

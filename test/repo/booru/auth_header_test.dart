@@ -154,6 +154,51 @@ void main() {
     },
   );
 
+  test(
+    'an entry that names no engine is signed by the dialect its URL proves',
+    () async {
+      // A hand-edited entry, or one carried over from before parser ids were
+      // stored: the post endpoint is Danbooru's, and the pair belongs in the
+      // header that engine documents rather than the query it ignores.
+      final adapter = _RecordingAdapter();
+      final repo = _repo(
+        const Server(
+          id: 'Danbooru',
+          homepage: 'https://danbooru.test',
+          searchUrl:
+              'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
+          tagSuggestionUrl:
+              'autocomplete.json?search[query]={tag-part}'
+              '&limit={post-limit}',
+          login: 'user',
+          apiKey: 'secret key',
+        ),
+        adapter,
+      );
+
+      await repo.getPage(const PageOption(limit: 1), 0);
+      await repo.getSuggestion('ca');
+
+      expect(adapter.requests, hasLength(2));
+      for (final request in adapter.requests) {
+        expect(request.headers['Authorization'], _basic('user', 'secret key'));
+        expect(request.uri.toString(), isNot(contains('api_key')));
+        expect(request.uri.toString(), isNot(contains('user_id')));
+      }
+    },
+  );
+
+  test('an id that no longer names an engine is resolved by dialect', () async {
+    final adapter = _RecordingAdapter();
+    final repo = _repo(_danbooru().copyWith(searchParserId: 'Gone'), adapter);
+
+    await repo.getPage(const PageOption(limit: 1), 0);
+
+    final request = adapter.requests.single;
+    expect(request.headers['Authorization'], _basic('user', 'secret key'));
+    expect(request.uri.toString(), isNot(contains('api_key')));
+  });
+
   group('Szurubooru', () {
     BooruRepo repo(Server server, HttpClientAdapter adapter) {
       final dio = Dio(BaseOptions(validateStatus: (it) => it == 200))
@@ -185,6 +230,40 @@ void main() {
         expect(request.uri.toString(), isNot(contains('user_id')));
       }
     });
+
+    test(
+      'an entry that names no engine reads the header its dialect proves',
+      () async {
+        final adapter = _FixedAdapter(body: _szurubooruBody);
+        final client = repo(
+          const Server(
+            id: 'Szurubooru',
+            homepage: 'https://szuru.test',
+            searchUrl:
+                'api/posts?offset={post-offset}&limit={post-limit}'
+                '&query={tags}',
+            tagSuggestionUrl:
+                'api/tags?offset=0&limit={post-limit}&query={tag-part}*',
+            login: 'user',
+            apiKey: 'secret key',
+          ),
+          adapter,
+        );
+
+        await client.getPage(const PageOption(limit: 1), 0);
+        await client.getSuggestion('cat');
+
+        expect(adapter.requests, hasLength(2));
+        for (final request in adapter.requests) {
+          expect(
+            request.headers['Authorization'],
+            _token('user', 'secret key'),
+          );
+          expect(request.uri.toString(), isNot(contains('api_key')));
+          expect(request.uri.toString(), isNot(contains('user_id')));
+        }
+      },
+    );
 
     test('keeps the headers the engine asks its JSON with', () async {
       final adapter = _FixedAdapter(body: _szurubooruBody);
@@ -258,6 +337,33 @@ void main() {
     expect(request.uri.toString(), contains('user_id=user'));
     expect(request.uri.toString(), contains('api_key=secret%20key'));
   });
+
+  test(
+    'an unknown URL still keeps the pair in the query the engine reads',
+    () async {
+      // No registered header dialect matches, so the entry is signed the way
+      // every query-credential engine has always been.
+      final adapter = _RecordingAdapter();
+      final repo = _repo(
+        const Server(
+          id: 'Gelbooru',
+          homepage: 'https://gelbooru.test',
+          searchUrl:
+              'index.php?page=dapi&s=post&tags={tags}&limit={post-limit}',
+          login: 'user',
+          apiKey: 'secret key',
+        ),
+        adapter,
+      );
+
+      await repo.getPage(const PageOption(limit: 1), 0);
+
+      final request = adapter.requests.single;
+      expect(request.headers['Authorization'], isNull);
+      expect(request.uri.toString(), contains('user_id=user'));
+      expect(request.uri.toString(), contains('api_key=secret%20key'));
+    },
+  );
 
   test('a challenge response becomes the error the screen knows', () async {
     final adapter = _RecordingAdapter(
