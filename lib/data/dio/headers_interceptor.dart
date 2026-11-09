@@ -6,19 +6,59 @@ import 'package:boorusphere/domain/repository/env_repo.dart';
 import 'package:boorusphere/utils/http/cookies.dart';
 import 'package:dio/dio.dart';
 
+const _jarCookieSnapshotKey = '_jar_cookie_snapshot';
+
+class _JarCookieSnapshot {
+  const _JarCookieSnapshot(this.header);
+
+  final Object? header;
+}
+
+/// Restores the pre-clearance `Cookie` header before [CookieManager] inspects a
+/// retried [RequestOptions].
+///
+/// [CookieManager] parses any `Cookie` header that differs from its own prior
+/// output with [Cookie.fromSetCookieValue], which rejects browser cookies whose
+/// values contain JSON quotes, commas, or spaces. Resetting to the jar snapshot
+/// lets [CookieManager] refresh jar cookies cleanly while [HeadersInterceptor]
+/// appends the browser clearance afterward.
+class ClearanceCookieResetInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final snapshot = options.extra.remove(_jarCookieSnapshotKey);
+    if (snapshot is _JarCookieSnapshot) {
+      if (snapshot.header == null) {
+        options.headers.remove(HttpHeaders.cookieHeader);
+      } else {
+        options.headers[HttpHeaders.cookieHeader] = snapshot.header;
+      }
+    }
+    super.onRequest(options, handler);
+  }
+}
+
 class HeadersInterceptor extends Interceptor {
   HeadersInterceptor(this.envRepo, this.clearance);
 
   final EnvRepo envRepo;
   final WebClearanceRepo clearance;
 
+  static String _defaultReferer(Uri uri) {
+    if ((uri.isScheme('http') || uri.isScheme('https')) && uri.hasAuthority) {
+      return '${uri.origin}/';
+    }
+    return uri.path;
+  }
+
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Default Referer carries only the origin, keeping query-string API
+    // credentials out of a header that HTTP redirects forward verbatim.
     final defaults = HeadersFactory.builder()
-        .setReferer(options.path)
+        .setReferer(_defaultReferer(options.uri))
         .setUserAgent(envRepo.appVersion)
         .build();
 
@@ -37,11 +77,13 @@ class HeadersInterceptor extends Interceptor {
     final session = clearance.forHost(options.uri.host);
     if (session != null) {
       options.headers[HttpHeaders.userAgentHeader] = session.userAgent;
+      final priorCookie = options.headers[HttpHeaders.cookieHeader];
       final cookies = mergeCookieHeaders(
-        options.headers[HttpHeaders.cookieHeader]?.toString(),
+        priorCookie?.toString(),
         session.cookies,
       );
       if (cookies.isNotEmpty) {
+        options.extra[_jarCookieSnapshotKey] = _JarCookieSnapshot(priorCookie);
         options.headers[HttpHeaders.cookieHeader] = cookies;
       }
     }

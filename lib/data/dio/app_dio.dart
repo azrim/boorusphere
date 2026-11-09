@@ -2,6 +2,7 @@ import 'package:boorusphere/data/dio/headers_interceptor.dart';
 import 'package:boorusphere/data/dio/host_rate_limiter.dart';
 import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
 import 'package:boorusphere/domain/repository/env_repo.dart';
+import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -19,6 +20,7 @@ class AppDio extends DioForNative {
     required CookieJar cookieJar,
     required EnvRepo envRepo,
     required WebClearanceRepo clearance,
+    List<Duration>? retryDelays,
   }) {
     options = BaseOptions(
       connectTimeout: const Duration(seconds: 15),
@@ -32,11 +34,14 @@ class AppDio extends DioForNative {
       followRedirects: true,
     );
     httpClientAdapter = IOHttpClientAdapter();
-    final retryDelays = List.generate(5, (index) {
-      return Duration(milliseconds: 400 + (100 * (index + 1)));
-    });
+    final delays =
+        retryDelays ??
+        List.generate(5, (index) {
+          return Duration(milliseconds: 400 + (100 * (index + 1)));
+        });
 
     interceptors
+      ..add(ClearanceCookieResetInterceptor())
       ..add(CookieManager(cookieJar))
       ..add(HeadersInterceptor(envRepo, clearance))
       ..add(
@@ -48,14 +53,16 @@ class AppDio extends DioForNative {
       ..add(
         RetryInterceptor(
           dio: this,
-          retries: retryDelays.length,
-          retryDelays: retryDelays,
+          retries: delays.length,
+          retryDelays: delays,
           // A 429 is the server asking us to back off, not a transient
           // failure. HttpEtiquetteInterceptor already spent the one retry a
           // stated Retry-After allows; a second one here would multiply the
-          // pressure the server complained about.
+          // pressure the server complained about. A 503 Cloudflare challenge
+          // requires the browser flow and will never resolve on API retries.
           retryEvaluator: (error, attempt) {
             if (error.response?.statusCode == 429) return false;
+            if (isCloudflareChallenge(error)) return false;
             return RetryInterceptor.defaultRetryEvaluator(error, attempt);
           },
         ),
