@@ -79,6 +79,9 @@ class _ServerEditor extends HookConsumerWidget {
       return null;
     }
 
+    String normalizeAddress(String raw) =>
+        raw.trim().replaceFirst(RegExp(r'/+$'), '');
+
     void updateServerFromEngine(BooruEngine? engine) {
       if (engine == null) return;
 
@@ -126,12 +129,6 @@ class _ServerEditor extends HookConsumerWidget {
                             onChanged: (engine) {
                               selectedEngine.value = engine;
                               updateServerFromEngine(engine);
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return context.t.servers.engineRequired;
-                              }
-                              return null;
                             },
                           ),
                           const SizedBox(height: DesignTokens.spacingSm),
@@ -223,9 +220,9 @@ class _ServerEditor extends HookConsumerWidget {
             serverPod.edit(
               server,
               newServer.copyWith(
-                homepage: homepage.text,
+                homepage: normalizeAddress(homepage.text),
                 alias: alias.text.trim(),
-                apiAddr: useApiAddr.value ? apiAddr.text : '',
+                apiAddr: useApiAddr.value ? normalizeAddress(apiAddr.text) : '',
               ),
             );
 

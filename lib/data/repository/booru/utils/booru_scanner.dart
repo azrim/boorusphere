@@ -302,9 +302,12 @@ class BooruScanner {
   }
 
   Future<Server> scan(Server server) async {
-    final api = server.apiAddress.replaceFirst(RegExp(r'/$'), '');
-    final home = server.homepage.replaceFirst(RegExp(r'/$'), '');
-    var data = server;
+    final api = server.apiAddress.replaceFirst(RegExp(r'/+$'), '');
+    final home = server.homepage.replaceFirst(RegExp(r'/+$'), '');
+    var data = server.copyWith(
+      homepage: home,
+      apiAddr: server.apiAddr.isEmpty ? '' : api,
+    );
 
     _isScanning.value = true;
     _clearUiLog();

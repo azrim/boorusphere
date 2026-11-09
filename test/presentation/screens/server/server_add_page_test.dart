@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/provider.dart';
@@ -11,10 +12,12 @@ import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/screens/server/server_add_page.dart';
+import 'package:boorusphere/presentation/screens/server/server_editor_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:mocktail/mocktail.dart';
 
 import '../../../utils/hive.dart';
 import '../../state/app_version_test.dart';
@@ -174,6 +177,134 @@ void main() {
         'api-b.test',
       );
     });
+
+    testWidgets(
+      'preserves canonical https redirect and strips trailing slash on scan',
+      (tester) async {
+        final recording = _ScanAdapter((request) {
+          if (request.uri.path == '/posts.json') {
+            return ResponseBody.fromString(
+                _danbooruOnePost,
+                200,
+                headers: {
+                  Headers.contentTypeHeader: [Headers.jsonContentType],
+                },
+                isRedirect: true,
+              )
+              ..redirects = [
+                RedirectRecord(
+                  301,
+                  'GET',
+                  Uri.parse('https://a.test/posts.json'),
+                ),
+              ];
+          }
+          if (request.uri.path == '/posts/100') {
+            return ResponseBody.fromString(
+                '<html><head><title>Post #100</title></head></html>',
+                200,
+                headers: {
+                  Headers.contentTypeHeader: ['text/html'],
+                },
+                isRedirect: true,
+              )
+              ..redirects = [
+                RedirectRecord(
+                  301,
+                  'GET',
+                  Uri.parse('https://a.test/posts/100'),
+                ),
+              ];
+          }
+          return _gone;
+        });
+        final capture = await _mountScanPage(tester, recording);
+        await tester.enterText(_field(t.servers.homepage), 'http://a.test/');
+        await tester.pump();
+
+        await tester.tap(_scanButton);
+        await tester.pumpAndSettle();
+        expect(tester.widget<FilledButton>(_addButton).onPressed, isNotNull);
+        await tester.tap(_addButton);
+        await tester.pumpAndSettle();
+
+        expect(capture.submitted?.homepage, 'https://a.test');
+        expect(capture.submitted?.apiAddress, 'https://a.test');
+      },
+    );
+  });
+
+  group('ServerEditorPage', () {
+    testWidgets(
+      'saves credentials on a preset without parser ids and keeps typed credentials across engine changes',
+      (tester) async {
+        tester.view.physicalSize = const Size(1000, 1800);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        const rule34Preset = Server(
+          id: 'Rule34',
+          homepage: 'https://rule34.xxx/',
+          apiAddr: 'https://api.rule34.xxx/',
+          searchUrl:
+              'index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}&json=1',
+          tagSuggestionUrl: 'autocomplete.php?q={tag-part}',
+          postUrl: 'index.php?page=post&s=view&id={post-id}',
+        );
+        final capture = _CaptureServerState();
+        final router = _MockStackRouter();
+        when(router.maybePop).thenAnswer((_) async => true);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              envRepoProvider.overrideWithValue(FakeEnvRepo()),
+              settingsRepoProvider.overrideWithValue(UserSettingsRepo(null)),
+              booruParsersProvider.overrideWithValue([DanbooruJsonParser()]),
+              serverStateProvider.overrideWith(() => capture),
+            ],
+            child: TranslationProvider(
+              child: MaterialApp(
+                home: StackRouterScope(
+                  controller: router,
+                  stateHash: 0,
+                  child: const ServerEditorPage(server: rule34Preset),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.enterText(_field(t.servers.credentials.login), 'alice');
+        await tester.enterText(_field(t.servers.credentials.apiKey), 'key-123');
+        await tester.pump();
+
+        // Saving directly without picking an engine succeeds for auto-detected
+        // presets and strips trailing slashes from the saved addresses.
+        await tester.tap(find.widgetWithText(FilledButton, t.save));
+        await tester.pumpAndSettle();
+
+        expect(capture.edited?.login, 'alice');
+        expect(capture.edited?.apiKey, 'key-123');
+        expect(capture.edited?.homepage, 'https://rule34.xxx');
+        expect(capture.edited?.apiAddr, 'https://api.rule34.xxx');
+
+        // Picking an engine updates the query templates while keeping the
+        // credentials already typed in the form.
+        await tester.tap(find.byType(DropdownButtonFormField<BooruEngine>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Danbooru').last);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(FilledButton, t.save));
+        await tester.pumpAndSettle();
+
+        expect(capture.edited?.searchParserId, 'Danbooru.json');
+        expect(capture.edited?.login, 'alice');
+        expect(capture.edited?.apiKey, 'key-123');
+      },
+    );
   });
 }
 
@@ -226,9 +357,10 @@ class _ScanAdapter implements HttpClientAdapter {
 }
 
 /// Stops at the persistence boundary: these tests must not write a real box,
-/// and what they claim about is the server handed to `add`.
+/// and what they claim about is the server handed to `add` or `edit`.
 class _CaptureServerState extends ServerState {
   Server? submitted;
+  Server? edited;
 
   @override
   Iterable<Server> build() => [];
@@ -237,6 +369,11 @@ class _CaptureServerState extends ServerState {
   Future<void> add(Server value) async {
     submitted = value;
     throw ServerAlreadyExistsException(value);
+  }
+
+  @override
+  Future<void> edit(Server old, Server updated) async {
+    edited = updated;
   }
 }
 
@@ -270,3 +407,5 @@ Future<_CaptureServerState> _mountScanPage(
   await tester.pump();
   return capture;
 }
+
+class _MockStackRouter extends Mock implements StackRouter {}

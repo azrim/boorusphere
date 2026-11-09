@@ -206,5 +206,27 @@ void main() {
       expect(server.searchUrlOf(option, page: 0), contains('pid=0'));
       expect(server.searchUrlOf(option, page: 1), contains('pid=1'));
     });
+
+    test('trailing slashes on homepage or apiAddr never produce // paths', () {
+      const server = Server(
+        homepage: 'https://danbooru.donmai.us/',
+        apiAddr: 'https://api.donmai.us///',
+        searchUrl: 'posts.json?tags={tags}&page={page-num}&limit={post-limit}',
+        tagSuggestionUrl:
+            'autocomplete.json?search[query]={tag-part}&limit={post-limit}',
+        postUrl: 'posts/{post-id}',
+      );
+      const option = PageOption(query: 'cat', searchRating: BooruRating.all);
+
+      expect(
+        server.searchUrlOf(option, page: 0),
+        startsWith('https://api.donmai.us/posts.json?'),
+      );
+      expect(
+        server.suggestionUrlsOf('ca'),
+        startsWith('https://api.donmai.us/autocomplete.json?'),
+      );
+      expect(server.postUrlOf(42), 'https://danbooru.donmai.us/posts/42');
+    });
   });
 }

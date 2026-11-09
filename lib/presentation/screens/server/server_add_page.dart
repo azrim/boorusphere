@@ -235,6 +235,9 @@ class ServerAddPage extends HookConsumerWidget {
       return null;
     }
 
+    String normalizeAddress(String raw) =>
+        raw.trim().replaceFirst(RegExp(r'/+$'), '');
+
     /// Credentials are part of the request itself: a booru that gates its API
     /// answers nothing until the key is attached. Manual mode rebuilds the whole
     /// server from the live fields on every edit, so the pair rides along with
@@ -253,8 +256,8 @@ class ServerAddPage extends HookConsumerWidget {
       server.value = withCredentials(
         Server(
           id: profileName.text.trim(),
-          homepage: siteUrl.text.trim(),
-          apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
+          homepage: normalizeAddress(siteUrl.text),
+          apiAddr: useApiAddr.value ? normalizeAddress(apiAddr.text) : '',
           searchUrl: engine.searchQuery,
           tagSuggestionUrl: engine.suggestionQuery,
           postUrl: engine.postUrl,
@@ -289,11 +292,11 @@ class ServerAddPage extends HookConsumerWidget {
       // account typed now to the host the scan asked about, then send that key
       // there with the first request.
       final name = profileName.text.trim();
-      final url = siteUrl.text.trim();
+      final url = normalizeAddress(siteUrl.text);
       final base = Server(
         id: name,
         homepage: url,
-        apiAddr: useApiAddr.value ? apiAddr.text.trim() : '',
+        apiAddr: useApiAddr.value ? normalizeAddress(apiAddr.text) : '',
         login: login.text.trim(),
         apiKey: apiKey.text.trim(),
       );
@@ -316,9 +319,10 @@ class ServerAddPage extends HookConsumerWidget {
           return;
         }
 
-        // The scanned server carries the credentials the snapshot gave the
-        // probe; they are never re-read from the live fields here.
-        final result = scanned.copyWith(id: name, homepage: url);
+        // The scanned server carries the canonical origins resolved by the
+        // probes and the credentials the snapshot gave them; nothing is re-read
+        // from the live fields here.
+        final result = scanned.copyWith(id: name);
         server.value = result;
         scanResult.value = result;
       } catch (_) {

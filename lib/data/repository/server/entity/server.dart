@@ -60,7 +60,7 @@ abstract class Server with _$Server {
     // separator between two empty tags on some engines.
     tags = Uri.encodeComponent(tags.replaceAll(RegExp(r'\s+'), ' ').trim());
 
-    var url = '$apiAddress/$searchUrl'
+    var url = _joinUrl(apiAddress, searchUrl)
         .replaceAll('{tags}', tags)
         // Engines number pages differently: `pid` is a zero-based page index,
         // while Danbooru and its clones take a one-based `page`.
@@ -97,7 +97,7 @@ abstract class Server with _$Server {
   }
 
   String suggestionUrlsOf(String query, {bool includeCredentials = true}) {
-    var url = '$apiAddress/$tagSuggestionUrl'
+    var url = _joinUrl(apiAddress, tagSuggestionUrl)
         .replaceAll('{post-limit}', '$tagSuggestionLimit')
         .replaceAll('{tag-limit}', '$tagSuggestionLimit');
 
@@ -125,7 +125,7 @@ abstract class Server with _$Server {
     }
 
     final query = postUrl.replaceAll('{post-id}', id.toString());
-    return '$homepage/$query';
+    return _joinUrl(homepage, query);
   }
 
   // Key used in hive box
@@ -157,6 +157,12 @@ abstract class Server with _$Server {
 
   static const Server empty = Server();
   static const tagSuggestionLimit = 20;
+}
+
+String _joinUrl(String base, String path) {
+  final cleanBase = base.replaceFirst(RegExp(r'/+$'), '');
+  final cleanPath = path.replaceFirst(RegExp(r'^/+'), '');
+  return '$cleanBase/$cleanPath';
 }
 
 String _rateString(BooruRating searchRating) {

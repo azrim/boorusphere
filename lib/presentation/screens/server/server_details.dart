@@ -60,15 +60,29 @@ class ServerDetails extends HookConsumerWidget {
     final cLogin = useTextEditingController(text: server.login);
     final cApiKey = useTextEditingController(text: server.apiKey);
 
+    useEffect(
+      () {
+        cSearchUrl.text = server.searchUrl;
+        cSuggestUrl.text = server.tagSuggestionUrl;
+        cPostUrl.text = server.postUrl;
+        cSearchParser.value = server.searchParserId;
+        cSuggestionParser.value = server.suggestionParserId;
+        return null;
+      },
+      [
+        server.searchUrl,
+        server.tagSuggestionUrl,
+        server.postUrl,
+        server.searchParserId,
+        server.suggestionParserId,
+      ],
+    );
+
     useEffect(() {
-      cSearchUrl.text = server.searchUrl;
-      cSuggestUrl.text = server.tagSuggestionUrl;
-      cPostUrl.text = server.postUrl;
-      cSearchParser.value = server.searchParserId;
-      cSuggestionParser.value = server.suggestionParserId;
       cLogin.text = server.login;
       cApiKey.text = server.apiKey;
-    }, [server]);
+      return null;
+    }, [server.login, server.apiKey]);
 
     openPresetPage() {
       context.router.push(
