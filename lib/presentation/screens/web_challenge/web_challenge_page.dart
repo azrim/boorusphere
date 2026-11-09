@@ -46,10 +46,21 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
     const PlatformWebViewCookieManagerCreationParams(),
   );
 
+  /// `cf_clearance` values already proven unusable by the API client, skipped
+  /// by automatic polling until Turnstile issues a fresh token.
+  final Set<String> _rejectedTokens = {};
+
+  /// `cf_clearance` values already sitting in the WebView cookie store before
+  /// the page loaded, so an expired leftover is rejected quietly without
+  /// flashing a verification error while the user solves the new challenge.
+  final Set<String> _initialTokens = {};
+
   WebViewController? _controller;
   Timer? _poll;
   Uri? _site;
+  Uri? _apiSite;
   bool _capturing = false;
+  bool _probedApiSite = false;
 
   /// The server's own address could not be read, so there is no page to load.
   /// Kept apart from `_controller == null`, which only means "not loaded yet",
@@ -61,7 +72,7 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
     super.initState();
     // The page opens after the first frame: the theme, and so the WebView's
     // background, is not available inside initState.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_start()));
   }
 
   @override
@@ -70,25 +81,56 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
     super.dispose();
   }
 
-  void _start() {
+  Uri? _validOrigin(String raw) {
+    final uri = Uri.tryParse(raw.trim());
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
+    return uri;
+  }
+
+  Iterable<String> _cookieTokens(Iterable<WebViewCookie> cookies) {
+    return cookies
+        .where((it) => it.name == 'cf_clearance' && it.value.isNotEmpty)
+        .map((it) => it.value);
+  }
+
+  Future<void> _start() async {
     final server = ref.read(serverStateProvider).getById(widget.serverId);
-    final target = server.homepage.trim().isNotEmpty
-        ? server.homepage
-        : server.apiAddress;
-    final site = Uri.tryParse(target);
-    if (site == null || !site.hasScheme || site.host.isEmpty) {
+    final homeSite = _validOrigin(server.homepage);
+    final apiSite = _validOrigin(server.apiAddress);
+    final site = homeSite ?? apiSite;
+    if (site == null) {
       setState(() => _addressUnreadable = true);
       return;
     }
-    _site = site;
 
-    final controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Theme.of(context).colorScheme.surface)
-      ..setNavigationDelegate(
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+    final store = ref.read(webClearanceRepoProvider);
+    for (final host in <String>{site.host, if (apiSite != null) apiSite.host}) {
+      _rejectedTokens.addAll(
+        extractClearanceTokens(store.forHost(host)?.cookies),
+      );
+    }
+
+    for (final origin in <Uri>{site, ?apiSite}) {
+      try {
+        final existing = await _cookies.getCookies(origin);
+        _initialTokens.addAll(_cookieTokens(existing));
+      } catch (_) {}
+    }
+    if (!mounted) return;
+
+    _site = site;
+    _apiSite = apiSite;
+
+    final controller = WebViewController();
+    unawaited(controller.setJavaScriptMode(JavaScriptMode.unrestricted));
+    unawaited(controller.setBackgroundColor(surfaceColor));
+    unawaited(
+      controller.setNavigationDelegate(
         NavigationDelegate(onPageFinished: (_) => unawaited(_check())),
-      )
-      ..loadRequest(site);
+      ),
+    );
+    unawaited(controller.loadRequest(site));
 
     // A navigation happens when the challenge hands over, so the timer covers
     // the case where the clearance arrives without one.
@@ -99,9 +141,19 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
 
   Future<void> _check() async {
     final site = _site;
+    final apiSite = _apiSite;
     if (!mounted || site == null || _capturing) return;
-    final cookies = await _cookies.getCookies(site);
-    if (!cookies.any((it) => it.name == 'cf_clearance')) return;
+
+    final tokens = <String>{};
+    for (final origin in <Uri>{site, ?apiSite}) {
+      try {
+        final cookies = await _cookies.getCookies(origin);
+        tokens.addAll(_cookieTokens(cookies));
+      } catch (_) {}
+    }
+    if (!mounted || _capturing) return;
+    if (!tokens.any((it) => !_rejectedTokens.contains(it))) return;
+
     await _capture();
   }
 
@@ -113,54 +165,80 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
     if (!mounted || _capturing || controller == null || site == null) return;
 
     _capturing = true;
+    var closed = false;
     final t = context.t;
     final server = ref.read(serverStateProvider).getById(widget.serverId);
     // Read before the first gap: a pop while a cookie is being read leaves the
     // element disposed, and a read after that throws.
     final store = ref.read(webClearanceRepoProvider);
-    final userAgent = await controller.getUserAgent() ?? '';
-    final origins = <Uri>{site, ...await _resourceOrigins(controller)};
+    final apiSite = _apiSite;
 
-    var saved = 0;
-    for (final origin in origins) {
-      // Reads and analytics hosts load on the page too, but their cookies are
-      // useless to the API and never leave this account.
-      if (!_sameSite(site, origin)) continue;
-      final cookies = await _cookies.getCookies(origin);
-      if (cookies.isEmpty) continue;
-      await store.save(
-        host: origin.host,
-        userAgent: userAgent,
-        cookies: cookies.map((it) => '${it.name}=${it.value}').join('; '),
+    try {
+      final userAgent = await controller.getUserAgent() ?? '';
+      final origins = candidateClearanceOrigins(
+        site: site,
+        apiSite: apiSite,
+        resourceOrigins: await _resourceOrigins(controller),
       );
-      saved++;
-    }
 
-    if (!mounted) return;
-    if (saved == 0) {
-      _capturing = false;
-      if (manual) showToast(context, t.webChallenge.nothingSaved);
-      return;
-    }
+      var saved = 0;
+      final seenTokens = <String>{};
+      for (final origin in origins) {
+        final cookies = await _cookies.getCookies(origin);
+        if (cookies.isEmpty) continue;
+        seenTokens.addAll(_cookieTokens(cookies));
+        await store.save(
+          host: origin.host,
+          userAgent: userAgent,
+          cookies: cookies.map((it) => '${it.name}=${it.value}').join('; '),
+        );
+        saved++;
+      }
 
-    _poll?.cancel();
-    // Saving the cookie only proves the browser holds it. Prove the API client
-    // gets past the check too before closing this page: the agent and cookies
-    // have to travel together, and a session that only works inside the
-    // WebView would send the reader straight back to this card.
-    final cleared = await _clearanceWorks();
-    if (!mounted) return;
-    _capturing = false;
-    if (!cleared) {
-      showToast(context, t.webChallenge.verifyFailed);
-      // The browser may earn a fresh clearance on the next pass, so keep
-      // watching instead of leaving the page waiting for a manual tap.
-      _poll = Timer.periodic(const Duration(seconds: 2), (_) => _check());
-      return;
-    }
+      if (!mounted) return;
+      if (saved == 0) {
+        if (manual) showToast(context, t.webChallenge.nothingSaved);
+        return;
+      }
 
-    showToast(context, t.webChallenge.saved(serverName: server.name));
-    context.router.pop(true);
+      _poll?.cancel();
+      // Saving the cookie only proves the browser holds it. Prove the API
+      // client gets past the check too before closing this page: the agent and
+      // cookies have to travel together, and a session that only works inside
+      // the WebView would send the reader straight back to this card.
+      final cleared = await _clearanceWorks();
+      if (!mounted) return;
+      if (!cleared) {
+        final hadFreshToken = seenTokens.any(
+          (it) => !_initialTokens.contains(it),
+        );
+        _rejectedTokens.addAll(seenTokens);
+
+        // When the homepage cleared without covering a separate API host, load
+        // the API origin once so a host-scoped challenge there can be solved.
+        if (apiSite != null && apiSite.host != site.host && !_probedApiSite) {
+          _probedApiSite = true;
+          _site = apiSite;
+          await controller.loadRequest(apiSite);
+          if (!mounted) return;
+        } else if (manual || hadFreshToken) {
+          showToast(context, t.webChallenge.verifyFailed);
+        }
+
+        // The browser may earn a fresh clearance on the next pass, so keep
+        // watching instead of leaving the page waiting for a manual tap.
+        _poll = Timer.periodic(const Duration(seconds: 2), (_) => _check());
+        return;
+      }
+
+      closed = true;
+      showToast(context, t.webChallenge.saved(serverName: server.name));
+      context.router.pop(true);
+    } finally {
+      if (mounted && !closed) {
+        _capturing = false;
+      }
+    }
   }
 
   /// Sends one real API request through the stored clearance.
@@ -212,18 +290,6 @@ class _WebChallengePageState extends ConsumerState<WebChallengePage> {
         .map(Uri.tryParse)
         .whereType<Uri>()
         .toList();
-  }
-
-  static bool _sameSite(Uri site, Uri other) {
-    if (!other.hasScheme || other.host.isEmpty) return false;
-    return _registrable(site.host) == _registrable(other.host);
-  }
-
-  static String _registrable(String host) {
-    final normalized = host.toLowerCase();
-    final parts = normalized.split('.');
-    if (parts.length <= 2) return normalized;
-    return parts.sublist(parts.length - 2).join('.');
   }
 
   @override

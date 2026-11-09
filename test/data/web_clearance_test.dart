@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/repository/web_clearance/web_clearance_repo.dart';
+import 'package:boorusphere/utils/http/cloudflare.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
@@ -103,6 +104,106 @@ void main() {
         reopened.forHost('danbooru.donmai.us')?.cookies,
         'cf_clearance=abc',
       );
+    });
+  });
+
+  group('Cloudflare clearance origin and token helpers', () {
+    test(
+      'sameClearanceSite matches site subdomains while isolating ccTLDs, multi-tenant boards, and IPs',
+      () {
+        expect(
+          sameClearanceSite(
+            Uri.parse('https://danbooru.donmai.us'),
+            Uri.parse('https://cdn.donmai.us'),
+          ),
+          isTrue,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('https://www.booru.co.jp'),
+            Uri.parse('https://img.booru.co.jp'),
+          ),
+          isTrue,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('https://www.booru.co.jp'),
+            Uri.parse('https://ads.other.co.jp'),
+          ),
+          isFalse,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('https://booru.co.uk'),
+            Uri.parse('https://tracker.co.uk'),
+          ),
+          isFalse,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('https://board1.booru.org'),
+            Uri.parse('https://img.board1.booru.org'),
+          ),
+          isTrue,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('https://board1.booru.org'),
+            Uri.parse('https://board2.booru.org'),
+          ),
+          isFalse,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('https://board1.booru.org'),
+            Uri.parse('https://booru.org'),
+          ),
+          isFalse,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('http://203.0.113.10'),
+            Uri.parse('http://198.51.113.10'),
+          ),
+          isFalse,
+        );
+        expect(
+          sameClearanceSite(
+            Uri.parse('http://203.0.113.10:8080'),
+            Uri.parse('http://203.0.113.10:9090'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'candidateClearanceOrigins includes sibling and custom apiSite while dropping third-party trackers',
+      () {
+        final origins = candidateClearanceOrigins(
+          site: Uri.parse('https://www.rule34.xxx'),
+          apiSite: Uri.parse('https://api.rule34.xxx'),
+          resourceOrigins: [
+            Uri.parse('https://img.rule34.xxx'),
+            Uri.parse('https://analytics.example.net'),
+          ],
+        );
+
+        expect(origins.map((it) => it.host).toSet(), {
+          'www.rule34.xxx',
+          'api.rule34.xxx',
+          'img.rule34.xxx',
+        });
+      },
+    );
+
+    test('extractClearanceTokens reads non-empty cf_clearance values', () {
+      expect(
+        extractClearanceTokens('session=1; cf_clearance=stale_tok; __cf_bm=2'),
+        {'stale_tok'},
+      );
+      expect(extractClearanceTokens('session=1; cf_clearance='), isEmpty);
+      expect(extractClearanceTokens(null), isEmpty);
     });
   });
 }
