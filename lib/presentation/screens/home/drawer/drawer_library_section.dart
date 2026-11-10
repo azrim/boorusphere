@@ -19,7 +19,9 @@ class DrawerLibrarySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(searchSessionProvider);
-    final downloads = ref.watch(downloadEntryStateProvider).length;
+    final downloads = ref.watch(
+      downloadEntryStateProvider.select((it) => it.whereNotReserved().length),
+    );
     final favorites = ref.watch(favoritePostStateProvider).length;
     final blockedTags = ref.watch(tagsBlockerStateProvider).length;
 

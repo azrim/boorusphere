@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_entry.dart';
 import 'package:boorusphere/data/repository/downloads/entity/download_progress.dart';
+import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/download/download_state.dart';
 import 'package:boorusphere/presentation/provider/download/downloader.dart';
@@ -18,7 +19,6 @@ import 'package:boorusphere/presentation/widgets/empty_state.dart';
 import 'package:boorusphere/presentation/widgets/expandable_group_list_view.dart';
 import 'package:boorusphere/presentation/widgets/section_label.dart';
 import 'package:boorusphere/presentation/widgets/settings_sheet.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -205,9 +205,12 @@ class DownloadsPage extends HookConsumerWidget {
                     : ExpandableGroupListView<DownloadEntry, String>(
                         items: filteredEntries,
                         groupedBy: (item) => item.post.serverId,
-                        groupTitle: (id) => SectionLabel(
-                          servers.getById(id, or: servers.firstOrNull).name,
-                        ),
+                        groupTitle: (id) {
+                          final server = servers.getById(id);
+                          return SectionLabel(
+                            server == Server.empty ? id : server.name,
+                          );
+                        },
                         itemBuilder: (item) => DownloadEntryView(
                           entry: item,
                           groupByServer: groupByServer,

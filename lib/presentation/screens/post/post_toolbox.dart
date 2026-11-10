@@ -259,10 +259,13 @@ class PostDownloadButton extends HookConsumerWidget {
     // act on: the entry lives behind it, so a task that never settles would
     // otherwise leave the button disabled with no way back.
     final inFlight = progress.status.isDownloading || progress.status.isPending;
+    final progressLabel = progress.progress >= 0
+        ? ' ${progress.progress}%'
+        : '';
     final label = isDownloaded
         ? context.t.downloads.status.downloaded
         : inFlight
-        ? '${context.t.downloads.status.downloading} ${progress.progress}%'
+        ? '${context.t.downloads.status.downloading}$progressLabel'
         : context.t.postAction.download;
 
     return Stack(
@@ -272,7 +275,9 @@ class PostDownloadButton extends HookConsumerWidget {
         // progress readout.
         ExcludeSemantics(
           child: CircularProgressIndicator(
-            value: pending.value
+            value:
+                pending.value ||
+                    (progress.status.isDownloading && progress.progress < 0)
                 ? null
                 : progress.status.isDownloading
                 ? progress.progress.ratio

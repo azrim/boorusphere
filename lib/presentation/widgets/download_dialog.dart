@@ -21,10 +21,16 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class DownloaderDialog extends HookConsumerWidget {
-  const DownloaderDialog({super.key, required this.post, this.onItemClick});
+  const DownloaderDialog({
+    super.key,
+    required this.post,
+    this.onItemClick,
+    this.replacingId,
+  });
 
   final Post post;
   final Function(String type)? onItemClick;
+  final String? replacingId;
 
   IconData _getFileIcon(String url) {
     if (url.mimeType.startsWith('video')) {
@@ -51,10 +57,16 @@ class DownloaderDialog extends HookConsumerWidget {
     // The permission only gates the completion notice, so a denial must not
     // block the download.
     await checkNotificationPermission(context);
-    onItemClick?.call(type);
-    unawaited(downloader.download(post, url: url));
+    final taskId = await downloader.download(
+      post,
+      url: url,
+      replacingId: replacingId,
+    );
+    if (taskId != null) {
+      onItemClick?.call(type);
+    }
     if (context.mounted) {
-      context.navigator.pop();
+      context.navigator.pop(taskId != null);
     }
   }
 
@@ -117,6 +129,7 @@ class DownloaderDialog extends HookConsumerWidget {
     WidgetRef ref,
     Post post, {
     Function(String type)? onItemClick,
+    String? replacingId,
   }) async {
     // Resolved before the first await: the caller's element can be disposed
     // while a sheet or a permission prompt is open, and a read after that
@@ -127,19 +140,16 @@ class DownloaderDialog extends HookConsumerWidget {
     );
 
     if (quality == DownloadQuality.ask) {
-      var chosen = false;
-      await showSheet<void>(
+      final started = await showSheet<bool>(
         context: context,
         builder: (_) => DownloaderDialog(
           post: post,
-          onItemClick: (type) {
-            chosen = true;
-            onItemClick?.call(type);
-          },
+          onItemClick: onItemClick,
+          replacingId: replacingId,
         ),
       );
 
-      return chosen ? true : null;
+      return started;
     }
 
     // The permission only gates the completion notice, so a denial must not
@@ -154,6 +164,7 @@ class DownloaderDialog extends HookConsumerWidget {
       url: isSample && post.sampleFile.isNotEmpty
           ? post.sampleFile
           : post.originalFile,
+      replacingId: replacingId,
     );
     if (taskId == null) return false;
 

@@ -18,7 +18,6 @@ import 'package:boorusphere/utils/extensions/number.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
 import 'package:cached_network_image/cached_network_image.dart'
     hide DownloadProgress;
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -162,12 +161,9 @@ class DownloadEntryView extends HookConsumerWidget {
                     // name pushed the whole card off the screen.
                     Flexible(
                       child: Text(
-                        servers
-                            .getById(
-                              entry.post.serverId,
-                              or: servers.firstOrNull,
-                            )
-                            .name,
+                        servers.getById(entry.post.serverId) == Server.empty
+                            ? entry.post.serverId
+                            : servers.getById(entry.post.serverId).name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -190,7 +186,8 @@ class DownloadEntryView extends HookConsumerWidget {
                         DesignTokens.radiusSm,
                       ),
                       child: LinearProgressIndicator(
-                        value: progress.status.isPending
+                        value:
+                            progress.status.isPending || progress.progress < 0
                             ? null
                             : progress.progress.ratio,
                         minHeight: 3,
@@ -199,11 +196,13 @@ class DownloadEntryView extends HookConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: DesignTokens.spacingSm),
-                  Text(
-                    '${progress.progress}%',
-                    style: AppTextRoles.of(context).numeric,
-                  ),
+                  if (progress.progress >= 0) ...[
+                    const SizedBox(width: DesignTokens.spacingSm),
+                    Text(
+                      '${progress.progress}%',
+                      style: AppTextRoles.of(context).numeric,
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -214,7 +213,6 @@ class DownloadEntryView extends HookConsumerWidget {
       trailing: _EntryPopupMenu(
         entry: entry,
         progress: progress,
-        server: servers.getById(entry.post.serverId, or: servers.firstOrNull),
         isFileExists: isFileExists,
       ),
       onTap: !progress.status.isDownloaded || !isFileExists
@@ -264,13 +262,11 @@ class _EntryPopupMenu extends ConsumerWidget {
   const _EntryPopupMenu({
     required this.entry,
     required this.progress,
-    required this.server,
     required this.isFileExists,
   });
 
   final DownloadEntry entry;
   final DownloadProgress progress;
-  final Server server;
   final bool isFileExists;
 
   @override
@@ -285,6 +281,7 @@ class _EntryPopupMenu extends ConsumerWidget {
               context,
               ref,
               entry.post,
+              replacingId: entry.id,
               onItemClick: (type) async {
                 await downloader.clear(id: entry.id);
               },
