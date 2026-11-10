@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:boorusphere/data/dio/headers_factory.dart';
+import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/entity/post.dart';
 import 'package:boorusphere/data/repository/downloads/download_folder.dart';
 import 'package:boorusphere/data/repository/downloads/download_sidecar.dart';
@@ -17,6 +18,7 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/download_setting_state.dart';
 import 'package:boorusphere/presentation/provider/shared_storage_handle.dart';
 import 'package:boorusphere/utils/extensions/string.dart';
+import 'package:boorusphere/utils/http/cookies.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -236,18 +238,29 @@ class Downloader {
     String? url,
     String Function(String fileName)? dest,
     bool preferCache = true,
+    String? replacingId,
   }) async {
     // Some engines answer with an empty sample url for small images, and an
     // empty url only ever produces a task that fails right away.
     final fileUrl = url != null && url.isNotEmpty ? url : post.originalFile;
     if (fileUrl.isEmpty) return null;
 
+    final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
+    if (!await sharedStorageHandle.init()) {
+      mainLog.e('Downloader: download folder is not writable');
+      return null;
+    }
+
     String? fileName;
     try {
       // Resolved once so the cache copy and the queued task write the same
       // path, and so the entry reports the name the file actually got.
       final folder = _folderFor(post);
-      fileName = claimFileName(fileUrl, folder: folder);
+      fileName = claimFileName(
+        fileUrl,
+        folder: folder,
+        replacingId: replacingId,
+      );
 
       // Try to use cached file first if enabled
       if (preferCache) {
@@ -297,7 +310,11 @@ class Downloader {
   /// The name is claimed here and stays claimed until [releaseName]: the batch
   /// path names its files through this as well, so two downloads started from
   /// different screens cannot settle on the same path.
-  String claimFileName(String fileUrl, {String folder = ''}) {
+  String claimFileName(
+    String fileUrl, {
+    String folder = '',
+    String? replacingId,
+  }) {
     final decoded = decodeComponentSafely(fileUrl.fileName);
     final sanitized = decoded
         .replaceAll(RegExp(r'([^a-zA-Z0-9\s\.\(\)_\-]+)'), '_')
@@ -309,15 +326,36 @@ class Downloader {
 
     final taken = ref
         .read(downloadEntryStateProvider)
+        .where((it) => it.id != replacingId)
         .map((it) => p.basename(it.dest))
         .toSet();
     final sharedStorageHandle = ref.read(sharedStorageHandleProvider);
 
+    bool isCandidateTaken(String candidate) {
+      if (taken.contains(candidate) || _reservedNames.contains(candidate)) {
+        return true;
+      }
+      final relative = p.join(folder, candidate);
+      if (sharedStorageHandle.fileExists(relative)) {
+        return true;
+      }
+      try {
+        final f = File(p.join(sharedStorageHandle.path, relative));
+        f.createSync(exclusive: true);
+        f.deleteSync();
+        return false;
+      } on PathExistsException {
+        return true;
+      } on FileSystemException {
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
     var candidate = '$base$ext';
     var suffix = 1;
-    while (taken.contains(candidate) ||
-        _reservedNames.contains(candidate) ||
-        sharedStorageHandle.fileExists(p.join(folder, candidate))) {
+    while (isCandidateTaken(candidate)) {
       candidate = '${base}_${suffix++}$ext';
     }
     _reservedNames.add(candidate);
@@ -363,21 +401,33 @@ class Downloader {
     final versionRepo = ref.read(versionRepoProvider);
     // Use post URL for referer (like image viewer does), not file URL
     final refererUrl = post.postUrl.isEmpty ? fileUrl : post.postUrl;
-    // No Cookie header: the native worker re-sends every header it is given on
-    // each redirect hop (DownloadWorker.kt), so a session cookie for the booru
-    // would follow the request to whatever CDN it redirects to. Media is
-    // fetched anonymously; the Referer and User-Agent are what hotlink
-    // protection checks.
+    final mediaUri = Uri.tryParse(fileUrl);
+    final clearance = mediaUri == null
+        ? null
+        : ref.read(webClearanceRepoProvider).forHost(mediaUri.host);
+
+    final headers = HeadersFactory.builder()
+        .setUserAgent(versionRepo.current)
+        .setReferer(createReferer(refererUrl))
+        .build();
+    if (clearance != null) {
+      headers[HttpHeaders.userAgentHeader] = clearance.userAgent;
+      final merged = mergeCookieHeaders(
+        headers[HttpHeaders.cookieHeader],
+        clearance.cookies,
+      );
+      if (merged.isNotEmpty) {
+        headers[HttpHeaders.cookieHeader] = merged;
+      }
+    }
+
     final taskId = await FlutterDownloader.enqueue(
       url: fileUrl,
       fileName: fileName,
       savedDir: savedDir,
       showNotification: true,
       openFileFromNotification: true,
-      headers: HeadersFactory.builder()
-          .setUserAgent(versionRepo.current)
-          .setReferer(createReferer(refererUrl))
-          .build(),
+      headers: headers,
     );
 
     if (taskId != null) {
@@ -445,6 +495,17 @@ class Downloader {
     if (entry.id.isEmpty) return false;
 
     final task = _hasNativeTask(id) ? await _taskById(id) : null;
+    if (task != null && task.status == DownloadTaskStatus.complete) {
+      await settleCompleted(
+        DownloadProgress(
+          id: id,
+          status: DownloadStatus.downloaded,
+          progress: 100,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+      return true;
+    }
     String? newId;
     if (task != null) {
       try {
@@ -507,10 +568,21 @@ class Downloader {
 
     final entry = ref.read(downloadEntryStateProvider).getById(id);
     final pageUrl = entry.post.postUrl.isEmpty ? task.url : entry.post.postUrl;
+    final clearance = ref.read(webClearanceRepoProvider).forHost(uri.host);
     final headers = HeadersFactory.builder()
         .setUserAgent(ref.read(versionRepoProvider).current)
         .setReferer(createReferer(pageUrl))
         .build();
+    if (clearance != null) {
+      headers[HttpHeaders.userAgentHeader] = clearance.userAgent;
+      final merged = mergeCookieHeaders(
+        headers[HttpHeaders.cookieHeader],
+        clearance.cookies,
+      );
+      if (merged.isNotEmpty) {
+        headers[HttpHeaders.cookieHeader] = merged;
+      }
+    }
 
     final client = HttpClient()
       ..autoUncompress = false
@@ -576,6 +648,25 @@ class Downloader {
 
   static const _sizeProbeTimeout = Duration(seconds: 5);
 
+  bool _isValidApk(File file) {
+    if (!file.existsSync() || file.lengthSync() < 4) return false;
+    try {
+      final raf = file.openSync();
+      try {
+        final header = raf.readSync(4);
+        return header.length == 4 &&
+            header[0] == 0x50 &&
+            header[1] == 0x4b &&
+            header[2] == 0x03 &&
+            header[3] == 0x04;
+      } finally {
+        raf.closeSync();
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Applies the completion checks to [progress] and records the outcome.
   ///
   /// The native worker reports any HTTP 200 body as complete, and a pause that
@@ -640,11 +731,25 @@ class Downloader {
       }
 
       await storage.rescanFile(entry.dest);
+    } else {
+      final task = await _taskById(progress.id);
+      if (task != null) {
+        final apkFile = File(p.join(task.savedDir, entry.dest));
+        if (!apkFile.existsSync() || !_isValidApk(apkFile)) {
+          await reject('APK at ${apkFile.path} is invalid or incomplete');
+          return false;
+        }
+      }
     }
 
-    // The row can be deleted, or the whole list cleared, while the size probe
+    // The row can be deleted, canceled, or cleared while the size probe
     // and the scan above are on the wire. Finishing then would write metadata
     // for a file that is gone and a status no entry names.
+    final latestProgress = ref
+        .read(downloadProgressStateProvider)
+        .getById(progress.id);
+    if (latestProgress.status.isCanceled) return false;
+
     final recorded = ref.read(downloadEntryStateProvider);
     if (recorded.getById(progress.id).id.isEmpty) return false;
 
@@ -818,12 +923,18 @@ class Downloader {
     final task = await _taskById(id);
     if (task != null && task.status != DownloadTaskStatus.undefined) {
       final status = downloadStatusOf(task.status);
+      // If the task in SQLite is still running, FlutterDownloaderPlugin.pause
+      // has signaled cancellation but the worker has not exited inputStream.read
+      // yet. Do not overwrite the paused status with downloading.
+      final effectiveStatus = status.isDownloading
+          ? DownloadStatus.paused
+          : status;
       await ref
           .read(downloadProgressStateProvider.notifier)
           .update(
             DownloadProgress(
               id: id,
-              status: status,
+              status: effectiveStatus,
               progress: task.progress.clamp(0, 100).toInt(),
               timestamp: DateTime.now().millisecondsSinceEpoch,
             ),
@@ -831,7 +942,7 @@ class Downloader {
       // A pause that landed after the worker read the last body byte leaves a
       // complete file labelled paused, and no resume can advance it: the
       // resume starts at the end of the file.
-      if (status.isPaused) await settlePausedIfComplete(id);
+      if (effectiveStatus.isPaused) await settlePausedIfComplete(id);
       return;
     }
 
@@ -876,9 +987,16 @@ class Downloader {
       }
 
       if (newId == null) {
-        // The plugin only resumes a row it still tracks as paused. A row the
-        // platform no longer knows about has to start from its recorded URL,
-        // the same fallback retry uses for a stale enqueued task.
+        // If the task is still running in the background worker while pausing,
+        // wait rather than re-enqueuing and destroying partial bytes.
+        final currentTask = await _taskById(id);
+        if (currentTask != null &&
+            currentTask.status == DownloadTaskStatus.running) {
+          mainLog.w(
+            'Downloader: task $id is still stopping, skipping re-enqueue',
+          );
+          return;
+        }
         await _reenqueue(entry);
         return;
       }
@@ -937,8 +1055,14 @@ class Downloader {
         shouldDeleteContent: false,
       );
     }
-    // Whatever the failed attempt left is either partial or not media at all.
-    await _deleteLocalContent(entry.dest);
+    // Whatever the failed attempt left is either partial or not media at all,
+    // unless another live entry already points to the same destination.
+    final hasSibling = ref
+        .read(downloadEntryStateProvider)
+        .any((it) => it.id != entry.id && it.dest == entry.dest);
+    if (!hasSibling) {
+      await _deleteLocalContent(entry.dest);
+    }
 
     final newId = await download(entry.post, url: url, preferCache: false);
     if (newId == null) {
@@ -987,6 +1111,11 @@ class Downloader {
         .getById(id)
         .status
         .isDownloaded) {
+      return;
+    }
+
+    final task = await _taskById(id);
+    if (task != null && task.status == DownloadTaskStatus.complete) {
       return;
     }
 

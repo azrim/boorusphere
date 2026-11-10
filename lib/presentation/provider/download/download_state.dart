@@ -47,11 +47,21 @@ class DownloadEntryState extends _$DownloadEntryState {
     // in separate frames, and a process death in between then leaves a
     // duplicate row the boot reconciliation can settle. The reverse order
     // would leave a running native task with no record at all.
-    await repo.addEntry(entry);
+    //
+    // Update in-memory state synchronously first (with rollback on error) so
+    // fast completion events arriving on ReceivePort find their entry.
+    final prev = state;
+    state = [...state.where((it) => it.id != id && it.id != entry.id), entry];
+    try {
+      await repo.addEntry(entry);
+    } catch (_) {
+      state = prev;
+      rethrow;
+    }
     if (id != entry.id) {
       await repo.removeEntry(id);
     }
-    state = [...state.where((it) => it.id != id), entry];
+    state = [...state.where((it) => it.id != id && it.id != entry.id), entry];
   }
 
   Future<void> clear() async {

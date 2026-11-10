@@ -26,6 +26,7 @@ import 'package:boorusphere/presentation/widgets/app_toast.dart';
 import 'package:boorusphere/utils/http/overrides.dart';
 import 'package:boorusphere/utils/logger.dart';
 import 'package:boorusphere/utils/secure_screen.dart';
+import 'package:boorusphere/utils/serial_queue.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -237,36 +238,26 @@ class Boorusphere extends HookConsumerWidget {
     }, [flagSecure]);
 
     useEffect(() {
-      // `FlutterDownloaderHandle.listen` returns void and the underlying
-      // ReceivePort is torn down via `ref.onDispose(handle.dispose)` in the
-      // provider, so there's nothing to clean up here.
-      ref.read(downloaderHandleProvider).listen((progress) async {
-        final downloader = ref.read(downloaderProvider);
+      final queue = SerialQueue();
+      ref.read(downloaderHandleProvider).listen((progress) {
+        queue.run(() async {
+          final downloader = ref.read(downloaderProvider);
 
-        if (!progress.status.isDownloaded) {
-          await ref
-              .read(downloadProgressStateProvider.notifier)
-              .update(progress);
-          // A pause that landed after the worker read the last byte leaves a
-          // complete file labelled paused; the row is settled the same way a
-          // completion is.
-          if (progress.status.isPaused) {
-            await downloader.settlePausedIfComplete(progress.id);
+          if (!progress.status.isDownloaded) {
+            await ref
+                .read(downloadProgressStateProvider.notifier)
+                .update(progress);
+            if (progress.status.isPaused) {
+              await downloader.settlePausedIfComplete(progress.id);
+            }
+            return;
           }
-          return;
-        }
 
-        // The plugin reports COMPLETE for any HTTP 200 body, so a hotlink
-        // page, an empty file or a truncated transfer arrives here looking
-        // like a finished download. The bytes are checked before the row is
-        // allowed to claim success.
-        await downloader.settleCompleted(progress);
+          await downloader.settleCompleted(progress);
+        });
       });
 
-      // A task can settle between the boot reconciliation and the listener
-      // above; its event then went to a port nobody listened to. The plugin's
-      // own rows are read back once to settle those downloads.
-      unawaited(ref.read(downloaderProvider).catchUp());
+      unawaited(queue.run(() => ref.read(downloaderProvider).catchUp()));
       return null;
     }, const []);
 

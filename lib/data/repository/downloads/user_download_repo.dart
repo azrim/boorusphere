@@ -362,6 +362,42 @@ Future<void> _syncProgresses(
   final orphans = <String>[];
   final downloadDir = await _downloadDirOrNull();
 
+  // A process death between adding a retried/resumed entry and removing the
+  // old one leaves duplicate entries pointing to the same file. Prune superseded
+  // entries that have no active native task.
+  final entriesByDest = <String, List<DownloadEntry>>{};
+  for (final entry in entryBox.values) {
+    if (entry.post.isReserved || entry.dest.isEmpty) continue;
+    entriesByDest.putIfAbsent(entry.dest, () => []).add(entry);
+  }
+  final duplicateEntriesToDrop = <String>[];
+  for (final duplicateEntries in entriesByDest.values) {
+    if (duplicateEntries.length <= 1) continue;
+    final withTask = duplicateEntries
+        .where((e) => byId.containsKey(e.id))
+        .toList();
+    if (withTask.isNotEmpty) {
+      for (final dup in duplicateEntries) {
+        if (!byId.containsKey(dup.id)) {
+          duplicateEntriesToDrop.add(dup.id);
+        }
+      }
+    } else {
+      duplicateEntries.sort((a, b) {
+        final progA = progressBox.get(a.id)?.timestamp ?? 0;
+        final progB = progressBox.get(b.id)?.timestamp ?? 0;
+        return progB.compareTo(progA);
+      });
+      for (var i = 1; i < duplicateEntries.length; i++) {
+        duplicateEntriesToDrop.add(duplicateEntries[i].id);
+      }
+    }
+  }
+  for (final id in duplicateEntriesToDrop) {
+    await entryBox.delete(id);
+    await progressBox.delete(id);
+  }
+
   for (final progress in progressBox.values) {
     final task = byId.remove(progress.id);
     final entry = entryBox.get(progress.id);

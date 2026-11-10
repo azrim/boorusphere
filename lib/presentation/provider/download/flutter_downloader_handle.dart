@@ -47,11 +47,14 @@ class FlutterDownloaderHandle {
           progress is! int) {
         return;
       }
+      final normalizedProgress = (progress < 0 || progress > 100)
+          ? (status == DownloadStatus.downloaded.index ? 100 : -1)
+          : progress;
       onUpdate(
         DownloadProgress(
           id: id,
           status: DownloadStatus.values[status],
-          progress: progress,
+          progress: normalizedProgress,
           timestamp: DateTime.now().millisecondsSinceEpoch,
         ),
       );
