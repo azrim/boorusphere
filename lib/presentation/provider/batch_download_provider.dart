@@ -110,7 +110,12 @@ class BatchDownloadProvider {
         ref?.read(downloadSettingStateProvider).groupByServer ?? false;
 
     try {
-      await storage.init();
+      if (!await storage.init()) {
+        return const BatchDownloadResult(
+          success: false,
+          error: 'Download folder is not writable',
+        );
+      }
       final downloadsDir = Directory(storage.path);
       if (!downloadsDir.existsSync()) {
         downloadsDir.createSync(recursive: true);
@@ -198,11 +203,6 @@ class BatchDownloadProvider {
       final saved = results.whereType<String>().toList();
       final failedCount = results.length - saved.length;
 
-      await mapConcurrent(
-        saved,
-        limit: _maxConcurrentDownloads,
-        action: (path, _) async => storage.rescanFile(path),
-      );
       if (saved.isEmpty) {
         return BatchDownloadResult(
           success: false,
@@ -256,6 +256,12 @@ class BatchDownloadProvider {
       mainLog.w('BatchDownloadProvider: $url did not return media');
       _deleteQuietly(File(destPath));
       return null;
+    }
+
+    try {
+      await storage.rescanFile(destPath);
+    } catch (e) {
+      mainLog.e('BatchDownloadProvider: failed to scan $destPath', e);
     }
 
     if (post != null && entryState != null && progressState != null) {
