@@ -318,23 +318,24 @@ class _Downloader extends ConsumerWidget {
       return Row(
         children: [
           const SizedBox(width: DesignTokens.spacingMd),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DesignTokens.spacingSm,
+          if (progress.progress >= 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spacingSm,
+              ),
+              child: Text(
+                '${progress.progress}%',
+                textAlign: TextAlign.end,
+                style: AppTextRoles.of(context).numeric,
+              ),
             ),
-            child: Text(
-              '${progress.progress}%',
-              textAlign: TextAlign.end,
-              style: AppTextRoles.of(context).numeric,
-            ),
-          ),
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
               child: LinearProgressIndicator(
                 // The track is as tall as the clip's radius, so the bar reads
                 // as one pill instead of a rectangle with rounded corners.
-                value: progress.status.isPending
+                value: progress.status.isPending || progress.progress < 0
                     ? null
                     : progress.progress.ratio,
                 minHeight: DesignTokens.radiusXl,

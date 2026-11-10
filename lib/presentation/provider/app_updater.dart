@@ -67,10 +67,19 @@ class AppUpdater extends _$AppUpdater {
       final latest = tasks.reduce(
         (a, b) => a.timeCreated >= b.timeCreated ? a : b,
       );
-      state = latest.taskId;
-
       final fileName = latest.filename;
       if (fileName == null || fileName.isEmpty) return;
+
+      final apkFile = File(path.join(latest.savedDir, fileName));
+      if (latest.status == DownloadTaskStatus.complete &&
+          (!apkFile.existsSync() || apkFile.lengthSync() < 4)) {
+        mainLog.w(
+          'AppUpdater: restored completed APK is missing or empty, clearing',
+        );
+        await clear();
+        return;
+      }
+      state = latest.taskId;
 
       // The completion listener and the boot reconciliation both need a record
       // for a task that outlived the UI that started it. The record is marked
@@ -220,7 +229,26 @@ class AppUpdater extends _$AppUpdater {
     // version the About page is offering.
     if (entry.dest != updateApkFileName(version)) return;
 
-    await FlutterDownloader.open(taskId: taskId);
+    // Check if the APK file actually exists before attempting open
+    final cacheDir = await getExternalCacheDirectories();
+    final rootDir = cacheDir?.firstOrNull ?? await getTemporaryDirectory();
+    final apk = File(path.join(rootDir.path, 'apk', entry.dest));
+    if (!apk.existsSync() || apk.lengthSync() < 4) {
+      mainLog.w('AppUpdater: APK missing or corrupt on install, clearing');
+      await clear();
+      return;
+    }
+
+    try {
+      final success = await FlutterDownloader.open(taskId: taskId);
+      if (success != true) {
+        mainLog.w('AppUpdater: open returned $success, clearing');
+        await clear();
+      }
+    } catch (e, stack) {
+      mainLog.e('AppUpdater: failed to open APK $taskId', e, stack);
+      await clear();
+    }
   }
 }
 
