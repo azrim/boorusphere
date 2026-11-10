@@ -66,7 +66,12 @@ class FirstRunView extends ConsumerWidget {
               context.t.servers.select,
               action: defaults.length > presetLimit
                   ? TextButton(
-                      onPressed: () => context.router.push(ServerPresetRoute()),
+                      onPressed: () => context.router.push(
+                        ServerPresetRoute(
+                          onReturned: (server) =>
+                              unawaited(_pick(context, ref, server)),
+                        ),
+                      ),
                       child: Text(context.t.onboarding.browsePresets),
                     )
                   : null,
@@ -94,6 +99,8 @@ class FirstRunView extends ConsumerWidget {
   }
 
   Future<void> _pick(BuildContext context, WidgetRef ref, Server server) async {
+    final router = context.router;
+    final navigator = Navigator.maybeOf(context);
     try {
       await ref.read(serverStateProvider.notifier).add(server);
     } catch (e, stack) {
@@ -103,11 +110,14 @@ class FirstRunView extends ConsumerWidget {
       return;
     }
 
-    if (!context.mounted) return;
+    // Adding the first server switches the home body off this view before the
+    // active-server setting finishes writing, so `context` may unmount while
+    // the enclosing navigator is still live.
+    if (navigator?.mounted != true) return;
     // This page was built for the session it had before any server existed, so
     // its state would resolve no server at all. A fresh page opens the grid on
     // the one just picked.
-    await context.router.replaceAll([
+    await router.replaceAll([
       HomeRoute(session: SearchSession(serverId: server.id)),
     ]);
   }

@@ -4,7 +4,8 @@
     "homepage": "https://safebooru.org",
     "searchUrl": "index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}",
     "tagSuggestionUrl": "autocomplete.php?q={tag-part}",
-    "postUrl": "index.php?page=post&s=view&id={post-id}"
+    "postUrl": "index.php?page=post&s=view&id={post-id}",
+    "suggestionParserId": "Autocomplete.json"
   },
   {
     "id": "Danbooru",
@@ -22,6 +23,7 @@
     "searchUrl": "index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}&json=1",
     "tagSuggestionUrl": "index.php?page=autocomplete2&term={tag-part}&type=tag_query&limit={post-limit}",
     "postUrl": "index.php?page=post&s=view&id={post-id}",
+    "suggestionParserId": "Gelbooru.autocomplete",
     "apiKeyUrl": "https://gelbooru.com/index.php?page=account&s=options"
   },
   {
@@ -45,6 +47,7 @@
     "searchUrl": "index.php?page=dapi&s=post&q=index&tags={tags}&pid={page-id}&limit={post-limit}",
     "tagSuggestionUrl": "autocomplete.php?q={tag-part}",
     "postUrl": "index.php?page=post&s=view&id={post-id}",
+    "suggestionParserId": "Autocomplete.json",
     "apiKeyUrl": "https://rule34.xxx/index.php?page=account&s=options"
   },
   {

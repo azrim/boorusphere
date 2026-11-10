@@ -1,4 +1,5 @@
 import 'package:boorusphere/data/encryption.dart';
+import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/parser/autocomplete.dart';
 import 'package:boorusphere/data/repository/booru/parser/danbooru_json_parser.dart';
 import 'package:boorusphere/data/repository/booru/parser/e621_json_parser.dart';
@@ -652,5 +653,28 @@ void main() {
             'imply a key it never asks for',
       );
     });
+
+    test(
+      'bundled presets survive the start-up heal passes unchanged',
+      () async {
+        final presets = await provideDefaultServers();
+        final presetBox = await Hive.openBox<Server>(
+          'server_presets_idempotent_test',
+        );
+        addTearDown(presetBox.close);
+        await presetBox.clear();
+
+        final presetRepo = UserServerRepo(
+          defaultServers: presets,
+          box: presetBox,
+        );
+        // First start seeds an empty box; second start runs every migration
+        // pass against those seeded entries.
+        await presetRepo.populate();
+        await presetRepo.populate();
+
+        expect(presetBox.toMap(), presets);
+      },
+    );
   });
 }

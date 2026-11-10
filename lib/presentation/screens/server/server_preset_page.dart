@@ -2,7 +2,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/domain/provider.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
-import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/widgets/favicon.dart';
 import 'package:boorusphere/presentation/widgets/row_subtitle.dart';
@@ -18,9 +17,12 @@ class ServerPresetPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final defaults = ref.watch(serverRepoProvider.select((it) => it.defaults));
-    final servers = ref.watch(serverStateProvider);
-    final all = {...defaults.values, ...servers};
+    // Only the bundled presets belong here: saved servers in the box carry
+    // credentials, aliases and migrated fields that make them unequal to the
+    // preset they started from, which would list the same board twice.
+    final presets = ref.watch(
+      serverRepoProvider.select((it) => it.defaults.values),
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(context.t.servers.select)),
@@ -33,7 +35,7 @@ class ServerPresetPage extends ConsumerWidget {
           children: [
             TileGroup(
               children: [
-                for (final it in all)
+                for (final it in presets)
                   ListTile(
                     title: Text(it.name),
                     subtitle: RowSubtitle(Text(it.homepage)),

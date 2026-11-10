@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:boorusphere/data/provider.dart';
 import 'package:boorusphere/data/repository/booru/parser/booru_parser.dart';
 import 'package:boorusphere/data/repository/booru/provider.dart';
 import 'package:boorusphere/data/repository/server/entity/server.dart';
 import 'package:boorusphere/presentation/screens/server/server_add_page.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -77,6 +80,36 @@ void main() {
       final e621 = presets.values.firstWhere((it) => it.id == 'E621');
       expect(e621.searchParserId, 'E621.json');
       expect(e621.suggestionParserId, 'E621.json');
+
+      // Gelbooru's `autocomplete2` and `autocomplete.php` both answer `label`
+      // and `value` keys; pinning each host's completion reader keeps fresh
+      // installs and preset picks aligned with the start-up migration table.
+      final gelbooru = presets.values.firstWhere((it) => it.id == 'Gelbooru');
+      expect(gelbooru.suggestionParserId, 'Gelbooru.autocomplete');
+
+      for (final id in ['Safebooru', 'Rule34']) {
+        final server = presets.values.firstWhere((it) => it.id == id);
+        expect(server.suggestionParserId, 'Autocomplete.json');
+      }
+    });
+
+    test('every preset has a distinct key, name and homepage', () async {
+      final raw =
+          jsonDecode(await rootBundle.loadString('assets/servers.json'))
+              as List;
+      expect(
+        presets,
+        hasLength(raw.length),
+        reason: 'two entries resolved to the same key and overwrote each other',
+      );
+      expect(
+        presets.values.map((it) => it.name).toSet(),
+        hasLength(raw.length),
+      );
+      expect(
+        presets.values.map((it) => it.homepage).toSet(),
+        hasLength(raw.length),
+      );
     });
 
     test('the engines that answer anonymously carry no key page', () {
