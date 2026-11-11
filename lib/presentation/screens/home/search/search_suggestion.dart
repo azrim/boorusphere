@@ -113,6 +113,9 @@ class SearchSuggestion extends HookConsumerWidget {
                     if (velocity > 300 || animator.value < 0.7) {
                       // Close search bar
                       await animator.reverse();
+                      // The screen can go away while the panel settles; the
+                      // controller it would close may already be disposed.
+                      if (!context.mounted) return;
                       searchBar.close();
                     } else {
                       // Snap back to open
@@ -157,6 +160,10 @@ class SearchSuggestion extends HookConsumerWidget {
                       if (isDragging.value) {
                         if (animator.value < 0.7) {
                           await animator.reverse();
+                          // Same as the handle drag: the screen can go away
+                          // while the panel settles, taking the bar's
+                          // controller with it.
+                          if (!context.mounted) return;
                           searchBar.close();
                         } else {
                           await animator.forward();

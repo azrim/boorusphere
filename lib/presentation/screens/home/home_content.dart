@@ -500,13 +500,22 @@ class HomeContent extends HookConsumerWidget {
               );
             },
             child: _BackToTopButton(
-              onTap: () => unawaited(
-                scrollController.animateTo(
-                  0,
-                  duration: context.motionDuration(DesignTokens.durationSlow),
-                  curve: DesignTokens.curveStandard,
-                ),
-              ),
+              onTap: () {
+                // A zero-duration animateTo is refused by the scroll activity
+                // (it asserts a positive duration), so reduced motion jumps:
+                // the same destination without the travel.
+                if (context.reducedMotion) {
+                  scrollController.jumpTo(0);
+                  return;
+                }
+                unawaited(
+                  scrollController.animateTo(
+                    0,
+                    duration: DesignTokens.durationSlow,
+                    curve: DesignTokens.curveStandard,
+                  ),
+                );
+              },
             ),
           ),
         if (showPagination)
