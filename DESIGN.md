@@ -172,7 +172,50 @@ A step up the ladder does two things at once, never one of them:
 
 **The Flat Content Rule.** Image thumbnails never have shadows, borders, or elevation. They are the content. Everything with depth is chrome.
 
-## 5. Components
+## 5. Motion
+
+Motion is feedback: something arrived, something left, a gesture was recognised. It is never decoration. Every duration and curve reads from `DesignTokens`, and every movement yields to the platform's reduced-motion setting.
+
+### Tokens
+
+| Token | Value | Used for |
+| --- | --- | --- |
+| `durationFast` | 150 ms | A state change on a control already on screen: the sheet tab underline, the pin dots |
+| `durationNormal` | 300 ms | Arrivals and departures: the search panel slide, sheet snapping, a viewer page step, overlay chrome |
+| `durationSlow` | 500 ms | A deliberate long travel: the back-to-top scroll |
+| `curveStandard` | easeOutCubic | Arrivals, page and sheet travel |
+| `curveDecelerate` | easeOut | A content swap inside a fixed frame (the media switcher) |
+| `curveAccelerate` | easeIn | Departures — the reverse leg of an entrance |
+
+### Shared Vocabulary
+
+- **SlideFadeVisibility**: the one entrance/exit for overlay chrome (the viewer's app bar and toolbox, the selection bar swap). It slides on the standard curve and fades over a short fixed window; under reduced motion the slide collapses and only the fade remains
+- **Hero**: the timeline thumbnail becomes the viewer artwork as a shared element, not a crossfade between two copies of the image
+- **Staggered grid + shimmer**: the grid's varied layout is its own entrance; shimmer placeholders hold the shape until the first page lands
+- **Zoom**: double-tap zoom runs on one controller with a retargetable tween slot; a reset reuses the same controller, so an interrupted zoom never leaves a second animation running behind it
+- **Slideshow**: steps pages at the reader's interval (3–15 s) with the same page-step motion as a manual swipe, and stops whenever the viewer is covered
+
+### Named Rules
+
+**The Token Rule.** Durations and curves come from `DesignTokens`, never from per-widget literals. A widget that invents its own 200 ms easeInOut is a second motion language that has to be retuned everywhere the tokens change.
+
+**The Reduced Motion Rule.** Every user-visible movement reads `context.motionDuration(...)`, which collapses to zero when the platform's *Remove animations* is on; an opacity fade may keep a short explicit duration, because a fade still communicates the state change without moving the view. Zero is not a legal duration everywhere, and the exceptions are part of the contract:
+
+- `AnimationController` accepts zero (it jumps and fires its status) — safe to hand a collapsed duration.
+- `ScrollController.animateTo` and anything built on `DrivenScrollActivity` assert a positive duration — reduced motion must `jumpTo` / `jumpToPage` instead. `Scrollable.ensureVisible` guards zero itself.
+- `DraggableScrollableSheet.snapAnimationDuration` asserts positive — reduced motion passes `null` and lets the SDK's own fast snap take over, never `Duration.zero`.
+
+**The Ownership Rule.** A controller belongs to the state object that owns the animation's lifecycle: created once (`late final`, `useAnimationController`), disposed there, never constructed in `build`. A `CurvedAnimation` wrapper attaches a status listener and is disposed with its owner; a listener is registered once in an effect and removed in its cleanup. A hook-owned notifier is dead after unmount — no continuation may write to it.
+
+**The Interruption Rule.** A canceled or disposed ticker's future never completes: code after `await controller.forward()` simply never runs when the animation is interrupted, and whatever it was meant to release leaks. An interruptible animation therefore shares one controller and retargets a tween instead of starting a second animation, and any continuation that must run after an await checks `mounted` / disposed first — disposal completes a scroll animation's future, landing the continuation after its owner is gone.
+
+**The One Step Rule.** A page step is one animation at a time: a second request while a step is in flight is dropped, not stacked. Stacking cancels the first step, whose completion then clears the animating flag while the second is still travelling.
+
+**The Covered Route Rule.** A non-opaque route (a dialog, a sheet) does not mute the covered page's tickers, so "still animating" is not "still visible". The viewer asks `useRouteVisible` through the app-wide route observer, and a running slideshow stops when any route covers it — resuming is a deliberate tap, never an automatic restart.
+
+**The Inert While Invisible Rule.** An element at zero opacity during an entrance or exit takes no pointers and exposes no semantics until it begins to appear. An invisible menu row that can still be tapped is a hidden control.
+
+## 6. Components
 
 ### Section Block
 The one primitive shared by the drawer, the settings pages, and the server pages.
@@ -359,7 +402,7 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Progress**: Linear progress indicator with percentage label
 - **States**: Pending, downloading, paused, completed, failed
 
-## 6. Do's and Don'ts
+## 7. Do's and Don'ts
 
 ### Do:
 - **Do** use `ColorScheme` tokens for all colors; never hard-code hex values
@@ -368,6 +411,8 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Do** let the staggered grid handle visual interest; varied aspect ratios are the texture
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
 - **Do** use curved transitions (easeOutCubic) for sheet expansion and page navigation
+- **Do** route every duration through `context.motionDuration` and every curve through `DesignTokens`; reduced motion is a platform setting, not an app toggle
+- **Do** jump instead of animating when reduced motion collapses a duration to zero on a scroll API (`jumpTo`, `jumpToPage`, or a `null` snap duration)
 - **Do** group related chrome rows into a section block with a small-caps label instead of scattering them as standalone cards
 - **Do** pick one of the four elevation rungs for anything that sits above the page, and take the tone step and the shadow together
 
@@ -378,6 +423,10 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions); deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens; the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations; motion serves feedback (loading, transitions), not delight for its own sake
+- **Don't** pass `Duration.zero` to `ScrollController.animateTo` or a sheet's `snapAnimationDuration`; both assert a positive duration, so reduced motion jumps or passes `null` instead (see the Reduced Motion Rule)
+- **Don't** await `controller.forward()` / `reverse()` and then touch state without a mounted / disposed check; a canceled ticker's future never completes, and a disposed scroll animation's future completes after its owner is gone
+- **Don't** construct an `AnimationController` or `CurvedAnimation` in `build`, or leave one undisposed; a curve wrapper carries a status listener too
+- **Don't** let a slideshow or other repeating motion keep running under a covering route; a non-opaque route does not mute tickers, so stop on cover and resume on a deliberate tap
 - **Don't** nest a filled, elevated, or bordered card inside a section block; the block owns the only surface, and rows stay flat inside it
 - **Don't** invent a second label or row style per screen; the section label, row title, and supporting text come from the shared scale
 - **Don't** give a block a shadow or a shadowed surface a second tone step; one rung per surface
