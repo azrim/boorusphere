@@ -1,3 +1,4 @@
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
 import 'package:flutter/widgets.dart';
 
@@ -38,7 +39,7 @@ class SlideFadeVisibility extends StatelessWidget {
 
     return RepaintBoundary(
       child: AnimatedSlide(
-        curve: Curves.easeInCubic,
+        curve: DesignTokens.curveStandard,
         duration: reduced ? Duration.zero : duration,
         offset: visible ? Offset.zero : endOffset,
         child: AnimatedOpacity(

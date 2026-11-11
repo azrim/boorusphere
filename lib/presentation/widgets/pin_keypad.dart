@@ -173,7 +173,7 @@ class PinDots extends StatelessWidget {
         for (var i = 0; i < maxLength; i++) ...[
           if (i > 0) const SizedBox(width: _kDotGap),
           AnimatedContainer(
-            duration: DesignTokens.durationFast,
+            duration: context.motionDuration(DesignTokens.durationFast),
             curve: DesignTokens.curveStandard,
             width: _kDotSize,
             height: _kDotSize,

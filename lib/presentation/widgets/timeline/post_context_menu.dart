@@ -365,11 +365,19 @@ class _MenuRowTile extends StatelessWidget {
       animation: animation,
       builder: (context, child) {
         final t = _clamp01(animation.value);
-        return Opacity(
-          opacity: t,
-          child: Transform.translate(
-            offset: Offset(0, 6 * (1 - t)),
-            child: Transform.scale(scale: 0.97 + 0.03 * t, child: child),
+        // A row whose entrance has not started is invisible; an invisible
+        // control must not answer a tap or read out to a screen reader.
+        return IgnorePointer(
+          ignoring: t == 0,
+          child: ExcludeSemantics(
+            excluding: t == 0,
+            child: Opacity(
+              opacity: t,
+              child: Transform.translate(
+                offset: Offset(0, 6 * (1 - t)),
+                child: Transform.scale(scale: 0.97 + 0.03 * t, child: child),
+              ),
+            ),
           ),
         );
       },
