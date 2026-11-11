@@ -13,6 +13,16 @@ Future<T?> showSheet<T>({
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    // A sheet arrives from the edge it is pinned to and leaves the same way,
+    // faster than it came. Reduced motion takes the travel to zero, which is
+    // all this transition has: the framework moves the sheet by laying it out,
+    // so there is no opacity leg to keep.
+    sheetAnimationStyle: AnimationStyle(
+      duration: context.motionDuration(DesignTokens.durationNormal),
+      reverseDuration: context.motionDuration(DesignTokens.durationFast),
+      curve: DesignTokens.curveStandard,
+      reverseCurve: DesignTokens.curveAccelerate,
+    ),
     builder: builder,
   );
 }

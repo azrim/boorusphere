@@ -60,7 +60,11 @@ Future<PostContextMenuAction?> showPostContextMenu(
     barrierDismissible: true,
     barrierColor: Colors.transparent,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-    transitionDuration: context.motionDuration(DesignTokens.durationNormal),
+    // Reduced motion keeps the route's fade at the short window and drops the
+    // travel and the stagger below, so the menu still reads as arriving.
+    transitionDuration: context.reducedMotion
+        ? DesignTokens.durationFade
+        : DesignTokens.durationNormal,
     pageBuilder: (context, animation, secondaryAnimation) {
       return _ContextMenuView(
         animation: animation,
@@ -110,6 +114,10 @@ class _ContextMenuViewState extends State<_ContextMenuView> {
 
   @override
   Widget build(BuildContext context) {
+    final travel = context.reducedMotion
+        ? 0.0
+        : DesignTokens.motionChromeTravel;
+
     return Stack(
       children: [
         Positioned.fill(
@@ -129,7 +137,7 @@ class _ContextMenuViewState extends State<_ContextMenuView> {
                 // route, which fades the backdrop and the card together, so
                 // the blur cannot arrive after the menu it belongs to.
                 return Transform.translate(
-                  offset: Offset(0, 8 * (1 - t)),
+                  offset: Offset(0, travel * (1 - t)),
                   child: child,
                 );
               },
@@ -330,7 +338,7 @@ class _MenuCardState extends State<_MenuCard> {
     final end = math.min(start + 0.5, 1.0);
     return CurvedAnimation(
       parent: widget.animation,
-      curve: Interval(start, end, curve: Curves.easeOutCubic),
+      curve: Interval(start, end, curve: DesignTokens.curveStandard),
     );
   }
 }
@@ -361,10 +369,16 @@ class _MenuRowTile extends StatelessWidget {
         ? scheme.onSecondaryContainer
         : scheme.onSurface.withValues(alpha: 0.38);
 
+    // Reduced motion takes the whole stagger away: the rows are already there
+    // when the card fades in, so nothing here listens to the route.
+    final entrance = context.reducedMotion
+        ? kAlwaysCompleteAnimation
+        : animation;
+
     return AnimatedBuilder(
-      animation: animation,
+      animation: entrance,
       builder: (context, child) {
-        final t = _clamp01(animation.value);
+        final t = _clamp01(entrance.value);
         // A row whose entrance has not started is invisible; an invisible
         // control must not answer a tap or read out to a screen reader.
         return IgnorePointer(
@@ -374,7 +388,7 @@ class _MenuRowTile extends StatelessWidget {
             child: Opacity(
               opacity: t,
               child: Transform.translate(
-                offset: Offset(0, 6 * (1 - t)),
+                offset: Offset(0, DesignTokens.motionChromeTravel * (1 - t)),
                 child: Transform.scale(scale: 0.97 + 0.03 * t, child: child),
               ),
             ),
