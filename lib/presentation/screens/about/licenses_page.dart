@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:boorusphere/presentation/i18n/strings.g.dart';
-import 'package:boorusphere/presentation/routes/slide_page_route.dart';
+import 'package:boorusphere/presentation/routes/app_page_route.dart';
 import 'package:boorusphere/presentation/theme/app_typography.dart';
 import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/extensions/buildcontext.dart';
@@ -237,7 +237,7 @@ class PackageLicenses extends StatelessWidget {
     required Iterable<LicenseEntry> packageLicenses,
   }) {
     context.navigator.push(
-      SlidePageRoute(
+      AppPageRoute(
         builder: (context) => PackageLicenses(
           packageName: packageName,
           packageLicenses: packageLicenses,

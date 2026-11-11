@@ -6,8 +6,8 @@ import 'package:boorusphere/presentation/i18n/strings.g.dart';
 import 'package:boorusphere/presentation/provider/app_lock/app_lock_state.dart';
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
+import 'package:boorusphere/presentation/routes/app_page_route.dart';
 import 'package:boorusphere/presentation/routes/route_visibility.dart';
-import 'package:boorusphere/presentation/routes/slide_page_route.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
 import 'package:boorusphere/presentation/screens/post/post_details_sheet.dart';
@@ -61,9 +61,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
     // Capture the container before pushing the route
     final container = ProviderScope.containerOf(context);
     context.navigator.push(
-      SlidePageRoute(
+      AppPageRoute(
         opaque: false,
-        type: SlidePageType.close,
+        motion: AppPageMotion.shared,
         builder: (context) {
           return UncontrolledProviderScope(
             container: container,

@@ -19,6 +19,7 @@ import 'package:boorusphere/presentation/provider/server_data_state.dart';
 import 'package:boorusphere/presentation/provider/settings/ui_setting_state.dart';
 import 'package:boorusphere/presentation/routes/app_route_observer.dart';
 import 'package:boorusphere/presentation/routes/app_router.dart';
+import 'package:boorusphere/presentation/routes/predictive_back_scope.dart';
 import 'package:boorusphere/presentation/routes/route_visibility.dart';
 import 'package:boorusphere/presentation/screens/app_lock/app_lock_screen.dart';
 import 'package:boorusphere/presentation/widgets/app_theme_builder.dart';
@@ -306,20 +307,27 @@ class Boorusphere extends HookConsumerWidget {
           //
           // The cover paints over every pixel; the tree beneath it is neither
           // reachable by touch nor read by a screen reader while it is up.
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: ExcludeSemantics(
-                  excluding: appLock.isLocked,
-                  child: IgnorePointer(
-                    ignoring: appLock.isLocked,
-                    child: content,
+          //
+          // Back is the one input the cover cannot block by painting: the
+          // predictive gesture arrives on the binding, above the dispatcher
+          // below, so the gate is published to the routes as well.
+          return BackGate(
+            allowed: !appLock.isLocked,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ExcludeSemantics(
+                    excluding: appLock.isLocked,
+                    child: IgnorePointer(
+                      ignoring: appLock.isLocked,
+                      child: content,
+                    ),
                   ),
                 ),
-              ),
-              if (appLock.isLocked)
-                const Positioned.fill(child: AppLockScreen()),
-            ],
+                if (appLock.isLocked)
+                  const Positioned.fill(child: AppLockScreen()),
+              ],
+            ),
           );
         },
       ),
@@ -352,6 +360,9 @@ class _BootScreen extends StatelessWidget {
 /// the app builder sits above the Router, so a [BackButtonListener] there has
 /// no [Router] to register with. Reading the state when the press arrives, not
 /// when the dispatcher is built, keeps a stale closure from answering.
+///
+/// This answers the button and any gesture no route accepted. A gesture a
+/// route did accept never reaches here, so [BackGate] closes that path too.
 class _LockAwareBackButtonDispatcher extends RootBackButtonDispatcher {
   _LockAwareBackButtonDispatcher({required this.isLocked});
 

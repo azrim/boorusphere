@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:boorusphere/presentation/routes/app_page_route.dart';
 import 'package:boorusphere/presentation/routes/app_router.gr.dart';
-import 'package:boorusphere/presentation/routes/slide_page_route.dart';
 import 'package:flutter/widgets.dart';
 
 @AutoRouterConfig()
@@ -10,7 +10,7 @@ class AppRouter extends RootStackRouter {
     Widget child,
     RouteSettings? settings,
   ) {
-    return SlidePageRoute(settings: settings, builder: (context) => child);
+    return AppPageRoute(settings: settings, builder: (context) => child);
   }
 
   static PageRoute<T> _homeRouteBuilder<T>(
@@ -18,10 +18,10 @@ class AppRouter extends RootStackRouter {
     Widget child,
     RouteSettings? settings,
   ) {
-    return SlidePageRoute(
+    return AppPageRoute(
       settings: settings,
       builder: (context) => child,
-      type: SlidePageType.close,
+      motion: AppPageMotion.root,
     );
   }
 
