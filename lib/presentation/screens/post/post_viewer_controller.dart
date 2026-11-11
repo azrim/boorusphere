@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:boorusphere/presentation/theme/design_tokens.dart';
 import 'package:boorusphere/presentation/utils/gestures/swipe_mode.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -79,6 +80,11 @@ class PostViewerController extends ValueNotifier<PostViewerState> {
   final PageController _pageController;
   PageController get pageController => _pageController;
 
+  /// Set once [dispose] runs. A page animation interrupted by the viewer
+  /// closing completes its future during disposal, and the continuation must
+  /// not write state into a notifier that is already gone.
+  bool _disposed = false;
+
   late final ValueListenable<int> pageListenable = _Selected<int>(
     this,
     (s) => s.page,
@@ -128,53 +134,58 @@ class PostViewerController extends ValueNotifier<PostViewerState> {
     value = value.copyWith(forceHideOverlay: false);
   }
 
-  Future<void> nextPage({Duration? duration}) async {
-    if (isLastPage) return;
-    value = value.copyWith(animating: true);
-    try {
-      await _pageController.nextPage(
-        duration: duration ?? const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } finally {
-      value = value.copyWith(animating: false);
-    }
+  Future<void> nextPage({Duration? duration}) {
+    return _animateTo(page + 1, duration);
   }
 
-  Future<void> previousPage({Duration? duration}) async {
-    if (isFirstPage) return;
-    value = value.copyWith(animating: true);
-    try {
-      await _pageController.previousPage(
-        duration: duration ?? const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } finally {
-      value = value.copyWith(animating: false);
-    }
+  Future<void> previousPage({Duration? duration}) {
+    return _animateTo(page - 1, duration);
   }
 
-  Future<void> animateToPage(int page, {Duration? duration}) async {
-    if (page < 0 || page >= totalPages) return;
+  Future<void> animateToPage(int page, {Duration? duration}) {
+    return _animateTo(page, duration);
+  }
+
+  /// One step at a time. A second request while a step is in flight is
+  /// dropped: starting it would cancel the first animation, whose completion
+  /// then clears [PostViewerState.animating] while the second is still
+  /// travelling, and the swipe guard would read false mid-move. Volume keys
+  /// and the navigation buttons both come through here, so neither can stack
+  /// steps any more.
+  Future<void> _animateTo(int target, Duration? duration) async {
+    if (_disposed || value.animating) return;
+    if (target < 0 || target >= totalPages || target == page) return;
+
+    final effective = duration ?? const Duration(milliseconds: 300);
+    // Reduced motion collapses the duration to zero; the scroll activity a
+    // zero would create asserts a positive one, so jump instead.
+    if (effective == Duration.zero) {
+      jumpToPage(target);
+      return;
+    }
+
     value = value.copyWith(animating: true);
     try {
       await _pageController.animateToPage(
-        page,
-        duration: duration ?? const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        target,
+        duration: effective,
+        curve: DesignTokens.curveStandard,
       );
     } finally {
-      value = value.copyWith(animating: false);
+      // The viewer can pop mid-step: disposal completes the animation's
+      // future, and this continuation lands after the notifier is gone.
+      if (!_disposed) value = value.copyWith(animating: false);
     }
   }
 
   void jumpToPage(int page) {
-    if (page < 0 || page >= totalPages) return;
+    if (_disposed || page < 0 || page >= totalPages) return;
     _pageController.jumpToPage(page);
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _pageController.dispose();
     super.dispose();
   }

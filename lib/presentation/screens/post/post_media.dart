@@ -177,6 +177,10 @@ class _PostImage extends HookConsumerWidget {
     final zoomAnimator = useAnimationController(
       duration: context.motionDuration(DesignTokens.durationFast),
     );
+    // The zoom currently travelling, if any. One slot shared by every zoom
+    // request: a second request replaces the tween instead of stacking a
+    // second listener on the animator.
+    final zoomTween = useRef<Matrix4Tween?>(null);
     final wasZoomed = useRef(false);
     // Zoom is a threshold, not a continuous value. The transform controller
     // notifies on every frame of a pinch or pan, while the gesture surface only
@@ -219,13 +223,30 @@ class _PostImage extends HookConsumerWidget {
 
     useEffect(() => zoomedNotifier.dispose, [zoomedNotifier]);
 
+    // One listener owns the transform for every zoom animation. A listener
+    // registered per animation used to outlive its animation when a second
+    // request interrupted the first: the interrupted `await forward()` never
+    // completes (a canceled ticker future does not resolve), so its cleanup
+    // never ran and the stale tween kept writing on every later zoom.
+    useEffect(() {
+      void onTick() {
+        final tween = zoomTween.value;
+        if (tween != null) {
+          transformController.value = tween.evaluate(zoomAnimator);
+        }
+      }
+
+      zoomAnimator.addListener(onTick);
+      return () => zoomAnimator.removeListener(onTick);
+    }, [zoomAnimator, transformController]);
+
     // Back while zoomed returns the image to fit-to-screen instead of
     // leaving the viewer, matching the platform photo-viewer model.
     final resetSignal = zoomResetSignal;
     useEffect(() {
       if (resetSignal == null) return null;
 
-      Future<void> resetZoom() async {
+      void resetZoom() {
         final current = transformController.value.clone();
         if (current.getMaxScaleOnAxis() <= 1.01) {
           // The viewer-side claim can outlive this page's transform: a page
@@ -237,19 +258,11 @@ class _PostImage extends HookConsumerWidget {
           return;
         }
 
-        final animation = Matrix4Tween(
-          begin: current,
-          end: Matrix4.identity(),
-        ).animate(zoomAnimator);
-
-        void onAnimating() => transformController.value = animation.value;
-
-        if (zoomAnimator.isCompleted) {
-          zoomAnimator.reset();
-        }
-        animation.addListener(onAnimating);
-        await zoomAnimator.forward();
-        animation.removeListener(onAnimating);
+        // Replacing the slot mid-animation is safe: the tick reads whichever
+        // tween is current, so Back during a double-tap zoom turns the image
+        // around from where it is instead of stacking a second animation.
+        zoomTween.value = Matrix4Tween(begin: current, end: Matrix4.identity());
+        zoomAnimator.forward(from: 0);
       }
 
       resetSignal.addListener(resetZoom);
@@ -296,7 +309,7 @@ class _PostImage extends HookConsumerWidget {
       return () => stallTimer.value?.cancel();
     }, [imageUrl]);
 
-    Future<void> handleDoubleTap() async {
+    void handleDoubleTap() {
       if (zoomAnimator.isAnimating) {
         return;
       }
@@ -312,19 +325,8 @@ class _PostImage extends HookConsumerWidget {
               ..scaleByDouble(targetScale, targetScale, targetScale, 1)
               ..translateByDouble(-tap.dx, -tap.dy, 0, 1));
 
-      final tween = Matrix4Tween(begin: current, end: target);
-      final animation = tween.animate(zoomAnimator);
-
-      void onAnimating() {
-        transformController.value = animation.value;
-      }
-
-      if (zoomAnimator.isCompleted) {
-        zoomAnimator.reset();
-      }
-      animation.addListener(onAnimating);
-      await zoomAnimator.forward();
-      animation.removeListener(onAnimating);
+      zoomTween.value = Matrix4Tween(begin: current, end: target);
+      zoomAnimator.forward(from: 0);
     }
 
     // Pinch-to-zoom precedence over PageView's horizontal swipe.
@@ -867,9 +869,6 @@ class _PostVideoContent extends HookConsumerWidget {
         contentSettings.blurExplicit && !contentSettings.blurTimelineOnly;
     final shouldBlur = post.rating.isExplicit && shouldBlurExplicit;
     final isBlur = useState(shouldBlur);
-    final blurNoticeAnimator = useAnimationController(
-      duration: kThemeChangeDuration,
-    );
     final showOverlay = useState(true);
     // don't show pause button on initial load
     final showPauseOverlay = useState(false);
@@ -984,14 +983,6 @@ class _PostVideoContent extends HookConsumerWidget {
         );
       }
     }
-
-    useEffect(() {
-      Future(() {
-        if (context.mounted && shouldBlur) {
-          blurNoticeAnimator.forward();
-        }
-      });
-    }, []);
 
     // A platform video surface keeps playing on its own when the Flutter tree
     // above it is covered, so a related timeline pushed over the viewer used

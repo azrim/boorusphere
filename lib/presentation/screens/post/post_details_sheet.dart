@@ -561,9 +561,12 @@ class _PostDetailsSheetState extends ConsumerState<PostDetailsSheet>
       maxChildSize: _kMaxSheetSize,
       snapSizes: _snapSizes,
       snap: true,
-      snapAnimationDuration: context.motionDuration(
-        DesignTokens.durationNormal,
-      ),
+      // The sheet refuses a zero snap duration (its constructor asserts), so
+      // reduced motion passes null: the SDK's own fast snap takes over instead
+      // of a timed travel. motionDuration would hand it Duration.zero here.
+      snapAnimationDuration: context.reducedMotion
+          ? null
+          : DesignTokens.durationNormal,
       builder: (context, scrollController) {
         _scroll = scrollController;
 

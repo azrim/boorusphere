@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:boorusphere/data/provider.dart';
@@ -18,6 +19,7 @@ import 'package:boorusphere/presentation/provider/app_lock/entity/app_lock_data.
 import 'package:boorusphere/presentation/provider/fullscreen_state.dart';
 import 'package:boorusphere/presentation/provider/settings/content_setting_state.dart';
 import 'package:boorusphere/presentation/provider/settings/entity/content_setting.dart';
+import 'package:boorusphere/presentation/routes/route_visibility.dart';
 import 'package:boorusphere/presentation/screens/post/enhanced_post_viewer.dart';
 import 'package:boorusphere/presentation/screens/post/post_media.dart';
 // The cache manager exposes its own `DownloadProgress`; this test wants the
@@ -191,7 +193,16 @@ void main() {
     ValueChanged<bool>? onZoomChanged,
     Listenable? zoomResetSignal,
     bool viewer = false,
+    bool reducedMotion = false,
+    List<NavigatorObserver> navigatorObservers = const [],
   }) {
+    final body = viewer
+        ? EnhancedPostViewer(initial: 0, posts: [post, unknownPost])
+        : PostMedia(
+            post: post,
+            onZoomChanged: onZoomChanged,
+            zoomResetSignal: zoomResetSignal,
+          );
     return ProviderScope(
       overrides: [
         appLockProvider.overrideWith(_FakeAppLock.new),
@@ -204,18 +215,18 @@ void main() {
       ],
       child: TranslationProvider(
         child: MaterialApp(
+          navigatorObservers: navigatorObservers,
           // Without an active HeroMode the video surface never becomes
           // "active" and its download stream is never requested.
           home: HeroMode(
             enabled: true,
-            child: Scaffold(
-              body: viewer
-                  ? EnhancedPostViewer(initial: 0, posts: [post, unknownPost])
-                  : PostMedia(
-                      post: post,
-                      onZoomChanged: onZoomChanged,
-                      zoomResetSignal: zoomResetSignal,
-                    ),
+            child: Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(disableAnimations: reducedMotion),
+                child: Scaffold(body: body),
+              ),
             ),
           ),
         ),
@@ -366,5 +377,106 @@ void main() {
 
     // Drain the overlay auto-hide timer so no timers outlive the test.
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets(
+    'reduced motion opens the viewer and steps the slideshow by jump',
+    (tester) async {
+      await tester.pumpWidget(
+        harness(imagePost, viewer: true, reducedMotion: true),
+      );
+      await tester.pump();
+      // The details sheet is built with the viewer: a zero snap duration
+      // asserts in the DraggableScrollableSheet constructor before anything
+      // else runs.
+      expect(tester.takeException(), isNull);
+
+      final page = tester.widget<PageView>(find.byType(PageView)).controller!;
+      await tester.tap(find.byTooltip(t.viewer.startSlideshow));
+      await tester.pump();
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+      // The default interval is 6 s. The step must jump: a zero-duration
+      // animateToPage asserts in the scroll activity it would create.
+      await tester.pump(const Duration(seconds: 7));
+      expect(page.page, 1);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byTooltip(t.viewer.stopSlideshow));
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('Back mid-double-tap turns the zoom around', (tester) async {
+    // The viewer's PageView gives the image tight bounds; the standalone
+    // surface collapses to the (never-loading) placeholder's zero size.
+    await tester.pumpWidget(harness(imagePost, viewer: true));
+    await tester.pump();
+
+    final center = tester.getCenter(find.byType(InteractiveViewer));
+    await tester.tapAt(center);
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.tapAt(center);
+    await tester.pump();
+    // Mid-flight in the 150 ms double-tap zoom.
+    await tester.pump(const Duration(milliseconds: 60));
+
+    final transform = tester
+        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+        .transformationController!;
+    expect(transform.value.getMaxScaleOnAxis(), greaterThan(1.01));
+
+    // Back while the zoom is still travelling: the viewer resets the zoom
+    // instead of popping, retargeting the same animation from where the
+    // image is rather than stacking a second one.
+    final navigator = tester.state<NavigatorState>(
+      find.byType(Navigator).first,
+    );
+    unawaited(navigator.maybePop());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(transform.value.getMaxScaleOnAxis(), 1.0);
+    expect(find.byType(EnhancedPostViewer), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('a covering route stops the slideshow for good', (tester) async {
+    await tester.pumpWidget(
+      harness(imagePost, viewer: true, navigatorObservers: [appRouteObserver]),
+    );
+    await tester.pump();
+    final page = tester.widget<PageView>(find.byType(PageView)).controller!;
+    await tester.tap(find.byTooltip(t.viewer.startSlideshow));
+    await tester.pump();
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    // A non-opaque route does not mute the viewer's tickers; the route
+    // observer is what tells it to let go.
+    final navigator = Navigator.of(
+      tester.element(find.byType(EnhancedPostViewer)),
+    );
+    unawaited(
+      navigator.push(
+        PageRouteBuilder<void>(
+          opaque: false,
+          pageBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 7));
+    expect(page.page, 0);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+
+    // Uncovering does not resume on its own: playing again is a tap.
+    navigator.pop();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 7));
+    expect(page.page, 0);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 }

@@ -176,11 +176,18 @@ class EnhancedPostViewer extends HookConsumerWidget {
       slideshowTarget.value = next;
       slideshowAdvanceInFlight.value = true;
       try {
-        await controller.animateToPage(next);
+        await controller.animateToPage(
+          next,
+          duration: context.motionDuration(DesignTokens.durationNormal),
+        );
       } finally {
         slideshowAdvanceInFlight.value = false;
       }
 
+      // The viewer can close while the step is in flight: disposal completes
+      // the animation's future, and this continuation lands after the hook
+      // that owns the timer is gone. Nothing below may touch it then.
+      if (!context.mounted) return;
       if (!slideshowPlaying.value) return;
       if (isVideoPage(next)) {
         slideshowTarget.value = null;
@@ -324,6 +331,15 @@ class EnhancedPostViewer extends HookConsumerWidget {
       return null;
     }, [locked]);
 
+    // A non-opaque route over the viewer (the download dialog, a choice
+    // sheet) does not mute its tickers either: a running show would keep
+    // stepping pages under the very dialog that was opened from one of them.
+    // Stop for good, like the lock cover does; resuming is a deliberate tap.
+    useEffect(() {
+      if (!routeVisible) stopSlideshow();
+      return null;
+    }, [routeVisible]);
+
     final volumeKeysActive =
         volumeKeyNavigation && !sheetExpanded.value && routeVisible && !locked;
     // Capture follows the viewer, not the process. A covered page must not
@@ -348,9 +364,17 @@ class EnhancedPostViewer extends HookConsumerWidget {
             return;
           }
           if (direction == VolumeKeyDirection.up) {
-            unawaited(controller.nextPage());
+            unawaited(
+              controller.nextPage(
+                duration: context.motionDuration(DesignTokens.durationNormal),
+              ),
+            );
           } else {
-            unawaited(controller.previousPage());
+            unawaited(
+              controller.previousPage(
+                duration: context.motionDuration(DesignTokens.durationNormal),
+              ),
+            );
           }
         }),
       );
@@ -709,7 +733,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
               child: IconButton.filledTonal(
                 tooltip: context.t.pagination.next,
                 iconSize: 28,
-                onPressed: () => controller.nextPage(),
+                onPressed: () => controller.nextPage(
+                  duration: context.motionDuration(DesignTokens.durationNormal),
+                ),
                 icon: Icon(
                   isVerticalMode
                       ? Icons.keyboard_arrow_down
@@ -732,7 +758,9 @@ class EnhancedPostViewer extends HookConsumerWidget {
               child: IconButton.filledTonal(
                 tooltip: context.t.pagination.previous,
                 iconSize: 28,
-                onPressed: () => controller.previousPage(),
+                onPressed: () => controller.previousPage(
+                  duration: context.motionDuration(DesignTokens.durationNormal),
+                ),
                 icon: Icon(
                   isVerticalMode
                       ? Icons.keyboard_arrow_up

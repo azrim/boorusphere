@@ -308,7 +308,12 @@ class PostDownloadButton extends HookConsumerWidget {
                       showToast(context, context.t.downloads.failedToStart);
                     }
                   } finally {
-                    pending.value = false;
+                    // The dialog does not mute the viewer behind it: a
+                    // slideshow step can change the page while it is open,
+                    // and this button dies with its page. The notifier is
+                    // disposed then, so only a still-mounted button clears
+                    // its own pending state.
+                    if (context.mounted) pending.value = false;
                   }
                 },
           // A control that ignores the tap must not wear the accent that
