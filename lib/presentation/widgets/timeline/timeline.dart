@@ -285,6 +285,11 @@ class _ThumbnailCard extends HookConsumerWidget {
     final isSelected = ref.watch(
       postSelectionProvider.select((sel) => sel.contains(post.id)),
     );
+    // The ring and the corner check are opacity changes, never movement, so
+    // reduced motion keeps them at the short fade instead of dropping them.
+    final overlayFade = context.reducedMotion
+        ? DesignTokens.durationFade
+        : DesignTokens.durationFast;
 
     void handleTap() {
       if (enableSelection && ref.read(postSelectionProvider).isNotEmpty) {
@@ -327,121 +332,175 @@ class _ThumbnailCard extends HookConsumerWidget {
             onTap: handleTap,
             onLongPressStart: (details) =>
                 handleLongPress(details.globalPosition),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(DesignTokens.radiusMd),
-              ),
-              // Painted over the image rather than as a decoration border: a
-              // border is part of the box's padding, so drawing it that way
-              // would inset the thumbnail and make a selected tile jump.
-              foregroundDecoration: isSelected
-                  ? BoxDecoration(
+            child: AnimatedScale(
+              // Picking a tile settles it back inside its own slot: the reader
+              // is taking hold of an object, not sticking a badge on a
+              // picture. Transform only, so the grid never re-lays out around
+              // a selection.
+              scale: isSelected ? DesignTokens.motionPickScale : 1.0,
+              duration: context.motionDuration(DesignTokens.durationFast),
+              curve: DesignTokens.curveStandard,
+              // Passthrough keeps the grid slot's tight constraints, so the
+              // ring can be a sibling of the clipped thumbnail without
+              // changing the tile's size.
+              child: Stack(
+                fit: StackFit.passthrough,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(
                         DesignTokens.radiusMd,
                       ),
-                      border: Border.all(
-                        color: context.theme.colorScheme.primary,
-                        width: _kSelectionBorderWidth,
-                      ),
-                    )
-                  : null,
-              clipBehavior: Clip.hardEdge,
-              child: Stack(
-                children: [
-                  Hero(
-                    tag: post.viewId,
-                    flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
-                    child: _ThumbnailImage(
-                      post: post,
-                      blurExplicit: blurExplicit,
-                      cacheBaseWidth: cacheBaseWidth,
                     ),
-                  ),
-                  // Neutral gradients keep the overlay labels legible on any image.
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 44 * overlayScale,
-                    child: const IgnorePointer(child: _OverlayScrim(top: true)),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 64 * overlayScale,
-                    child: const IgnorePointer(
-                      child: _OverlayScrim(top: false),
-                    ),
-                  ),
-                  // Top-left: score + rating badge. Replaced by the selection
-                  // checkbox while the card is selected.
-                  if (!isSelected)
-                    Positioned(
-                      top: DesignTokens.spacingXs,
-                      left: DesignTokens.spacingXs,
-                      right: DesignTokens.spacingXs,
-                      child: IgnorePointer(
-                        child: _ScoreRatingOverlay(
-                          post: post,
-                          scale: overlayScale,
-                        ),
-                      ),
-                    ),
-                  // Top-right: media file type (PNG / JPG / GIF / MP4 / WEBP).
-                  Positioned(
-                    top: DesignTokens.spacingXs,
-                    right: DesignTokens.spacingXs,
-                    child: IgnorePointer(
-                      child: _MediaTypeLabel(post: post, scale: overlayScale),
-                    ),
-                  ),
-                  // Bottom: tag chip pinned left, dimensions pinned right.
-                  Positioned(
-                    left: DesignTokens.spacingXs,
-                    right: DesignTokens.spacingXs,
-                    bottom: DesignTokens.spacingXs,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    clipBehavior: Clip.hardEdge,
+                    child: Stack(
                       children: [
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.bottomLeft,
-                            child: _TagChip(post: post, scale: overlayScale),
+                        Hero(
+                          tag: post.viewId,
+                          curve: DesignTokens.curveStandard,
+                          flightShuttleBuilder: _thumbnailHeroShuttleBuilder,
+                          child: _ThumbnailImage(
+                            post: post,
+                            blurExplicit: blurExplicit,
+                            cacheBaseWidth: cacheBaseWidth,
                           ),
                         ),
-                        const SizedBox(width: DesignTokens.spacingSm),
-                        Flexible(
-                          child: _DimensionsLabel(
-                            post: post,
-                            scale: overlayScale,
+                        // Neutral gradients keep the overlay labels legible on
+                        // any image.
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 44 * overlayScale,
+                          child: const IgnorePointer(
+                            child: _OverlayScrim(top: true),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: 64 * overlayScale,
+                          child: const IgnorePointer(
+                            child: _OverlayScrim(top: false),
+                          ),
+                        ),
+                        // Top-left: score + rating badge, handing its corner to
+                        // the selection check below.
+                        Positioned(
+                          top: DesignTokens.spacingXs,
+                          left: DesignTokens.spacingXs,
+                          right: DesignTokens.spacingXs,
+                          child: IgnorePointer(
+                            child: AnimatedOpacity(
+                              duration: overlayFade,
+                              curve: DesignTokens.curveStandard,
+                              opacity: isSelected ? 0 : 1,
+                              child: _ScoreRatingOverlay(
+                                post: post,
+                                scale: overlayScale,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Top-right: media file type (PNG / JPG / GIF / MP4 /
+                        // WEBP).
+                        Positioned(
+                          top: DesignTokens.spacingXs,
+                          right: DesignTokens.spacingXs,
+                          child: IgnorePointer(
+                            child: _MediaTypeLabel(
+                              post: post,
+                              scale: overlayScale,
+                            ),
+                          ),
+                        ),
+                        // Bottom: tag chip pinned left, dimensions pinned right.
+                        Positioned(
+                          left: DesignTokens.spacingXs,
+                          right: DesignTokens.spacingXs,
+                          bottom: DesignTokens.spacingXs,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.bottomLeft,
+                                  child: _TagChip(
+                                    post: post,
+                                    scale: overlayScale,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: DesignTokens.spacingSm),
+                              Flexible(
+                                child: _DimensionsLabel(
+                                  post: post,
+                                  scale: overlayScale,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Selection check. It takes the same corner inset as
+                        // the score it replaces, so the card does not shift
+                        // when the selection starts, and it stays mounted so
+                        // the two cross-fade instead of cutting.
+                        Positioned(
+                          top: DesignTokens.spacingXs,
+                          left: DesignTokens.spacingXs,
+                          child: IgnorePointer(
+                            child: AnimatedOpacity(
+                              duration: overlayFade,
+                              curve: DesignTokens.curveStandard,
+                              opacity: isSelected ? 1 : 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: context.theme.colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(
+                                  DesignTokens.spacingXs,
+                                ),
+                                child: Icon(
+                                  Icons.check,
+                                  // A curated palette can have a light primary,
+                                  // so the glyph comes from the scheme instead
+                                  // of being white.
+                                  color: context.theme.colorScheme.onPrimary,
+                                  size: DesignTokens.iconInline,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  // Selection checkbox overlay. It takes the same corner
-                  // inset as the score it replaces, so the card does not shift
-                  // when the selection starts.
-                  if (isSelected)
-                    Positioned(
-                      top: DesignTokens.spacingXs,
-                      left: DesignTokens.spacingXs,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: context.theme.colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        padding: const EdgeInsets.all(DesignTokens.spacingXs),
-                        child: Icon(
-                          Icons.check,
-                          // A curated palette can have a light primary, so the
-                          // glyph comes from the scheme instead of being white.
-                          color: context.theme.colorScheme.onPrimary,
-                          size: DesignTokens.iconInline,
+                  // The ring sits outside the clip: a border painted inside it
+                  // would lose half its width to the rounded corner. At zero
+                  // opacity it paints nothing, so an unselected tile carries
+                  // no border cost.
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        duration: overlayFade,
+                        curve: DesignTokens.curveStandard,
+                        opacity: isSelected ? 1 : 0,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              DesignTokens.radiusMd,
+                            ),
+                            border: Border.all(
+                              color: context.theme.colorScheme.primary,
+                              width: _kSelectionBorderWidth,
+                            ),
+                          ),
                         ),
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -826,7 +885,7 @@ class _ThumbnailImage extends ConsumerWidget {
         memCacheHeight: cacheHeight,
         maxWidthDiskCache: cacheWidth,
         maxHeightDiskCache: cacheHeight,
-        fadeInDuration: const Duration(milliseconds: 150),
+        fadeInDuration: DesignTokens.durationFast,
         placeholder: (context, _) => const _Placeholder(),
         errorWidget: (context, _, __) => const _Placeholder(isFailed: true),
         imageBuilder: shouldBlur
