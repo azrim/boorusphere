@@ -1,3 +1,13 @@
+## 3.1.11
+
+* **Reduced motion**: the details sheet, back-to-top, the viewer's page steps and the PIN dots honour the system's remove-animations setting — each lands by jump instead of a timed travel, and the sheet snap and back-to-top no longer break when animations are off
+* **Viewer**: Back pressed mid double-tap zoom turns the zoom around instead of leaving it stuck, a page step no longer overlaps another or writes after the viewer closes, the slideshow stops when another screen covers the viewer and stays stopped until a deliberate tap, and a download that finishes after the toolbox left no longer crashes
+* **Downloads**: a failed redownload keeps its record, progress reads correctly while a batch runs, storage is ready before the first transfer and files are rescanned the moment one completes, duplicate records reconcile into one, and state updates and listener events arrive in order
+* **Updater**: an update's APK is integrity-checked on completion, on restore and before install, so a corrupted download is caught before the installer sees it
+* **Boards**: e621 credentials travel as HTTP Basic instead of a query parameter, an unnamed server is signed with the dialect its URL proves, the preset picker lists only the bundled presets, a scanned server keeps its resolved origins and saves without a manual engine match, and the suggestion sniffers read structured entries so metatag completions stay on the right parser
+* **Privacy**: the Referer is derived from the request origin so query-string credentials are never forwarded across redirects, clearance cookies survive a retry without the WebView cookie crash, a stale or rejected clearance token no longer loops the challenge page, and origin matching tells multi-label domains and IP literals apart
+* **Feed and chrome**: the loop that skips fully filtered pages stops as soon as the session is disposed, an invisible context-menu row is no longer tappable or read by TalkBack, the slide-fade chrome moves on the standard curve with a short fade when motion is reduced, and DESIGN.md now carries the motion contract every animation follows
+
 ## 3.1.10
 
 * **Flat-first chrome**: day and night separate blocks, notices, the long-press hint, toasts, the context menu and tag chips by tone and shadow alone — their box outlines are gone, and a hairline is reserved for dividers, field underlines and state marks
