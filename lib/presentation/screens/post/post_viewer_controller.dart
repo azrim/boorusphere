@@ -156,7 +156,7 @@ class PostViewerController extends ValueNotifier<PostViewerState> {
     if (_disposed || value.animating) return;
     if (target < 0 || target >= totalPages || target == page) return;
 
-    final effective = duration ?? const Duration(milliseconds: 300);
+    final effective = duration ?? DesignTokens.durationNormal;
     // Reduced motion collapses the duration to zero; the scroll activity a
     // zero would create asserts a positive one, so jump instead.
     if (effective == Duration.zero) {

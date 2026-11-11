@@ -293,6 +293,9 @@ void main() {
       tester.element(find.byType(EnhancedPostViewer)),
     );
     final lock = container.read(appLockProvider.notifier) as _FakeAppLock;
+    // The chrome arrives once the surface has landed, so the controls are not
+    // on screen until the handover has run.
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(t.viewer.startSlideshow));
     await tester.pump();
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
@@ -449,6 +452,8 @@ void main() {
     );
     await tester.pump();
     final page = tester.widget<PageView>(find.byType(PageView)).controller!;
+    // The chrome arrives once the surface has landed.
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(t.viewer.startSlideshow));
     await tester.pump();
     expect(find.byType(LinearProgressIndicator), findsOneWidget);

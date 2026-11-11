@@ -385,6 +385,7 @@ class _PostImage extends HookConsumerWidget {
           children: [
             Hero(
               tag: post.viewId,
+              curve: DesignTokens.curveStandard,
               child: InteractiveViewer(
                 transformationController: transformController,
                 maxScale: scaleRatio * 5,
@@ -1118,6 +1119,7 @@ class _PostVideoContent extends HookConsumerWidget {
           Hero(
             key: ValueKey(post.viewId),
             tag: post.viewId,
+            curve: DesignTokens.curveStandard,
             child: Center(
               child: AspectRatio(
                 aspectRatio: post.aspectRatio,
@@ -1580,6 +1582,7 @@ class _PostUnknown extends ConsumerWidget {
       children: [
         Hero(
           tag: post.viewId,
+          curve: DesignTokens.curveStandard,
           child: PostPlaceholderImage(
             post: post,
             shouldBlur: shouldBlurExplicit && post.rating.isExplicit,

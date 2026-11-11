@@ -10,12 +10,14 @@ class SlideFadeVisibility extends StatelessWidget {
     required this.visible,
     required this.child,
     required this.direction,
-    this.duration = const Duration(milliseconds: 300),
+    this.duration = DesignTokens.durationNormal,
   });
 
   final bool visible;
   final Widget child;
   final HidingDirection direction;
+
+  /// How long the chrome takes to arrive. Leaving is always quicker.
   final Duration duration;
 
   Offset get endOffset {
@@ -37,13 +39,31 @@ class SlideFadeVisibility extends StatelessWidget {
     // still announces that it appeared or went away without moving.
     final reduced = context.reducedMotion;
 
+    // Chrome on its way out of the way should not hold the eye as long as
+    // chrome coming in to be used, so the two legs are not symmetric.
+    final leaving = !visible;
+    final travel = reduced
+        ? Duration.zero
+        : leaving
+        ? DesignTokens.durationFast
+        : duration;
+    final fade = reduced
+        ? DesignTokens.durationFade
+        : leaving
+        ? DesignTokens.durationFast
+        : duration;
+    final curve = leaving
+        ? DesignTokens.curveAccelerate
+        : DesignTokens.curveStandard;
+
     return RepaintBoundary(
       child: AnimatedSlide(
-        curve: DesignTokens.curveStandard,
-        duration: reduced ? Duration.zero : duration,
+        curve: curve,
+        duration: travel,
         offset: visible ? Offset.zero : endOffset,
         child: AnimatedOpacity(
-          duration: reduced ? const Duration(milliseconds: 120) : duration,
+          curve: curve,
+          duration: fade,
           opacity: visible ? 1 : 0,
           child: IgnorePointer(ignoring: !visible, child: child),
         ),

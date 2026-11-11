@@ -192,7 +192,7 @@ class PostFavoriteButton extends HookConsumerWidget {
     ref.watch(favoritePostStateProvider);
     final chrome = AppMediaChrome.of(context);
     final animator = useAnimationController(
-      duration: context.motionDuration(const Duration(milliseconds: 300)),
+      duration: context.motionDuration(DesignTokens.durationNormal),
     );
     final animation = useAnimation(
       ColorTween(

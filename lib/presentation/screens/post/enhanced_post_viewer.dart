@@ -10,6 +10,7 @@ import 'package:boorusphere/presentation/routes/app_page_route.dart';
 import 'package:boorusphere/presentation/routes/route_visibility.dart';
 import 'package:boorusphere/presentation/screens/home/search_session.dart';
 import 'package:boorusphere/presentation/screens/post/hooks/precache_posts.dart';
+import 'package:boorusphere/presentation/screens/post/hooks/surface_landed.dart';
 import 'package:boorusphere/presentation/screens/post/post_details_sheet.dart';
 import 'package:boorusphere/presentation/screens/post/post_media.dart';
 import 'package:boorusphere/presentation/screens/post/post_toolbox.dart';
@@ -30,6 +31,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+/// Where the opening moment hands over from the artwork to the chrome: the
+/// point in the route's own transition at which the surface is solid, so the
+/// controls arrive over something rather than over a fade.
+const double _chromeHandover = 0.6;
 
 class EnhancedPostViewer extends HookConsumerWidget {
   const EnhancedPostViewer({
@@ -108,6 +114,17 @@ class EnhancedPostViewer extends HookConsumerWidget {
     final routeVisible = useRouteVisible(
       ModalRoute.of(context),
       appRouteObserver,
+    );
+
+    // The artwork leads. Chrome waits until the viewer surface has landed, so
+    // the flight is the only thing moving when a post opens and the controls
+    // arrive once there is something to control. On the way out the same gate
+    // hands back: the chrome leaves while the artwork is still returning.
+    // Reduced motion removes the flight, so there is nothing left to wait for.
+    final surfaceLanded = useSurfaceLanded(
+      ModalRoute.of(context)?.animation,
+      handover: _chromeHandover,
+      enabled: !context.reducedMotion,
     );
 
     // The lock cover is a shell sibling, not a route: the observer above
@@ -589,7 +606,14 @@ class EnhancedPostViewer extends HookConsumerWidget {
 
                             return HeroMode(
                               key: ValueKey('hero_${post.id}_${post.serverId}'),
-                              enabled: index == controller.page,
+                              // A flight needs both ends, so switching this
+                              // off here is enough to keep the artwork from
+                              // travelling when the platform asks for reduced
+                              // motion. The post still opens; it just opens
+                              // where it is.
+                              enabled:
+                                  index == controller.page &&
+                                  !context.reducedMotion,
                               child: RepaintBoundary(child: widget),
                             );
                           },
@@ -641,6 +665,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                     SlideFadeVisibility(
                                       direction: HidingDirection.toTop,
                                       visible:
+                                          surfaceLanded &&
                                           controller
                                               .overlayShownListenable
                                               .value &&
@@ -673,6 +698,7 @@ class EnhancedPostViewer extends HookConsumerWidget {
                                       SlideFadeVisibility(
                                         direction: HidingDirection.toBottom,
                                         visible:
+                                            surfaceLanded &&
                                             controller
                                                 .overlayShownListenable
                                                 .value &&
