@@ -693,16 +693,19 @@ List<String> _blockedNamesFor(Map<int, BooruTag> blockers, String serverId) {
   ]..sort();
 }
 
-/// Fades a child while lifting it the last [DesignTokens.spacingSm] into
-/// place, for chrome that replaces other chrome at the same edge. Under
+/// Fades a child while lifting it the last [DesignTokens.motionChromeTravel]
+/// into place, for chrome that replaces other chrome at the same edge. Under
 /// reduced motion the duration is zero, so the swap is a cut.
 Widget _handoverTransition(Widget child, Animation<double> animation) {
+  // drive() wraps the value without attaching a status listener, so this needs
+  // no owner to dispose it — unlike a CurvedAnimation built per transition.
+  final curved = animation.drive(CurveTween(curve: DesignTokens.curveStandard));
   return FadeTransition(
-    opacity: animation,
+    opacity: curved,
     child: AnimatedBuilder(
-      animation: animation,
+      animation: curved,
       builder: (context, inner) => Transform.translate(
-        offset: Offset(0, (1 - animation.value) * DesignTokens.spacingSm),
+        offset: Offset(0, (1 - curved.value) * DesignTokens.motionChromeTravel),
         child: inner,
       ),
       child: child,
