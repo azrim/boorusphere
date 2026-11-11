@@ -35,6 +35,23 @@ spacing:
   md: "16px"
   lg: "24px"
   xl: "32px"
+motion:
+  duration:
+    fast: "150ms"
+    normal: "300ms"
+    slow: "500ms"
+    fade: "120ms"
+  curve:
+    standard: "easeOutCubic"
+    decelerate: "easeOut"
+    accelerate: "easeIn"
+    shift: "easeInOutCubic"
+  distance:
+    page-travel: "32dp"
+    page-recede: "16dp"
+    chrome-travel: "8dp"
+  scale:
+    pick: 0.92
 ---
 
 # Design System: Boorusphere
@@ -174,36 +191,50 @@ A step up the ladder does two things at once, never one of them:
 
 ## 5. Motion
 
-Motion is feedback: something arrived, something left, a gesture was recognised. It is never decoration. Every duration and curve reads from `DesignTokens`, and every movement yields to the platform's reduced-motion setting.
+Motion is feedback: something arrived, something left, a gesture was recognised. It is never decoration. Every duration, curve and travel distance reads from `DesignTokens`, and every movement yields to the platform's reduced-motion setting.
+
+It is also cheap. A transition moves, fades or tints — transform, opacity and color — and nothing else. No animation re-lays out the grid, no transition introduces a blur or a backdrop of its own, and no loop runs for decoration. Anything that moves stops when it is offscreen or covered.
 
 ### Tokens
 
 | Token | Value | Used for |
 | --- | --- | --- |
-| `durationFast` | 150 ms | A state change on a control already on screen: the sheet tab underline, the pin dots |
-| `durationNormal` | 300 ms | Arrivals and departures: the search panel slide, sheet snapping, a viewer page step, overlay chrome |
+| `durationFast` | 150 ms | A state change on a control already on screen: the sheet tab underline, the pin dots, a tile being picked. Also the exit leg of anything that arrived on `durationNormal` |
+| `durationNormal` | 300 ms | Arrivals: a page, a sheet, the search panel slide, sheet snapping, a viewer page step, overlay chrome |
 | `durationSlow` | 500 ms | A deliberate long travel: the back-to-top scroll |
-| `curveStandard` | easeOutCubic | Arrivals, page and sheet travel |
+| `durationFade` | 120 ms | The opacity-only leg: what a movement keeps of itself under reduced motion, and the whole of a change that never travelled |
+| `curveStandard` | easeOutCubic | Arrivals, page and sheet travel, the Hero flight |
 | `curveDecelerate` | easeOut | A content swap inside a fixed frame (the media switcher) |
 | `curveAccelerate` | easeIn | Departures — the reverse leg of an entrance |
+| `curveShift` | easeInOutCubic | A surface already at rest being moved aside by another arriving over it. It starts and ends at rest, so it reads as being pushed rather than as leaving |
+| `motionPageTravel` | 32 dp | How far an arriving page comes from the direction of travel |
+| `motionPageRecede` | 16 dp | How far the covered page steps back |
+| `motionChromeTravel` | 8 dp | The last settle of chrome that replaces other chrome at the same edge: the context menu card, its rows, the search-bar ⇄ selection-bar handover |
+| `motionPickScale` | 0.92 | A timeline tile settling back inside its own slot while selected |
+
+Distances are fixed dp, never a share of the screen: a page that travels a tenth of its width moves 36 dp on a phone and 80 dp on a tablet, which is one gesture reading as two different distances.
 
 ### Shared Vocabulary
 
-- **SlideFadeVisibility**: the one entrance/exit for overlay chrome (the viewer's app bar and toolbox, the selection bar swap). It slides on the standard curve and fades over a short fixed window; under reduced motion the slide collapses and only the fade remains
-- **Hero**: the timeline thumbnail becomes the viewer artwork as a shared element, not a crossfade between two copies of the image
+- **AppPageRoute**: the one page transition. An arriving page comes 32 dp from the direction of travel on the standard curve while the page below steps back 16 dp on `curveShift` and stays opaque; the reverse plays on the accelerate curve. A root page (home) fades without travelling, because there is nowhere it came from. Every page shares this — a screen that invents its own slide is a second navigation language
+- **Predictive back**: the same transition, driven by the finger. While the gesture is in flight the page follows the raw route animation with no curve applied, so it tracks the finger exactly; committing pops, cancelling returns to rest. The app opts in with `android:enableOnBackInvokedCallback`
+- **SlideFadeVisibility**: the one entrance/exit for overlay chrome (the viewer's app bar and toolbox). It slides on the standard curve and fades with it; the exit runs on `durationFast` and the accelerate curve, because a reader who dismisses the chrome should not wait as long as one who called for it. Under reduced motion the slide collapses and only the fade remains
+- **Hero**: the timeline thumbnail becomes the viewer artwork as a shared element, not a crossfade between two copies of the image. Both ends fly on `curveStandard`, so the artwork and the page around it agree on the easing
 - **Staggered grid + shimmer**: the grid's varied layout is its own entrance; shimmer placeholders hold the shape until the first page lands
 - **Zoom**: double-tap zoom runs on one controller with a retargetable tween slot; a reset reuses the same controller, so an interrupted zoom never leaves a second animation running behind it
 - **Slideshow**: steps pages at the reader's interval (3–15 s) with the same page-step motion as a manual swipe, and stops whenever the viewer is covered
 
 ### Named Rules
 
-**The Token Rule.** Durations and curves come from `DesignTokens`, never from per-widget literals. A widget that invents its own 200 ms easeInOut is a second motion language that has to be retuned everywhere the tokens change.
+**The Token Rule.** Durations, curves and travel distances come from `DesignTokens`, never from per-widget literals. A widget that invents its own 200 ms easeInOut is a second motion language that has to be retuned everywhere the tokens change; a widget that borrows `spacingSm` as a travel distance ties a motion to a layout rhythm that will be retuned for a different reason.
 
 **The Reduced Motion Rule.** Every user-visible movement reads `context.motionDuration(...)`, which collapses to zero when the platform's *Remove animations* is on; an opacity fade may keep a short explicit duration, because a fade still communicates the state change without moving the view. Zero is not a legal duration everywhere, and the exceptions are part of the contract:
 
 - `AnimationController` accepts zero (it jumps and fires its status) — safe to hand a collapsed duration.
 - `ScrollController.animateTo` and anything built on `DrivenScrollActivity` assert a positive duration — reduced motion must `jumpTo` / `jumpToPage` instead. `Scrollable.ensureVisible` guards zero itself.
 - `DraggableScrollableSheet.snapAnimationDuration` asserts positive — reduced motion passes `null` and lets the SDK's own fast snap take over, never `Duration.zero`.
+
+The Hero flight is the one movement that is removed outright rather than collapsed: with *Remove animations* on, `HeroMode` is disabled on the viewer page, so the artwork is simply already there. A flight needs both ends, so disabling the destination is enough. A cross-route flight cannot be shortened to a fade without leaving two copies of the image on screen, and a zero-duration flight still teleports a full-screen bitmap.
 
 **The Ownership Rule.** A controller belongs to the state object that owns the animation's lifecycle: created once (`late final`, `useAnimationController`), disposed there, never constructed in `build`. A `CurvedAnimation` wrapper attaches a status listener and is disposed with its owner; a listener is registered once in an effect and removed in its cleanup. A hook-owned notifier is dead after unmount — no continuation may write to it.
 
@@ -213,7 +244,13 @@ Motion is feedback: something arrived, something left, a gesture was recognised.
 
 **The Covered Route Rule.** A non-opaque route (a dialog, a sheet) does not mute the covered page's tickers, so "still animating" is not "still visible". The viewer asks `useRouteVisible` through the app-wide route observer, and a running slideshow stops when any route covers it — resuming is a deliberate tap, never an automatic restart.
 
-**The Inert While Invisible Rule.** An element at zero opacity during an entrance or exit takes no pointers and exposes no semantics until it begins to appear. An invisible menu row that can still be tapped is a hidden control.
+**The Inert While Invisible Rule.** An element at zero opacity during an entrance or exit takes no pointers and exposes no semantics until it begins to appear. An invisible menu row that can still be tapped is a hidden control. The rule is also the budget: an always-mounted overlay at zero opacity paints nothing, so a crossfade costs less than the rebuild a conditional swap would.
+
+**The Handover Rule.** One subject arrives at a time. Opening a post is the artwork's moment: the thumbnail flies to fill the screen, and the viewer's chrome waits until the surface under it is solid (60% of the route transition) before it slides in. Chrome that fades up alongside a half-transparent page is chrome arriving over nothing. On the way out the handover reverses — the chrome leaves on the short window while the artwork is still flying home. Reduced motion takes the flight away, so the gate opens at once: there is no arrival left to hand over from. The gate reads the route's animation, never the frame the route was installed on — that frame reports a transition already finished, and chrome that believed it would flash in and out before the artwork had left the tile.
+
+**The Anchored Grid Rule.** A route that carries a shared subject (`AppPageMotion.shared`, the post viewer) leaves the page below where it is: no recede, no fade. The grid is the thing the artwork came from and returns to, so it holds still while the artwork travels. It also declares itself non-opaque, which keeps it mounted and painted for the whole flight. Every other route steps the covered page back — and never fades it, because a hole in an opaque page shows the window background through it.
+
+**The Back Gate Rule.** A predictive back gesture does not go through `BackButtonDispatcher`: the platform asks each `WidgetsBindingObserver` directly, and only falls back to the ordinary dispatch when no route accepts the start. A cover that blocks input by painting over the app — the app lock — therefore does not block back. The shell publishes a `BackGate` above every route, and the route's gesture scope reads it live before accepting; refusing the start hands the gesture back to the dispatcher the cover already answers. `PopScope` is honored the same way, through the route's own `popGestureEnabled`.
 
 ## 6. Components
 
@@ -252,7 +289,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 - **Layout**: Staggered grid (flutter_staggered_grid_view): a device-dependent default (≈2–3 columns depending on width), user-adjustable from the bar. The column count and the thumbnail decode size both come from the extent the grid is actually laid out in, so the page insets are counted once
 - **Items**: Full-bleed image thumbnails with rounded corners (8px), no borders
 - **Overlays**: Compact labels sit directly on the image, kept legible by a neutral top/bottom scrim plus a drop shadow on the tag, both read from `AppMediaChrome` (see the Adaptive Rule). The tag-category accents are the one non-scheme color left, since those hues are a booru convention rather than a palette decision:
-  - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Replaced by the selection checkbox while the post is selected.
+  - **Top-left**: score (`★ 1.4k`, hidden at 0) + rating badge. Hands its corner to the selection check while the post is selected — both stay mounted and cross-fade, so the corner changes occupant instead of cutting
   - **Rating badge**: one-letter chip, S / Q / E / SN, colored from the scheme only: safe → primary, questionable → tertiary, sensitive → secondary, explicit → error; skipped for unrated posts
   - **Top-right**: media type as the file extension (`PNG`, `JPG`, `GIF`, `MP4`, …), hidden when unknown
   - **Bottom-left**: the most identifying tag name (`niten`, no category prefix) in a translucent pill tinted by category: artist orange, copyright purple, character green, general blue. The fill is the category color at low opacity with a hairline matching border, so the image shows through; falls back artist → copyright → character → general; hidden when the post has no tags
@@ -260,6 +297,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
   - **Sizing**: the overlay label type, icons and scrim heights scale with the tile width (full size at 130px, floored at 0.7×) so a denser grid shrinks the overlays instead of clipping the labels away. They ignore the system font scale: the tile is the unit, so a 2× font setting must not push the labels past the image
 - **Quick actions**: not on the card; a long-press opens the [Context Menu](#context-menu-post-actions)
 - **Selection**: tap a card to toggle while any selection is active; selection starts from the context menu, never from the long-press itself
+- **Selection feedback**: the picked tile settles to `motionPickScale` inside its own slot and a 3 dp `primary` ring fades in on its edge. The reader is taking hold of an object, not sticking a badge on a picture, so the tile shrinks rather than growing a frame. It is a transform, so the grid never re-lays out around a selection and no neighbour moves a pixel. The ring is painted outside the thumbnail's rounded clip — inside it, the corner would eat half the stroke. Under reduced motion the settle is instant and the ring still fades
 - **Accessibility**: each card is one screen-reader node: the overlays are folded into a single label (tag, rating, score, file type, dimensions), with the tap and long-press actions on that node and the selected state announced rather than drawn as an unlabelled check. A post with none of those falls back to its id so the node is never nameless
 - **Loading**: Shimmer placeholders with desaturated surface color, drawn at the grid's own inset and column count, so the first page does not change shape when it lands
 - **States**: A spinner while a page is loading; an [empty state](#empty-states) for empty or failed results
@@ -274,7 +312,7 @@ The screen a challenged server sends the reader to. Opened from the timeline's e
 - **Presentation**: a floating card over a blurred backdrop, `surfaceContainerHigh` fill, 16 px radius, tinted shadow; the `outlineVariant` hairline edge returns only in Midnight
 - **Backdrop**: the whole screen is blurred, thinly (sigma 11) under a 16% veil, so the menu reads as a layer above the app while the grid stays recognisable. Both are painted at full strength from the first frame; the route fades the page, and animating the blur as well multiplied two fades into one late blur. Tap anywhere or press back to dismiss
 - **Rows**: each a tinted icon chip (`secondaryContainer` / `onSecondaryContainer`) plus a label; grouped by intent (select / favorite · download / share / open source) with hairline dividers; disabled rows dim to 38%
-- **Motion**: the card fades in and travels the last 8 dp on the standard curve; a menu that appears where the finger already is has no room for a long entrance. Rows fade and slide in with a short stagger; the reverse plays on dismiss
+- **Motion**: the card fades in and travels the last `motionChromeTravel` on the standard curve; a menu that appears where the finger already is has no room for a long entrance. Rows fade and slide in with a short stagger on the same distance; the reverse plays on dismiss. Under reduced motion the stagger and the travel are gone — every row is in place at once — and the route keeps a `durationFade` fade so the menu still reads as arriving
 - **Colors**: scheme-only; icon chips and labels come from `ColorScheme`, with no per-action accent colors
 ### Navigation (Home Drawer)
 - **Style**: Navigation drawer, opened by the leading server chip in the search bar or by a swipe anywhere on the grid (a narrow edge zone loses the gesture race to the system back gesture on gesture-nav phones, so the drag zone is the full width while the search bar is closed); rounded right edge, width capped to the viewport
@@ -299,6 +337,7 @@ One container for every bottom sheet in the app: post details, settings pickers,
 - **Footer**: a hairline, then the sheet's one action, full width
 - **Insets**: the keyboard and the system navigation bar are both cleared by the shell, so a field never sits under the IME
 - **Dismiss**: the close control, a downward drag, or the backdrop: all three
+- **Motion**: every sheet opens through `showSheet`, which carries one `AnimationStyle`: in on `durationNormal` / `curveStandard`, out on `durationFast` / `curveAccelerate`. The sheet travels from the edge it is pinned to and leaves the same way, faster than it came. Under reduced motion both legs collapse to zero — this transition moves the sheet by laying it out, so there is no opacity leg to keep
 
 ### Sheet Tabs
 - **Use**: only when a sheet holds more than one kind of answer: the post details split into Details / Tags / Links
@@ -411,7 +450,10 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Do** let the staggered grid handle visual interest; varied aspect ratios are the texture
 - **Do** use the midnight AMOLED mode as the hero viewing mode for image-heavy sessions
 - **Do** use curved transitions (easeOutCubic) for sheet expansion and page navigation
-- **Do** route every duration through `context.motionDuration` and every curve through `DesignTokens`; reduced motion is a platform setting, not an app toggle
+- **Do** route every duration through `context.motionDuration`, every curve and travel distance through `DesignTokens`; reduced motion is a platform setting, not an app toggle
+- **Do** let the artwork lead when a post opens, and bring the chrome in after the surface under it is solid (the Handover Rule)
+- **Do** exit faster than you entered: `durationFast` on the accelerate curve is the reverse leg of a `durationNormal` arrival
+- **Do** keep a short `durationFade` fade when reduced motion takes a movement away, so the change is still announced
 - **Do** jump instead of animating when reduced motion collapses a duration to zero on a scroll API (`jumpTo`, `jumpToPage`, or a `null` snap duration)
 - **Do** group related chrome rows into a section block with a small-caps label instead of scattering them as standalone cards
 - **Do** pick one of the four elevation rungs for anything that sits above the page, and take the tone step and the shadow together
@@ -423,6 +465,10 @@ Server management reuses the same block language as the drawer and settings: a s
 - **Don't** put anything on an image beyond the defined compact overlays (score, rating, media type, one tag, dimensions); deeper detail lives in the details sheet
 - **Don't** add unnecessary onboarding screens; the interface is self-explanatory; empty states teach by doing
 - **Don't** use decorative animations; motion serves feedback (loading, transitions), not delight for its own sake
+- **Don't** animate a property that re-lays out the grid, or add a blur/backdrop to a transition; a move, a fade or a tint is the whole budget
+- **Don't** fade or move the page below a shared-subject route, and never fade a covered opaque page at all — the hole shows the window background
+- **Don't** assume a painted cover blocks back; a predictive gesture bypasses `BackButtonDispatcher`, so the cover closes that path through `BackGate` (the Back Gate Rule)
+- **Don't** read a curve's direction from `animation.status` while a back gesture is driving it; the status stays `forward` while the value falls, so the direction comes from `popGestureInProgress`
 - **Don't** pass `Duration.zero` to `ScrollController.animateTo` or a sheet's `snapAnimationDuration`; both assert a positive duration, so reduced motion jumps or passes `null` instead (see the Reduced Motion Rule)
 - **Don't** await `controller.forward()` / `reverse()` and then touch state without a mounted / disposed check; a canceled ticker's future never completes, and a disposed scroll animation's future completes after its owner is gone
 - **Don't** construct an `AnimationController` or `CurvedAnimation` in `build`, or leave one undisposed; a curve wrapper carries a status listener too
