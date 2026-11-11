@@ -61,6 +61,11 @@ class DesignTokens {
   static const Duration durationNormal = Duration(milliseconds: 300);
   static const Duration durationSlow = Duration(milliseconds: 500);
 
+  /// The opacity-only leg. What a movement keeps of itself once the platform
+  /// asks for reduced motion, and the whole of a change that never travelled:
+  /// long enough to read as a change, too short to feel like waiting.
+  static const Duration durationFade = Duration(milliseconds: 120);
+
   /// How long a message stays up: long enough to read a sentence, short
   /// enough that it does not sit on top of the next action.
   static const Duration durationSnackbar = Duration(seconds: 2);
@@ -74,4 +79,32 @@ class DesignTokens {
   static const Curve curveStandard = Curves.easeOutCubic;
   static const Curve curveDecelerate = Curves.easeOut;
   static const Curve curveAccelerate = Curves.easeIn;
+
+  /// A surface that is already on screen and is being moved aside by another
+  /// one arriving over it. It starts and ends at rest, so it reads as being
+  /// pushed rather than as leaving: a departure curve here would make the
+  /// covered page look like it was dismissing itself.
+  static const Curve curveShift = Curves.easeInOutCubic;
+
+  // Motion distances. Fixed dp, never a share of the screen: a page that
+  // travels a tenth of its width moves 36 dp on a phone and 80 dp on a tablet,
+  // which is the same gesture reading as two different distances.
+
+  /// How far a page travels as it arrives over the one it covers.
+  static const double motionPageTravel = 32.0;
+
+  /// How far the page underneath steps back while it is being covered. Half
+  /// the arriving page's travel, so the pair reads as one depth change and the
+  /// page below never looks like it is leaving.
+  static const double motionPageRecede = 16.0;
+
+  /// The last stretch overlay chrome travels into place. Chrome that appears
+  /// where the finger already is has no room for a long entrance.
+  static const double motionChromeTravel = 8.0;
+
+  /// What a grid tile does when the reader picks it: it settles back inside
+  /// its own slot, so the tile reads as an object taken hold of rather than a
+  /// picture with a badge stuck on it. Transform only — the grid never
+  /// re-lays out around a selection.
+  static const double motionPickScale = 0.92;
 }
